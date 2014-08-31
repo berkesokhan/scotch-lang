@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.github.lmcgrath.scotch</groupId>
+        <artifactId>scotch-lang</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>scotch-stdlib</artifactId>
+    <name>Scotch Standard Library</name>
+
+    <properties>
+        <scriptsDir>src/main/scripts</scriptsDir>
+        <tuples.range>64</tuples.range>
+        <tuples.javaDir>${project.build.directory}/generated-sources/tuples-java</tuples.javaDir>
+        <tuples.scotchDir>${project.build.directory}/generated-sources/tuples-scotch</tuples.scotchDir>
+        <scotch.buildDir>${project.build.directory}/generated-resources/scotch</scotch.buildDir>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.github.lmcgrath.scotch</groupId>
+            <artifactId>scotch-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.lmcgrath.scotch</groupId>
+            <artifactId>scotch-core</artifactId>
+            <version>${project.version}</version>
+            <classifier>test-support-jar</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-all</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>com.github.lmcgrath.scotch</groupId>
+                <artifactId>scotch-maven-plugin</artifactId>
+                <version>${project.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.github.lmcgrath.scotch</groupId>
+                        <artifactId>scotch-core</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+        </plugins>
+    </build>
+
+</project>
