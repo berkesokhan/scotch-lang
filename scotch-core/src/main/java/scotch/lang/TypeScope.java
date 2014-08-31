@@ -44,8 +44,13 @@ public class TypeScope {
             }
 
             @Override
-            public Type visit(RecursiveLookup lookup) {
-                return lookup(lookup.getName(), lookup.getArguments().stream().map(TypeScope.this::generate).collect(toList()));
+            public Type visit(UnionLookup lookup) {
+                return lookup(
+                    lookup.getName(),
+                    lookup.getArguments().stream()
+                        .map(TypeScope.this::generate)
+                        .collect(toList())
+                );
             }
 
             @Override
@@ -57,7 +62,9 @@ public class TypeScope {
             public Type visit(UnionType unionType) {
                 return union(
                     unionType.getName(),
-                    unionType.getArguments(),
+                    unionType.getArguments().stream()
+                        .map(TypeScope.this::generate)
+                        .collect(toList()),
                     unionType.getMembers().stream()
                         .map(member -> ctor(
                             member.getName(),

@@ -87,8 +87,10 @@
                             <goal>execute</goal>
                         </goals>
                         <configuration>
-                            <source>${project.basedir}/${scriptsDir}/generate-tuples.groovy</source>
+                            <source>${project.basedir}/${scriptsDir}/tuples.groovy</source>
                             <properties>
+                                <groupId>${groupId}</groupId>
+                                <artifactId>${artifactId}</artifactId>
                                 <javaDir>${tuples.javaDir}</javaDir>
                                 <scotchDir>${tuples.scotchDir}</scotchDir>
                                 <tupleRange>${tuples.range}</tupleRange>

@@ -51,7 +51,7 @@ public abstract class Type {
     }
 
     public static Type lookup(String name, List<Type> arguments) {
-        return new RecursiveLookup(name, arguments);
+        return new UnionLookup(name, arguments);
     }
 
     public static Type nullary(String name) {
@@ -110,6 +110,8 @@ public abstract class Type {
 
     protected abstract Unification unifyWith(FunctionType functionType, TypeScope typeScope);
 
+    protected abstract Unification unifyWith(UnionLookup lookup, TypeScope typeScope);
+
     public interface TypeVisitor<T> {
 
         default T visit(FunctionType functionType) {
@@ -124,7 +126,7 @@ public abstract class Type {
             return visitOtherwise(unionType);
         }
 
-        default T visit(RecursiveLookup lookup) {
+        default T visit(UnionLookup lookup) {
             return visitOtherwise(lookup);
         }
 
@@ -206,6 +208,11 @@ public abstract class Type {
                 )
             );
         }
+
+        @Override
+        protected Unification unifyWith(UnionLookup lookup, TypeScope typeScope) {
+            return mismatch(lookup, this);
+        }
     }
 
     public static class MemberField {
@@ -249,12 +256,12 @@ public abstract class Type {
         }
     }
 
-    public static class RecursiveLookup extends Type {
+    public static class UnionLookup extends Type {
 
         private final String name;
         private final List<Type> arguments;
 
-        private RecursiveLookup(String name, List<Type> arguments) {
+        private UnionLookup(String name, List<Type> arguments) {
             this.name = name;
             this.arguments = arguments;
         }
@@ -268,8 +275,8 @@ public abstract class Type {
         public boolean equals(Object o) {
             if (o == this) {
                 return true;
-            } else if (o instanceof RecursiveLookup) {
-                RecursiveLookup other = (RecursiveLookup) o;
+            } else if (o instanceof UnionLookup) {
+                UnionLookup other = (UnionLookup) o;
                 return Objects.equals(name, other.name)
                     && Objects.equals(arguments, other.arguments);
             } else {
@@ -292,32 +299,45 @@ public abstract class Type {
 
         @Override
         public String toString() {
-            return "RecursiveLookup(" + name + ")";
+            return "UnionLookup(" + name + ")";
         }
 
         @Override
         public Unification unify(Type type, TypeScope typeScope) {
-            throw new UnsupportedOperationException(); // TODO
+            return type.unifyWith(this, typeScope);
         }
 
         @Override
         protected boolean contains(VariableType variableType) {
-            throw new UnsupportedOperationException(); // TODO
+            return arguments.contains(variableType);
         }
 
         @Override
         protected Unification unifyWith(UnionType unionType, TypeScope typeScope) {
-            throw new UnsupportedOperationException(); // TODO
+            if (Objects.equals(name, unionType.name) && Objects.equals(arguments, unionType.arguments)) {
+                return unified(unionType);
+            } else {
+                return mismatch(unionType, this);
+            }
         }
 
         @Override
         protected Unification unifyWith(VariableType variableType, TypeScope typeScope) {
-            throw new UnsupportedOperationException(); // TODO
+            return unifyVariable(this, variableType, typeScope);
         }
 
         @Override
         protected Unification unifyWith(FunctionType functionType, TypeScope typeScope) {
-            throw new UnsupportedOperationException(); // TODO
+            return mismatch(functionType, this);
+        }
+
+        @Override
+        protected Unification unifyWith(UnionLookup lookup, TypeScope typeScope) {
+            if (equals(lookup)) {
+                return unified(this);
+            } else {
+                return mismatch(lookup, this);
+            }
         }
     }
 
@@ -471,6 +491,15 @@ public abstract class Type {
         protected Unification unifyWith(FunctionType functionType, TypeScope typeScope) {
             return mismatch(functionType, this);
         }
+
+        @Override
+        protected Unification unifyWith(UnionLookup lookup, TypeScope typeScope) {
+            if (Objects.equals(name, lookup.name) && Objects.equals(arguments, lookup.arguments)) {
+                return unified(this);
+            } else {
+                return mismatch(lookup, this);
+            }
+        }
     }
 
     public static class VariableType extends Type {
@@ -576,6 +605,11 @@ public abstract class Type {
         @Override
         protected Unification unifyWith(FunctionType functionType, TypeScope typeScope) {
             return unify_(functionType, typeScope).orElseGet(() -> bind(functionType, typeScope));
+        }
+
+        @Override
+        protected Unification unifyWith(UnionLookup lookup, TypeScope typeScope) {
+            return unify_(lookup, typeScope).orElseGet(() -> bind(lookup, typeScope));
         }
     }
 }

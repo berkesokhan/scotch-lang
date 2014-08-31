@@ -74,7 +74,7 @@ public class ArgumentBinder {
             }
 
             @Override
-            public Unification visit(RecursiveLookup lookup) {
+            public Unification visit(UnionLookup lookup) {
                 return unified(lookup(
                     lookup.getName(),
                     lookup.getArguments().stream()
