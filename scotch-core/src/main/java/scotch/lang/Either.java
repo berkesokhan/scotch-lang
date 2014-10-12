@@ -1,6 +1,9 @@
 package scotch.lang;
 
+import static scotch.compiler.util.TextUtil.stringify;
+
 import java.util.Objects;
+import java.util.function.Function;
 
 public abstract class Either<L, R> {
 
@@ -16,12 +19,16 @@ public abstract class Either<L, R> {
         // intentionally empty
     }
 
+    public abstract <T> T accept(EitherVisitor<L, R, T> visitor);
+
     @Override
     public abstract boolean equals(Object o);
 
     public abstract L getLeft();
 
     public abstract R getRight();
+
+    public abstract R getRightOr(Function<L, R> function);
 
     @Override
     public abstract int hashCode();
@@ -31,12 +38,24 @@ public abstract class Either<L, R> {
     @Override
     public abstract String toString();
 
+    public interface EitherVisitor<L, R, T> {
+
+        T visitLeft(L left);
+
+        T visitRight(R right);
+    }
+
     public static class Left<L, R> extends Either<L, R> {
 
         private final L left;
 
         private Left(L left) {
             this.left = left;
+        }
+
+        @Override
+        public <T> T accept(EitherVisitor<L, R, T> visitor) {
+            return visitor.visitLeft(left);
         }
 
         @Override
@@ -55,6 +74,11 @@ public abstract class Either<L, R> {
         }
 
         @Override
+        public R getRightOr(Function<L, R> function) {
+            return function.apply(left);
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(left);
         }
@@ -66,7 +90,7 @@ public abstract class Either<L, R> {
 
         @Override
         public String toString() {
-            return "Left(" + left + ")";
+            return stringify(this) + "(" + left + ")";
         }
     }
 
@@ -76,6 +100,11 @@ public abstract class Either<L, R> {
 
         private Right(R right) {
             this.right = right;
+        }
+
+        @Override
+        public <T> T accept(EitherVisitor<L, R, T> visitor) {
+            return visitor.visitRight(right);
         }
 
         @Override
@@ -94,6 +123,11 @@ public abstract class Either<L, R> {
         }
 
         @Override
+        public R getRightOr(Function<L, R> supplier) {
+            return right;
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(right);
         }
@@ -105,7 +139,7 @@ public abstract class Either<L, R> {
 
         @Override
         public String toString() {
-            return "Right(" + right + ")";
+            return stringify(this) + "(" + right + ")";
         }
     }
 }

@@ -1,12 +1,26 @@
 package scotch.lang;
 
-import static java.util.Arrays.*;
-import static java.util.Collections.*;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-import static scotch.lang.Type.*;
-import static scotch.lang.Unification.*;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static scotch.lang.Type.VariableType;
+import static scotch.lang.Type.argumentOf;
+import static scotch.lang.Type.constant;
+import static scotch.lang.Type.ctor;
+import static scotch.lang.Type.field;
+import static scotch.lang.Type.fn;
+import static scotch.lang.Type.lookup;
+import static scotch.lang.Type.nullary;
+import static scotch.lang.Type.union;
+import static scotch.lang.Type.var;
+import static scotch.lang.Unification.circular;
+import static scotch.lang.Unification.mismatch;
+import static scotch.lang.Unification.unified;
 
 import java.util.List;
 import org.junit.Before;
@@ -24,12 +38,11 @@ public class TypeTest {
         ));
     }
 
-    private final Type intType = nullary("Int");
+    private final Type intType    = nullary("Int");
     private final Type stringType = nullary("String");
-    private final Type listType = listOf(var("a"));
-
+    private final Type listType   = listOf(var("a"));
     private ContextScope contextScope;
-    private TypeScope typeScope;
+    private TypeScope    typeScope;
 
     @Before
     public void setUp() {
@@ -37,52 +50,10 @@ public class TypeTest {
         typeScope = new TypeScope(contextScope);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void shouldThrowException_whenCreatingNullaryWithLowerCaseName() {
-        nullary("int");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void shouldThrowException_whenCreatingVariableWithUpperCaseName() {
-        var("A");
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void shouldThrowException_whenTryingToCreateUnionWithMemberHavingMoreArguments() {
-        union("List", asList(var("a")), asList(
-            ctor("Node", asList(var("a"), var("b")), asList(
-                field("_0", var("a")),
-                field("_1", lookup("List", asList(var("a"))))
-            )),
-            constant("Empty")
-        ));
-    }
-
     @Test
-    public void shouldPropagateNullaryTypeIntoVariableType() {
-        Type target = stringType;
-        Type variable = var("a");
-        shouldBeUnified(unify(target, variable), target);
-        shouldBeBound(variable, target);
-    }
-
-    @Test
-    public void shouldNotPropagateNullaryTypeIntoBoundVariableType() {
-        Type target = stringType;
-        Type variable = var("a");
-        Type binding = nullary("Integer");
-        Unification actualResult = binding.unify(variable, typeScope);
-        shouldBeMismatch(unify(target, variable), target, binding);
-        shouldBeUnified(actualResult, binding);
-        shouldBeBound(variable, binding);
-    }
-
-    @Test
-    public void shouldPropagateFunctionIntoVariable() {
-        Type target = fn(intType, stringType);
-        Type variable = var("a");
-        shouldBeUnified(unify(target, variable), target);
-        shouldBeBound(variable, target);
+    public void shouldBindIntegerToUnionTypeArgument() {
+        Type expectedType = listOf(intType);
+        shouldBeUnified(typeScope.bind(listType, asList(intType)), expectedType);
     }
 
     @Test
@@ -93,44 +64,16 @@ public class TypeTest {
     }
 
     @Test
-    public void shouldUnifyVariables() {
-        Type target = fn(var("a"), intType);
-        Type query = fn(var("b"), intType);
-        shouldBeUnified(unify(target, query), target);
-        shouldBeBound(argumentOf(query), argumentOf(target));
-    }
-
-    @Test
-    public void shouldReplaceChainsOfBoundVariables() {
-        Type target = fn(var("a"), intType);
-        Type query = fn(var("b"), intType);
-        unify(target, query);
-        unify(argumentOf(target), stringType);
-        shouldBeReplaced(target, fn(stringType, intType));
-        shouldBeReplaced(query, fn(stringType, intType));
-    }
-
-    @Test
-    public void shouldNotUnifyFunctionWithUnion() {
-        Type function = fn(stringType, intType);
-        Type union = intType;
-        shouldBeMismatch(function, union);
-    }
-
-    @Test
-    public void shouldNotUnifyUnionWithFunction() {
-        Type union = intType;
-        Type function = fn(stringType, intType);
-        shouldBeMismatch(union, function);
-    }
-
-    @Test
-    public void shouldNotUnifyBoundVariableWithFunction() {
-        Type variable = var("a");
-        Type function = fn(stringType, nullary("Bool"));
-        Type target = intType;
-        unify(variable, target);
-        shouldBeMismatch(unify(variable, function), target, function);
+    public void shouldMergeContext_whenUnifyingVariablesHavingContext() {
+        List<String> context0 = asList("Eq", "Ord");
+        List<String> context1 = asList("Typed");
+        Type variable0 = var("a", context0);
+        Type variable1 = var("b", context1);
+        Type expectedResult = var("t1", asList("Eq", "Ord", "Typed"));
+        Unification result = unify(variable0, variable1);
+        shouldBeUnified(result, expectedResult);
+        shouldBeBound(variable0, expectedResult);
+        shouldBeBound(variable1, expectedResult);
     }
 
     @Test
@@ -157,48 +100,94 @@ public class TypeTest {
     }
 
     @Test
-    public void shouldPropagateContext_whenUnifyingVariableWithVariableHavingContext() {
-        List<String> context = asList("Eq");
+    public void shouldNotPropagateNullaryTypeIntoBoundVariableType() {
+        Type target = stringType;
         Type variable = var("a");
-        Type variableHavingContext = var("b", context);
-        Type expectedResult = var("t1", context);
-        Unification result = unify(variable, variableHavingContext);
-        shouldBeUnified(result, expectedResult);
-        shouldBeBound(variable, expectedResult);
-        shouldBeBound(variableHavingContext, expectedResult);
+        Type binding = nullary("Integer");
+        Unification actualResult = binding.unify(variable, typeScope);
+        shouldBeMismatch(unify(target, variable), target, binding);
+        shouldBeUnified(actualResult, binding);
+        shouldBeBound(variable, binding);
     }
 
     @Test
-    public void shouldPropagateContext_whenUnifyingVariableHavingContextWithVariable() {
-        List<String> context = asList("Eq");
-        Type variableHavingContext = var("a", context);
-        Type variable = var("b");
-        Type expectedResult = var("t1", context);
-        Unification result = unify(variableHavingContext, variable);
-        shouldBeUnified(result, expectedResult);
-        shouldBeBound(variableHavingContext, expectedResult);
-        shouldBeBound(variable, expectedResult);
+    public void shouldNotUnifyBoundVariableWithFunction() {
+        Type variable = var("a");
+        Type function = fn(stringType, nullary("Bool"));
+        Type target = intType;
+        unify(variable, target);
+        shouldBeMismatch(unify(variable, function), target, function);
     }
 
     @Test
-    public void shouldMergeContext_whenUnifyingVariablesHavingContext() {
-        List<String> context0 = asList("Eq", "Ord");
-        List<String> context1 = asList("Typed");
-        Type variable0 = var("a", context0);
-        Type variable1 = var("b", context1);
-        Type expectedResult = var("t1", asList("Eq", "Ord", "Typed"));
-        Unification result = unify(variable0, variable1);
-        shouldBeUnified(result, expectedResult);
-        shouldBeBound(variable0, expectedResult);
-        shouldBeBound(variable1, expectedResult);
+    public void shouldNotUnifyFunctionWithLookup() {
+        Type function = fn(var("a"), var("b"));
+        Type lookup = lookup("List", asList(var("a")));
+        shouldBeMismatch(function, lookup);
     }
 
     @Test
-    public void shouldNotUnifyVariableWithUnion_whenVariableContextDoesNotMatchUnionContext() {
-        Type variable = var("a", asList("Typed"));
-        Type union = union("Colors", asList(constant("Red"), constant("Green"), constant("Blue")));
-        when(contextScope.getContext(union)).thenReturn(asList("Eq", "Ord"));
-        shouldBeContextMismatch(unify(variable, union), variable, union);
+    public void shouldNotUnifyFunctionWithUnion() {
+        Type function = fn(stringType, intType);
+        Type union = intType;
+        shouldBeMismatch(function, union);
+    }
+
+    @Test
+    public void shouldNotUnifyFunctionWithVariable_whenVariableHasContext() {
+        Type function = fn(intType, stringType);
+        Type variable = var("a", asList("Eq"));
+        when(contextScope.getContext(variable)).thenReturn(asList("Eq"));
+        shouldBeContextMismatch(unify(function, variable), function, variable);
+    }
+
+    @Test
+    public void shouldNotUnifyLookupWithFunction() {
+        Type lookup = lookup("List", asList(var("a")));
+        Type function = fn(var("a"), var("b"));
+        shouldBeMismatch(lookup, function);
+    }
+
+    @Test
+    public void shouldNotUnifyLookupWithLookup_whenNamesDoNotMatch() {
+        Type lookup0 = lookup("List", asList(var("a")));
+        Type lookup1 = lookup("List?", asList(var("a")));
+        shouldBeMismatch(lookup0, lookup1);
+    }
+
+    @Test
+    public void shouldNotUnifyLookupWithUnion_whenArgumentsDoNotMatch() {
+        Type lookup = lookup("List", asList(stringType));
+        Type union = listOf(intType);
+        shouldBeMismatch(lookup, union);
+    }
+
+    @Test
+    public void shouldNotUnifyLookupWithUnion_whenNamesDoNotMatch() {
+        Type lookup = lookup("List2", asList(intType));
+        Type union = listOf(intType);
+        shouldBeMismatch(lookup, union);
+    }
+
+    @Test
+    public void shouldNotUnifyUnionWithFunction() {
+        Type union = intType;
+        Type function = fn(stringType, intType);
+        shouldBeMismatch(union, function);
+    }
+
+    @Test
+    public void shouldNotUnifyUnionWithLookup_whenArgumentsDoNotMatch() {
+        Type union = listOf(intType);
+        Type lookup = lookup("List", asList(stringType));
+        shouldBeMismatch(union, lookup);
+    }
+
+    @Test
+    public void shouldNotUnifyUnionWithLookup_whenNamesDoNotMatch() {
+        Type union = listOf(intType);
+        Type lookup = lookup("List0", asList(intType));
+        shouldBeMismatch(union, lookup);
     }
 
     @Test
@@ -218,59 +207,43 @@ public class TypeTest {
     }
 
     @Test
-    public void shouldNotUnifyFunctionWithVariable_whenVariableHasContext() {
-        Type function = fn(intType, stringType);
-        Type variable = var("a", asList("Eq"));
-        when(contextScope.getContext(variable)).thenReturn(asList("Eq"));
-        shouldBeContextMismatch(unify(function, variable), function, variable);
+    public void shouldNotUnifyVariableWithUnion_whenVariableContextDoesNotMatchUnionContext() {
+        Type variable = var("a", asList("Typed"));
+        Type union = union("Colors", asList(constant("Red"), constant("Green"), constant("Blue")));
+        when(contextScope.getContext(union)).thenReturn(asList("Eq", "Ord"));
+        shouldBeContextMismatch(unify(variable, union), variable, union);
     }
 
     @Test
-    public void shouldBindIntegerToUnionTypeArgument() {
-        Type expectedType = listOf(intType);
-        shouldBeUnified(typeScope.bind(listType, asList(intType)), expectedType);
+    public void shouldPropagateContext_whenUnifyingVariableHavingContextWithVariable() {
+        List<String> context = asList("Eq");
+        Type variableHavingContext = var("a", context);
+        Type variable = var("b");
+        Type expectedResult = var("t1", context);
+        Unification result = unify(variableHavingContext, variable);
+        shouldBeUnified(result, expectedResult);
+        shouldBeBound(variableHavingContext, expectedResult);
+        shouldBeBound(variable, expectedResult);
     }
 
     @Test
-    public void shouldUnifyLookupWithUnion_whenNamesAndArgumentsMatch() {
-        Type lookup = lookup("List", asList(intType));
-        Type union = listOf(intType);
-        shouldBeUnified(unify(lookup, union), union);
+    public void shouldPropagateContext_whenUnifyingVariableWithVariableHavingContext() {
+        List<String> context = asList("Eq");
+        Type variable = var("a");
+        Type variableHavingContext = var("b", context);
+        Type expectedResult = var("t1", context);
+        Unification result = unify(variable, variableHavingContext);
+        shouldBeUnified(result, expectedResult);
+        shouldBeBound(variable, expectedResult);
+        shouldBeBound(variableHavingContext, expectedResult);
     }
 
     @Test
-    public void shouldNotUnifyLookupWithUnion_whenNamesDoNotMatch() {
-        Type lookup = lookup("List2", asList(intType));
-        Type union = listOf(intType);
-        shouldBeMismatch(lookup, union);
-    }
-
-    @Test
-    public void shouldNotUnifyLookupWithUnion_whenArgumentsDoNotMatch() {
-        Type lookup = lookup("List", asList(stringType));
-        Type union = listOf(intType);
-        shouldBeMismatch(lookup, union);
-    }
-
-    @Test
-    public void shouldUnifyUnionWithLookup_whenNamesAndArgumentsMatch() {
-        Type union = listOf(intType);
-        Type lookup = lookup("List", asList(intType));
-        shouldBeUnified(unify(union, lookup), union);
-    }
-
-    @Test
-    public void shouldNotUnifyUnionWithLookup_whenNamesDoNotMatch() {
-        Type union = listOf(intType);
-        Type lookup = lookup("List0", asList(intType));
-        shouldBeMismatch(union, lookup);
-    }
-
-    @Test
-    public void shouldNotUnifyUnionWithLookup_whenArgumentsDoNotMatch() {
-        Type union = listOf(intType);
-        Type lookup = lookup("List", asList(stringType));
-        shouldBeMismatch(union, lookup);
+    public void shouldPropagateFunctionIntoVariable() {
+        Type target = fn(intType, stringType);
+        Type variable = var("a");
+        shouldBeUnified(unify(target, variable), target);
+        shouldBeBound(variable, target);
     }
 
     @Test
@@ -292,17 +265,42 @@ public class TypeTest {
     }
 
     @Test
-    public void shouldNotUnifyLookupWithFunction() {
-        Type lookup = lookup("List", asList(var("a")));
-        Type function = fn(var("a"), var("b"));
-        shouldBeMismatch(lookup, function);
+    public void shouldPropagateNullaryTypeIntoVariableType() {
+        Type target = stringType;
+        Type variable = var("a");
+        shouldBeUnified(unify(target, variable), target);
+        shouldBeBound(variable, target);
     }
 
     @Test
-    public void shouldNotUnifyFunctionWithLookup() {
-        Type function = fn(var("a"), var("b"));
-        Type lookup = lookup("List", asList(var("a")));
-        shouldBeMismatch(function, lookup);
+    public void shouldReplaceChainsOfBoundVariables() {
+        Type target = fn(var("a"), intType);
+        Type query = fn(var("b"), intType);
+        unify(target, query);
+        unify(argumentOf(target), stringType);
+        shouldBeReplaced(target, fn(stringType, intType));
+        shouldBeReplaced(query, fn(stringType, intType));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldThrowException_whenCreatingNullaryWithLowerCaseName() {
+        nullary("int");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldThrowException_whenCreatingVariableWithUpperCaseName() {
+        var("A");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldThrowException_whenTryingToCreateUnionWithMemberHavingMoreArguments() {
+        union("List", asList(var("a")), asList(
+            ctor("Node", asList(var("a"), var("b")), asList(
+                field("_0", var("a")),
+                field("_1", lookup("List", asList(var("a"))))
+            )),
+            constant("Empty")
+        ));
     }
 
     @Test
@@ -314,10 +312,25 @@ public class TypeTest {
     }
 
     @Test
-    public void shouldNotUnifyLookupWithLookup_whenNamesDoNotMatch() {
-        Type lookup0 = lookup("List", asList(var("a")));
-        Type lookup1 = lookup("List?", asList(var("a")));
-        shouldBeMismatch(lookup0, lookup1);
+    public void shouldUnifyLookupWithUnion_whenNamesAndArgumentsMatch() {
+        Type lookup = lookup("List", asList(intType));
+        Type union = listOf(intType);
+        shouldBeUnified(unify(lookup, union), union);
+    }
+
+    @Test
+    public void shouldUnifyUnionWithLookup_whenNamesAndArgumentsMatch() {
+        Type union = listOf(intType);
+        Type lookup = lookup("List", asList(intType));
+        shouldBeUnified(unify(union, lookup), union);
+    }
+
+    @Test
+    public void shouldUnifyVariables() {
+        Type target = fn(var("a"), intType);
+        Type query = fn(var("b"), intType);
+        shouldBeUnified(unify(target, query), target);
+        shouldBeBound(argumentOf(query), argumentOf(target));
     }
 
     private void shouldBeBound(Type variable, Type target) {

@@ -1,13 +1,26 @@
 package scotch.lang;
 
-import static java.util.stream.Collectors.*;
-import static scotch.lang.Either.*;
-import static scotch.lang.Type.*;
-import static scotch.lang.Unification.*;
+import static java.util.stream.Collectors.toList;
+import static scotch.lang.Either.left;
+import static scotch.lang.Either.right;
+import static scotch.lang.Type.ctor;
+import static scotch.lang.Type.field;
+import static scotch.lang.Type.lookup;
+import static scotch.lang.Type.union;
+import static scotch.lang.Unification.unified;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
-import scotch.lang.Type.*;
+import scotch.lang.Type.MemberField;
+import scotch.lang.Type.TypeVisitor;
+import scotch.lang.Type.UnionLookup;
+import scotch.lang.Type.UnionMember;
+import scotch.lang.Type.UnionType;
+import scotch.lang.Type.VariableType;
 
 public class ArgumentBinder {
 

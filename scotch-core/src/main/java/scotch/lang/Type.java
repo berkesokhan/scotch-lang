@@ -1,11 +1,18 @@
 package scotch.lang;
 
-import static java.lang.Character.*;
-import static java.lang.String.*;
-import static java.util.Collections.*;
-import static java.util.Optional.*;
-import static java.util.stream.Collectors.*;
-import static scotch.lang.Unification.*;
+import static java.lang.Character.isLowerCase;
+import static java.lang.Character.isUpperCase;
+import static java.lang.String.join;
+import static java.util.Collections.emptyList;
+import static java.util.Optional.empty;
+import static java.util.Optional.of;
+import static java.util.stream.Collectors.toList;
+import static scotch.compiler.util.TextUtil.isQualified;
+import static scotch.compiler.util.TextUtil.splitQualified;
+import static scotch.compiler.util.TextUtil.stringify;
+import static scotch.lang.Unification.circular;
+import static scotch.lang.Unification.mismatch;
+import static scotch.lang.Unification.unified;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +22,12 @@ import java.util.function.Function;
 import com.google.common.collect.ImmutableList;
 
 public abstract class Type {
+
+    public static final Type doubleType = nullary("scotch.data.double.Double");
+    public static final Type charType   = nullary("scotch.data.char.Char");
+    public static final Type intType    = nullary("scotch.data.int.Int");
+    public static final Type stringType = nullary("scotch.data.string.String");
+    public static final Type boolType   = nullary("scotch.data.bool.Bool");
 
     public static Type argumentOf(Type maybeFunction) {
         return maybeFunction.accept(new TypeVisitor<Type>() {
@@ -50,12 +63,20 @@ public abstract class Type {
         return new FunctionType(argument, result);
     }
 
+    public static Type lookup(String name) {
+        return lookup(name, emptyList());
+    }
+
     public static Type lookup(String name, List<Type> arguments) {
         return new UnionLookup(name, arguments);
     }
 
     public static Type nullary(String name) {
         return union(name, emptyList(), emptyList());
+    }
+
+    public static Type t(int id) {
+        return var("t" + id);
     }
 
     public static Type union(String name, List<Function<UnionType, UnionMember>> members) {
@@ -177,12 +198,20 @@ public abstract class Type {
 
         @Override
         public String toString() {
-            return "Function(" + argument + " -> " + result + ")";
+            return stringify(this) + "(" + argument + " -> " + result + ")";
         }
 
         @Override
         public Unification unify(Type type, TypeScope typeScope) {
             return type.unifyWith(this, typeScope);
+        }
+
+        public FunctionType withArgument(Type argument) {
+            return new FunctionType(argument, result);
+        }
+
+        public FunctionType withResult(Type result) {
+            return new FunctionType(argument, result);
         }
 
         @Override
@@ -218,7 +247,7 @@ public abstract class Type {
     public static class MemberField {
 
         private final String name;
-        private final Type type;
+        private final Type   type;
 
         private MemberField(String name, Type type) {
             this.name = name;
@@ -258,7 +287,7 @@ public abstract class Type {
 
     public static class UnionLookup extends Type {
 
-        private final String name;
+        private final String     name;
         private final List<Type> arguments;
 
         private UnionLookup(String name, List<Type> arguments) {
@@ -299,12 +328,20 @@ public abstract class Type {
 
         @Override
         public String toString() {
-            return "UnionLookup(" + name + ")";
+            return stringify(this) + "(" + name + ")";
         }
 
         @Override
         public Unification unify(Type type, TypeScope typeScope) {
             return type.unifyWith(this, typeScope);
+        }
+
+        public UnionLookup withArguments(List<Type> arguments) {
+            return new UnionLookup(name, arguments);
+        }
+
+        public UnionLookup withName(String name) {
+            return new UnionLookup(name, arguments);
         }
 
         @Override
@@ -343,9 +380,9 @@ public abstract class Type {
 
     public static class UnionMember {
 
-        private final String name;
-        private final UnionType parent;
-        private final List<Type> arguments;
+        private final String            name;
+        private final UnionType         parent;
+        private final List<Type>        arguments;
         private final List<MemberField> fields;
 
         private UnionMember(String name, UnionType parent, List<Type> arguments, List<MemberField> fields) {
@@ -396,19 +433,24 @@ public abstract class Type {
 
         @Override
         public String toString() {
-            return "UnionMember(" + name + ")";
+            return stringify(this) + "(" + name + ")";
         }
     }
 
     public static class UnionType extends Type {
 
-        private final String name;
-        private final List<Type> arguments;
+        private final String            name;
+        private final List<Type>        arguments;
         private final List<UnionMember> members;
 
         private UnionType(String name, List<Type> arguments, List<Function<UnionType, UnionMember>> members) {
-            if (!isUpperCase(name.charAt(0))) {
-                throw new IllegalArgumentException("Union type should have upper-case name: got '" + name + "'");
+            if (isQualified(name)) {
+                splitQualified(name).into((moduleName, memberName) -> {
+                    shouldBeUpperCase(memberName);
+                    return null;
+                });
+            } else {
+                shouldBeUpperCase(name);
             }
             this.name = name;
             this.arguments = ImmutableList.copyOf(arguments);
@@ -456,7 +498,7 @@ public abstract class Type {
 
         @Override
         public String toString() {
-            return "Union(" + name + ")";
+            return stringify(this) + "(" + name + ")";
         }
 
         @Override
@@ -466,6 +508,12 @@ public abstract class Type {
 
         private boolean shallowEquals(UnionType type) {
             return Objects.equals(name, type.name);
+        }
+
+        private void shouldBeUpperCase(String name) {
+            if (!isUpperCase(name.charAt(0))) {
+                throw new IllegalArgumentException("Union type should have upper-case name: got '" + name + "'");
+            }
         }
 
         @Override
@@ -504,7 +552,7 @@ public abstract class Type {
 
     public static class VariableType extends Type {
 
-        private final String name;
+        private final String       name;
         private final List<String> context;
 
         private VariableType(String name, List<String> context) {
@@ -545,9 +593,9 @@ public abstract class Type {
         @Override
         public String toString() {
             if (context.isEmpty()) {
-                return "Variable(" + name + ")";
+                return stringify(this) + "(" + name + ")";
             } else {
-                return "Variable(" + name + " of [" + join(", ", context) + "])";
+                return stringify(this) + "(" + name + " of [" + join(", ", context) + "])";
             }
         }
 

@@ -1,6 +1,7 @@
 package scotch.lang;
 
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -94,15 +95,15 @@ public abstract class Unification {
 
         @Override
         public String toString() {
-            return "CircularReference(expected=" + expected + ", reference=" + reference + ")";
+            return stringify(this) + "(expected=" + expected + ", reference=" + reference + ")";
         }
     }
 
     public static class ContextMismatch extends Unification {
 
-        private final Type expectedType;
+        private final Type         expectedType;
         private final List<String> expectedContext;
-        private final Type actualType;
+        private final Type         actualType;
         private final List<String> actualContext;
 
         public ContextMismatch(Type expectedType, List<String> expectedContext, Type actualType, List<String> actualContext) {
@@ -152,7 +153,7 @@ public abstract class Unification {
             List<String> difference = new ArrayList<>();
             difference.addAll(expectedContext.stream().filter(context -> !actualContext.contains(context)).collect(toList()));
             difference.addAll(actualContext.stream().filter(context -> !expectedContext.contains(context)).collect(toList()));
-            return "ContextMismatch(expected=" + expectedType + ", actual=" + actualType + ", difference=" + difference + ")";
+            return stringify(this) + "(expected=" + expectedType + ", actual=" + actualType + ", difference=" + difference + ")";
         }
     }
 
@@ -201,7 +202,7 @@ public abstract class Unification {
 
         @Override
         public String toString() {
-            return "TypeMismatch(expected=" + expected + ", actual=" + actual + ")";
+            return stringify(this) + "(expected=" + expected + ", actual=" + actual + ")";
         }
     }
 
@@ -240,7 +241,7 @@ public abstract class Unification {
 
         @Override
         public String toString() {
-            return "Unified(" + unifiedType + ")";
+            return stringify(this) + "(" + unifiedType + ")";
         }
     }
 }
