@@ -22,6 +22,10 @@ public abstract class Value {
         return new LiteralValue(value, type);
     }
 
+    public static Value message(Value... members) {
+        return message(asList(members));
+    }
+
     public static Value message(List<Value> members) {
         return new Message(members);
     }
@@ -107,14 +111,6 @@ public abstract class Value {
             }
         }
 
-        public Value getArgument() {
-            return argument;
-        }
-
-        public Value getFunction() {
-            return function;
-        }
-
         public Type getType() {
             return type;
         }
@@ -127,14 +123,6 @@ public abstract class Value {
         @Override
         public String toString() {
             return stringify(this) + "(" + function + ", " + argument + ")";
-        }
-
-        public Apply withArgument(Value argument) {
-            return new Apply(function, argument, type);
-        }
-
-        public Apply withFunction(Value function) {
-            return new Apply(function, argument, type);
         }
     }
 
@@ -182,14 +170,6 @@ public abstract class Value {
         @Override
         public String toString() {
             return stringify(this) + "(" + name + ")";
-        }
-
-        public Identifier withName(String name) {
-            return new Identifier(name, type);
-        }
-
-        public Identifier withType(Type type) {
-            return new Identifier(name, type);
         }
     }
 
@@ -250,26 +230,14 @@ public abstract class Value {
             return o == this || o instanceof Message && Objects.equals(members, ((Message) o).members);
         }
 
-        public List<Value> getMembers() {
-            return members;
-        }
-
         @Override
         public int hashCode() {
             return Objects.hash(members);
         }
 
-        public int size() {
-            return members.size();
-        }
-
         @Override
         public String toString() {
             return stringify(this) + "(" + members + ")";
-        }
-
-        public Message withMembers(List<Value> members) {
-            return new Message(members);
         }
     }
 
@@ -277,7 +245,7 @@ public abstract class Value {
 
         private final List<PatternMatcher> matchers;
 
-        public PatternMatchers(List<PatternMatcher> matchers) {
+        private PatternMatchers(List<PatternMatcher> matchers) {
             this.matchers = ImmutableList.copyOf(matchers);
         }
 
@@ -291,10 +259,6 @@ public abstract class Value {
             return o == this || o instanceof PatternMatchers && Objects.equals(matchers, ((PatternMatchers) o).matchers);
         }
 
-        public List<PatternMatcher> getMatchers() {
-            return matchers;
-        }
-
         @Override
         public int hashCode() {
             return Objects.hash(matchers);
@@ -303,10 +267,6 @@ public abstract class Value {
         @Override
         public String toString() {
             return stringify(this) + "(" + matchers + ")";
-        }
-
-        public PatternMatchers withMatchers(List<PatternMatcher> matchers) {
-            return new PatternMatchers(matchers);
         }
     }
 }

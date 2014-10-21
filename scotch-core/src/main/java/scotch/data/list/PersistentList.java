@@ -1,14 +1,9 @@
 package scotch.data.list;
 
 import static java.lang.String.join;
-import static java.util.Arrays.asList;
 import static java.util.Collections.emptyIterator;
 import static java.util.stream.Collectors.toList;
-import static scotch.lang.Type.constant;
-import static scotch.lang.Type.ctor;
-import static scotch.lang.Type.field;
-import static scotch.lang.Type.lookup;
-import static scotch.lang.Type.union;
+import static scotch.lang.Type.sum;
 import static scotch.lang.Type.var;
 
 import java.util.Iterator;
@@ -23,11 +18,20 @@ import scotch.lang.TypeInfo;
 @DataUnion(name = "scotch.data.list.List")
 public abstract class PersistentList<E> implements Iterable<E> {
 
-    private static final PersistentList EMPTY = new EmptyList<>();
+    private static final PersistentList EMPTY = new Empty<>();
 
     @SuppressWarnings("unchecked")
     public static <E> PersistentList<E> empty() {
         return EMPTY;
+    }
+
+    @SafeVarargs
+    public static <E> PersistentList<E> listOf(E... values) {
+        PersistentList<E> list = empty();
+        for (int i = values.length - 1; i >= 0; i--) {
+            list = list.cons(values[i]);
+        }
+        return list;
     }
 
     @TypeInfo
@@ -36,21 +40,17 @@ public abstract class PersistentList<E> implements Iterable<E> {
     }
 
     public static Type typeOf(Type argument) {
-        return union("scotch.data.list.List", asList(argument), asList(
-            ctor("scotch.data.list.ListNode", asList(argument), asList(
-                field("head", argument),
-                field("tail", lookup("scotch.data.list.List", asList(argument)))
-            )),
-            constant("scotch.data.list.EmptyList")
-        ));
+        return sum("scotch.data.list.List", listOf(argument));
     }
+
+    public PersistentList<E> cons(E head) {
+        return new Cons<>(head, this);
+    }
+
+    public abstract <R> R accept(ListVisitor<E, R> visitor);
 
     @Override
     public abstract boolean equals(Object o);
-
-    public abstract E getHead();
-
-    public abstract PersistentList<E> getTail();
 
     @Override
     public abstract int hashCode();
@@ -66,26 +66,28 @@ public abstract class PersistentList<E> implements Iterable<E> {
         return "[" + join(", ", stream().map(Object::toString).collect(toList())) + "]";
     }
 
-    @Data(constructor = "scotch.data.list.EmptyList", enclosedBy = "scotch.data.list.List")
-    public static class EmptyList<E> extends PersistentList<E> {
+    public interface ListVisitor<E, R> {
 
-        private EmptyList() {
+        R visit(Empty<E> empty);
+
+        R visit(Cons<E> cons);
+    }
+
+    @Data(constructor = "scotch.data.list.EmptyList", enclosedBy = "scotch.data.list.List")
+    public static class Empty<E> extends PersistentList<E> {
+
+        private Empty() {
             // intentionally empty
+        }
+
+        @Override
+        public <R> R accept(ListVisitor<E, R> visitor) {
+            return visitor.visit(this);
         }
 
         @Override
         public boolean equals(Object o) {
             return o == this;
-        }
-
-        @Override
-        public E getHead() {
-            throw new IllegalStateException();
-        }
-
-        @Override
-        public PersistentList<E> getTail() {
-            throw new IllegalStateException();
         }
 
         @Override
@@ -105,38 +107,33 @@ public abstract class PersistentList<E> implements Iterable<E> {
     }
 
     @Data(constructor = "scotch.data.list.ListNode", enclosedBy = "scotch.data.list.List")
-    public static class ListNode<E> extends PersistentList<E> {
+    public static class Cons<E> extends PersistentList<E> {
 
         private final E                 head;
         private final PersistentList<E> tail;
 
-        private ListNode(E head, PersistentList<E> tail) {
+        private Cons(E head, PersistentList<E> tail) {
             this.head = head;
 
             this.tail = tail;
         }
 
         @Override
+        public <R> R accept(ListVisitor<E, R> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (o == this) {
                 return true;
-            } else if (o instanceof ListNode) {
-                ListNode other = (ListNode) o;
+            } else if (o instanceof Cons) {
+                Cons other = (Cons) o;
                 return Objects.equals(head, other.head)
                     && Objects.equals(tail, other.tail);
             } else {
                 return false;
             }
-        }
-
-        @Override
-        public E getHead() {
-            return head;
-        }
-
-        @Override
-        public PersistentList<E> getTail() {
-            return tail;
         }
 
         @Override
@@ -170,13 +167,19 @@ public abstract class PersistentList<E> implements Iterable<E> {
 
         @Override
         public E next() {
-            if (hasNext()) {
-                E head = current.getHead();
-                current = current.getTail();
-                return head;
-            } else {
-                throw new NoSuchElementException();
-            }
+            return current.accept(new ListVisitor<E, E>() {
+                @Override
+                public E visit(Empty<E> empty) {
+                    throw new NoSuchElementException();
+                }
+
+                @Override
+                public E visit(Cons<E> cons) {
+                    E head = cons.head;
+                    current = cons.tail;
+                    return head;
+                }
+            });
         }
     }
 }

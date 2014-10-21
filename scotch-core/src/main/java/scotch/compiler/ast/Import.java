@@ -3,8 +3,6 @@ package scotch.compiler.ast;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.Objects;
-import java.util.Optional;
-import scotch.compiler.analyzer.SymbolResolver;
 
 public abstract class Import {
 
@@ -21,8 +19,6 @@ public abstract class Import {
 
     @Override
     public abstract int hashCode();
-
-    public abstract Optional<String> qualify(String name, SymbolResolver resolver);
 
     @Override
     public abstract String toString();
@@ -43,11 +39,6 @@ public abstract class Import {
         @Override
         public int hashCode() {
             return Objects.hash(moduleName);
-        }
-
-        @Override
-        public Optional<String> qualify(String name, SymbolResolver resolver) {
-            return resolver.qualify(moduleName, name);
         }
 
         @Override

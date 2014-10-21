@@ -3,7 +3,7 @@ package scotch.data.eq;
 import static java.util.Arrays.asList;
 import static scotch.lang.ClassMember.optionalMember;
 import static scotch.lang.Type.fn;
-import static scotch.lang.Type.nullary;
+import static scotch.lang.Type.sum;
 import static scotch.lang.Type.var;
 
 import java.util.List;
@@ -38,8 +38,8 @@ public class Eq implements Class {
     @Override
     public List<ClassMember> getMembers() {
         return asList(
-            optionalMember("==", fn(var("a"), fn(var("a"), nullary("Bool")))),
-            optionalMember("/=", fn(var("a"), fn(var("a"), nullary("Bool"))))
+            optionalMember("==", fn(var("a"), fn(var("a"), sum("Bool")))),
+            optionalMember("/=", fn(var("a"), fn(var("a"), sum("Bool"))))
         );
     }
 

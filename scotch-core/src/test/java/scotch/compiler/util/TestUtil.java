@@ -2,8 +2,6 @@ package scotch.compiler.util;
 
 import static scotch.compiler.parser.Scanner.forString;
 
-import scotch.compiler.analyzer.NameQualifier;
-import scotch.compiler.analyzer.SymbolResolver;
 import scotch.compiler.ast.Definition;
 import scotch.compiler.ast.Definition.DefinitionVisitor;
 import scotch.compiler.ast.Definition.ValueDefinition;
@@ -14,10 +12,6 @@ import scotch.compiler.parser.Scanner;
 import scotch.compiler.parser.Token;
 
 public class TestUtil {
-
-    public static SymbolTable analyzeReferences(SymbolResolver resolver, String... data) {
-        return new NameQualifier(resolver, parse(data)).analyze();
-    }
 
     public static Value bodyOf(Definition definition) {
         return definition.accept(new DefinitionVisitor<Value>() {

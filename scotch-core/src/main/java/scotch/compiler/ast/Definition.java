@@ -30,6 +30,10 @@ public abstract class Definition {
         return new ValueSignature(name, type);
     }
 
+    public static Definition unshuffled(PatternMatcher pattern) {
+        return new UnshuffledPattern(pattern);
+    }
+
     public static Definition value(String name, Type type, Value value) {
         return new ValueDefinition(name, value, type);
     }
@@ -65,6 +69,10 @@ public abstract class Definition {
 
         default T visit(RootDefinition definition) {
             return visitOtherwise(definition);
+        }
+
+        default T visit(UnshuffledPattern pattern) {
+            return visitOtherwise(pattern);
         }
 
         default T visit(ValueDefinition definition) {
@@ -153,10 +161,6 @@ public abstract class Definition {
             }
         }
 
-        public List<DefinitionReference> getDefinitions() {
-            return definitions;
-        }
-
         public List<Import> getImports() {
             return imports;
         }
@@ -228,10 +232,6 @@ public abstract class Definition {
         public String toString() {
             return stringify(this) + "(" + name + " :: " + fixity + ", " + precedence + ")";
         }
-
-        public OperatorDefinition withName(String name) {
-            return new OperatorDefinition(name, fixity, precedence);
-        }
     }
 
     public static class RootDefinition extends Definition {
@@ -252,10 +252,6 @@ public abstract class Definition {
             return o == this || o instanceof RootDefinition && Objects.equals(definitions, ((RootDefinition) o).definitions);
         }
 
-        public List<DefinitionReference> getDefinitions() {
-            return definitions;
-        }
-
         @Override
         public int hashCode() {
             return Objects.hash(definitions);
@@ -264,6 +260,39 @@ public abstract class Definition {
         @Override
         public String toString() {
             return stringify(this);
+        }
+    }
+
+    public static class UnshuffledPattern extends Definition {
+
+        private final PatternMatcher pattern;
+
+        private UnshuffledPattern(PatternMatcher pattern) {
+            this.pattern = pattern;
+        }
+
+        @Override
+        public <T> T accept(DefinitionVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o == this || o instanceof UnshuffledPattern && Objects.equals(pattern, ((UnshuffledPattern) o).pattern);
+        }
+
+        public PatternMatcher getPattern() {
+            return pattern;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(pattern);
+        }
+
+        @Override
+        public String toString() {
+            return "Unshuffled(" + pattern + ")";
         }
     }
 
@@ -319,18 +348,6 @@ public abstract class Definition {
         public String toString() {
             return stringify(this) + "(" + name + " :: " + type + ")";
         }
-
-        public ValueDefinition withBody(Value body) {
-            return new ValueDefinition(name, body, type);
-        }
-
-        public ValueDefinition withName(String name) {
-            return new ValueDefinition(name, body, type);
-        }
-
-        public ValueDefinition withType(Type type) {
-            return new ValueDefinition(name, body, type);
-        }
     }
 
     public static class ValueSignature extends Definition {
@@ -377,14 +394,6 @@ public abstract class Definition {
         @Override
         public String toString() {
             return stringify(this) + "(" + name + " :: " + type + ")";
-        }
-
-        public ValueSignature withName(String name) {
-            return new ValueSignature(name, type);
-        }
-
-        public ValueSignature withType(Type type) {
-            return new ValueSignature(name, type);
         }
     }
 }
