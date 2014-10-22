@@ -1,24 +1,41 @@
 package scotch.compiler.ast;
 
-import static scotch.compiler.util.TextUtil.normalizeQualified;
 import static scotch.compiler.util.TextUtil.stringify;
+import static scotch.lang.Symbol.qualified;
 
 import java.util.Objects;
+import scotch.lang.Symbol;
 
 public abstract class DefinitionReference {
 
     private static final DefinitionReference rootRef = new RootReference();
 
     public static DefinitionReference classRef(String moduleName, String name) {
-        return new ClassReference(moduleName, name);
+        return classRef(qualified(moduleName, name));
+    }
+
+    public static DefinitionReference classRef(Symbol symbol) {
+        return new ClassReference(symbol);
     }
 
     public static DefinitionReference moduleRef(String name) {
         return new ModuleReference(name);
     }
 
-    public static DefinitionReference opRef(String moduleName, String name) {
-        return new OperatorReference(moduleName, name);
+    public static DefinitionReference operatorRef(String moduleName, String name) {
+        return operatorRef(qualified(moduleName, name));
+    }
+
+    public static DefinitionReference operatorRef(Symbol symbol) {
+        return new OperatorReference(symbol);
+    }
+
+    public static DefinitionReference patternRef(String moduleName, String name) {
+        return patternRef(qualified(moduleName, name));
+    }
+
+    public static DefinitionReference patternRef(Symbol symbol) {
+        return new PatternReference(symbol);
     }
 
     public static DefinitionReference rootRef() {
@@ -26,11 +43,19 @@ public abstract class DefinitionReference {
     }
 
     public static DefinitionReference signatureRef(String moduleName, String name) {
-        return new SignatureReference(moduleName, name);
+        return signatureRef(qualified(moduleName, name));
+    }
+
+    public static DefinitionReference signatureRef(Symbol symbol) {
+        return new SignatureReference(symbol);
     }
 
     public static DefinitionReference valueRef(String moduleName, String name) {
-        return new ValueReference(moduleName, name);
+        return valueRef(qualified(moduleName, name));
+    }
+
+    public static DefinitionReference valueRef(Symbol symbol) {
+        return new ValueReference(symbol);
     }
 
     private DefinitionReference() {
@@ -44,8 +69,6 @@ public abstract class DefinitionReference {
 
     @Override
     public abstract int hashCode();
-
-    public abstract String qualify();
 
     @Override
     public abstract String toString();
@@ -61,6 +84,10 @@ public abstract class DefinitionReference {
         }
 
         default T visit(OperatorReference reference) {
+            return visitOtherwise(reference);
+        }
+
+        default T visit(PatternReference reference) {
             return visitOtherwise(reference);
         }
 
@@ -83,12 +110,10 @@ public abstract class DefinitionReference {
 
     public static class ClassReference extends DefinitionReference {
 
-        private final String moduleName;
-        private final String name;
+        private final Symbol symbol;
 
-        private ClassReference(String moduleName, String name) {
-            this.moduleName = moduleName;
-            this.name = name;
+        private ClassReference(Symbol symbol) {
+            this.symbol = symbol;
         }
 
         @Override
@@ -98,30 +123,17 @@ public abstract class DefinitionReference {
 
         @Override
         public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            } else if (o instanceof ClassReference) {
-                ClassReference other = (ClassReference) o;
-                return Objects.equals(moduleName, other.moduleName)
-                    && Objects.equals(name, other.name);
-            } else {
-                return false;
-            }
+            return o == this || o instanceof ClassReference && Objects.equals(symbol, ((ClassReference) o).symbol);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(moduleName, name);
-        }
-
-        @Override
-        public String qualify() {
-            return normalizeQualified(moduleName, name);
+            return Objects.hash(symbol);
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + normalizeQualified(moduleName, name) + ")";
+            return stringify(this) + "(" + symbol + ")";
         }
     }
 
@@ -153,11 +165,6 @@ public abstract class DefinitionReference {
         }
 
         @Override
-        public String qualify() {
-            return name;
-        }
-
-        @Override
         public String toString() {
             return stringify(this) + "(" + name + ")";
         }
@@ -165,12 +172,10 @@ public abstract class DefinitionReference {
 
     public static class OperatorReference extends DefinitionReference {
 
-        private final String moduleName;
-        private final String name;
+        private final Symbol symbol;
 
-        private OperatorReference(String moduleName, String name) {
-            this.moduleName = moduleName;
-            this.name = name;
+        private OperatorReference(Symbol symbol) {
+            this.symbol = symbol;
         }
 
         @Override
@@ -180,30 +185,46 @@ public abstract class DefinitionReference {
 
         @Override
         public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            } else if (o instanceof OperatorReference) {
-                OperatorReference other = (OperatorReference) o;
-                return Objects.equals(moduleName, other.moduleName)
-                    && Objects.equals(name, other.name);
-            } else {
-                return false;
-            }
+            return o == this || o instanceof OperatorReference && Objects.equals(symbol, ((OperatorReference) o).symbol);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(moduleName, name);
-        }
-
-        @Override
-        public String qualify() {
-            return normalizeQualified(moduleName, name);
+            return Objects.hash(symbol);
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + normalizeQualified(moduleName, name) + ")";
+            return stringify(this) + "(" + symbol + ")";
+        }
+    }
+
+    public static class PatternReference extends DefinitionReference {
+
+        private final Symbol symbol;
+
+        public PatternReference(Symbol symbol) {
+            this.symbol = symbol;
+        }
+
+        @Override
+        public <T> T accept(DefinitionReferenceVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o == this || o instanceof PatternReference && Objects.equals(symbol, ((PatternReference) o).symbol);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(symbol);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(" + symbol + ")";
         }
     }
 
@@ -229,11 +250,6 @@ public abstract class DefinitionReference {
         }
 
         @Override
-        public String qualify() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
         public String toString() {
             return stringify(this);
         }
@@ -241,12 +257,10 @@ public abstract class DefinitionReference {
 
     public static class SignatureReference extends DefinitionReference {
 
-        private final String moduleName;
-        private final String name;
+        private final Symbol symbol;
 
-        private SignatureReference(String moduleName, String name) {
-            this.moduleName = moduleName;
-            this.name = name;
+        private SignatureReference(Symbol symbol) {
+            this.symbol = symbol;
         }
 
         @Override
@@ -256,45 +270,30 @@ public abstract class DefinitionReference {
 
         @Override
         public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            } else if (o instanceof SignatureReference) {
-                SignatureReference other = (SignatureReference) o;
-                return Objects.equals(moduleName, other.moduleName)
-                    && Objects.equals(name, other.name);
-            } else {
-                return false;
-            }
+            return o == this || o instanceof SignatureReference && Objects.equals(symbol, ((SignatureReference) o).symbol);
         }
 
         public String getName() {
-            return name;
+            return symbol.getMemberName();
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(moduleName, name);
-        }
-
-        @Override
-        public String qualify() {
-            return normalizeQualified(moduleName, name);
+            return Objects.hash(symbol);
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + normalizeQualified(moduleName, name) + ")";
+            return stringify(this) + "(" + symbol + ")";
         }
     }
 
     public static class ValueReference extends DefinitionReference {
 
-        private final String moduleName;
-        private final String name;
+        private final Symbol symbol;
 
-        private ValueReference(String moduleName, String name) {
-            this.moduleName = moduleName;
-            this.name = name;
+        private ValueReference(Symbol symbol) {
+            this.symbol = symbol;
         }
 
         @Override
@@ -304,34 +303,21 @@ public abstract class DefinitionReference {
 
         @Override
         public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            } else if (o instanceof ValueReference) {
-                ValueReference other = (ValueReference) o;
-                return Objects.equals(moduleName, other.moduleName)
-                    && Objects.equals(name, other.name);
-            } else {
-                return false;
-            }
+            return o == this || o instanceof ValueReference && Objects.equals(symbol, ((ValueReference) o).symbol);
         }
 
         public String getName() {
-            return name;
+            return symbol.getMemberName();
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(moduleName, name);
-        }
-
-        @Override
-        public String qualify() {
-            return normalizeQualified(moduleName, name);
+            return Objects.hash(symbol);
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + normalizeQualified(moduleName, name) + ")";
+            return stringify(this) + "(" + symbol + ")";
         }
     }
 }

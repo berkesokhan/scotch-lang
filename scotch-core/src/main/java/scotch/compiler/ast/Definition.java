@@ -1,25 +1,44 @@
 package scotch.compiler.ast;
 
+import static java.util.stream.Collectors.toList;
+import static scotch.compiler.ast.DefinitionReference.classRef;
+import static scotch.compiler.ast.DefinitionReference.moduleRef;
+import static scotch.compiler.ast.DefinitionReference.operatorRef;
+import static scotch.compiler.ast.DefinitionReference.patternRef;
+import static scotch.compiler.ast.DefinitionReference.rootRef;
+import static scotch.compiler.ast.DefinitionReference.signatureRef;
+import static scotch.compiler.ast.DefinitionReference.valueRef;
 import static scotch.compiler.util.TextUtil.stringify;
+import static scotch.lang.Symbol.fromString;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.ast.Operator.Fixity;
+import scotch.lang.Symbol;
 import scotch.lang.Type;
 
 public abstract class Definition {
 
     public static Definition classDef(String name, List<Type> arguments, List<DefinitionReference> members) {
-        return new ClassDefinition(name, arguments, members);
+        return classDef(fromString(name), arguments, members);
     }
 
-    public static Definition module(String name, List<Import> imports, List<DefinitionReference> definitions) {
-        return new ModuleDefinition(name, imports, definitions);
+    public static Definition classDef(Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
+        return new ClassDefinition(symbol, arguments, members);
+    }
+
+    public static Definition module(String symbol, List<Import> imports, List<DefinitionReference> definitions) {
+        return new ModuleDefinition(symbol, imports, definitions);
     }
 
     public static Definition operatorDef(String name, Fixity fixity, int precedence) {
-        return new OperatorDefinition(name, fixity, precedence);
+        return operatorDef(fromString(name), fixity, precedence);
+    }
+
+    public static Definition operatorDef(Symbol symbol, Fixity fixity, int precedence) {
+        return new OperatorDefinition(symbol, fixity, precedence);
     }
 
     public static Definition root(List<DefinitionReference> definitions) {
@@ -27,15 +46,27 @@ public abstract class Definition {
     }
 
     public static Definition signature(String name, Type type) {
-        return new ValueSignature(name, type);
+        return signature(fromString(name), type);
     }
 
-    public static Definition unshuffled(PatternMatcher pattern) {
-        return new UnshuffledPattern(pattern);
+    public static Definition signature(Symbol symbol, Type type) {
+        return new ValueSignature(symbol, type);
+    }
+
+    public static Definition unshuffled(String name, PatternMatcher pattern) {
+        return unshuffled(fromString(name), pattern);
+    }
+
+    public static Definition unshuffled(Symbol symbol, PatternMatcher pattern) {
+        return new UnshuffledPattern(symbol, pattern);
     }
 
     public static Definition value(String name, Type type, Value value) {
-        return new ValueDefinition(name, value, type);
+        return value(fromString(name), type, value);
+    }
+
+    public static Definition value(Symbol symbol, Type type, Value value) {
+        return new ValueDefinition(symbol, value, type);
     }
 
     private Definition() {
@@ -46,6 +77,8 @@ public abstract class Definition {
 
     @Override
     public abstract boolean equals(Object o);
+
+    public abstract DefinitionReference getReference();
 
     @Override
     public abstract int hashCode();
@@ -90,12 +123,12 @@ public abstract class Definition {
 
     public static class ClassDefinition extends Definition {
 
-        private final String                    name;
+        private final Symbol                    symbol;
         private final List<Type>                arguments;
         private final List<DefinitionReference> members;
 
-        private ClassDefinition(String name, List<Type> arguments, List<DefinitionReference> members) {
-            this.name = name;
+        private ClassDefinition(Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
+            this.symbol = symbol;
             this.arguments = ImmutableList.copyOf(arguments);
             this.members = ImmutableList.copyOf(members);
         }
@@ -111,7 +144,7 @@ public abstract class Definition {
                 return true;
             } else if (o instanceof ClassDefinition) {
                 ClassDefinition other = (ClassDefinition) o;
-                return Objects.equals(name, other.name)
+                return Objects.equals(symbol, other.symbol)
                     && Objects.equals(arguments, other.arguments)
                     && Objects.equals(members, other.members);
             } else {
@@ -120,24 +153,29 @@ public abstract class Definition {
         }
 
         @Override
+        public DefinitionReference getReference() {
+            return classRef(symbol);
+        }
+
+        @Override
         public int hashCode() {
-            return Objects.hash(name, arguments, members);
+            return Objects.hash(symbol, arguments, members);
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + name + ")";
+            return stringify(this) + "(" + symbol + ")";
         }
     }
 
     public static class ModuleDefinition extends Definition {
 
-        private final String                    name;
+        private final String                    symbol;
         private final List<Import>              imports;
         private final List<DefinitionReference> definitions;
 
-        private ModuleDefinition(String name, List<Import> imports, List<DefinitionReference> definitions) {
-            this.name = name;
+        private ModuleDefinition(String symbol, List<Import> imports, List<DefinitionReference> definitions) {
+            this.symbol = symbol;
             this.imports = ImmutableList.copyOf(imports);
             this.definitions = ImmutableList.copyOf(definitions);
         }
@@ -153,7 +191,7 @@ public abstract class Definition {
                 return true;
             } else if (o instanceof ModuleDefinition) {
                 ModuleDefinition other = (ModuleDefinition) o;
-                return Objects.equals(name, other.name)
+                return Objects.equals(symbol, other.symbol)
                     && Objects.equals(imports, other.imports)
                     && Objects.equals(definitions, other.definitions);
             } else {
@@ -161,33 +199,34 @@ public abstract class Definition {
             }
         }
 
-        public List<Import> getImports() {
-            return imports;
+        @Override
+        public DefinitionReference getReference() {
+            return moduleRef(symbol);
         }
 
-        public String getName() {
-            return name;
+        public String getSymbol() {
+            return symbol;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(name, imports, definitions);
+            return Objects.hash(symbol, imports, definitions);
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + name + ")";
+            return stringify(this) + "(" + symbol + ")";
         }
     }
 
     public static class OperatorDefinition extends Definition {
 
-        private final String name;
+        private final Symbol symbol;
         private final Fixity fixity;
         private final int    precedence;
 
-        private OperatorDefinition(String name, Fixity fixity, int precedence) {
-            this.name = name;
+        private OperatorDefinition(Symbol symbol, Fixity fixity, int precedence) {
+            this.symbol = symbol;
             this.fixity = fixity;
             this.precedence = precedence;
         }
@@ -203,7 +242,7 @@ public abstract class Definition {
                 return true;
             } else if (o instanceof OperatorDefinition) {
                 OperatorDefinition other = (OperatorDefinition) o;
-                return Objects.equals(name, other.name)
+                return Objects.equals(symbol, other.symbol)
                     && Objects.equals(fixity, other.fixity)
                     && Objects.equals(precedence, other.precedence);
             } else {
@@ -211,26 +250,19 @@ public abstract class Definition {
             }
         }
 
-        public Fixity getFixity() {
-            return fixity;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public int getPrecedence() {
-            return precedence;
+        @Override
+        public DefinitionReference getReference() {
+            return operatorRef(symbol);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(name, fixity, precedence);
+            return Objects.hash(symbol, fixity, precedence);
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + name + " :: " + fixity + ", " + precedence + ")";
+            return stringify(this) + "(" + symbol + " :: " + fixity + ", " + precedence + ")";
         }
     }
 
@@ -253,6 +285,15 @@ public abstract class Definition {
         }
 
         @Override
+        public DefinitionReference getReference() {
+            return rootRef();
+        }
+
+        public RootDefinition mapDefinitions(Function<DefinitionReference, DefinitionReference> function) {
+            return new RootDefinition(definitions.stream().map(function).collect(toList()));
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(definitions);
         }
@@ -265,9 +306,11 @@ public abstract class Definition {
 
     public static class UnshuffledPattern extends Definition {
 
+        private final Symbol         symbol;
         private final PatternMatcher pattern;
 
-        private UnshuffledPattern(PatternMatcher pattern) {
+        private UnshuffledPattern(Symbol symbol, PatternMatcher pattern) {
+            this.symbol = symbol;
             this.pattern = pattern;
         }
 
@@ -278,11 +321,20 @@ public abstract class Definition {
 
         @Override
         public boolean equals(Object o) {
-            return o == this || o instanceof UnshuffledPattern && Objects.equals(pattern, ((UnshuffledPattern) o).pattern);
+            if (o == this) {
+                return true;
+            } else if (o instanceof UnshuffledPattern) {
+                UnshuffledPattern other = (UnshuffledPattern) o;
+                return Objects.equals(symbol, other.symbol)
+                    && Objects.equals(pattern, other.pattern);
+            } else {
+                return false;
+            }
         }
 
-        public PatternMatcher getPattern() {
-            return pattern;
+        @Override
+        public DefinitionReference getReference() {
+            return patternRef(symbol);
         }
 
         @Override
@@ -292,18 +344,18 @@ public abstract class Definition {
 
         @Override
         public String toString() {
-            return "Unshuffled(" + pattern + ")";
+            return stringify(this) + "(" + symbol + ")";
         }
     }
 
     public static class ValueDefinition extends Definition {
 
-        private final String name;
+        private final Symbol symbol;
         private final Value  body;
         private final Type   type;
 
-        private ValueDefinition(String name, Value body, Type type) {
-            this.name = name;
+        private ValueDefinition(Symbol symbol, Value body, Type type) {
+            this.symbol = symbol;
             this.body = body;
             this.type = type;
         }
@@ -319,7 +371,7 @@ public abstract class Definition {
                 return true;
             } else if (o instanceof ValueDefinition) {
                 ValueDefinition other = (ValueDefinition) o;
-                return Objects.equals(name, other.name)
+                return Objects.equals(symbol, other.symbol)
                     && Objects.equals(body, other.body)
                     && Objects.equals(type, other.type);
             } else {
@@ -327,12 +379,17 @@ public abstract class Definition {
             }
         }
 
+        @Override
+        public DefinitionReference getReference() {
+            return valueRef(symbol);
+        }
+
         public Value getBody() {
             return body;
         }
 
-        public String getName() {
-            return name;
+        public Symbol getSymbol() {
+            return symbol;
         }
 
         public Type getType() {
@@ -341,22 +398,22 @@ public abstract class Definition {
 
         @Override
         public int hashCode() {
-            return Objects.hash(name, body, type);
+            return Objects.hash(symbol, body, type);
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + name + " :: " + type + ")";
+            return stringify(this) + "(" + symbol + " :: " + type + ")";
         }
     }
 
     public static class ValueSignature extends Definition {
 
-        private final String name;
+        private final Symbol symbol;
         private final Type   type;
 
-        private ValueSignature(String name, Type type) {
-            this.name = name;
+        private ValueSignature(Symbol symbol, Type type) {
+            this.symbol = symbol;
             this.type = type;
         }
 
@@ -371,15 +428,20 @@ public abstract class Definition {
                 return true;
             } else if (o instanceof ValueSignature) {
                 ValueSignature other = (ValueSignature) o;
-                return Objects.equals(name, other.name)
+                return Objects.equals(symbol, other.symbol)
                     && Objects.equals(type, other.type);
             } else {
                 return false;
             }
         }
 
-        public String getName() {
-            return name;
+        @Override
+        public DefinitionReference getReference() {
+            return signatureRef(symbol);
+        }
+
+        public Symbol getSymbol() {
+            return symbol;
         }
 
         public Type getType() {
@@ -388,12 +450,12 @@ public abstract class Definition {
 
         @Override
         public int hashCode() {
-            return Objects.hash(name, type);
+            return Objects.hash(symbol, type);
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + name + " :: " + type + ")";
+            return stringify(this) + "(" + symbol + " :: " + type + ")";
         }
     }
 }

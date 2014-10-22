@@ -2,10 +2,12 @@ package scotch.compiler.ast;
 
 import static java.util.Arrays.asList;
 import static scotch.compiler.util.TextUtil.stringify;
+import static scotch.lang.Symbol.fromString;
 
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
+import scotch.lang.Symbol;
 import scotch.lang.Type;
 
 public abstract class Value {
@@ -15,7 +17,11 @@ public abstract class Value {
     }
 
     public static Value id(String name, Type type) {
-        return new Identifier(name, type);
+        return id(fromString(name), type);
+    }
+
+    public static Value id(Symbol symbol, Type type) {
+        return new Identifier(symbol, type);
     }
 
     public static Value literal(Object value, Type type) {
@@ -128,11 +134,11 @@ public abstract class Value {
 
     public static class Identifier extends Value {
 
-        private final String name;
+        private final Symbol symbol;
         private final Type   type;
 
-        private Identifier(String name, Type type) {
-            this.name = name;
+        private Identifier(Symbol symbol, Type type) {
+            this.symbol = symbol;
             this.type = type;
         }
 
@@ -147,15 +153,15 @@ public abstract class Value {
                 return true;
             } else if (o instanceof Identifier) {
                 Identifier other = (Identifier) o;
-                return Objects.equals(name, other.name)
+                return Objects.equals(symbol, other.symbol)
                     && Objects.equals(type, other.type);
             } else {
                 return false;
             }
         }
 
-        public String getName() {
-            return name;
+        public Symbol getSymbol() {
+            return symbol;
         }
 
         public Type getType() {
@@ -164,12 +170,12 @@ public abstract class Value {
 
         @Override
         public int hashCode() {
-            return Objects.hash(name, type);
+            return Objects.hash(symbol, type);
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + name + ")";
+            return stringify(this) + "(" + symbol + ")";
         }
     }
 

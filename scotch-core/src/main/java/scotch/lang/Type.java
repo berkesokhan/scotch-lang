@@ -49,6 +49,25 @@ public abstract class Type {
     @Override
     public abstract String toString();
 
+    public interface TypeVisitor<T> {
+
+        default T visit(FunctionType type) {
+            return visitOtherwise(type);
+        }
+
+        default T visit(SumType type) {
+            return visitOtherwise(type);
+        }
+
+        default T visit(VariableType type) {
+            return visitOtherwise(type);
+        }
+
+        default T visitOtherwise(Type type) {
+            throw new UnsupportedOperationException("Can't visit " + type.getClass().getSimpleName());
+        }
+    }
+
     public static class FunctionType extends Type {
 
         private final Type argument;
@@ -116,7 +135,7 @@ public abstract class Type {
 
     public static class VariableType extends Type {
 
-        private final String symbol;
+        private final String       symbol;
         private final List<String> context;
 
         private VariableType(String symbol, List<String> context) {

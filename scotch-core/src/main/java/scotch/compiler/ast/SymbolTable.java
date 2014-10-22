@@ -3,32 +3,23 @@ package scotch.compiler.ast;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import scotch.compiler.ast.DefinitionEntry.DefinitionEntryVisitor;
-import scotch.compiler.ast.DefinitionEntry.ScopedEntry;
 
 public class SymbolTable {
 
     private final Map<DefinitionReference, DefinitionEntry> definitions;
+    private final int                                       sequence;
 
-    public SymbolTable(List<DefinitionEntry> entries) {
+    public SymbolTable(int sequence, List<DefinitionEntry> entries) {
+        this.sequence = sequence;
         this.definitions = new HashMap<>();
         entries.forEach(entry -> this.definitions.put(entry.getReference(), entry));
     }
 
+    public int getSequence() {
+        return sequence;
+    }
+
     public Definition getDefinition(DefinitionReference reference) {
         return definitions.get(reference).getDefinition();
-    }
-
-    public Scope getScope(DefinitionReference reference) {
-        return definitions.get(reference).accept(new DefinitionEntryVisitor<Scope>() {
-            @Override
-            public Scope visit(ScopedEntry entry) {
-                return entry.getScope();
-            }
-        });
-    }
-
-    public void setDefinition(DefinitionReference reference, Definition definition) {
-        definitions.get(reference).setDefinition(definition);
     }
 }

@@ -11,7 +11,8 @@ import static scotch.compiler.ast.Definition.signature;
 import static scotch.compiler.ast.Definition.unshuffled;
 import static scotch.compiler.ast.DefinitionReference.classRef;
 import static scotch.compiler.ast.DefinitionReference.moduleRef;
-import static scotch.compiler.ast.DefinitionReference.opRef;
+import static scotch.compiler.ast.DefinitionReference.operatorRef;
+import static scotch.compiler.ast.DefinitionReference.patternRef;
 import static scotch.compiler.ast.DefinitionReference.rootRef;
 import static scotch.compiler.ast.DefinitionReference.signatureRef;
 import static scotch.compiler.ast.DefinitionReference.valueRef;
@@ -53,8 +54,8 @@ public class ParserTest {
             classDef("Eq", asList(var("a")), asList(
                 signatureRef("scotch.data.eq", "=="),
                 signatureRef("scotch.data.eq", "/="),
-                valueRef("scotch.data.eq", "pattern#5"),
-                valueRef("scotch.data.eq", "pattern#6")
+                patternRef("scotch.data.eq", "pattern#3"),
+                patternRef("scotch.data.eq", "pattern#11")
             ))
         ));
     }
@@ -66,10 +67,10 @@ public class ParserTest {
             "(==), (/=) :: a -> a -> Bool"
         );
         assertThat(symbols.getDefinition(signatureRef("scotch.test", "==")), is(
-            signature("==", fn(var("a"), fn(var("a"), sum("Bool"))))
+            signature("scotch.test.(==)", fn(var("a"), fn(var("a"), sum("Bool"))))
         ));
         assertThat(symbols.getDefinition(signatureRef("scotch.test", "/=")), is(
-            signature("/=", fn(var("a"), fn(var("a"), sum("Bool"))))
+            signature("scotch.test.(/=)", fn(var("a"), fn(var("a"), sum("Bool"))))
         ));
     }
 
@@ -96,12 +97,12 @@ public class ParserTest {
             "left infix 7 (+), (-)",
             "prefix 4 not"
         );
-        assertThat(symbols.getDefinition(opRef("scotch.test", "*")), is(operatorDef("*", LEFT_INFIX, 8)));
-        assertThat(symbols.getDefinition(opRef("scotch.test", "/")), is(operatorDef("/", LEFT_INFIX, 8)));
-        assertThat(symbols.getDefinition(opRef("scotch.test", "%")), is(operatorDef("%", LEFT_INFIX, 8)));
-        assertThat(symbols.getDefinition(opRef("scotch.test", "+")), is(operatorDef("+", LEFT_INFIX, 7)));
-        assertThat(symbols.getDefinition(opRef("scotch.test", "-")), is(operatorDef("-", LEFT_INFIX, 7)));
-        assertThat(symbols.getDefinition(opRef("scotch.test", "not")), is(operatorDef("not", PREFIX, 4)));
+        assertThat(symbols.getDefinition(operatorRef("scotch.test", "*")), is(operatorDef("scotch.test.(*)", LEFT_INFIX, 8)));
+        assertThat(symbols.getDefinition(operatorRef("scotch.test", "/")), is(operatorDef("scotch.test.(/)", LEFT_INFIX, 8)));
+        assertThat(symbols.getDefinition(operatorRef("scotch.test", "%")), is(operatorDef("scotch.test.(%)", LEFT_INFIX, 8)));
+        assertThat(symbols.getDefinition(operatorRef("scotch.test", "+")), is(operatorDef("scotch.test.(+)", LEFT_INFIX, 7)));
+        assertThat(symbols.getDefinition(operatorRef("scotch.test", "-")), is(operatorDef("scotch.test.(-)", LEFT_INFIX, 7)));
+        assertThat(symbols.getDefinition(operatorRef("scotch.test", "not")), is(operatorDef("scotch.test.not", PREFIX, 4)));
     }
 
     @Test
@@ -125,7 +126,7 @@ public class ParserTest {
             "length :: String -> Int"
         );
         assertThat(symbols.getDefinition(signatureRef("scotch.test", "length")), is(
-            signature("length", fn(sum("String"), sum("Int")))
+            signature("scotch.test.length", fn(sum("String"), sum("Int")))
         ));
     }
 
@@ -136,8 +137,9 @@ public class ParserTest {
             "length :: String -> Int",
             "length s = jStrlen s"
         );
-        assertThat(symbols.getDefinition(valueRef("scotch.test", "pattern#1")), is(unshuffled(
-            pattern(asList(capture("length", t(0)), capture("s", t(1))), message(id("jStrlen", t(2)), id("s", t(3))))
+        assertThat(symbols.getDefinition(patternRef("scotch.test", "pattern#2")), is(unshuffled(
+            "scotch.test.(pattern#2)",
+            pattern(asList(capture("length", t(0)), capture("s", t(1))), message(id("jStrlen", t(3)), id("s", t(4))))
         )));
     }
 

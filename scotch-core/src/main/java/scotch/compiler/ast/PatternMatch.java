@@ -1,14 +1,20 @@
 package scotch.compiler.ast;
 
 import static scotch.compiler.util.TextUtil.stringify;
+import static scotch.lang.Symbol.fromString;
 
 import java.util.Objects;
+import scotch.lang.Symbol;
 import scotch.lang.Type;
 
 public abstract class PatternMatch {
 
     public static PatternMatch capture(String name, Type type) {
-        return new CaptureMatch(name, type);
+        return capture(fromString(name), type);
+    }
+
+    public static PatternMatch capture(Symbol symbol, Type type) {
+        return new CaptureMatch(symbol, type);
     }
 
     public static PatternMatch equal(Value value) {
@@ -47,11 +53,11 @@ public abstract class PatternMatch {
 
     public static class CaptureMatch extends PatternMatch {
 
-        private final String name;
+        private final Symbol symbol;
         private final Type   type;
 
-        private CaptureMatch(String name, Type type) {
-            this.name = name;
+        private CaptureMatch(Symbol symbol, Type type) {
+            this.symbol = symbol;
             this.type = type;
         }
 
@@ -66,15 +72,11 @@ public abstract class PatternMatch {
                 return true;
             } else if (o instanceof CaptureMatch) {
                 CaptureMatch other = (CaptureMatch) o;
-                return Objects.equals(name, other.name)
+                return Objects.equals(symbol, other.symbol)
                     && Objects.equals(type, other.type);
             } else {
                 return false;
             }
-        }
-
-        public String getName() {
-            return name;
         }
 
         public Type getType() {
@@ -83,12 +85,12 @@ public abstract class PatternMatch {
 
         @Override
         public int hashCode() {
-            return Objects.hash(name, type);
+            return Objects.hash(symbol, type);
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + name + ")";
+            return stringify(this) + "(" + symbol + ")";
         }
     }
 

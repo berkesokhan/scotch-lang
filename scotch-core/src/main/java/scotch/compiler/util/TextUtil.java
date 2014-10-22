@@ -5,79 +5,18 @@ import static java.util.regex.Pattern.compile;
 import static org.apache.commons.lang.StringEscapeUtils.escapeJava;
 import static scotch.data.tuple.TupleValues.tuple2;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import scotch.data.tuple.Tuple2;
 
 public final class TextUtil {
 
-    private static final String              moduleLetter         = "[a-z_][a-z0-9_]*";
-    private static final String              moduleName           = "(?:" + moduleLetter + ")(?:\\." + moduleLetter + ")*";
-    private static final String              nameLetters          = "[\\w_]+";
-    private static final String              qualifiedName        = "(" + moduleName + ")\\.(" + nameLetters + ")";
-    private static final Pattern             qualifiedNamePattern = compile("^" + qualifiedName + "$");
-    @SuppressWarnings("unused")
-    private static final Map<String, String> substitutions        = ImmutableMap.<String, String>builder()
-        .put("@", "$at")
-        .put("#", "$crunch")
-        .put(".", "$dot")
-        .put(":", "$bite")
-        .put(";", "$nibble")
-        .put("!", "$bang")
-        .put("?", "$query")
-        .put("%", "$mod")
-        .put("^", "$hat")
-        .put("*", "$splat")
-        .put("&", "$and")
-        .put("|", "$pipe")
-        .put("'", "$spike")
-        .put("/", "$slash")
-        .put("=", "$eq")
-        .put("+", "$cross")
-        .put("-", "$dash")
-        .put("~", "$wave")
-        .put("<", "$langle")
-        .put(">", "$rangle")
-        .put("[", "$lsquare")
-        .put("]", "$rsquare")
-        .put("{", "$lcurly")
-        .put("}", "$rcurly")
-        .put("(", "$lparen")
-        .put(")", "$rparen")
-        .build();
-    @SuppressWarnings("unused")
-    private static final List<String>        javaKeywords         = ImmutableList.of(
-        "abstract", "assert",
-        "boolean", "break", "byte",
-        "case", "catch", "char", "class", "const", "continue",
-        "default", "do", "double",
-        "else", "enum", "extends",
-        "false", "final", "finally", "float", "for",
-        "goto",
-        "if", "implements", "import", "instanceof", "int", "interface",
-        "long",
-        "native", "new", "null",
-        "package", "private", "protected", "public",
-        "return",
-        "short", "static", "strictfp", "super", "switch", "synchronized",
-        "this", "throw", "throws", "transient", "true", "try",
-        "void", "volatile",
-        "while"
-    );
-
-    public static boolean containsSymbols(String name) {
-        for (char c : name.toCharArray()) {
-            if (isSymbol(c)) {
-                return true;
-            }
-        }
-        return false;
-    }
+    private static final String  moduleSubPattern       = "[A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)*";
+    private static final String  memberSubPattern       = "(\\[\\]|\\((?:[^\\)]+)\\)|(?:[^\\.]+)|\\(,*\\))";
+    private static final Pattern qualifiedPattern       = compile("^(\\$?" + moduleSubPattern + ")\\." + memberSubPattern + "$");
+    private static final Pattern containsSymbolsPattern = compile("\\W");
+    private static final Pattern tuplePattern           = compile("\\(,*\\)");
 
     public static boolean isAsciiEscape(int c) {
         return c == '\\' || c == 'b' || c == 't' || c == 'n' || c == 'f' || c == 'r' || c == '"' || c == '\'';
@@ -160,10 +99,6 @@ public final class TextUtil {
         return c >= '0' && c <= '7';
     }
 
-    public static boolean isQualified(String name) {
-        return qualifiedNamePattern.matcher(name).matches();
-    }
-
     public static boolean isSingleQuote(int c) {
         return c == '\'';
     }
@@ -186,16 +121,26 @@ public final class TextUtil {
             || c == '>';
     }
 
-    public static String normalizeQualified(String moduleName, String name) {
-        if (containsSymbols(name)) {
-            return moduleName + ".(" + name + ")";
+    public static String normalizeQualified(String qualifiedName) {
+        return splitQualified(qualifiedName).into(
+            (optionalModuleName, memberName) -> optionalModuleName
+                .map(moduleName -> normalizeQualified(moduleName, memberName))
+                .orElse(memberName)
+        );
+    }
+
+    public static String normalizeQualified(String moduleName, String memberName) {
+        if (!"[]".equals(memberName) && !memberName.contains("(") && containsSymbolsPattern.matcher(memberName).find()) {
+            return moduleName + ".(" + memberName + ")";
         } else {
-            return moduleName + "." + name;
+            return moduleName + '.' + memberName;
         }
     }
 
-    public static String normalizeQualified(Optional<String> optionalModuleName, String name) {
-        return optionalModuleName.map(moduleName -> normalizeQualified(moduleName, name)).orElse(name);
+    public static String normalizeQualified(Optional<String> optionalModuleName, String memberName) {
+        return optionalModuleName
+            .map(moduleName -> normalizeQualified(moduleName, memberName))
+            .orElse(memberName);
     }
 
     public static String quote(Object o) {
@@ -211,9 +156,13 @@ public final class TextUtil {
     }
 
     public static Tuple2<Optional<String>, String> splitQualified(String name) {
-        Matcher matcher = qualifiedNamePattern.matcher(name);
-        if (matcher.find()) {
-            return tuple2(Optional.of(matcher.group(1)), matcher.group(2));
+        Matcher matcher = qualifiedPattern.matcher(name);
+        if (matcher.matches()) {
+            if (tuplePattern.matcher(matcher.group(2)).matches()) {
+                return tuple2(Optional.of(matcher.group(1)), matcher.group(2));
+            } else {
+                return tuple2(Optional.of(matcher.group(1)), matcher.group(2).replaceAll("[\\(\\)]", ""));
+            }
         } else {
             return tuple2(Optional.empty(), name);
         }

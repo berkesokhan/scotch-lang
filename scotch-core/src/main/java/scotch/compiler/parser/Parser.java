@@ -6,10 +6,6 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
-import static scotch.compiler.ast.Definition.DefinitionVisitor;
-import static scotch.compiler.ast.Definition.ModuleDefinition;
-import static scotch.compiler.ast.Definition.ValueDefinition;
-import static scotch.compiler.ast.Definition.ValueSignature;
 import static scotch.compiler.ast.Definition.classDef;
 import static scotch.compiler.ast.Definition.module;
 import static scotch.compiler.ast.Definition.operatorDef;
@@ -19,11 +15,7 @@ import static scotch.compiler.ast.Definition.unshuffled;
 import static scotch.compiler.ast.Definition.value;
 import static scotch.compiler.ast.DefinitionEntry.unscopedEntry;
 import static scotch.compiler.ast.DefinitionReference.classRef;
-import static scotch.compiler.ast.DefinitionReference.moduleRef;
-import static scotch.compiler.ast.DefinitionReference.opRef;
 import static scotch.compiler.ast.DefinitionReference.rootRef;
-import static scotch.compiler.ast.DefinitionReference.signatureRef;
-import static scotch.compiler.ast.DefinitionReference.valueRef;
 import static scotch.compiler.ast.Import.moduleImport;
 import static scotch.compiler.ast.Operator.Fixity.LEFT_INFIX;
 import static scotch.compiler.ast.Operator.Fixity.PREFIX;
@@ -57,6 +49,7 @@ import static scotch.compiler.parser.Token.TokenKind.WORD;
 import static scotch.compiler.util.TextUtil.normalizeQualified;
 import static scotch.compiler.util.TextUtil.quote;
 import static scotch.compiler.util.TextUtil.splitQualified;
+import static scotch.lang.Symbol.qualified;
 import static scotch.lang.Type.fn;
 import static scotch.lang.Type.sum;
 import static scotch.lang.Type.t;
@@ -68,7 +61,6 @@ import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.ast.Definition;
-import scotch.compiler.ast.Definition.UnshuffledPattern;
 import scotch.compiler.ast.DefinitionEntry;
 import scotch.compiler.ast.DefinitionReference;
 import scotch.compiler.ast.Import;
@@ -79,6 +71,7 @@ import scotch.compiler.ast.Value;
 import scotch.compiler.parser.Token.TokenKind;
 import scotch.compiler.util.SourcePosition;
 import scotch.compiler.util.TextUtil;
+import scotch.lang.Symbol;
 import scotch.lang.Type;
 
 public class Parser {
@@ -87,7 +80,7 @@ public class Parser {
     private final LookAheadScanner      scanner;
     private final List<DefinitionEntry> definitions;
     private       String                currentModule;
-    private       int                   nextId;
+    private       int                   sequence;
 
     public Parser(Scanner scanner) {
         this.scanner = new LookAheadScanner(scanner);
@@ -104,40 +97,11 @@ public class Parser {
         }
         require(EOF);
         collectSymbol(unscopedEntry(rootRef(), root(modules)));
-        return new SymbolTable(definitions);
+        return new SymbolTable(sequence, definitions);
     }
 
     private void collectSymbol(DefinitionEntry entry) {
         definitions.add(entry);
-    }
-
-    private DefinitionReference createScope(Definition definition) {
-        return definition.accept(new DefinitionVisitor<DefinitionReference>() {
-            @Override
-            public DefinitionReference visit(ValueSignature signature) {
-                return createScope(signatureRef(currentModule, signature.getName()), signature);
-            }
-
-            @Override
-            public DefinitionReference visit(ModuleDefinition definition) {
-                return createScope(moduleRef(definition.getName()), definition);
-            }
-
-            @Override
-            public DefinitionReference visit(UnshuffledPattern pattern) {
-                return createScope(valueRef(currentModule, "pattern#" + definitions.size()), pattern);
-            }
-
-            @Override
-            public DefinitionReference visit(ValueDefinition definition) {
-                return createScope(getValueRef(definition.getName()), definition);
-            }
-        });
-    }
-
-    private DefinitionReference createScope(DefinitionReference reference, Definition definition) {
-        collectSymbol(unscopedEntry(reference, definition));
-        return reference;
     }
 
     private boolean expects(TokenKind kind) {
@@ -213,10 +177,6 @@ public class Parser {
 
     private boolean expectsWordAt(int offset, String value) {
         return expectsAt(offset, WORD) && Objects.equals(scanner.peekAt(offset).getValue(), value);
-    }
-
-    private DefinitionReference getValueRef(String name) {
-        return valueRef(currentModule, name);
     }
 
     private void nextToken() {
@@ -305,7 +265,7 @@ public class Parser {
             match = parseWordReference().accept(new ValueVisitor<PatternMatch>() {
                 @Override
                 public PatternMatch visit(Identifier identifier) {
-                    return capture(identifier.getName(), identifier.getType());
+                    return capture(identifier.getSymbol(), identifier.getType());
                 }
             });
         } else if (expectsLiteral()) {
@@ -334,7 +294,16 @@ public class Parser {
         requireTerminator();
         List<Import> imports = parseImports();
         List<DefinitionReference> definitions = parseModuleDefinitions();
-        return createScope(module(currentModule, imports, definitions));
+        return collect(module(currentModule, imports, definitions));
+    }
+
+    private DefinitionReference collect(Definition definition) {
+        return collect(unscopedEntry(definition.getReference(), definition));
+    }
+
+    private DefinitionReference collect(DefinitionEntry definition) {
+        definitions.add(definition);
+        return definition.getReference();
     }
 
     private List<DefinitionReference> parseModuleDefinitions() {
@@ -350,11 +319,10 @@ public class Parser {
         Fixity fixity = parseOperatorFixity();
         int precedence = parseOperatorPrecedence();
         List<DefinitionReference> references = new ArrayList<>();
-        parseSymbols().forEach(name -> {
-            Definition operator = operatorDef(name, fixity, precedence);
-            DefinitionReference reference = opRef(currentModule, name);
-            collectSymbol(unscopedEntry(reference, operator));
-            references.add(reference);
+        parseSymbols().forEach(symbol -> {
+            Definition operator = operatorDef(symbol, fixity, precedence);
+            collectSymbol(unscopedEntry(operator.getReference(), operator));
+            references.add(operator.getReference());
         });
         return references;
     }
@@ -433,21 +401,21 @@ public class Parser {
         return parsePrimary(true).get();
     }
 
-    private String parseSymbol() {
+    private Symbol parseSymbol() {
         if (expects(WORD)) {
-            return requireWord();
+            return qualified(currentModule, requireWord());
         } else if (expects(LPAREN)) {
             nextToken();
             String symbol = requireWord();
             require(RPAREN);
-            return symbol;
+            return qualified(currentModule, symbol);
         } else {
             throw unexpected(asList(WORD, LPAREN));
         }
     }
 
-    private List<String> parseSymbols() {
-        List<String> symbols = new ArrayList<>();
+    private List<Symbol> parseSymbols() {
+        List<Symbol> symbols = new ArrayList<>();
         symbols.add(parseSymbol());
         while (expects(COMMA)) {
             nextToken();
@@ -474,11 +442,11 @@ public class Parser {
         if (expectsAt(1, ASSIGN)) {
             String name = requireWord();
             nextToken();
-            return createScope(value(name, reserveType(), parseMessage()));
+            return collect(value(qualified(currentModule, name), reserveType(), parseMessage()));
         } else {
             List<PatternMatch> patternMatches = parsePatternMatches();
             require(ASSIGN);
-            return createScope(unshuffled(pattern(patternMatches, parseMessage())));
+            return collect(unshuffled(qualified(currentModule, "pattern#" + sequence++), pattern(patternMatches, parseMessage())));
         }
     }
 
@@ -498,11 +466,11 @@ public class Parser {
 
     private List<DefinitionReference> parseValueSignatures() {
         List<DefinitionReference> references = new ArrayList<>();
-        List<String> symbolList = parseSymbols();
+        List<Symbol> symbolList = parseSymbols();
         Type type = parseValueSignature();
         symbolList.forEach(symbol -> {
             Definition signature = signature(symbol, type);
-            references.add(createScope(signature));
+            references.add(collect(signature));
         });
         return references;
     }
@@ -587,7 +555,7 @@ public class Parser {
     }
 
     private Type reserveType() {
-        return t(nextId++);
+        return t(sequence++);
     }
 
     private ParseException unexpected(TokenKind wantedKind) {
