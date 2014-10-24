@@ -2,12 +2,12 @@ package scotch.compiler.ast;
 
 public abstract class DefinitionEntry {
 
-    public static DefinitionEntry scopedEntry(DefinitionReference reference, Definition definition, Scope scope) {
-        return new ScopedEntry(reference, definition, scope);
+    public static DefinitionEntry scopedEntry(Definition definition, Scope scope) {
+        return new ScopedEntry(definition, scope);
     }
 
-    public static DefinitionEntry unscopedEntry(DefinitionReference reference, Definition definition) {
-        return new UnscopedEntry(reference, definition);
+    public static DefinitionEntry unscopedEntry(Definition definition) {
+        return new UnscopedEntry(definition);
     }
 
     private DefinitionEntry() {
@@ -39,12 +39,10 @@ public abstract class DefinitionEntry {
 
     public static class ScopedEntry extends DefinitionEntry {
 
-        private final DefinitionReference reference;
-        private final Scope               scope;
-        private       Definition          definition;
+        private final Scope      scope;
+        private       Definition definition;
 
-        private ScopedEntry(DefinitionReference reference, Definition definition, Scope scope) {
-            this.reference = reference;
+        private ScopedEntry(Definition definition, Scope scope) {
             this.definition = definition;
             this.scope = scope;
         }
@@ -61,7 +59,7 @@ public abstract class DefinitionEntry {
 
         @Override
         public DefinitionReference getReference() {
-            return reference;
+            return definition.getReference();
         }
 
         public Scope getScope() {
@@ -76,11 +74,9 @@ public abstract class DefinitionEntry {
 
     public static class UnscopedEntry extends DefinitionEntry {
 
-        private final DefinitionReference reference;
-        private       Definition          definition;
+        private Definition definition;
 
-        private UnscopedEntry(DefinitionReference reference, Definition definition) {
-            this.reference = reference;
+        private UnscopedEntry(Definition definition) {
             this.definition = definition;
         }
 
@@ -96,7 +92,7 @@ public abstract class DefinitionEntry {
 
         @Override
         public DefinitionReference getReference() {
-            return reference;
+            return definition.getReference();
         }
 
         @Override

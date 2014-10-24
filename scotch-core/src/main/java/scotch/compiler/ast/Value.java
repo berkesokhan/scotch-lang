@@ -236,6 +236,10 @@ public abstract class Value {
             return o == this || o instanceof Message && Objects.equals(members, ((Message) o).members);
         }
 
+        public List<Value> getMembers() {
+            return members;
+        }
+
         @Override
         public int hashCode() {
             return Objects.hash(members);
@@ -265,6 +269,10 @@ public abstract class Value {
             return o == this || o instanceof PatternMatchers && Objects.equals(matchers, ((PatternMatchers) o).matchers);
         }
 
+        public List<PatternMatcher> getMatchers() {
+            return matchers;
+        }
+
         @Override
         public int hashCode() {
             return Objects.hash(matchers);
@@ -273,6 +281,10 @@ public abstract class Value {
         @Override
         public String toString() {
             return stringify(this) + "(" + matchers + ")";
+        }
+
+        public Value withMatchers(List<PatternMatcher> matchers) {
+            return new PatternMatchers(matchers);
         }
     }
 }

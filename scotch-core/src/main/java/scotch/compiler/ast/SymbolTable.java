@@ -15,11 +15,11 @@ public class SymbolTable {
         entries.forEach(entry -> this.definitions.put(entry.getReference(), entry));
     }
 
-    public int getSequence() {
-        return sequence;
-    }
-
     public Definition getDefinition(DefinitionReference reference) {
         return definitions.get(reference).getDefinition();
+    }
+
+    public int getSequence() {
+        return sequence;
     }
 }

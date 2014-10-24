@@ -23,7 +23,7 @@ import static scotch.compiler.ast.PatternMatcher.pattern;
 import static scotch.compiler.ast.Value.id;
 import static scotch.compiler.ast.Value.message;
 import static scotch.compiler.util.TestUtil.bodyOf;
-import static scotch.compiler.util.TestUtil.parse;
+import static scotch.compiler.util.TestUtil.parseInput;
 import static scotch.lang.Type.fn;
 import static scotch.lang.Type.sum;
 import static scotch.lang.Type.t;
@@ -32,16 +32,17 @@ import static scotch.lang.Type.var;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import scotch.compiler.ParseException;
 import scotch.compiler.ast.SymbolTable;
 
-public class ParserTest {
+public class InputParserTest {
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
 
     @Test
     public void shouldParseClassDefinition() {
-        SymbolTable symbols = parse(
+        SymbolTable symbols = parseInput(
             "module scotch.data.eq",
             "prefix 4 not",
             "left infix 5 (==), (/=)",
@@ -62,7 +63,7 @@ public class ParserTest {
 
     @Test
     public void shouldParseMultiValueSignature() {
-        SymbolTable symbols = parse(
+        SymbolTable symbols = parseInput(
             "module scotch.test",
             "(==), (/=) :: a -> a -> Bool"
         );
@@ -76,7 +77,7 @@ public class ParserTest {
 
     @Test
     public void shouldParseMultipleModulesInSameSource() {
-        SymbolTable symbols = parse(
+        SymbolTable symbols = parseInput(
             "module scotch.string",
             "length s = jStrlen s",
             "",
@@ -91,7 +92,7 @@ public class ParserTest {
 
     @Test
     public void shouldParseOperatorDefinitions() {
-        SymbolTable symbols = parse(
+        SymbolTable symbols = parseInput(
             "module scotch.test",
             "left infix 8 (*), (/), (%)",
             "left infix 7 (+), (-)",
@@ -107,7 +108,7 @@ public class ParserTest {
 
     @Test
     public void shouldParseParenthesesAsSeparateMessage() {
-        SymbolTable symbols = parse(
+        SymbolTable symbols = parseInput(
             "module scotch.test",
             "value = fn (a b)"
         );
@@ -121,7 +122,7 @@ public class ParserTest {
 
     @Test
     public void shouldParseSignature() {
-        SymbolTable symbols = parse(
+        SymbolTable symbols = parseInput(
             "module scotch.test",
             "length :: String -> Int"
         );
@@ -132,7 +133,7 @@ public class ParserTest {
 
     @Test
     public void shouldParseValue() {
-        SymbolTable symbols = parse(
+        SymbolTable symbols = parseInput(
             "module scotch.test",
             "length :: String -> Int",
             "length s = jStrlen s"
@@ -146,19 +147,19 @@ public class ParserTest {
     @Test
     public void shouldThrowException_whenModuleNameNotTerminatedWithSemicolonOrNewline() {
         expectParseException("Unexpected token COMMA; wanted SEMICOLON");
-        parse("module scotch.test,");
+        parseInput("module scotch.test,");
     }
 
     @Test
     public void shouldThrowException_whenNotBeginningWithModule() {
         expectParseException("Unexpected token WORD with value 'length'; wanted WORD with value 'module'");
-        parse("length s = jStrlen s");
+        parseInput("length s = jStrlen s");
     }
 
     @Test
     public void shouldThrowException_whenOperatorIsMissingPrecedence() {
         expectParseException("Unexpected token WORD; wanted INT");
-        parse(
+        parseInput(
             "module scotch.test",
             "left infix =="
         );
@@ -167,7 +168,7 @@ public class ParserTest {
     @Test
     public void shouldThrowException_whenOperatorSymbolEnclosedByParensDoesNotContainWord() {
         expectParseException("Unexpected token INT; wanted WORD");
-        parse(
+        parseInput(
             "module scotch.test",
             "left infix 7 (42)"
         );
@@ -176,7 +177,7 @@ public class ParserTest {
     @Test
     public void shouldThrowException_whenOperatorSymbolIsNotWord() {
         expectParseException("Unexpected token BOOL; wanted one of [WORD, LPAREN]");
-        parse(
+        parseInput(
             "module scotch.test",
             "left infix 7 True"
         );
@@ -185,7 +186,7 @@ public class ParserTest {
     @Test
     public void shouldThrowException_whenOperatorSymbolsNotSeparatedByCommas() {
         expectParseException("Unexpected token WORD; wanted SEMICOLON");
-        parse(
+        parseInput(
             "module scotch.test",
             "left infix 7 + -"
         );
@@ -194,7 +195,7 @@ public class ParserTest {
     @Test
     public void shouldThrowException_whenSignatureHasStuffBetweenNameAndDoubleColon() {
         expectParseException("Unexpected token SEMICOLON; wanted ASSIGN");
-        parse(
+        parseInput(
             "module scotch.test",
             "length ; :: String -> Int"
         );

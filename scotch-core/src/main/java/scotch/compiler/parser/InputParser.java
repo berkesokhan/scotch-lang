@@ -14,8 +14,6 @@ import static scotch.compiler.ast.Definition.signature;
 import static scotch.compiler.ast.Definition.unshuffled;
 import static scotch.compiler.ast.Definition.value;
 import static scotch.compiler.ast.DefinitionEntry.unscopedEntry;
-import static scotch.compiler.ast.DefinitionReference.classRef;
-import static scotch.compiler.ast.DefinitionReference.rootRef;
 import static scotch.compiler.ast.Import.moduleImport;
 import static scotch.compiler.ast.Operator.Fixity.LEFT_INFIX;
 import static scotch.compiler.ast.Operator.Fixity.PREFIX;
@@ -60,6 +58,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.ParseException;
 import scotch.compiler.ast.Definition;
 import scotch.compiler.ast.DefinitionEntry;
 import scotch.compiler.ast.DefinitionReference;
@@ -74,7 +73,7 @@ import scotch.compiler.util.TextUtil;
 import scotch.lang.Symbol;
 import scotch.lang.Type;
 
-public class Parser {
+public class InputParser {
 
     private static final List<TokenKind> literals = asList(STRING, INT, CHAR, DOUBLE, BOOL);
     private final LookAheadScanner      scanner;
@@ -82,7 +81,7 @@ public class Parser {
     private       String                currentModule;
     private       int                   sequence;
 
-    public Parser(Scanner scanner) {
+    public InputParser(Scanner scanner) {
         this.scanner = new LookAheadScanner(scanner);
         this.definitions = new ArrayList<>();
     }
@@ -96,12 +95,13 @@ public class Parser {
             }
         }
         require(EOF);
-        collectSymbol(unscopedEntry(rootRef(), root(modules)));
+        collect(root(modules));
         return new SymbolTable(sequence, definitions);
     }
 
-    private void collectSymbol(DefinitionEntry entry) {
-        definitions.add(entry);
+    private DefinitionReference collect(Definition definition) {
+        definitions.add(unscopedEntry(definition));
+        return definition.getReference();
     }
 
     private boolean expects(TokenKind kind) {
@@ -194,9 +194,7 @@ public class Parser {
     private DefinitionReference parseClassDefinition() {
         requireWord("class");
         String name = requireWord();
-        DefinitionReference reference = classRef(currentModule, name);
-        collectSymbol(unscopedEntry(reference, classDef(name, parseClassArguments(), parseClassMembers())));
-        return reference;
+        return collect(classDef(qualified(currentModule, name), parseClassArguments(), parseClassMembers()));
     }
 
     private List<DefinitionReference> parseClassMembers() {
@@ -297,15 +295,6 @@ public class Parser {
         return collect(module(currentModule, imports, definitions));
     }
 
-    private DefinitionReference collect(Definition definition) {
-        return collect(unscopedEntry(definition.getReference(), definition));
-    }
-
-    private DefinitionReference collect(DefinitionEntry definition) {
-        definitions.add(definition);
-        return definition.getReference();
-    }
-
     private List<DefinitionReference> parseModuleDefinitions() {
         List<DefinitionReference> definitions = new ArrayList<>();
         while (expectsDefinitions()) {
@@ -321,8 +310,7 @@ public class Parser {
         List<DefinitionReference> references = new ArrayList<>();
         parseSymbols().forEach(symbol -> {
             Definition operator = operatorDef(symbol, fixity, precedence);
-            collectSymbol(unscopedEntry(operator.getReference(), operator));
-            references.add(operator.getReference());
+            references.add(collect(operator));
         });
         return references;
     }

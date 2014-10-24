@@ -37,6 +37,10 @@ public class PatternMatcher {
         return body;
     }
 
+    public List<PatternMatch> getMatches() {
+        return matches;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(matches, body);
@@ -48,6 +52,10 @@ public class PatternMatcher {
     }
 
     public PatternMatcher withBody(Value body) {
+        return new PatternMatcher(matches, body);
+    }
+
+    public PatternMatcher withMatches(List<PatternMatch> matches) {
         return new PatternMatcher(matches, body);
     }
 }

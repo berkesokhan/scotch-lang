@@ -7,7 +7,8 @@ import scotch.compiler.ast.Definition.DefinitionVisitor;
 import scotch.compiler.ast.Definition.ValueDefinition;
 import scotch.compiler.ast.SymbolTable;
 import scotch.compiler.ast.Value;
-import scotch.compiler.parser.Parser;
+import scotch.compiler.parser.AstParser;
+import scotch.compiler.parser.InputParser;
 import scotch.compiler.parser.Scanner;
 import scotch.compiler.parser.Token;
 
@@ -22,8 +23,12 @@ public class TestUtil {
         });
     }
 
-    public static SymbolTable parse(String... data) {
-        return new Parser(forString("test-source.sch", data)).parse();
+    public static SymbolTable parseAst(String... data) {
+        return new AstParser(parseInput(data)).analyze();
+    }
+
+    public static SymbolTable parseInput(String... data) {
+        return new InputParser(forString("test-source.sch", data)).parse();
     }
 
     public static Token tokenAt(Scanner scanner, int offset) {

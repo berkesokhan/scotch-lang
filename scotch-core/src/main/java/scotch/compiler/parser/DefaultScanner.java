@@ -77,6 +77,14 @@ import scotch.compiler.util.SourceRange.RangeBuilder;
 
 public final class DefaultScanner implements Scanner {
 
+    private static Acceptor take(TokenKind kind) {
+        return new Acceptor(kind);
+    }
+
+    private static Acceptor takeBool() {
+        return new Acceptor(BOOL, Boolean::valueOf);
+    }
+
     private static final Map<String, Acceptor> dictionary = ImmutableMap.<String, Acceptor>builder()
         .put("->", take(ARROW))
         .put("=>", take(DOUBLE_ARROW))
@@ -92,15 +100,6 @@ public final class DefaultScanner implements Scanner {
         .put("match", take(MATCH))
         .put("on", take(ON))
         .build();
-
-    private static Acceptor take(TokenKind kind) {
-        return new Acceptor(kind);
-    }
-
-    private static Acceptor takeBool() {
-        return new Acceptor(BOOL, Boolean::valueOf);
-    }
-
     private final String                       source;
     private final char[]                       data;
     private final ArrayDeque<SaveState>        saves;

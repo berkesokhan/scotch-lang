@@ -1,4 +1,4 @@
-package scotch.compiler.parser;
+package scotch.compiler;
 
 public class ParseException extends RuntimeException {
 

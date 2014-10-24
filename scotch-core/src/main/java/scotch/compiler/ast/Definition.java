@@ -1,6 +1,5 @@
 package scotch.compiler.ast;
 
-import static java.util.stream.Collectors.toList;
 import static scotch.compiler.ast.DefinitionReference.classRef;
 import static scotch.compiler.ast.DefinitionReference.moduleRef;
 import static scotch.compiler.ast.DefinitionReference.operatorRef;
@@ -8,12 +7,12 @@ import static scotch.compiler.ast.DefinitionReference.patternRef;
 import static scotch.compiler.ast.DefinitionReference.rootRef;
 import static scotch.compiler.ast.DefinitionReference.signatureRef;
 import static scotch.compiler.ast.DefinitionReference.valueRef;
+import static scotch.compiler.ast.Operator.operator;
 import static scotch.compiler.util.TextUtil.stringify;
 import static scotch.lang.Symbol.fromString;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.ast.Operator.Fixity;
 import scotch.lang.Symbol;
@@ -199,13 +198,13 @@ public abstract class Definition {
             }
         }
 
+        public List<DefinitionReference> getDefinitions() {
+            return definitions;
+        }
+
         @Override
         public DefinitionReference getReference() {
             return moduleRef(symbol);
-        }
-
-        public String getSymbol() {
-            return symbol;
         }
 
         @Override
@@ -216,6 +215,10 @@ public abstract class Definition {
         @Override
         public String toString() {
             return stringify(this) + "(" + symbol + ")";
+        }
+
+        public ModuleDefinition withDefinitions(List<DefinitionReference> definitions) {
+            return new ModuleDefinition(symbol, imports, definitions);
         }
     }
 
@@ -250,9 +253,17 @@ public abstract class Definition {
             }
         }
 
+        public Operator getOperator() {
+            return operator(fixity, precedence);
+        }
+
         @Override
         public DefinitionReference getReference() {
             return operatorRef(symbol);
+        }
+
+        public Symbol getSymbol() {
+            return symbol;
         }
 
         @Override
@@ -284,13 +295,13 @@ public abstract class Definition {
             return o == this || o instanceof RootDefinition && Objects.equals(definitions, ((RootDefinition) o).definitions);
         }
 
+        public List<DefinitionReference> getDefinitions() {
+            return definitions;
+        }
+
         @Override
         public DefinitionReference getReference() {
             return rootRef();
-        }
-
-        public RootDefinition mapDefinitions(Function<DefinitionReference, DefinitionReference> function) {
-            return new RootDefinition(definitions.stream().map(function).collect(toList()));
         }
 
         @Override
@@ -301,6 +312,10 @@ public abstract class Definition {
         @Override
         public String toString() {
             return stringify(this);
+        }
+
+        public RootDefinition withDefinitions(List<DefinitionReference> definitions) {
+            return new RootDefinition(definitions);
         }
     }
 
@@ -330,6 +345,10 @@ public abstract class Definition {
             } else {
                 return false;
             }
+        }
+
+        public PatternMatcher getPattern() {
+            return pattern;
         }
 
         @Override
@@ -379,13 +398,13 @@ public abstract class Definition {
             }
         }
 
+        public Value getBody() {
+            return body;
+        }
+
         @Override
         public DefinitionReference getReference() {
             return valueRef(symbol);
-        }
-
-        public Value getBody() {
-            return body;
         }
 
         public Symbol getSymbol() {
@@ -404,6 +423,10 @@ public abstract class Definition {
         @Override
         public String toString() {
             return stringify(this) + "(" + symbol + " :: " + type + ")";
+        }
+
+        public ValueDefinition withBody(Value body) {
+            return new ValueDefinition(symbol, body, type);
         }
     }
 
@@ -438,10 +461,6 @@ public abstract class Definition {
         @Override
         public DefinitionReference getReference() {
             return signatureRef(symbol);
-        }
-
-        public Symbol getSymbol() {
-            return symbol;
         }
 
         public Type getType() {

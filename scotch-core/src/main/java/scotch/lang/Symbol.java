@@ -37,6 +37,8 @@ public abstract class Symbol {
     @Override
     public abstract int hashCode();
 
+    public abstract Symbol qualifyWith(String moduleName);
+
     @Override
     public abstract String toString();
 
@@ -86,8 +88,17 @@ public abstract class Symbol {
         }
 
         @Override
+        public Symbol qualifyWith(String moduleName) {
+            return qualified(moduleName, memberName);
+        }
+
+        @Override
         public String toString() {
             return normalizeQualified(moduleName, memberName);
+        }
+
+        public Symbol unqualify() {
+            return unqualified(memberName);
         }
     }
 
@@ -117,6 +128,11 @@ public abstract class Symbol {
         @Override
         public int hashCode() {
             return Objects.hash(memberName);
+        }
+
+        @Override
+        public Symbol qualifyWith(String moduleName) {
+            return qualified(moduleName, memberName);
         }
 
         @Override

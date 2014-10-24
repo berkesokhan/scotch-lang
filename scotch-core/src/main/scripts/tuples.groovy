@@ -3,7 +3,7 @@ import static java.lang.Integer.parseInt
 def groupId = project.properties['groupId']
 def artifactId = project.properties['artifactId']
 def javaDir = project.properties['javaDir']
-def tupleRange = (1 .. (parseInt(project.properties['tupleRange']) ?: 64) - 1)
+def tupleRange = (1..(parseInt(project.properties['tupleRange']) ?: 64) - 1)
 def sourcePath = new File("${javaDir}/scotch/data/tuple")
 def generated = "@Generated(value = \"${groupId}:${artifactId}:/src/main/scripts/tuples.groovy\", date = \"${new Date()}\")"
 
@@ -28,7 +28,7 @@ def util = [
 tupleRange.each {
     def size = it + 1
     def range = (0..it)
-    def generics = [ '<', range.collect { t -> "        T${t}" }.join(',\n'), '    >' ].join('\n')
+    def generics = ['<', range.collect { t -> "        T${t}" }.join(',\n'), '    >'].join('\n')
 
     util << ''
     util << "    public static ${generics} Tuple${size}${generics} tuple${size}("
@@ -75,7 +75,7 @@ tupleRange.each {
 
     content << ''
     content << "    public Tuple${size}("
-    content << range.collect { t -> "        T${t} _${t}"}.join(',\n')
+    content << range.collect { t -> "        T${t} _${t}" }.join(',\n')
     content << '    ) {'
     range.each { t ->
         content << "        this._${t} = _${t};"

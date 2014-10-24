@@ -33,8 +33,6 @@ public abstract class Either<L, R> {
     @Override
     public abstract int hashCode();
 
-    public abstract boolean isRight();
-
     @Override
     public abstract String toString();
 
@@ -84,11 +82,6 @@ public abstract class Either<L, R> {
         }
 
         @Override
-        public boolean isRight() {
-            return false;
-        }
-
-        @Override
         public String toString() {
             return stringify(this) + "(" + left + ")";
         }
@@ -130,11 +123,6 @@ public abstract class Either<L, R> {
         @Override
         public int hashCode() {
             return Objects.hash(right);
-        }
-
-        @Override
-        public boolean isRight() {
-            return true;
         }
 
         @Override

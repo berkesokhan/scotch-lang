@@ -8,8 +8,6 @@ import scotch.lang.Symbol;
 
 public abstract class DefinitionReference {
 
-    private static final DefinitionReference rootRef = new RootReference();
-
     public static DefinitionReference classRef(String moduleName, String name) {
         return classRef(qualified(moduleName, name));
     }
@@ -57,6 +55,8 @@ public abstract class DefinitionReference {
     public static DefinitionReference valueRef(Symbol symbol) {
         return new ValueReference(symbol);
     }
+
+    private static final DefinitionReference rootRef = new RootReference();
 
     private DefinitionReference() {
         // intentionally empty
@@ -186,6 +186,10 @@ public abstract class DefinitionReference {
         @Override
         public boolean equals(Object o) {
             return o == this || o instanceof OperatorReference && Objects.equals(symbol, ((OperatorReference) o).symbol);
+        }
+
+        public Symbol getSymbol() {
+            return symbol;
         }
 
         @Override

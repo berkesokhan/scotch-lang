@@ -18,8 +18,6 @@ import scotch.lang.TypeInfo;
 @DataUnion(name = "scotch.data.list.List")
 public abstract class PersistentList<E> implements Iterable<E> {
 
-    private static final PersistentList EMPTY = new Empty<>();
-
     @SuppressWarnings("unchecked")
     public static <E> PersistentList<E> empty() {
         return EMPTY;
@@ -43,11 +41,13 @@ public abstract class PersistentList<E> implements Iterable<E> {
         return sum("scotch.data.list.List", listOf(argument));
     }
 
+    private static final PersistentList EMPTY = new Empty<>();
+
+    public abstract <R> R accept(ListVisitor<E, R> visitor);
+
     public PersistentList<E> cons(E head) {
         return new Cons<>(head, this);
     }
-
-    public abstract <R> R accept(ListVisitor<E, R> visitor);
 
     @Override
     public abstract boolean equals(Object o);
@@ -71,39 +71,6 @@ public abstract class PersistentList<E> implements Iterable<E> {
         R visit(Empty<E> empty);
 
         R visit(Cons<E> cons);
-    }
-
-    @Data(constructor = "scotch.data.list.EmptyList", enclosedBy = "scotch.data.list.List")
-    public static class Empty<E> extends PersistentList<E> {
-
-        private Empty() {
-            // intentionally empty
-        }
-
-        @Override
-        public <R> R accept(ListVisitor<E, R> visitor) {
-            return visitor.visit(this);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return o == this;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash();
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return true;
-        }
-
-        @Override
-        public Iterator<E> iterator() {
-            return emptyIterator();
-        }
     }
 
     @Data(constructor = "scotch.data.list.ListNode", enclosedBy = "scotch.data.list.List")
@@ -149,6 +116,39 @@ public abstract class PersistentList<E> implements Iterable<E> {
         @Override
         public Iterator<E> iterator() {
             return new PersistentListIterator<>(this);
+        }
+    }
+
+    @Data(constructor = "scotch.data.list.EmptyList", enclosedBy = "scotch.data.list.List")
+    public static class Empty<E> extends PersistentList<E> {
+
+        private Empty() {
+            // intentionally empty
+        }
+
+        @Override
+        public <R> R accept(ListVisitor<E, R> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o == this;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash();
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return true;
+        }
+
+        @Override
+        public Iterator<E> iterator() {
+            return emptyIterator();
         }
     }
 

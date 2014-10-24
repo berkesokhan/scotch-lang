@@ -12,12 +12,6 @@ import scotch.data.tuple.Tuple2;
 
 public final class TextUtil {
 
-    private static final String  moduleSubPattern       = "[A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)*";
-    private static final String  memberSubPattern       = "(\\[\\]|\\((?:[^\\)]+)\\)|(?:[^\\.]+)|\\(,*\\))";
-    private static final Pattern qualifiedPattern       = compile("^(\\$?" + moduleSubPattern + ")\\." + memberSubPattern + "$");
-    private static final Pattern containsSymbolsPattern = compile("\\W");
-    private static final Pattern tuplePattern           = compile("\\(,*\\)");
-
     public static boolean isAsciiEscape(int c) {
         return c == '\\' || c == 'b' || c == 't' || c == 'n' || c == 'f' || c == 'r' || c == '"' || c == '\'';
     }
@@ -171,6 +165,12 @@ public final class TextUtil {
     public static String stringify(Object o) {
         return format("%s@%08X", o.getClass().getSimpleName(), o.hashCode());
     }
+
+    private static final String  moduleSubPattern       = "[A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)*";
+    private static final String  memberSubPattern       = "(\\[\\]|\\((?:[^\\)]+)\\)|(?:[^\\.]+)|\\(,*\\))";
+    private static final Pattern qualifiedPattern       = compile("^(\\$?" + moduleSubPattern + ")\\." + memberSubPattern + "$");
+    private static final Pattern containsSymbolsPattern = compile("\\W");
+    private static final Pattern tuplePattern           = compile("\\(,*\\)");
 
     private TextUtil() {
         // intentionally empty
