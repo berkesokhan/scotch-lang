@@ -117,6 +117,14 @@ public abstract class Value {
             }
         }
 
+        public Value getArgument() {
+            return argument;
+        }
+
+        public Value getFunction() {
+            return function;
+        }
+
         public Type getType() {
             return type;
         }
@@ -129,6 +137,14 @@ public abstract class Value {
         @Override
         public String toString() {
             return stringify(this) + "(" + function + ", " + argument + ")";
+        }
+
+        public Apply withArgument(Value argument) {
+            return new Apply(function, argument, type);
+        }
+
+        public Apply withFunction(Value function) {
+            return new Apply(function, argument, type);
         }
     }
 
@@ -176,6 +192,10 @@ public abstract class Value {
         @Override
         public String toString() {
             return stringify(this) + "(" + symbol + ")";
+        }
+
+        public Identifier withSymbol(Symbol symbol) {
+            return new Identifier(symbol, type);
         }
     }
 
@@ -283,7 +303,7 @@ public abstract class Value {
             return stringify(this) + "(" + matchers + ")";
         }
 
-        public Value withMatchers(List<PatternMatcher> matchers) {
+        public PatternMatchers withMatchers(List<PatternMatcher> matchers) {
             return new PatternMatchers(matchers);
         }
     }

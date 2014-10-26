@@ -12,16 +12,14 @@ import scotch.lang.Type;
 public class Scope {
 
     public static Scope scope() {
-        return new Scope(Optional.empty(), Optional.empty());
+        return new Scope(Optional.empty());
     }
 
     private final Optional<Scope>          optionalParent;
-    private final Optional<String>         optionalModuleName;
     private final Map<Symbol, SymbolEntry> symbols;
 
-    private Scope(Optional<Scope> optionalParent, Optional<String> optionalModuleName) {
+    private Scope(Optional<Scope> optionalParent) {
         this.optionalParent = optionalParent;
-        this.optionalModuleName = optionalModuleName;
         this.symbols = new HashMap<>();
     }
 
@@ -33,8 +31,8 @@ public class Scope {
         getSymbol(symbol).defineValue(type);
     }
 
-    public Scope enterScope(String moduleName) {
-        return new Scope(Optional.of(this), Optional.of(moduleName));
+    public Scope enterScope() {
+        return new Scope(Optional.of(this));
     }
 
     public Operator getOperator(Symbol symbol) {
@@ -50,23 +48,31 @@ public class Scope {
     }
 
     public Symbol qualify(UnqualifiedSymbol symbol) {
-        return optionalModuleName.map(symbol::qualifyWith).orElse(symbol);
+        return getSymbol(symbol).getSymbol();
     }
 
     private SymbolEntry getSymbol(Symbol symbol) {
         if (!symbols.containsKey(symbol)) {
-            SymbolEntry entry = new SymbolEntry(symbol);
             symbol.accept(new SymbolVisitor<Void>() {
                 @Override
-                public Void visit(QualifiedSymbol symbol) {
-                    symbols.put(symbol, entry);
-                    symbols.put(symbol.unqualify(), entry);
+                public Void visit(QualifiedSymbol qualified) {
+                    SymbolEntry entry = new SymbolEntry(qualified);
+                    symbols.put(qualified, entry);
+                    symbols.put(qualified.unqualify(), entry);
                     return null;
                 }
 
                 @Override
-                public Void visit(UnqualifiedSymbol symbol) {
-                    symbols.put(symbol, entry);
+                public Void visit(UnqualifiedSymbol unqualified) {
+                    symbols.put(unqualified, optionalParent
+                            .map(parent -> parent.qualify(unqualified))
+                            .map(qualified -> {
+                                SymbolEntry entry = new SymbolEntry(qualified);
+                                symbols.put(qualified, entry);
+                                return entry;
+                            })
+                            .orElseGet(() -> new SymbolEntry(unqualified))
+                    );
                     return null;
                 }
             });
@@ -107,6 +113,10 @@ public class Scope {
                     .map(parent -> parent.getOperator(symbol))
                     .orElseThrow(() -> new RuntimeException("Operator not found"))
             );
+        }
+
+        public Symbol getSymbol() {
+            return symbol;
         }
 
         public boolean isOperator() {

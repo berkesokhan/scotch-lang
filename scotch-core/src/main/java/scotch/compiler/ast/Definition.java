@@ -347,8 +347,12 @@ public abstract class Definition {
             }
         }
 
-        public PatternMatcher getPattern() {
-            return pattern;
+        public Value getBody() {
+            return pattern.getBody();
+        }
+
+        public List<PatternMatch> getMatches() {
+            return pattern.getMatches();
         }
 
         @Override

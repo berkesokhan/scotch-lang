@@ -52,7 +52,7 @@ public class InputParserTest {
             "    x /= y = not x == y"
         );
         assertThat(symbols.getDefinition(classRef("scotch.data.eq", "Eq")), is(
-            classDef("Eq", asList(var("a")), asList(
+            classDef("scotch.data.eq.Eq", asList(var("a")), asList(
                 signatureRef("scotch.data.eq", "=="),
                 signatureRef("scotch.data.eq", "/="),
                 patternRef("scotch.data.eq", "pattern#3"),
