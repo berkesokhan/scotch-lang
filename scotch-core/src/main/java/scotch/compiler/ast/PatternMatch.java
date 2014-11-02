@@ -1,11 +1,9 @@
 package scotch.compiler.ast;
 
+import static scotch.compiler.ast.Symbol.fromString;
 import static scotch.compiler.util.TextUtil.stringify;
-import static scotch.lang.Symbol.fromString;
 
 import java.util.Objects;
-import scotch.lang.Symbol;
-import scotch.lang.Type;
 
 public abstract class PatternMatch {
 
@@ -29,6 +27,8 @@ public abstract class PatternMatch {
 
     @Override
     public abstract boolean equals(Object o);
+
+    public abstract Type getType();
 
     @Override
     public abstract int hashCode();
@@ -83,6 +83,7 @@ public abstract class PatternMatch {
             return symbol;
         }
 
+        @Override
         public Type getType() {
             return type;
         }
@@ -114,6 +115,11 @@ public abstract class PatternMatch {
         @Override
         public boolean equals(Object o) {
             return o == this || o instanceof EqualMatch && Objects.equals(value, ((EqualMatch) o).value);
+        }
+
+        @Override
+        public Type getType() {
+            return value.getType();
         }
 
         @Override

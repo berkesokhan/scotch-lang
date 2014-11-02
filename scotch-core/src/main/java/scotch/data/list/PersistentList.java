@@ -1,18 +1,19 @@
 package scotch.data.list;
 
 import static java.lang.String.join;
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyIterator;
 import static java.util.stream.Collectors.toList;
-import static scotch.lang.Type.sum;
-import static scotch.lang.Type.var;
+import static scotch.compiler.ast.Type.sum;
+import static scotch.compiler.ast.Type.var;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import scotch.compiler.ast.Type;
 import scotch.lang.DataUnion;
-import scotch.lang.Type;
 import scotch.lang.TypeInfo;
 
 @DataUnion(name = "scotch.data.list.List")
@@ -38,7 +39,7 @@ public abstract class PersistentList<E> implements Iterable<E> {
     }
 
     public static Type typeOf(Type argument) {
-        return sum("scotch.data.list.List", listOf(argument));
+        return sum("scotch.data.list.List", asList(argument));
     }
 
     private static final PersistentList EMPTY = new Empty<>();

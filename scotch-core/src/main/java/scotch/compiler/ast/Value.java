@@ -1,14 +1,12 @@
 package scotch.compiler.ast;
 
 import static java.util.Arrays.asList;
+import static scotch.compiler.ast.Symbol.fromString;
 import static scotch.compiler.util.TextUtil.stringify;
-import static scotch.lang.Symbol.fromString;
 
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
-import scotch.lang.Symbol;
-import scotch.lang.Type;
 
 public abstract class Value {
 
@@ -36,12 +34,12 @@ public abstract class Value {
         return new Message(members);
     }
 
-    public static Value patterns(PatternMatcher... patterns) {
-        return patterns(asList(patterns));
+    public static Value patterns(Type type, PatternMatcher... patterns) {
+        return patterns(type, asList(patterns));
     }
 
-    public static Value patterns(List<PatternMatcher> patterns) {
-        return new PatternMatchers(patterns);
+    public static Value patterns(Type type, List<PatternMatcher> patterns) {
+        return new PatternMatchers(patterns, type);
     }
 
     private Value() {
@@ -52,6 +50,8 @@ public abstract class Value {
 
     @Override
     public abstract boolean equals(Object o);
+
+    public abstract Type getType();
 
     @Override
     public abstract int hashCode();
@@ -125,6 +125,7 @@ public abstract class Value {
             return function;
         }
 
+        @Override
         public Type getType() {
             return type;
         }
@@ -144,6 +145,10 @@ public abstract class Value {
         }
 
         public Apply withFunction(Value function) {
+            return new Apply(function, argument, type);
+        }
+
+        public Value withType(Type type) {
             return new Apply(function, argument, type);
         }
     }
@@ -197,6 +202,10 @@ public abstract class Value {
         public Identifier withSymbol(Symbol symbol) {
             return new Identifier(symbol, type);
         }
+
+        public Identifier withType(Type type) {
+            return new Identifier(symbol, type);
+        }
     }
 
     public static class LiteralValue extends Value {
@@ -228,6 +237,15 @@ public abstract class Value {
         }
 
         @Override
+        public Type getType() {
+            return type;
+        }
+
+        public Object getValue() {
+            return value;
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(value, type);
         }
@@ -235,6 +253,10 @@ public abstract class Value {
         @Override
         public String toString() {
             return stringify(this) + "(" + value + ")";
+        }
+
+        public LiteralValue withType(Type type) {
+            return new LiteralValue(value, type);
         }
     }
 
@@ -256,6 +278,11 @@ public abstract class Value {
             return o == this || o instanceof Message && Objects.equals(members, ((Message) o).members);
         }
 
+        @Override
+        public Type getType() {
+            throw new IllegalStateException();
+        }
+
         public List<Value> getMembers() {
             return members;
         }
@@ -274,9 +301,11 @@ public abstract class Value {
     public static class PatternMatchers extends Value {
 
         private final List<PatternMatcher> matchers;
+        private final Type                 type;
 
-        private PatternMatchers(List<PatternMatcher> matchers) {
+        private PatternMatchers(List<PatternMatcher> matchers, Type type) {
             this.matchers = ImmutableList.copyOf(matchers);
+            this.type = type;
         }
 
         @Override
@@ -287,6 +316,11 @@ public abstract class Value {
         @Override
         public boolean equals(Object o) {
             return o == this || o instanceof PatternMatchers && Objects.equals(matchers, ((PatternMatchers) o).matchers);
+        }
+
+        @Override
+        public Type getType() {
+            return type;
         }
 
         public List<PatternMatcher> getMatchers() {
@@ -304,7 +338,11 @@ public abstract class Value {
         }
 
         public PatternMatchers withMatchers(List<PatternMatcher> matchers) {
-            return new PatternMatchers(matchers);
+            return new PatternMatchers(matchers, type);
+        }
+
+        public PatternMatchers withType(Type type) {
+            return new PatternMatchers(matchers, type);
         }
     }
 }

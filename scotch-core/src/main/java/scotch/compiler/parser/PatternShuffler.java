@@ -23,20 +23,22 @@ import scotch.compiler.ast.Definition;
 import scotch.compiler.ast.Definition.DefinitionVisitor;
 import scotch.compiler.ast.Definition.UnshuffledPattern;
 import scotch.compiler.ast.Definition.ValueDefinition;
-import scotch.compiler.ast.DefinitionEntry;
+import scotch.compiler.ast.DefinitionEntry.DefinitionEntryVisitor;
+import scotch.compiler.ast.DefinitionEntry.ScopedEntry;
+import scotch.compiler.ast.DefinitionEntry.UnscopedEntry;
 import scotch.compiler.ast.DefinitionReference;
 import scotch.compiler.ast.Operator;
 import scotch.compiler.ast.PatternMatch;
 import scotch.compiler.ast.PatternMatch.CaptureMatch;
 import scotch.compiler.ast.PatternMatch.PatternMatchVisitor;
 import scotch.compiler.ast.PatternMatcher;
+import scotch.compiler.ast.Symbol;
+import scotch.compiler.ast.Type;
 import scotch.compiler.ast.Value.PatternMatchers;
 import scotch.compiler.ast.Value.ValueVisitor;
 import scotch.data.tuple.Tuple2;
 import scotch.lang.Either;
 import scotch.lang.Either.EitherVisitor;
-import scotch.lang.Symbol;
-import scotch.lang.Type;
 
 public class PatternShuffler {
 
@@ -51,22 +53,37 @@ public class PatternShuffler {
     public Optional<Definition> shuffle(UnshuffledPattern pattern) {
         return splitPattern(pattern).into(
             (symbol, matches) -> createOrRetrievePattern(symbol).into((optionalDefinition, reference) -> {
-                DefinitionEntry entry = scope.getDefinition(reference);
-                entry.setDefinition(entry.getDefinition().accept(new DefinitionVisitor<Definition>() {
+                scope.getDefinition(reference).accept(new DefinitionEntryVisitor<Void>() {
                     @Override
-                    public Definition visit(ValueDefinition definition) {
-                        return definition.getBody().<Definition>accept(new ValueVisitor<Definition>() {
+                    public Void visit(UnscopedEntry entry) {
+                        entry.setDefinition(accumulate(entry.getDefinition()));
+                        return null;
+                    }
+
+                    @Override
+                    public Void visit(ScopedEntry entry) {
+                        entry.setDefinition(accumulate(entry.getDefinition()));
+                        return null;
+                    }
+
+                    private Definition accumulate(Definition definition) {
+                        return definition.<Definition>accept(new DefinitionVisitor<Definition>() {
                             @Override
-                            public Definition visit(PatternMatchers matchers) {
-                                return definition.withBody(matchers.withMatchers(ImmutableList.<PatternMatcher>builder()
-                                        .addAll(matchers.getMatchers())
-                                        .add(parser.apply(pattern(matches, pattern.getBody())))
-                                        .build()
-                                ));
+                            public Definition visit(ValueDefinition definition) {
+                                return definition.getBody().<Definition>accept(new ValueVisitor<Definition>() {
+                                    @Override
+                                    public Definition visit(PatternMatchers matchers) {
+                                        return definition.withBody(matchers.withMatchers(ImmutableList.<PatternMatcher>builder()
+                                                .addAll(matchers.getMatchers())
+                                                .add(parser.apply(pattern(pattern.getSymbol(), matches, pattern.getBody())))
+                                                .build()
+                                        ));
+                                    }
+                                });
                             }
                         });
                     }
-                }));
+                });
                 return optionalDefinition;
             })
         );
@@ -82,8 +99,8 @@ public class PatternShuffler {
 
     private Tuple2<Optional<Definition>, DefinitionReference> createPattern(Symbol symbol) {
         Type type = scope.reserveType();
-        Definition definition = scope.collect(value(symbol, type, patterns()));
-        scope.defineValue(scope.qualify(symbol), type);
+        Definition definition = scope.collect(value(symbol, type, patterns(scope.reserveType())));
+        scope.defineValue(symbol, type);
         scope.addPattern(symbol);
         return tuple2(Optional.of(definition), definition.getReference());
     }
@@ -96,7 +113,7 @@ public class PatternShuffler {
         return match.accept(new PatternMatchVisitor<OperatorPair<CaptureMatch>>() {
             @Override
             public OperatorPair<CaptureMatch> visit(CaptureMatch match) {
-                Operator operator = scope.getOperator(match.getSymbol());
+                Operator operator = scope.qualify(match.getSymbol()).map(scope::getOperator).get(); // TODO
                 if (expectsPrefix && !operator.isPrefix()) {
                     throw new ParseException("Unexpected binary operator " + quote(match.getSymbol()));
                 }

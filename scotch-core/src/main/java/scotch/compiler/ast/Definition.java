@@ -8,15 +8,13 @@ import static scotch.compiler.ast.DefinitionReference.rootRef;
 import static scotch.compiler.ast.DefinitionReference.signatureRef;
 import static scotch.compiler.ast.DefinitionReference.valueRef;
 import static scotch.compiler.ast.Operator.operator;
+import static scotch.compiler.ast.Symbol.fromString;
 import static scotch.compiler.util.TextUtil.stringify;
-import static scotch.lang.Symbol.fromString;
 
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.ast.Operator.Fixity;
-import scotch.lang.Symbol;
-import scotch.lang.Type;
 
 public abstract class Definition {
 
@@ -52,12 +50,12 @@ public abstract class Definition {
         return new ValueSignature(symbol, type);
     }
 
-    public static Definition unshuffled(String name, PatternMatcher pattern) {
-        return unshuffled(fromString(name), pattern);
+    public static Definition unshuffled(String name, List<PatternMatch> matches, Value body) {
+        return unshuffled(fromString(name), matches, body);
     }
 
-    public static Definition unshuffled(Symbol symbol, PatternMatcher pattern) {
-        return new UnshuffledPattern(symbol, pattern);
+    public static Definition unshuffled(Symbol symbol, List<PatternMatch> matches, Value body) {
+        return new UnshuffledPattern(symbol, matches, body);
     }
 
     public static Definition value(String name, Type type, Value value) {
@@ -202,6 +200,10 @@ public abstract class Definition {
             return definitions;
         }
 
+        public List<Import> getImports() {
+            return imports;
+        }
+
         @Override
         public DefinitionReference getReference() {
             return moduleRef(symbol);
@@ -321,12 +323,14 @@ public abstract class Definition {
 
     public static class UnshuffledPattern extends Definition {
 
-        private final Symbol         symbol;
-        private final PatternMatcher pattern;
+        private final Symbol             symbol;
+        private final List<PatternMatch> matches;
+        private final Value              body;
 
-        private UnshuffledPattern(Symbol symbol, PatternMatcher pattern) {
+        private UnshuffledPattern(Symbol symbol, List<PatternMatch> matches, Value body) {
             this.symbol = symbol;
-            this.pattern = pattern;
+            this.matches = ImmutableList.copyOf(matches);
+            this.body = body;
         }
 
         @Override
@@ -341,18 +345,19 @@ public abstract class Definition {
             } else if (o instanceof UnshuffledPattern) {
                 UnshuffledPattern other = (UnshuffledPattern) o;
                 return Objects.equals(symbol, other.symbol)
-                    && Objects.equals(pattern, other.pattern);
+                    && Objects.equals(matches, other.matches)
+                    && Objects.equals(body, other.body);
             } else {
                 return false;
             }
         }
 
         public Value getBody() {
-            return pattern.getBody();
+            return body;
         }
 
         public List<PatternMatch> getMatches() {
-            return pattern.getMatches();
+            return matches;
         }
 
         @Override
@@ -360,9 +365,13 @@ public abstract class Definition {
             return patternRef(symbol);
         }
 
+        public Symbol getSymbol() {
+            return symbol;
+        }
+
         @Override
         public int hashCode() {
-            return Objects.hash(pattern);
+            return Objects.hash(symbol, body, matches);
         }
 
         @Override
@@ -430,6 +439,10 @@ public abstract class Definition {
         }
 
         public ValueDefinition withBody(Value body) {
+            return new ValueDefinition(symbol, body, type);
+        }
+
+        public ValueDefinition withType(Type type) {
             return new ValueDefinition(symbol, body, type);
         }
     }

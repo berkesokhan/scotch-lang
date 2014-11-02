@@ -1,9 +1,10 @@
-package scotch.lang;
+package scotch.compiler.ast;
 
 import static scotch.compiler.util.TextUtil.normalizeQualified;
 import static scotch.compiler.util.TextUtil.splitQualified;
 
 import java.util.Objects;
+import scotch.compiler.util.TextUtil;
 
 public abstract class Symbol {
 
@@ -37,7 +38,15 @@ public abstract class Symbol {
     @Override
     public abstract int hashCode();
 
+    public boolean isDefaultOperator() {
+        return false; // TODO
+    }
+
     public abstract Symbol qualifyWith(String moduleName);
+
+    public String quote() {
+        return TextUtil.quote(toString());
+    }
 
     @Override
     public abstract String toString();
@@ -80,6 +89,10 @@ public abstract class Symbol {
         @Override
         public String getMemberName() {
             return memberName;
+        }
+
+        public String getModuleName() {
+            return moduleName;
         }
 
         @Override

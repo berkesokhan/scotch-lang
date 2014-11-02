@@ -15,12 +15,12 @@ import scotch.compiler.ast.Operator;
 import scotch.compiler.ast.PatternMatch;
 import scotch.compiler.ast.PatternMatch.CaptureMatch;
 import scotch.compiler.ast.PatternMatch.PatternMatchVisitor;
+import scotch.compiler.ast.Type;
 import scotch.compiler.ast.Value;
 import scotch.compiler.ast.Value.Identifier;
 import scotch.compiler.ast.Value.Message;
 import scotch.compiler.ast.Value.ValueVisitor;
 import scotch.lang.Either;
-import scotch.lang.Type;
 
 public class ValueShuffler {
 
@@ -56,11 +56,11 @@ public class ValueShuffler {
         return value.accept(new ValueVisitor<OperatorPair<Identifier>>() {
             @Override
             public OperatorPair<Identifier> visit(Identifier identifier) {
-                Operator operator = scope.getOperator(identifier.getSymbol());
+                Operator operator = scope.qualify(identifier.getSymbol()).map(scope::getOperator).get(); // TODO
                 if (expectsPrefix && !operator.isPrefix()) {
                     throw new ParseException("Unexpected binary operator " + identifier.getSymbol());
                 }
-                return new OperatorPair<>(scope.getOperator(identifier.getSymbol()), identifier);
+                return new OperatorPair<>(operator, identifier);
             }
         });
     }

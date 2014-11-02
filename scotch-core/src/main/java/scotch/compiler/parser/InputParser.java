@@ -20,7 +20,11 @@ import static scotch.compiler.ast.Operator.Fixity.PREFIX;
 import static scotch.compiler.ast.Operator.Fixity.RIGHT_INFIX;
 import static scotch.compiler.ast.PatternMatch.capture;
 import static scotch.compiler.ast.PatternMatch.equal;
-import static scotch.compiler.ast.PatternMatcher.pattern;
+import static scotch.compiler.ast.Symbol.qualified;
+import static scotch.compiler.ast.Type.fn;
+import static scotch.compiler.ast.Type.sum;
+import static scotch.compiler.ast.Type.t;
+import static scotch.compiler.ast.Type.var;
 import static scotch.compiler.ast.Value.Identifier;
 import static scotch.compiler.ast.Value.ValueVisitor;
 import static scotch.compiler.ast.Value.id;
@@ -47,11 +51,6 @@ import static scotch.compiler.parser.Token.TokenKind.WORD;
 import static scotch.compiler.util.TextUtil.normalizeQualified;
 import static scotch.compiler.util.TextUtil.quote;
 import static scotch.compiler.util.TextUtil.splitQualified;
-import static scotch.lang.Symbol.qualified;
-import static scotch.lang.Type.fn;
-import static scotch.lang.Type.sum;
-import static scotch.lang.Type.t;
-import static scotch.lang.Type.var;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,13 +64,13 @@ import scotch.compiler.ast.DefinitionReference;
 import scotch.compiler.ast.Import;
 import scotch.compiler.ast.Operator.Fixity;
 import scotch.compiler.ast.PatternMatch;
+import scotch.compiler.ast.Symbol;
 import scotch.compiler.ast.SymbolTable;
+import scotch.compiler.ast.Type;
 import scotch.compiler.ast.Value;
 import scotch.compiler.parser.Token.TokenKind;
 import scotch.compiler.util.SourcePosition;
 import scotch.compiler.util.TextUtil;
-import scotch.lang.Symbol;
-import scotch.lang.Type;
 
 public class InputParser {
 
@@ -434,7 +433,7 @@ public class InputParser {
         } else {
             List<PatternMatch> patternMatches = parsePatternMatches();
             require(ASSIGN);
-            return collect(unshuffled(qualified(currentModule, "pattern#" + sequence++), pattern(patternMatches, parseMessage())));
+            return collect(unshuffled(qualified(currentModule, "pattern#" + sequence++), patternMatches, parseMessage()));
         }
     }
 

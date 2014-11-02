@@ -1,8 +1,9 @@
 package scotch.compiler.parser;
 
+import static scotch.compiler.ast.DefinitionEntry.patternEntry;
 import static scotch.compiler.ast.DefinitionEntry.scopedEntry;
 import static scotch.compiler.ast.Scope.scope;
-import static scotch.lang.Type.t;
+import static scotch.compiler.ast.Type.t;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -10,20 +11,25 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.ast.Definition;
 import scotch.compiler.ast.Definition.DefinitionVisitor;
 import scotch.compiler.ast.Definition.OperatorDefinition;
 import scotch.compiler.ast.DefinitionEntry;
 import scotch.compiler.ast.DefinitionReference;
+import scotch.compiler.ast.Import;
 import scotch.compiler.ast.Operator;
+import scotch.compiler.ast.PatternMatcher;
 import scotch.compiler.ast.Scope;
-import scotch.lang.Symbol;
-import scotch.lang.Symbol.QualifiedSymbol;
-import scotch.lang.Symbol.SymbolVisitor;
-import scotch.lang.Symbol.UnqualifiedSymbol;
-import scotch.lang.Type;
+import scotch.compiler.ast.Symbol;
+import scotch.compiler.ast.Symbol.QualifiedSymbol;
+import scotch.compiler.ast.Symbol.SymbolVisitor;
+import scotch.compiler.ast.Symbol.UnqualifiedSymbol;
+import scotch.compiler.ast.SymbolResolver;
+import scotch.compiler.ast.Type;
 
 public class ScopeBuilder {
 
@@ -33,10 +39,10 @@ public class ScopeBuilder {
     private       Scope                                     scope;
     private       int                                       sequence;
 
-    public ScopeBuilder(int sequence) {
+    public ScopeBuilder(int sequence, SymbolResolver resolver) {
         this.definitions = new HashMap<>();
         this.patterns = new ArrayDeque<>();
-        this.scope = scope();
+        this.scope = scope(resolver);
         this.sequence = sequence;
     }
 
@@ -46,6 +52,11 @@ public class ScopeBuilder {
 
     public Scope build() {
         return scope;
+    }
+
+    public PatternMatcher collect(PatternMatcher pattern) {
+        definitions.put(pattern.getReference(), patternEntry(pattern, build()));
+        return pattern;
     }
 
     public Definition collect(Definition definition) {
@@ -77,6 +88,11 @@ public class ScopeBuilder {
         scope = scope.enterScope();
     }
 
+    public void enterScope(List<Import> imports) {
+        patterns.push(new HashSet<>());
+        scope = scope.enterScope(currentModule, imports);
+    }
+
     public DefinitionEntry getDefinition(DefinitionReference reference) {
         return definitions.get(reference);
     }
@@ -93,8 +109,20 @@ public class ScopeBuilder {
         return sequence;
     }
 
+    public <T> T hoist(Supplier<T> supplier) {
+        Scope childScope = scope;
+        Set<Symbol> childPatterns = patterns.peek();
+        leaveScope();
+        try {
+            return supplier.get();
+        } finally {
+            scope = childScope;
+            patterns.push(childPatterns);
+        }
+    }
+
     public boolean isOperator(Symbol symbol) {
-        return scope.isOperator(qualify(symbol));
+        return qualify(symbol).map(scope::isOperator).orElse(false);
     }
 
     public boolean isPattern(Symbol symbol) {
@@ -106,16 +134,20 @@ public class ScopeBuilder {
         scope = scope.leaveScope();
     }
 
-    public Symbol qualify(Symbol symbol) {
+    public Optional<Symbol> qualify(Symbol symbol) {
+        return scope.qualify(symbol);
+    }
+
+    public Symbol qualifyLocal(Symbol symbol) {
         return symbol.accept(new SymbolVisitor<Symbol>() {
             @Override
             public Symbol visit(QualifiedSymbol symbol) {
-                return symbol;
+                throw new UnsupportedOperationException(); // TODO
             }
 
             @Override
             public Symbol visit(UnqualifiedSymbol symbol) {
-                return scope.qualify(symbol);
+                return symbol.qualifyWith(currentModule);
             }
         });
     }

@@ -2,6 +2,10 @@ package scotch.compiler.ast;
 
 public abstract class DefinitionEntry {
 
+    public static DefinitionEntry patternEntry(PatternMatcher pattern, Scope scope) {
+        return new PatternEntry(pattern, scope);
+    }
+
     public static DefinitionEntry scopedEntry(Definition definition, Scope scope) {
         return new ScopedEntry(definition, scope);
     }
@@ -16,11 +20,9 @@ public abstract class DefinitionEntry {
 
     public abstract <T> T accept(DefinitionEntryVisitor<T> visitor);
 
-    public abstract Definition getDefinition();
-
     public abstract DefinitionReference getReference();
 
-    public abstract void setDefinition(Definition definition);
+    public abstract Scope getScope();
 
     public interface DefinitionEntryVisitor<T> {
 
@@ -32,8 +34,46 @@ public abstract class DefinitionEntry {
             return visitOtherwise(entry);
         }
 
+        default T visit(PatternEntry entry) {
+            return visitOtherwise(entry);
+        }
+
         default T visitOtherwise(DefinitionEntry entry) {
             throw new UnsupportedOperationException("Can't visit " + entry);
+        }
+    }
+
+    public static class PatternEntry extends DefinitionEntry {
+
+        private final Scope          scope;
+        private       PatternMatcher pattern;
+
+        private PatternEntry(PatternMatcher pattern, Scope scope) {
+            this.scope = scope;
+            this.pattern = pattern;
+        }
+
+        @Override
+        public <T> T accept(DefinitionEntryVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        public PatternMatcher getPattern() {
+            return pattern;
+        }
+
+        @Override
+        public DefinitionReference getReference() {
+            return pattern.getReference();
+        }
+
+        @Override
+        public Scope getScope() {
+            return scope;
+        }
+
+        public void setPattern(PatternMatcher pattern) {
+            this.pattern = pattern;
         }
     }
 
@@ -52,7 +92,6 @@ public abstract class DefinitionEntry {
             return visitor.visit(this);
         }
 
-        @Override
         public Definition getDefinition() {
             return definition;
         }
@@ -62,11 +101,11 @@ public abstract class DefinitionEntry {
             return definition.getReference();
         }
 
+        @Override
         public Scope getScope() {
             return scope;
         }
 
-        @Override
         public void setDefinition(Definition definition) {
             this.definition = definition;
         }
@@ -85,7 +124,6 @@ public abstract class DefinitionEntry {
             return visitor.visit(this);
         }
 
-        @Override
         public Definition getDefinition() {
             return definition;
         }
@@ -96,6 +134,10 @@ public abstract class DefinitionEntry {
         }
 
         @Override
+        public Scope getScope() {
+            throw new IllegalStateException();
+        }
+
         public void setDefinition(Definition definition) {
             this.definition = definition;
         }

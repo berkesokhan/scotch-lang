@@ -18,12 +18,17 @@ import scotch.compiler.ast.DefinitionEntry.DefinitionEntryVisitor;
 import scotch.compiler.ast.DefinitionReference;
 import scotch.compiler.ast.DefinitionReference.DefinitionReferenceVisitor;
 import scotch.compiler.ast.DefinitionReference.ModuleReference;
+import scotch.compiler.ast.Import;
 import scotch.compiler.ast.PatternMatch;
 import scotch.compiler.ast.PatternMatch.CaptureMatch;
 import scotch.compiler.ast.PatternMatch.EqualMatch;
 import scotch.compiler.ast.PatternMatch.PatternMatchVisitor;
 import scotch.compiler.ast.PatternMatcher;
+import scotch.compiler.ast.SymbolNotFoundException;
+import scotch.compiler.ast.SymbolResolver;
 import scotch.compiler.ast.SymbolTable;
+import scotch.compiler.ast.Type;
+import scotch.compiler.ast.Type.TypeVisitor;
 import scotch.compiler.ast.Value;
 import scotch.compiler.ast.Value.Apply;
 import scotch.compiler.ast.Value.Identifier;
@@ -31,8 +36,6 @@ import scotch.compiler.ast.Value.LiteralValue;
 import scotch.compiler.ast.Value.Message;
 import scotch.compiler.ast.Value.PatternMatchers;
 import scotch.compiler.ast.Value.ValueVisitor;
-import scotch.lang.Type;
-import scotch.lang.Type.TypeVisitor;
 
 public class AstParser implements
     DefinitionReferenceVisitor<Optional<DefinitionReference>>,
@@ -47,21 +50,24 @@ public class AstParser implements
     private final PatternShuffler patternShuffler;
     private final ValueShuffler   valueShuffler;
 
-    public AstParser(SymbolTable symbols) {
+    public AstParser(SymbolTable symbols, SymbolResolver resolver) {
         this.symbols = symbols;
-        this.scope = new ScopeBuilder(symbols.getSequence());
+        this.scope = new ScopeBuilder(symbols.getSequence(), resolver);
         this.patternShuffler = new PatternShuffler(scope, this::visitMatcher);
         this.valueShuffler = new ValueShuffler(scope, value -> value.accept(this));
     }
 
     public SymbolTable analyze() {
         symbols.getDefinition(rootRef()).accept(this);
-        return new SymbolTable(scope.getSequence(), scope.getDefinitions());
+        return symbols.copyWith(scope.getSequence(), scope.getDefinitions());
     }
 
     @Override
     public Optional<Definition> visit(ModuleDefinition definition) {
-        return scoped(() -> Optional.of(collect(definition.withDefinitions(mapDefinitions(definition.getDefinitions())))));
+        return scoped(
+            definition.getImports(),
+            () -> Optional.of(collect(definition.withDefinitions(mapDefinitions(definition.getDefinitions()))))
+        );
     }
 
     @Override
@@ -93,12 +99,18 @@ public class AstParser implements
 
     @Override
     public Value visit(Identifier identifier) {
-        return identifier.withSymbol(scope.qualify(identifier.getSymbol()));
+        return scope.qualify(identifier.getSymbol())
+            .map(identifier::withSymbol)
+            .orElseThrow(() -> new SymbolNotFoundException(identifier.getSymbol().toString()));
     }
 
     @Override
     public Value visit(PatternMatchers matchers) {
-        return matchers.withMatchers(matchers.getMatchers().stream().map(this::visitMatcher).collect(toList()));
+        return matchers.withMatchers(
+            matchers.getMatchers().stream()
+                .map(this::visitMatcher)
+                .collect(toList())
+        );
     }
 
     @Override
@@ -109,7 +121,7 @@ public class AstParser implements
 
     @Override
     public Optional<Definition> visit(ValueDefinition definition) {
-        scope.defineValue(scope.qualify(definition.getSymbol()), definition.getType());
+        scope.defineValue(definition.getSymbol(), definition.getType());
         return scoped(() -> Optional.of(collect(definition.withBody(definition.getBody().accept(this)))));
     }
 
@@ -139,6 +151,10 @@ public class AstParser implements
         return scope.collect(definition);
     }
 
+    private PatternMatcher collect(PatternMatcher pattern) {
+        return scope.collect(pattern);
+    }
+
     private List<DefinitionReference> mapDefinitions(List<DefinitionReference> definitions) {
         return definitions.stream()
             .map(reference -> reference.accept(this))
@@ -149,6 +165,15 @@ public class AstParser implements
 
     private Optional<DefinitionReference> parseDefinition(DefinitionReference reference) {
         return symbols.getDefinition(reference).accept(this).map(Definition::getReference);
+    }
+
+    private <T> T scoped(List<Import> imports, Supplier<T> supplier) {
+        scope.enterScope(imports);
+        try {
+            return supplier.get();
+        } finally {
+            scope.leaveScope();
+        }
     }
 
     private <T> T scoped(Supplier<T> supplier) {
@@ -190,9 +215,9 @@ public class AstParser implements
     }
 
     private PatternMatcher visitMatcher(PatternMatcher matcher) {
-        return scoped(() -> matcher
+        return scoped(() -> collect(matcher
                 .withMatches(matcher.getMatches().stream().map(match -> match.accept(this)).collect(toList()))
                 .withBody(unwrap(matcher.getBody().accept(this)))
-        );
+        ));
     }
 }

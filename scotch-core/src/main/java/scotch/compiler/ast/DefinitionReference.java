@@ -1,10 +1,9 @@
 package scotch.compiler.ast;
 
+import static scotch.compiler.ast.Symbol.qualified;
 import static scotch.compiler.util.TextUtil.stringify;
-import static scotch.lang.Symbol.qualified;
 
 import java.util.Objects;
-import scotch.lang.Symbol;
 
 public abstract class DefinitionReference {
 

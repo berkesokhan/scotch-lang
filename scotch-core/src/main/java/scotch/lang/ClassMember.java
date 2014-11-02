@@ -3,6 +3,7 @@ package scotch.lang;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.Objects;
+import scotch.compiler.ast.Type;
 
 public class ClassMember {
 

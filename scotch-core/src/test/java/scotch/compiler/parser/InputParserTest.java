@@ -19,15 +19,14 @@ import static scotch.compiler.ast.DefinitionReference.valueRef;
 import static scotch.compiler.ast.Operator.Fixity.LEFT_INFIX;
 import static scotch.compiler.ast.Operator.Fixity.PREFIX;
 import static scotch.compiler.ast.PatternMatch.capture;
-import static scotch.compiler.ast.PatternMatcher.pattern;
+import static scotch.compiler.ast.Type.fn;
+import static scotch.compiler.ast.Type.sum;
+import static scotch.compiler.ast.Type.t;
+import static scotch.compiler.ast.Type.var;
 import static scotch.compiler.ast.Value.id;
 import static scotch.compiler.ast.Value.message;
 import static scotch.compiler.util.TestUtil.bodyOf;
 import static scotch.compiler.util.TestUtil.parseInput;
-import static scotch.lang.Type.fn;
-import static scotch.lang.Type.sum;
-import static scotch.lang.Type.t;
-import static scotch.lang.Type.var;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -140,7 +139,8 @@ public class InputParserTest {
         );
         assertThat(symbols.getDefinition(patternRef("scotch.test", "pattern#2")), is(unshuffled(
             "scotch.test.(pattern#2)",
-            pattern(asList(capture("length", t(0)), capture("s", t(1))), message(id("jStrlen", t(3)), id("s", t(4))))
+            asList(capture("length", t(0)), capture("s", t(1))),
+            message(id("jStrlen", t(3)), id("s", t(4)))
         )));
     }
 
