@@ -1,11 +1,11 @@
 package scotch.compiler.parser;
 
 import static java.util.Collections.reverse;
-import static scotch.compiler.ast.Definition.value;
-import static scotch.compiler.ast.DefinitionReference.valueRef;
-import static scotch.compiler.ast.PatternMatcher.pattern;
-import static scotch.compiler.ast.Value.patterns;
 import static scotch.compiler.parser.ParseUtil.nextOperatorHasGreaterPrecedence;
+import static scotch.compiler.syntax.Definition.value;
+import static scotch.compiler.syntax.DefinitionReference.valueRef;
+import static scotch.compiler.syntax.PatternMatcher.pattern;
+import static scotch.compiler.syntax.Value.patterns;
 import static scotch.compiler.util.TextUtil.quote;
 import static scotch.data.tuple.TupleValues.tuple2;
 import static scotch.lang.Either.left;
@@ -19,23 +19,23 @@ import java.util.Optional;
 import java.util.function.Function;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.ParseException;
-import scotch.compiler.ast.Definition;
-import scotch.compiler.ast.Definition.DefinitionVisitor;
-import scotch.compiler.ast.Definition.UnshuffledPattern;
-import scotch.compiler.ast.Definition.ValueDefinition;
-import scotch.compiler.ast.DefinitionEntry.DefinitionEntryVisitor;
-import scotch.compiler.ast.DefinitionEntry.ScopedEntry;
-import scotch.compiler.ast.DefinitionEntry.UnscopedEntry;
-import scotch.compiler.ast.DefinitionReference;
-import scotch.compiler.ast.Operator;
-import scotch.compiler.ast.PatternMatch;
-import scotch.compiler.ast.PatternMatch.CaptureMatch;
-import scotch.compiler.ast.PatternMatch.PatternMatchVisitor;
-import scotch.compiler.ast.PatternMatcher;
-import scotch.compiler.ast.Symbol;
-import scotch.compiler.ast.Type;
-import scotch.compiler.ast.Value.PatternMatchers;
-import scotch.compiler.ast.Value.ValueVisitor;
+import scotch.compiler.syntax.Definition;
+import scotch.compiler.syntax.Definition.DefinitionVisitor;
+import scotch.compiler.syntax.Definition.UnshuffledPattern;
+import scotch.compiler.syntax.Definition.ValueDefinition;
+import scotch.compiler.syntax.DefinitionEntry.DefinitionEntryVisitor;
+import scotch.compiler.syntax.DefinitionEntry.ScopedEntry;
+import scotch.compiler.syntax.DefinitionEntry.UnscopedEntry;
+import scotch.compiler.syntax.DefinitionReference;
+import scotch.compiler.syntax.Operator;
+import scotch.compiler.syntax.PatternMatch;
+import scotch.compiler.syntax.PatternMatch.CaptureMatch;
+import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
+import scotch.compiler.syntax.PatternMatcher;
+import scotch.compiler.syntax.Symbol;
+import scotch.compiler.syntax.Type;
+import scotch.compiler.syntax.Value.PatternMatchers;
+import scotch.compiler.syntax.Value.ValueVisitor;
 import scotch.data.tuple.Tuple2;
 import scotch.lang.Either;
 import scotch.lang.Either.EitherVisitor;
@@ -53,17 +53,15 @@ public class PatternShuffler {
     public Optional<Definition> shuffle(UnshuffledPattern pattern) {
         return splitPattern(pattern).into(
             (symbol, matches) -> createOrRetrievePattern(symbol).into((optionalDefinition, reference) -> {
-                scope.getDefinition(reference).accept(new DefinitionEntryVisitor<Void>() {
+                scope.modify(reference, new DefinitionEntryVisitor<Definition>() {
                     @Override
-                    public Void visit(UnscopedEntry entry) {
-                        entry.setDefinition(accumulate(entry.getDefinition()));
-                        return null;
+                    public Definition visit(UnscopedEntry entry) {
+                        return accumulate(entry.getDefinition());
                     }
 
                     @Override
-                    public Void visit(ScopedEntry entry) {
-                        entry.setDefinition(accumulate(entry.getDefinition()));
-                        return null;
+                    public Definition visit(ScopedEntry entry) {
+                        return accumulate(entry.getDefinition());
                     }
 
                     private Definition accumulate(Definition definition) {

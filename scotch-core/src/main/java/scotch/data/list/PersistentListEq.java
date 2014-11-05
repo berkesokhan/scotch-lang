@@ -1,12 +1,12 @@
 package scotch.data.list;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.ast.Type.var;
+import static scotch.compiler.syntax.Type.var;
 import static scotch.data.list.PersistentList.typeOf;
 
 import java.util.List;
 import java.util.function.Function;
-import scotch.compiler.ast.Type;
+import scotch.compiler.syntax.Type;
 import scotch.data.eq.EqInstance;
 import scotch.lang.TypeInstance;
 import scotch.lang.TypeMember;

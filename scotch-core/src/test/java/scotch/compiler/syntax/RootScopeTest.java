@@ -1,17 +1,18 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static scotch.compiler.ast.Import.moduleImport;
-import static scotch.compiler.ast.Scope.scope;
-import static scotch.compiler.ast.Symbol.qualified;
-import static scotch.compiler.ast.Symbol.unqualified;
-import static scotch.compiler.ast.Type.t;
+import static scotch.compiler.syntax.Import.moduleImport;
+import static scotch.compiler.syntax.Scope.scope;
+import static scotch.compiler.syntax.Symbol.qualified;
+import static scotch.compiler.syntax.Symbol.unqualified;
+import static scotch.compiler.syntax.Type.t;
 
 import java.util.Optional;
 import org.junit.Before;
@@ -54,6 +55,15 @@ public class RootScopeTest {
         when(resolver.isDefined(symbol)).thenReturn(true);
         rootScope.qualify(symbol);
         verify(resolver).isDefined(symbol);
+    }
+
+    @Test
+    public void shouldDelegateToResolver_whenGettingEntryForQualifiedSymbolNotFoundInModules() {
+        Symbol symbol = qualified("scotch.module1", "fn");
+        when(resolver.isDefined(symbol)).thenReturn(true);
+        when(resolver.getEntry(symbol)).thenReturn(mock(SymbolEntry.class));
+        rootScope.getEntry(symbol);
+        verify(resolver).getEntry(symbol);
     }
 
     @Test

@@ -1,11 +1,11 @@
 package scotch.compiler.analyzer;
 
 import static java.util.stream.Collectors.toList;
-import static scotch.compiler.ast.DefinitionEntry.scopedEntry;
-import static scotch.compiler.ast.DefinitionReference.rootRef;
-import static scotch.compiler.ast.Type.fn;
-import static scotch.compiler.ast.Type.sum;
-import static scotch.compiler.ast.Type.t;
+import static scotch.compiler.syntax.DefinitionEntry.scopedEntry;
+import static scotch.compiler.syntax.DefinitionReference.rootRef;
+import static scotch.compiler.syntax.Type.fn;
+import static scotch.compiler.syntax.Type.sum;
+import static scotch.compiler.syntax.Type.t;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -14,32 +14,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
-import scotch.compiler.ast.Definition;
-import scotch.compiler.ast.Definition.DefinitionVisitor;
-import scotch.compiler.ast.Definition.ModuleDefinition;
-import scotch.compiler.ast.Definition.RootDefinition;
-import scotch.compiler.ast.Definition.ValueDefinition;
-import scotch.compiler.ast.DefinitionEntry;
-import scotch.compiler.ast.DefinitionReference;
-import scotch.compiler.ast.DefinitionReference.DefinitionReferenceVisitor;
-import scotch.compiler.ast.PatternMatch;
-import scotch.compiler.ast.PatternMatch.CaptureMatch;
-import scotch.compiler.ast.PatternMatch.PatternMatchVisitor;
-import scotch.compiler.ast.PatternMatcher;
-import scotch.compiler.ast.Scope;
-import scotch.compiler.ast.SymbolTable;
-import scotch.compiler.ast.Type;
-import scotch.compiler.ast.Unification;
-import scotch.compiler.ast.Unification.CircularReference;
-import scotch.compiler.ast.Unification.TypeMismatch;
-import scotch.compiler.ast.Unification.UnificationVisitor;
-import scotch.compiler.ast.Unification.Unified;
-import scotch.compiler.ast.Value;
-import scotch.compiler.ast.Value.Apply;
-import scotch.compiler.ast.Value.Identifier;
-import scotch.compiler.ast.Value.LiteralValue;
-import scotch.compiler.ast.Value.PatternMatchers;
-import scotch.compiler.ast.Value.ValueVisitor;
+import scotch.compiler.syntax.Definition;
+import scotch.compiler.syntax.Definition.DefinitionVisitor;
+import scotch.compiler.syntax.Definition.ModuleDefinition;
+import scotch.compiler.syntax.Definition.RootDefinition;
+import scotch.compiler.syntax.Definition.ValueDefinition;
+import scotch.compiler.syntax.DefinitionEntry;
+import scotch.compiler.syntax.DefinitionReference;
+import scotch.compiler.syntax.DefinitionReference.DefinitionReferenceVisitor;
+import scotch.compiler.syntax.PatternMatch;
+import scotch.compiler.syntax.PatternMatch.CaptureMatch;
+import scotch.compiler.syntax.PatternMatch.EqualMatch;
+import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
+import scotch.compiler.syntax.PatternMatcher;
+import scotch.compiler.syntax.Scope;
+import scotch.compiler.syntax.SymbolTable;
+import scotch.compiler.syntax.Type;
+import scotch.compiler.syntax.Unification;
+import scotch.compiler.syntax.Unification.CircularReference;
+import scotch.compiler.syntax.Unification.TypeMismatch;
+import scotch.compiler.syntax.Unification.UnificationVisitor;
+import scotch.compiler.syntax.Unification.Unified;
+import scotch.compiler.syntax.Value;
+import scotch.compiler.syntax.Value.Apply;
+import scotch.compiler.syntax.Value.Identifier;
+import scotch.compiler.syntax.Value.LiteralValue;
+import scotch.compiler.syntax.Value.PatternMatchers;
+import scotch.compiler.syntax.Value.ValueVisitor;
 
 public class TypeAnalyzer implements
     DefinitionReferenceVisitor<DefinitionReference>,
@@ -50,16 +51,18 @@ public class TypeAnalyzer implements
     private final SymbolTable                               symbols;
     private final Map<DefinitionReference, DefinitionEntry> definitions;
     private final Deque<Scope>                              scopes;
+    private       int                                       sequence;
 
     public TypeAnalyzer(SymbolTable symbols) {
         this.symbols = symbols;
         this.definitions = new HashMap<>();
         this.scopes = new ArrayDeque<>();
+        this.sequence = symbols.getSequence();
     }
 
     public SymbolTable analyze() {
         symbols.getDefinition(rootRef()).accept(this);
-        return symbols.copyWith(ImmutableList.copyOf(definitions.values()));
+        return symbols.copyWith(sequence, ImmutableList.copyOf(definitions.values()));
     }
 
     @Override
@@ -114,7 +117,7 @@ public class TypeAnalyzer implements
     public Value visit(Apply apply) {
         Value function = apply.getFunction().accept(this);
         Value argument = apply.getArgument().accept(this);
-        Type resultType = t(0);
+        Type resultType = reserveType();
         return function.getType().unify(fn(argument.getType(), resultType), currentScope()).accept(new UnificationVisitor<Value>() {
             @Override
             public Value visit(Unified unified) {
@@ -146,6 +149,11 @@ public class TypeAnalyzer implements
             throw new UnsupportedOperationException(); // TODO
         }
         return literal.withType(type);
+    }
+
+    @Override
+    public PatternMatch visit(EqualMatch match) {
+        return match.withValue(match.getValue().accept(this));
     }
 
     @Override
@@ -181,9 +189,13 @@ public class TypeAnalyzer implements
 
             @Override
             public T visit(TypeMismatch typeMismatch) {
-                throw new UnsupportedOperationException(); // TODO
+                throw new UnsupportedOperationException(typeMismatch.toString()); // TODO
             }
         });
+    }
+
+    private Type reserveType() {
+        return t(sequence++);
     }
 
     private <T> T scoped(DefinitionReference reference, Supplier<T> supplier) {

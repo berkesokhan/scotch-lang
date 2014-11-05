@@ -1,7 +1,7 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.ast.Symbol.fromString;
+import static scotch.compiler.syntax.Symbol.fromString;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.List;

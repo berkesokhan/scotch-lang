@@ -4,15 +4,15 @@ import static java.lang.String.join;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyIterator;
 import static java.util.stream.Collectors.toList;
-import static scotch.compiler.ast.Type.sum;
-import static scotch.compiler.ast.Type.var;
+import static scotch.compiler.syntax.Type.sum;
+import static scotch.compiler.syntax.Type.var;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-import scotch.compiler.ast.Type;
+import scotch.compiler.syntax.Type;
 import scotch.lang.DataUnion;
 import scotch.lang.TypeInfo;
 

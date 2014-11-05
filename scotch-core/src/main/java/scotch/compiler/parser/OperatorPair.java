@@ -1,6 +1,6 @@
 package scotch.compiler.parser;
 
-import scotch.compiler.ast.Operator;
+import scotch.compiler.syntax.Operator;
 
 public class OperatorPair<T> {
 

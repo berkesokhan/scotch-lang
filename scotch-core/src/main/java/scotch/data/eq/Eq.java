@@ -1,14 +1,14 @@
 package scotch.data.eq;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.ast.Type.fn;
-import static scotch.compiler.ast.Type.sum;
-import static scotch.compiler.ast.Type.var;
+import static scotch.compiler.syntax.Type.fn;
+import static scotch.compiler.syntax.Type.sum;
+import static scotch.compiler.syntax.Type.var;
 import static scotch.lang.ClassMember.optionalMember;
 
 import java.util.List;
 import java.util.function.Function;
-import scotch.compiler.ast.Type;
+import scotch.compiler.syntax.Type;
 import scotch.lang.Class;
 import scotch.lang.ClassMember;
 import scotch.lang.InstanceProvider;

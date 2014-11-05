@@ -1,6 +1,6 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
-import static scotch.compiler.ast.Symbol.qualified;
+import static scotch.compiler.syntax.Symbol.qualified;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.List;

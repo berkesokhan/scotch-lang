@@ -1,19 +1,16 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
 import static java.lang.Character.isLowerCase;
 import static java.lang.Character.isUpperCase;
 import static java.util.Collections.emptyList;
-import static java.util.Optional.empty;
-import static java.util.Optional.of;
-import static scotch.compiler.ast.Symbol.fromString;
-import static scotch.compiler.ast.Unification.circular;
-import static scotch.compiler.ast.Unification.mismatch;
-import static scotch.compiler.ast.Unification.unified;
+import static scotch.compiler.syntax.Symbol.fromString;
+import static scotch.compiler.syntax.Unification.circular;
+import static scotch.compiler.syntax.Unification.mismatch;
+import static scotch.compiler.syntax.Unification.unified;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public abstract class Type {
 
@@ -51,7 +48,7 @@ public abstract class Type {
     }
 
     private Type() {
-        // intentionally empty
+        // intentionally Optional.empty
     }
 
     public abstract <T> T accept(TypeVisitor<T> visitor);
@@ -288,18 +285,18 @@ public abstract class Type {
             return type.unifyWith(this, scope);
         }
 
-        private Unification bind(Type type, TypeScope typeScope) {
-            typeScope.bind(this, type);
-            return unified(type);
+        private Unification bind(Type target, TypeScope typeScope) {
+            typeScope.bind(this, target);
+            return unified(target);
         }
 
-        private Optional<Unification> unify_(Type type, TypeScope typeScope) {
+        private Unification unify_(Type target, TypeScope typeScope) {
             if (typeScope.isBound(this)) {
-                return of(type.unify(typeScope.getTarget(this), typeScope));
-            } else if (type.contains(this)) {
-                return of(circular(type, this));
+                return target.unify(typeScope.getTarget(this), typeScope);
+            } else if (target.contains(this)) {
+                return circular(target, this);
             } else {
-                return empty();
+                return bind(target, typeScope);
             }
         }
 
@@ -310,17 +307,17 @@ public abstract class Type {
 
         @Override
         protected Unification unifyWith(SumType target, TypeScope typeScope) {
-            return unify_(target, typeScope).orElseGet(() -> bind(target, typeScope));
+            return unify_(target, typeScope);
         }
 
         @Override
         protected Unification unifyWith(VariableType target, TypeScope typeScope) {
-            return unify_(target, typeScope).orElseGet(() -> bind(target, typeScope));
+            return unify_(target, typeScope);
         }
 
         @Override
         protected Unification unifyWith(FunctionType target, TypeScope typeScope) {
-            return unify_(target, typeScope).orElseGet(() -> bind(target, typeScope));
+            return unify_(target, typeScope);
         }
     }
 }

@@ -3,30 +3,32 @@ package scotch.compiler.parser;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static scotch.compiler.ast.Definition.value;
-import static scotch.compiler.ast.DefinitionReference.valueRef;
-import static scotch.compiler.ast.PatternMatch.capture;
-import static scotch.compiler.ast.PatternMatch.equal;
-import static scotch.compiler.ast.PatternMatcher.pattern;
-import static scotch.compiler.ast.Symbol.qualified;
-import static scotch.compiler.ast.Symbol.unqualified;
-import static scotch.compiler.ast.Type.t;
-import static scotch.compiler.ast.Value.apply;
-import static scotch.compiler.ast.Value.id;
-import static scotch.compiler.ast.Value.literal;
-import static scotch.compiler.ast.Value.patterns;
+import static scotch.compiler.syntax.Definition.value;
+import static scotch.compiler.syntax.DefinitionReference.valueRef;
+import static scotch.compiler.syntax.PatternMatch.capture;
+import static scotch.compiler.syntax.PatternMatch.equal;
+import static scotch.compiler.syntax.PatternMatcher.pattern;
+import static scotch.compiler.syntax.Symbol.qualified;
+import static scotch.compiler.syntax.Symbol.unqualified;
+import static scotch.compiler.syntax.Type.t;
+import static scotch.compiler.syntax.Value.apply;
+import static scotch.compiler.syntax.Value.id;
+import static scotch.compiler.syntax.Value.literal;
+import static scotch.compiler.syntax.Value.patterns;
 import static scotch.compiler.util.TestUtil.parseAst;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import scotch.compiler.ast.SymbolResolver;
-import scotch.compiler.ast.SymbolTable;
+import scotch.compiler.syntax.SymbolEntry;
+import scotch.compiler.syntax.SymbolResolver;
+import scotch.compiler.syntax.SymbolTable;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AstParserTest {
+public class SyntaxParserTest {
 
     @Mock
     private SymbolResolver resolver;
@@ -34,6 +36,7 @@ public class AstParserTest {
     @Test
     public void shouldShufflePattern() {
         when(resolver.isDefined(qualified("scotch.data.bool", "not"))).thenReturn(true);
+        when(resolver.getEntry(qualified("scotch.data.bool", "not"))).thenReturn(mock(SymbolEntry.class));
         SymbolTable symbols = parseAst(
             resolver,
             "module scotch.test",

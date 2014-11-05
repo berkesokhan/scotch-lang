@@ -1,4 +1,4 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
@@ -6,10 +6,10 @@ import static org.junit.rules.ExpectedException.none;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static scotch.compiler.ast.Scope.scope;
-import static scotch.compiler.ast.Symbol.qualified;
-import static scotch.compiler.ast.Symbol.unqualified;
-import static scotch.compiler.ast.Type.t;
+import static scotch.compiler.syntax.Scope.scope;
+import static scotch.compiler.syntax.Symbol.qualified;
+import static scotch.compiler.syntax.Symbol.unqualified;
+import static scotch.compiler.syntax.Type.t;
 
 import org.junit.Before;
 import org.junit.Rule;

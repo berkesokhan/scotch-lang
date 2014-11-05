@@ -1,6 +1,6 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
-import static scotch.compiler.ast.Symbol.fromString;
+import static scotch.compiler.syntax.Symbol.fromString;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.Objects;
@@ -122,6 +122,10 @@ public abstract class PatternMatch {
             return value.getType();
         }
 
+        public Value getValue() {
+            return value;
+        }
+
         @Override
         public int hashCode() {
             return Objects.hash(value);
@@ -130,6 +134,10 @@ public abstract class PatternMatch {
         @Override
         public String toString() {
             return stringify(this) + "(" + value + ")";
+        }
+
+        public PatternMatch withValue(Value value) {
+            return new EqualMatch(value);
         }
     }
 }

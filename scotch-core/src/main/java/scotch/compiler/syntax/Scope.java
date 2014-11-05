@@ -1,4 +1,4 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
 import java.util.HashMap;
 import java.util.List;
@@ -6,10 +6,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
-import scotch.compiler.ast.Symbol.QualifiedSymbol;
-import scotch.compiler.ast.Symbol.SymbolVisitor;
-import scotch.compiler.ast.Symbol.UnqualifiedSymbol;
-import scotch.compiler.ast.Type.VariableType;
+import scotch.compiler.syntax.Symbol.QualifiedSymbol;
+import scotch.compiler.syntax.Symbol.SymbolVisitor;
+import scotch.compiler.syntax.Symbol.UnqualifiedSymbol;
+import scotch.compiler.syntax.Type.VariableType;
 
 public abstract class Scope implements TypeScope {
 
@@ -18,22 +18,20 @@ public abstract class Scope implements TypeScope {
     }
 
     public static Scope scope(Scope parent, SymbolResolver resolver, String moduleName, List<Import> imports) {
-        return new ModuleScope(parent, resolver, moduleName, imports);
+        return new ModuleScope(parent, new DefaultTypeScope(), resolver, moduleName, imports);
     }
 
     public static Scope scope(Scope parent) {
-        return new ChildScope(parent);
+        return new ChildScope(parent, new DefaultTypeScope());
     }
 
-    private static SymbolNotFoundException symbolNotFound(Symbol symbol) {
+    public static SymbolNotFoundException symbolNotFound(Symbol symbol) {
         return new SymbolNotFoundException("Could not find symbol " + symbol.quote());
     }
 
     private Scope() {
         // intentionally empty
     }
-
-    public abstract void bind(VariableType variableType, Type target);
 
     public abstract void defineOperator(Symbol symbol, Operator operator);
 
@@ -43,15 +41,9 @@ public abstract class Scope implements TypeScope {
 
     public abstract Scope enterScope(String moduleName, List<Import> imports);
 
-    public abstract Type generate(Type type);
-
     public abstract Operator getOperator(Symbol symbol);
 
-    public abstract Type getTarget(Type type);
-
     public abstract Type getValue(Symbol symbol);
-
-    public abstract boolean isBound(VariableType type);
 
     public abstract boolean isDefined(Symbol symbol);
 
@@ -65,16 +57,18 @@ public abstract class Scope implements TypeScope {
 
     protected abstract Optional<SymbolEntry> getEntry(Symbol symbol);
 
+    protected abstract boolean isDefinedLocally(Symbol symbol);
+
     public static class ChildScope extends Scope {
 
         private final Scope                    parent;
         private final Map<Symbol, SymbolEntry> entries;
         private final TypeScope                types;
 
-        private ChildScope(Scope parent) {
+        private ChildScope(Scope parent, TypeScope types) {
             this.parent = parent;
             this.entries = new HashMap<>();
-            this.types = new DefaultTypeScope();
+            this.types = types;
         }
 
         @Override
@@ -137,7 +131,7 @@ public abstract class Scope implements TypeScope {
 
                 @Override
                 public Boolean visit(UnqualifiedSymbol symbol) {
-                    return entries.containsKey(symbol) || parent.isDefined(symbol);
+                    return isDefinedLocally(symbol) || parent.isDefined(symbol);
                 }
             });
         }
@@ -162,7 +156,7 @@ public abstract class Scope implements TypeScope {
 
                 @Override
                 public Optional<Symbol> visit(UnqualifiedSymbol symbol) {
-                    if (entries.containsKey(symbol)) {
+                    if (isDefinedLocally(symbol)) {
                         return Optional.of(symbol);
                     } else {
                         return parent.qualify(symbol);
@@ -190,7 +184,7 @@ public abstract class Scope implements TypeScope {
 
                 @Override
                 public SymbolEntry visit(UnqualifiedSymbol symbol) {
-                    return entries.computeIfAbsent(symbol, SymbolEntry::new);
+                    return entries.computeIfAbsent(symbol, SymbolEntry::mutableEntry);
                 }
             });
         }
@@ -208,6 +202,11 @@ public abstract class Scope implements TypeScope {
                 return parent.getEntry(symbol);
             }
         }
+
+        @Override
+        protected boolean isDefinedLocally(Symbol symbol) {
+            return entries.containsKey(symbol);
+        }
     }
 
     public static class ModuleScope extends Scope {
@@ -219,13 +218,13 @@ public abstract class Scope implements TypeScope {
         private final Map<Symbol, SymbolEntry> entries;
         private final TypeScope                types;
 
-        private ModuleScope(Scope parent, SymbolResolver resolver, String moduleName, List<Import> imports) {
+        private ModuleScope(Scope parent, TypeScope types, SymbolResolver resolver, String moduleName, List<Import> imports) {
             this.resolver = resolver;
             this.moduleName = moduleName;
             this.imports = ImmutableList.copyOf(imports);
             this.parent = parent;
             this.entries = new HashMap<>();
-            this.types = new DefaultTypeScope();
+            this.types = types;
         }
 
         @Override
@@ -313,7 +312,7 @@ public abstract class Scope implements TypeScope {
                 @Override
                 public Optional<Symbol> visit(UnqualifiedSymbol symbol) {
                     Symbol qualified = symbol.qualifyWith(moduleName);
-                    if (entries.containsKey(qualified)) {
+                    if (isDefinedLocally(qualified)) {
                         return Optional.of(qualified);
                     } else {
                         return imports.stream()
@@ -341,7 +340,7 @@ public abstract class Scope implements TypeScope {
                 @Override
                 public SymbolEntry visit(QualifiedSymbol symbol) {
                     if (Objects.equals(moduleName, symbol.getModuleName())) {
-                        return entries.computeIfAbsent(symbol, SymbolEntry::new);
+                        return entries.computeIfAbsent(symbol, SymbolEntry::mutableEntry);
                     } else {
                         throw new UnsupportedOperationException(); // TODO
                     }
@@ -372,6 +371,11 @@ public abstract class Scope implements TypeScope {
                     return Optional.empty();
                 }
             });
+        }
+
+        @Override
+        protected boolean isDefinedLocally(Symbol symbol) {
+            return entries.containsKey(symbol);
         }
     }
 
@@ -470,13 +474,13 @@ public abstract class Scope implements TypeScope {
                     if (resolver.isDefined(symbol)) {
                         return Optional.of(symbol);
                     } else {
-                        throw new SymbolNotFoundException(""); // TODO
+                        throw symbolNotFound(symbol);
                     }
                 }
 
                 @Override
                 public Optional<Symbol> visit(UnqualifiedSymbol symbol) {
-                    throw new SymbolNotFoundException(""); // TODO
+                    throw symbolNotFound(symbol);
                 }
             });
         }
@@ -488,7 +492,26 @@ public abstract class Scope implements TypeScope {
 
         @Override
         protected Optional<SymbolEntry> getEntry(Symbol symbol) {
-            return Optional.empty();
+            return symbol.accept(new SymbolVisitor<Optional<SymbolEntry>>() {
+                @Override
+                public Optional<SymbolEntry> visit(QualifiedSymbol symbol) {
+                    if (resolver.isDefined(symbol)) {
+                        return Optional.of(resolver.getEntry(symbol));
+                    } else {
+                        return Optional.empty();
+                    }
+                }
+
+                @Override
+                public Optional<SymbolEntry> visit(UnqualifiedSymbol symbol) {
+                    throw symbolNotFound(symbol);
+                }
+            });
+        }
+
+        @Override
+        protected boolean isDefinedLocally(Symbol symbol) {
+            return false;
         }
 
         private final class RootResolver implements SymbolResolver {
@@ -500,65 +523,39 @@ public abstract class Scope implements TypeScope {
             }
 
             @Override
+            public SymbolEntry getEntry(Symbol symbol) {
+                return symbol.accept(new SymbolVisitor<SymbolEntry>() {
+                    @Override
+                    public SymbolEntry visit(QualifiedSymbol symbol) {
+                        if (children.containsKey(symbol.getModuleName()) && children.get(symbol.getModuleName()).isDefinedLocally(symbol)) {
+                            return children.get(symbol.getModuleName()).getEntry(symbol).orElseThrow(() -> symbolNotFound(symbol));
+                        } else {
+                            return resolver.getEntry(symbol);
+                        }
+                    }
+
+                    @Override
+                    public SymbolEntry visit(UnqualifiedSymbol symbol) {
+                        throw symbolNotFound(symbol);
+                    }
+                });
+            }
+
+            @Override
             public boolean isDefined(Symbol symbol) {
                 return symbol.accept(new SymbolVisitor<Boolean>() {
                     @Override
                     public Boolean visit(QualifiedSymbol symbol) {
-                        return children.containsKey(symbol.getModuleName()) && children.get(symbol.getModuleName()).isDefined(symbol)
+                        return children.containsKey(symbol.getModuleName()) && children.get(symbol.getModuleName()).isDefinedLocally(symbol)
                             || resolver.isDefined(symbol);
                     }
 
                     @Override
                     public Boolean visit(UnqualifiedSymbol symbol) {
-                        return resolver.isDefined(symbol);
+                        return false;
                     }
                 });
             }
-        }
-    }
-
-    private static final class SymbolEntry {
-
-        private final Symbol             symbol;
-        private       Optional<Type>     optionalValue;
-        private Optional<Operator> optionalOperator;
-
-        public SymbolEntry(Symbol symbol) {
-            this.symbol = symbol;
-            this.optionalValue = Optional.empty();
-            this.optionalOperator = Optional.empty();
-        }
-
-        public void defineOperator(Operator operator) {
-            if (optionalOperator.isPresent()) {
-                throw new UnsupportedOperationException(); // TODO
-            } else {
-                optionalOperator = Optional.of(operator);
-            }
-        }
-
-        public void defineValue(Type type) {
-            if (optionalValue.isPresent()) {
-                throw new UnsupportedOperationException(); // TODO
-            } else {
-                optionalValue = Optional.of(type);
-            }
-        }
-
-        public Operator getOperator() {
-            return optionalOperator.orElseThrow(() -> symbolNotFound(symbol));
-        }
-
-        public Type getValue() {
-            return optionalValue.orElseThrow(() -> symbolNotFound(symbol));
-        }
-
-        public boolean isOperator() {
-            return optionalOperator.isPresent();
-        }
-
-        public void redefineValue(Type type) {
-            optionalValue = Optional.of(type);
         }
     }
 }

@@ -1,43 +1,43 @@
 package scotch.compiler.parser;
 
 import static java.util.stream.Collectors.toList;
-import static scotch.compiler.ast.DefinitionReference.rootRef;
+import static scotch.compiler.syntax.DefinitionReference.rootRef;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
-import scotch.compiler.ast.Definition;
-import scotch.compiler.ast.Definition.DefinitionVisitor;
-import scotch.compiler.ast.Definition.ModuleDefinition;
-import scotch.compiler.ast.Definition.OperatorDefinition;
-import scotch.compiler.ast.Definition.RootDefinition;
-import scotch.compiler.ast.Definition.UnshuffledPattern;
-import scotch.compiler.ast.Definition.ValueDefinition;
-import scotch.compiler.ast.DefinitionEntry;
-import scotch.compiler.ast.DefinitionEntry.DefinitionEntryVisitor;
-import scotch.compiler.ast.DefinitionReference;
-import scotch.compiler.ast.DefinitionReference.DefinitionReferenceVisitor;
-import scotch.compiler.ast.DefinitionReference.ModuleReference;
-import scotch.compiler.ast.Import;
-import scotch.compiler.ast.PatternMatch;
-import scotch.compiler.ast.PatternMatch.CaptureMatch;
-import scotch.compiler.ast.PatternMatch.EqualMatch;
-import scotch.compiler.ast.PatternMatch.PatternMatchVisitor;
-import scotch.compiler.ast.PatternMatcher;
-import scotch.compiler.ast.SymbolNotFoundException;
-import scotch.compiler.ast.SymbolResolver;
-import scotch.compiler.ast.SymbolTable;
-import scotch.compiler.ast.Type;
-import scotch.compiler.ast.Type.TypeVisitor;
-import scotch.compiler.ast.Value;
-import scotch.compiler.ast.Value.Apply;
-import scotch.compiler.ast.Value.Identifier;
-import scotch.compiler.ast.Value.LiteralValue;
-import scotch.compiler.ast.Value.Message;
-import scotch.compiler.ast.Value.PatternMatchers;
-import scotch.compiler.ast.Value.ValueVisitor;
+import scotch.compiler.syntax.Definition;
+import scotch.compiler.syntax.Definition.DefinitionVisitor;
+import scotch.compiler.syntax.Definition.ModuleDefinition;
+import scotch.compiler.syntax.Definition.OperatorDefinition;
+import scotch.compiler.syntax.Definition.RootDefinition;
+import scotch.compiler.syntax.Definition.UnshuffledPattern;
+import scotch.compiler.syntax.Definition.ValueDefinition;
+import scotch.compiler.syntax.DefinitionEntry;
+import scotch.compiler.syntax.DefinitionEntry.DefinitionEntryVisitor;
+import scotch.compiler.syntax.DefinitionReference;
+import scotch.compiler.syntax.DefinitionReference.DefinitionReferenceVisitor;
+import scotch.compiler.syntax.DefinitionReference.ModuleReference;
+import scotch.compiler.syntax.Import;
+import scotch.compiler.syntax.PatternMatch;
+import scotch.compiler.syntax.PatternMatch.CaptureMatch;
+import scotch.compiler.syntax.PatternMatch.EqualMatch;
+import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
+import scotch.compiler.syntax.PatternMatcher;
+import scotch.compiler.syntax.SymbolNotFoundException;
+import scotch.compiler.syntax.SymbolResolver;
+import scotch.compiler.syntax.SymbolTable;
+import scotch.compiler.syntax.Type;
+import scotch.compiler.syntax.Type.TypeVisitor;
+import scotch.compiler.syntax.Value;
+import scotch.compiler.syntax.Value.Apply;
+import scotch.compiler.syntax.Value.Identifier;
+import scotch.compiler.syntax.Value.LiteralValue;
+import scotch.compiler.syntax.Value.Message;
+import scotch.compiler.syntax.Value.PatternMatchers;
+import scotch.compiler.syntax.Value.ValueVisitor;
 
-public class AstParser implements
+public class SyntaxParser implements
     DefinitionReferenceVisitor<Optional<DefinitionReference>>,
     DefinitionVisitor<Optional<Definition>>,
     DefinitionEntryVisitor<DefinitionEntry>,
@@ -50,7 +50,7 @@ public class AstParser implements
     private final PatternShuffler patternShuffler;
     private final ValueShuffler   valueShuffler;
 
-    public AstParser(SymbolTable symbols, SymbolResolver resolver) {
+    public SyntaxParser(SymbolTable symbols, SymbolResolver resolver) {
         this.symbols = symbols;
         this.scope = new ScopeBuilder(symbols.getSequence(), resolver);
         this.patternShuffler = new PatternShuffler(scope, this::visitMatcher);
@@ -122,7 +122,7 @@ public class AstParser implements
     @Override
     public Optional<Definition> visit(ValueDefinition definition) {
         scope.defineValue(definition.getSymbol(), definition.getType());
-        return scoped(() -> Optional.of(collect(definition.withBody(definition.getBody().accept(this)))));
+        return scoped(() -> Optional.of(collect(definition.withBody(unwrap(definition.getBody().accept(this))))));
     }
 
     @Override
@@ -194,7 +194,7 @@ public class AstParser implements
             @Override
             public Value visit(Message message) {
                 if (message.getMembers().size() == 1) {
-                    return message.getMembers().get(0);
+                    return unwrap(message.getMembers().get(0));
                 } else {
                     throw new UnsupportedOperationException(); // TODO
                 }
@@ -208,7 +208,21 @@ public class AstParser implements
             }
 
             @Override
-            public Value visitOtherwise(Value value) {
+            public Value visit(PatternMatchers matchers) {
+                return matchers.withMatchers(
+                    matchers.getMatchers().stream()
+                        .map(matcher -> matcher.withBody(unwrap(matcher.getBody())))
+                        .collect(toList())
+                );
+            }
+
+            @Override
+            public Value visit(Identifier identifier) {
+                return identifier;
+            }
+
+            @Override
+            public Value visit(LiteralValue value) {
                 return value;
             }
         });

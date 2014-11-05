@@ -1,4 +1,4 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
 public abstract class DefinitionEntry {
 
@@ -24,6 +24,8 @@ public abstract class DefinitionEntry {
 
     public abstract Scope getScope();
 
+    public abstract DefinitionEntry withDefinition(Definition definition);
+
     public interface DefinitionEntryVisitor<T> {
 
         default T visit(UnscopedEntry entry) {
@@ -46,7 +48,7 @@ public abstract class DefinitionEntry {
     public static class PatternEntry extends DefinitionEntry {
 
         private final Scope          scope;
-        private       PatternMatcher pattern;
+        private final PatternMatcher pattern;
 
         private PatternEntry(PatternMatcher pattern, Scope scope) {
             this.scope = scope;
@@ -72,15 +74,16 @@ public abstract class DefinitionEntry {
             return scope;
         }
 
-        public void setPattern(PatternMatcher pattern) {
-            this.pattern = pattern;
+        @Override
+        public DefinitionEntry withDefinition(Definition definition) {
+            throw new IllegalStateException();
         }
     }
 
     public static class ScopedEntry extends DefinitionEntry {
 
         private final Scope      scope;
-        private       Definition definition;
+        private final Definition definition;
 
         private ScopedEntry(Definition definition, Scope scope) {
             this.definition = definition;
@@ -106,14 +109,15 @@ public abstract class DefinitionEntry {
             return scope;
         }
 
-        public void setDefinition(Definition definition) {
-            this.definition = definition;
+        @Override
+        public DefinitionEntry withDefinition(Definition definition) {
+            return new ScopedEntry(definition, scope);
         }
     }
 
     public static class UnscopedEntry extends DefinitionEntry {
 
-        private Definition definition;
+        private final Definition definition;
 
         private UnscopedEntry(Definition definition) {
             this.definition = definition;
@@ -138,8 +142,9 @@ public abstract class DefinitionEntry {
             throw new IllegalStateException();
         }
 
-        public void setDefinition(Definition definition) {
-            this.definition = definition;
+        @Override
+        public DefinitionEntry withDefinition(Definition definition) {
+            return new UnscopedEntry(definition);
         }
     }
 }

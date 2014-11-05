@@ -1,4 +1,4 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
 public class SymbolNotFoundException extends RuntimeException {
 

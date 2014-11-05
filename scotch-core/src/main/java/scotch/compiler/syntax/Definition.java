@@ -1,20 +1,20 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
-import static scotch.compiler.ast.DefinitionReference.classRef;
-import static scotch.compiler.ast.DefinitionReference.moduleRef;
-import static scotch.compiler.ast.DefinitionReference.operatorRef;
-import static scotch.compiler.ast.DefinitionReference.patternRef;
-import static scotch.compiler.ast.DefinitionReference.rootRef;
-import static scotch.compiler.ast.DefinitionReference.signatureRef;
-import static scotch.compiler.ast.DefinitionReference.valueRef;
-import static scotch.compiler.ast.Operator.operator;
-import static scotch.compiler.ast.Symbol.fromString;
+import static scotch.compiler.syntax.DefinitionReference.classRef;
+import static scotch.compiler.syntax.DefinitionReference.moduleRef;
+import static scotch.compiler.syntax.DefinitionReference.operatorRef;
+import static scotch.compiler.syntax.DefinitionReference.patternRef;
+import static scotch.compiler.syntax.DefinitionReference.rootRef;
+import static scotch.compiler.syntax.DefinitionReference.signatureRef;
+import static scotch.compiler.syntax.DefinitionReference.valueRef;
+import static scotch.compiler.syntax.Operator.operator;
+import static scotch.compiler.syntax.Symbol.fromString;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
-import scotch.compiler.ast.Operator.Fixity;
+import scotch.compiler.syntax.Operator.Fixity;
 
 public abstract class Definition {
 

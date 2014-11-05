@@ -1,6 +1,7 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
-import static scotch.compiler.ast.DefinitionReference.patternRef;
+import static scotch.compiler.syntax.DefinitionReference.patternRef;
+import static scotch.compiler.syntax.Type.fn;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.List;
@@ -52,7 +53,7 @@ public class PatternMatcher {
     public Type getType() {
         return matches.stream()
             .map(PatternMatch::getType)
-            .reduce(body.getType(), Type::fn);
+            .reduce(body.getType(), (result, argument) -> fn(argument, result));
     }
 
     @Override

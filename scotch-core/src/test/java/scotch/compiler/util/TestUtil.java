@@ -3,16 +3,16 @@ package scotch.compiler.util;
 import static scotch.compiler.parser.Scanner.forString;
 
 import scotch.compiler.analyzer.TypeAnalyzer;
-import scotch.compiler.ast.Definition;
-import scotch.compiler.ast.Definition.DefinitionVisitor;
-import scotch.compiler.ast.Definition.ValueDefinition;
-import scotch.compiler.ast.SymbolResolver;
-import scotch.compiler.ast.SymbolTable;
-import scotch.compiler.ast.Value;
-import scotch.compiler.parser.AstParser;
 import scotch.compiler.parser.InputParser;
 import scotch.compiler.parser.Scanner;
+import scotch.compiler.parser.SyntaxParser;
 import scotch.compiler.parser.Token;
+import scotch.compiler.syntax.Definition;
+import scotch.compiler.syntax.Definition.DefinitionVisitor;
+import scotch.compiler.syntax.Definition.ValueDefinition;
+import scotch.compiler.syntax.SymbolResolver;
+import scotch.compiler.syntax.SymbolTable;
+import scotch.compiler.syntax.Value;
 
 public class TestUtil {
 
@@ -30,7 +30,7 @@ public class TestUtil {
     }
 
     public static SymbolTable parseAst(SymbolResolver resolver, String... data) {
-        return new AstParser(parseInput(data), resolver).analyze();
+        return new SyntaxParser(parseInput(data), resolver).analyze();
     }
 
     public static SymbolTable parseInput(String... data) {

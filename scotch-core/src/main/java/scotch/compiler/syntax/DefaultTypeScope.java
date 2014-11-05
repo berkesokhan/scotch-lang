@@ -1,13 +1,13 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
-import static scotch.compiler.ast.Type.fn;
+import static scotch.compiler.syntax.Type.fn;
 
 import java.util.HashMap;
 import java.util.Map;
-import scotch.compiler.ast.Type.FunctionType;
-import scotch.compiler.ast.Type.SumType;
-import scotch.compiler.ast.Type.TypeVisitor;
-import scotch.compiler.ast.Type.VariableType;
+import scotch.compiler.syntax.Type.FunctionType;
+import scotch.compiler.syntax.Type.SumType;
+import scotch.compiler.syntax.Type.TypeVisitor;
+import scotch.compiler.syntax.Type.VariableType;
 
 public class DefaultTypeScope implements TypeScope {
 

@@ -1,7 +1,7 @@
 package scotch.lang;
 
 import java.util.List;
-import scotch.compiler.ast.Type;
+import scotch.compiler.syntax.Type;
 
 public interface Class {
 

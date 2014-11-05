@@ -1,6 +1,6 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
-import scotch.compiler.ast.Type.VariableType;
+import scotch.compiler.syntax.Type.VariableType;
 
 public interface TypeScope {
 

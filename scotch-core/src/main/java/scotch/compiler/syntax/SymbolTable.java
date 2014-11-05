@@ -1,13 +1,13 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import scotch.compiler.ast.Definition.DefinitionVisitor;
-import scotch.compiler.ast.Definition.ValueDefinition;
-import scotch.compiler.ast.DefinitionEntry.DefinitionEntryVisitor;
-import scotch.compiler.ast.DefinitionEntry.ScopedEntry;
-import scotch.compiler.ast.DefinitionEntry.UnscopedEntry;
+import scotch.compiler.syntax.Definition.DefinitionVisitor;
+import scotch.compiler.syntax.Definition.ValueDefinition;
+import scotch.compiler.syntax.DefinitionEntry.DefinitionEntryVisitor;
+import scotch.compiler.syntax.DefinitionEntry.ScopedEntry;
+import scotch.compiler.syntax.DefinitionEntry.UnscopedEntry;
 
 public class SymbolTable {
 
@@ -18,10 +18,6 @@ public class SymbolTable {
         this.sequence = sequence;
         this.definitions = new HashMap<>();
         entries.forEach(entry -> this.definitions.put(entry.getReference(), entry));
-    }
-
-    public SymbolTable copyWith(List<DefinitionEntry> entries) {
-        return copyWith(sequence, entries);
     }
 
     public SymbolTable copyWith(int sequence, List<DefinitionEntry> entries) {
@@ -50,7 +46,7 @@ public class SymbolTable {
         return sequence;
     }
 
-    public Type getType(DefinitionReference reference) {
+    public Type getValue(DefinitionReference reference) {
         return getDefinition(reference).accept(new DefinitionVisitor<Type>() {
             @Override
             public Type visit(ValueDefinition definition) {

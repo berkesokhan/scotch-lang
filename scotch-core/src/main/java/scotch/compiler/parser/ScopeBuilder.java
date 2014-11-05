@@ -1,9 +1,9 @@
 package scotch.compiler.parser;
 
-import static scotch.compiler.ast.DefinitionEntry.patternEntry;
-import static scotch.compiler.ast.DefinitionEntry.scopedEntry;
-import static scotch.compiler.ast.Scope.scope;
-import static scotch.compiler.ast.Type.t;
+import static scotch.compiler.syntax.DefinitionEntry.patternEntry;
+import static scotch.compiler.syntax.DefinitionEntry.scopedEntry;
+import static scotch.compiler.syntax.Scope.scope;
+import static scotch.compiler.syntax.Type.t;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -13,23 +13,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
-import scotch.compiler.ast.Definition;
-import scotch.compiler.ast.Definition.DefinitionVisitor;
-import scotch.compiler.ast.Definition.OperatorDefinition;
-import scotch.compiler.ast.DefinitionEntry;
-import scotch.compiler.ast.DefinitionReference;
-import scotch.compiler.ast.Import;
-import scotch.compiler.ast.Operator;
-import scotch.compiler.ast.PatternMatcher;
-import scotch.compiler.ast.Scope;
-import scotch.compiler.ast.Symbol;
-import scotch.compiler.ast.Symbol.QualifiedSymbol;
-import scotch.compiler.ast.Symbol.SymbolVisitor;
-import scotch.compiler.ast.Symbol.UnqualifiedSymbol;
-import scotch.compiler.ast.SymbolResolver;
-import scotch.compiler.ast.Type;
+import scotch.compiler.syntax.Definition;
+import scotch.compiler.syntax.Definition.DefinitionVisitor;
+import scotch.compiler.syntax.Definition.OperatorDefinition;
+import scotch.compiler.syntax.DefinitionEntry;
+import scotch.compiler.syntax.DefinitionEntry.DefinitionEntryVisitor;
+import scotch.compiler.syntax.DefinitionReference;
+import scotch.compiler.syntax.Import;
+import scotch.compiler.syntax.Operator;
+import scotch.compiler.syntax.PatternMatcher;
+import scotch.compiler.syntax.Scope;
+import scotch.compiler.syntax.Symbol;
+import scotch.compiler.syntax.SymbolResolver;
+import scotch.compiler.syntax.Type;
 
 public class ScopeBuilder {
 
@@ -109,18 +106,6 @@ public class ScopeBuilder {
         return sequence;
     }
 
-    public <T> T hoist(Supplier<T> supplier) {
-        Scope childScope = scope;
-        Set<Symbol> childPatterns = patterns.peek();
-        leaveScope();
-        try {
-            return supplier.get();
-        } finally {
-            scope = childScope;
-            patterns.push(childPatterns);
-        }
-    }
-
     public boolean isOperator(Symbol symbol) {
         return qualify(symbol).map(scope::isOperator).orElse(false);
     }
@@ -134,22 +119,13 @@ public class ScopeBuilder {
         scope = scope.leaveScope();
     }
 
-    public Optional<Symbol> qualify(Symbol symbol) {
-        return scope.qualify(symbol);
+    public void modify(DefinitionReference reference, DefinitionEntryVisitor<Definition> visitor) {
+        DefinitionEntry entry = getDefinition(reference);
+        definitions.put(reference, entry.withDefinition(entry.accept(visitor)));
     }
 
-    public Symbol qualifyLocal(Symbol symbol) {
-        return symbol.accept(new SymbolVisitor<Symbol>() {
-            @Override
-            public Symbol visit(QualifiedSymbol symbol) {
-                throw new UnsupportedOperationException(); // TODO
-            }
-
-            @Override
-            public Symbol visit(UnqualifiedSymbol symbol) {
-                return symbol.qualifyWith(currentModule);
-            }
-        });
+    public Optional<Symbol> qualify(Symbol symbol) {
+        return scope.qualify(symbol);
     }
 
     public Symbol qualifyCurrent(Symbol symbol) {

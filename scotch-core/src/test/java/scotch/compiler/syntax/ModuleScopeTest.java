@@ -1,4 +1,4 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -9,10 +9,10 @@ import static org.junit.rules.ExpectedException.none;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static scotch.compiler.ast.Scope.scope;
-import static scotch.compiler.ast.Symbol.qualified;
-import static scotch.compiler.ast.Symbol.unqualified;
-import static scotch.compiler.ast.Type.t;
+import static scotch.compiler.syntax.Scope.scope;
+import static scotch.compiler.syntax.Symbol.qualified;
+import static scotch.compiler.syntax.Symbol.unqualified;
+import static scotch.compiler.syntax.Type.t;
 
 import java.util.Optional;
 import org.junit.Before;

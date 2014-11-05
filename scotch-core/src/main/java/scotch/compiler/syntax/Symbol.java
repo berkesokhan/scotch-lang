@@ -1,4 +1,4 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
 import static scotch.compiler.util.TextUtil.normalizeQualified;
 import static scotch.compiler.util.TextUtil.splitQualified;
@@ -37,10 +37,6 @@ public abstract class Symbol {
 
     @Override
     public abstract int hashCode();
-
-    public boolean isDefaultOperator() {
-        return false; // TODO
-    }
 
     public abstract Symbol qualifyWith(String moduleName);
 
@@ -108,10 +104,6 @@ public abstract class Symbol {
         @Override
         public String toString() {
             return normalizeQualified(moduleName, memberName);
-        }
-
-        public Symbol unqualify() {
-            return unqualified(memberName);
         }
     }
 

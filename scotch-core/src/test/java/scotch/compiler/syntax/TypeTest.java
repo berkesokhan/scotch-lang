@@ -1,21 +1,21 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static scotch.compiler.ast.Type.fn;
-import static scotch.compiler.ast.Type.sum;
-import static scotch.compiler.ast.Type.var;
-import static scotch.compiler.ast.Unification.circular;
-import static scotch.compiler.ast.Unification.mismatch;
-import static scotch.compiler.ast.Unification.unified;
+import static scotch.compiler.syntax.Type.fn;
+import static scotch.compiler.syntax.Type.sum;
+import static scotch.compiler.syntax.Type.var;
+import static scotch.compiler.syntax.Unification.circular;
+import static scotch.compiler.syntax.Unification.mismatch;
+import static scotch.compiler.syntax.Unification.unified;
 
 import org.junit.Before;
 import org.junit.Test;
-import scotch.compiler.ast.Type.FunctionType;
-import scotch.compiler.ast.Type.TypeVisitor;
-import scotch.compiler.ast.Type.VariableType;
+import scotch.compiler.syntax.Type.FunctionType;
+import scotch.compiler.syntax.Type.TypeVisitor;
+import scotch.compiler.syntax.Type.VariableType;
 
 public class TypeTest {
 

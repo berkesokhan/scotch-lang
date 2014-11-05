@@ -1,8 +1,8 @@
 package scotch.compiler.parser;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.ast.Value.apply;
-import static scotch.compiler.ast.Value.message;
+import static scotch.compiler.syntax.Value.apply;
+import static scotch.compiler.syntax.Value.message;
 import static scotch.lang.Either.left;
 import static scotch.lang.Either.right;
 
@@ -11,15 +11,15 @@ import java.util.Deque;
 import java.util.List;
 import java.util.function.Function;
 import scotch.compiler.ParseException;
-import scotch.compiler.ast.Operator;
-import scotch.compiler.ast.PatternMatch;
-import scotch.compiler.ast.PatternMatch.CaptureMatch;
-import scotch.compiler.ast.PatternMatch.PatternMatchVisitor;
-import scotch.compiler.ast.Type;
-import scotch.compiler.ast.Value;
-import scotch.compiler.ast.Value.Identifier;
-import scotch.compiler.ast.Value.Message;
-import scotch.compiler.ast.Value.ValueVisitor;
+import scotch.compiler.syntax.Operator;
+import scotch.compiler.syntax.PatternMatch;
+import scotch.compiler.syntax.PatternMatch.CaptureMatch;
+import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
+import scotch.compiler.syntax.Type;
+import scotch.compiler.syntax.Value;
+import scotch.compiler.syntax.Value.Identifier;
+import scotch.compiler.syntax.Value.Message;
+import scotch.compiler.syntax.Value.ValueVisitor;
 import scotch.lang.Either;
 
 public class ValueShuffler {

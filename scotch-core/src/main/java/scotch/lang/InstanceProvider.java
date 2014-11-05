@@ -2,7 +2,7 @@ package scotch.lang;
 
 import java.lang.Class;
 import java.util.List;
-import scotch.compiler.ast.Type;
+import scotch.compiler.syntax.Type;
 
 public interface InstanceProvider {
 

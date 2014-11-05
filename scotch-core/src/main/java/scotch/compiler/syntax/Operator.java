@@ -1,7 +1,7 @@
-package scotch.compiler.ast;
+package scotch.compiler.syntax;
 
-import static scotch.compiler.ast.Operator.Fixity.LEFT_INFIX;
-import static scotch.compiler.ast.Operator.Fixity.PREFIX;
+import static scotch.compiler.syntax.Operator.Fixity.LEFT_INFIX;
+import static scotch.compiler.syntax.Operator.Fixity.PREFIX;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.Objects;
