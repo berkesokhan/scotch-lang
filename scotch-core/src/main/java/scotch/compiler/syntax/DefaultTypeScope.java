@@ -44,6 +44,11 @@ public class DefaultTypeScope implements TypeScope {
             public Type visit(SumType type) {
                 return type;
             }
+
+            @Override
+            public Type visitOtherwise(Type type) {
+                throw new UnsupportedOperationException("Can't generate " + type.getClass());
+            }
         });
     }
 

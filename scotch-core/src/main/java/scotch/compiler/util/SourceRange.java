@@ -8,7 +8,7 @@ import org.apache.commons.lang.builder.EqualsBuilder;
 
 public final class SourceRange {
 
-    public static final SourceRange NULL_RANGE = range("unknown", NULL_COORDINATE, NULL_COORDINATE);
+    public static final SourceRange NULL_SOURCE = range("unknown", NULL_COORDINATE, NULL_COORDINATE);
 
     public static SourceRange range(String source, SourceCoordinate start, SourceCoordinate end) {
         return new SourceRange(source, start, end);
@@ -26,7 +26,7 @@ public final class SourceRange {
 
     @Override
     public boolean equals(Object o) {
-        if (o == this || this == NULL_RANGE || o == NULL_RANGE) {
+        if (o == this || this == NULL_SOURCE || o == NULL_SOURCE) {
             return true;
         } else if (o instanceof SourceRange) {
             SourceRange other = (SourceRange) o;

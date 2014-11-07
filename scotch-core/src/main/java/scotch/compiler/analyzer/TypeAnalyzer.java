@@ -3,17 +3,18 @@ package scotch.compiler.analyzer;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.DefinitionEntry.scopedEntry;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
+import static scotch.compiler.syntax.SyntaxError.typeError;
 import static scotch.compiler.syntax.Type.fn;
 import static scotch.compiler.syntax.Type.sum;
 import static scotch.compiler.syntax.Type.t;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import com.google.common.collect.ImmutableList;
 import scotch.compiler.syntax.Definition;
 import scotch.compiler.syntax.Definition.DefinitionVisitor;
 import scotch.compiler.syntax.Definition.ModuleDefinition;
@@ -29,6 +30,7 @@ import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
 import scotch.compiler.syntax.PatternMatcher;
 import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.SymbolTable;
+import scotch.compiler.syntax.SyntaxError;
 import scotch.compiler.syntax.Type;
 import scotch.compiler.syntax.Unification;
 import scotch.compiler.syntax.Unification.CircularReference;
@@ -51,18 +53,24 @@ public class TypeAnalyzer implements
     private final SymbolTable                               symbols;
     private final Map<DefinitionReference, DefinitionEntry> definitions;
     private final Deque<Scope>                              scopes;
+    private final List<SyntaxError>                         errors;
     private       int                                       sequence;
 
     public TypeAnalyzer(SymbolTable symbols) {
         this.symbols = symbols;
         this.definitions = new HashMap<>();
         this.scopes = new ArrayDeque<>();
+        this.errors = new ArrayList<>();
         this.sequence = symbols.getSequence();
     }
 
     public SymbolTable analyze() {
         symbols.getDefinition(rootRef()).accept(this);
-        return symbols.copyWith(sequence, ImmutableList.copyOf(definitions.values()));
+        return symbols
+            .copyWith(definitions.values())
+            .withSequence(sequence)
+            .withErrors(errors)
+            .build();
     }
 
     @Override
@@ -78,8 +86,20 @@ public class TypeAnalyzer implements
     @Override
     public Definition visit(ValueDefinition definition) {
         Value body = definition.getBody().accept(this);
-        currentScope().redefineValue(definition.getSymbol(), body.getType());
-        return collect(definition.withBody(body).withType(body.getType()));
+        Type type = currentScope().getSignature(definition.getSymbol()).orElseGet(() -> currentScope().getValue(definition.getSymbol()));
+        return type.unify(body.getType(), currentScope()).accept(new UnificationVisitor<Definition>() {
+            @Override
+            public Definition visit(Unified unified) {
+                currentScope().redefineValue(definition.getSymbol(), unified.getUnifiedType());
+                return collect(definition.withBody(body).withType(unified.getUnifiedType()));
+            }
+
+            @Override
+            public Definition visitOtherwise(Unification unification) {
+                errors.add(typeError(unification, definition.getSourceRange()));
+                return collect(definition.withBody(body).withType(type));
+            }
+        });
     }
 
     @Override
@@ -157,6 +177,21 @@ public class TypeAnalyzer implements
     }
 
     @Override
+    public Definition visitOtherwise(Definition definition) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Value visitOtherwise(Value value) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public PatternMatch visitOtherwise(PatternMatch match) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
     public DefinitionReference visitOtherwise(DefinitionReference reference) {
         return scoped(reference, () -> symbols.getDefinition(reference).accept(this).getReference());
     }
@@ -190,6 +225,11 @@ public class TypeAnalyzer implements
             @Override
             public T visit(TypeMismatch typeMismatch) {
                 throw new UnsupportedOperationException(typeMismatch.toString()); // TODO
+            }
+
+            @Override
+            public T visitOtherwise(Unification unification) {
+                throw new UnsupportedOperationException(); // TODO
             }
         });
     }

@@ -8,7 +8,7 @@ import static scotch.compiler.parser.Token.TokenKind.LCURLY;
 import static scotch.compiler.parser.Token.TokenKind.RCURLY;
 import static scotch.compiler.parser.Token.TokenKind.SEMICOLON;
 import static scotch.compiler.parser.Token.TokenKind.WORD;
-import static scotch.compiler.parser.Token.token;
+import static scotch.compiler.util.TestUtil.token;
 import static scotch.compiler.util.TestUtil.tokenAt;
 
 import org.junit.Test;

@@ -2,6 +2,7 @@ package scotch.compiler.parser;
 
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
+import static scotch.compiler.syntax.Scope.symbolNotFound;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +14,7 @@ import scotch.compiler.syntax.Definition.OperatorDefinition;
 import scotch.compiler.syntax.Definition.RootDefinition;
 import scotch.compiler.syntax.Definition.UnshuffledPattern;
 import scotch.compiler.syntax.Definition.ValueDefinition;
+import scotch.compiler.syntax.Definition.ValueSignature;
 import scotch.compiler.syntax.DefinitionEntry;
 import scotch.compiler.syntax.DefinitionEntry.DefinitionEntryVisitor;
 import scotch.compiler.syntax.DefinitionReference;
@@ -24,10 +26,11 @@ import scotch.compiler.syntax.PatternMatch.CaptureMatch;
 import scotch.compiler.syntax.PatternMatch.EqualMatch;
 import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
 import scotch.compiler.syntax.PatternMatcher;
-import scotch.compiler.syntax.SymbolNotFoundException;
 import scotch.compiler.syntax.SymbolResolver;
 import scotch.compiler.syntax.SymbolTable;
 import scotch.compiler.syntax.Type;
+import scotch.compiler.syntax.Type.FunctionType;
+import scotch.compiler.syntax.Type.SumType;
 import scotch.compiler.syntax.Type.TypeVisitor;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
@@ -59,7 +62,10 @@ public class SyntaxParser implements
 
     public SymbolTable analyze() {
         symbols.getDefinition(rootRef()).accept(this);
-        return symbols.copyWith(scope.getSequence(), scope.getDefinitions());
+        return symbols
+            .copyWith(scope.getDefinitions())
+            .withSequence(scope.getSequence())
+            .build();
     }
 
     @Override
@@ -101,7 +107,7 @@ public class SyntaxParser implements
     public Value visit(Identifier identifier) {
         return scope.qualify(identifier.getSymbol())
             .map(identifier::withSymbol)
-            .orElseThrow(() -> new SymbolNotFoundException(identifier.getSymbol().toString()));
+            .orElseThrow(() -> symbolNotFound(identifier.getSymbol()));
     }
 
     @Override
@@ -140,6 +146,42 @@ public class SyntaxParser implements
     @Override
     public Value visit(LiteralValue value) {
         return value;
+    }
+
+    @Override
+    public Optional<Definition> visit(ValueSignature signature) {
+        scope.defineSignature(signature.getSymbol(), signature.getType().accept(this));
+        return Optional.empty();
+    }
+
+    @Override
+    public Type visit(SumType type) {
+        return type.withSymbol(scope.qualify(type.getSymbol()).orElseThrow(() -> symbolNotFound(type.getSymbol())));
+    }
+
+    @Override
+    public Type visit(FunctionType type) {
+        return type.withArgument(type.getArgument().accept(this)).withResult(type.getResult().accept(this));
+    }
+
+    @Override
+    public PatternMatch visitOtherwise(PatternMatch match) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Value visitOtherwise(Value value) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Optional<Definition> visitOtherwise(Definition definition) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Type visitOtherwise(Type type) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override
@@ -224,6 +266,11 @@ public class SyntaxParser implements
             @Override
             public Value visit(LiteralValue value) {
                 return value;
+            }
+
+            @Override
+            public Value visitOtherwise(Value value) {
+                throw new UnsupportedOperationException(); // TODO
             }
         });
     }

@@ -62,6 +62,11 @@ public class ValueShuffler {
                 }
                 return new OperatorPair<>(operator, identifier);
             }
+
+            @Override
+            public OperatorPair<Identifier> visitOtherwise(Value value) {
+                throw new UnsupportedOperationException(); // TODO
+            }
         });
     }
 

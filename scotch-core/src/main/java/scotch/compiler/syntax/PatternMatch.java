@@ -1,22 +1,23 @@
 package scotch.compiler.syntax;
 
+import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
 import static scotch.compiler.syntax.Symbol.fromString;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.Objects;
 
-public abstract class PatternMatch {
+public abstract class PatternMatch implements SourceAware<PatternMatch> {
 
     public static PatternMatch capture(String name, Type type) {
         return capture(fromString(name), type);
     }
 
     public static PatternMatch capture(Symbol symbol, Type type) {
-        return new CaptureMatch(symbol, type);
+        return new CaptureMatch(NULL_SOURCE, symbol, type);
     }
 
     public static PatternMatch equal(Value value) {
-        return new EqualMatch(value);
+        return new EqualMatch(NULL_SOURCE, value);
     }
 
     private PatternMatch() {
@@ -46,17 +47,17 @@ public abstract class PatternMatch {
             return visitOtherwise(match);
         }
 
-        default T visitOtherwise(PatternMatch match) {
-            throw new UnsupportedOperationException("Can't visit " + match);
-        }
+        T visitOtherwise(PatternMatch match);
     }
 
     public static class CaptureMatch extends PatternMatch {
 
-        private final Symbol symbol;
-        private final Type   type;
+        private final SourceRange sourceRange;
+        private final Symbol      symbol;
+        private final Type        type;
 
-        private CaptureMatch(Symbol symbol, Type type) {
+        private CaptureMatch(SourceRange sourceRange, Symbol symbol, Type type) {
+            this.sourceRange = sourceRange;
             this.symbol = symbol;
             this.type = type;
         }
@@ -79,6 +80,11 @@ public abstract class PatternMatch {
             }
         }
 
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
         public Symbol getSymbol() {
             return symbol;
         }
@@ -97,13 +103,20 @@ public abstract class PatternMatch {
         public String toString() {
             return stringify(this) + "(" + symbol + ")";
         }
+
+        @Override
+        public CaptureMatch withSourceRange(SourceRange sourceRange) {
+            return new CaptureMatch(sourceRange, symbol, type);
+        }
     }
 
     public static class EqualMatch extends PatternMatch {
 
-        private final Value value;
+        private final SourceRange sourceRange;
+        private final Value       value;
 
-        public EqualMatch(Value value) {
+        public EqualMatch(SourceRange sourceRange, Value value) {
+            this.sourceRange = sourceRange;
             this.value = value;
         }
 
@@ -115,6 +128,11 @@ public abstract class PatternMatch {
         @Override
         public boolean equals(Object o) {
             return o == this || o instanceof EqualMatch && Objects.equals(value, ((EqualMatch) o).value);
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            throw new UnsupportedOperationException(); // TODO
         }
 
         @Override
@@ -136,8 +154,13 @@ public abstract class PatternMatch {
             return stringify(this) + "(" + value + ")";
         }
 
-        public PatternMatch withValue(Value value) {
-            return new EqualMatch(value);
+        @Override
+        public EqualMatch withSourceRange(SourceRange sourceRange) {
+            return new EqualMatch(sourceRange, value);
+        }
+
+        public EqualMatch withValue(Value value) {
+            return new EqualMatch(sourceRange, value);
         }
     }
 }

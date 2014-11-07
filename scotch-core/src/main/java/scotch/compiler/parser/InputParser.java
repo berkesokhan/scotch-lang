@@ -39,6 +39,7 @@ import static scotch.compiler.syntax.Operator.Fixity.RIGHT_INFIX;
 import static scotch.compiler.syntax.PatternMatch.capture;
 import static scotch.compiler.syntax.PatternMatch.equal;
 import static scotch.compiler.syntax.Symbol.qualified;
+import static scotch.compiler.syntax.SymbolTable.symbols;
 import static scotch.compiler.syntax.Type.fn;
 import static scotch.compiler.syntax.Type.sum;
 import static scotch.compiler.syntax.Type.t;
@@ -51,11 +52,15 @@ import static scotch.compiler.syntax.Value.message;
 import static scotch.compiler.util.TextUtil.normalizeQualified;
 import static scotch.compiler.util.TextUtil.quote;
 import static scotch.compiler.util.TextUtil.splitQualified;
+import static scotch.data.tuple.TupleValues.tuple2;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.ParseException;
 import scotch.compiler.parser.Token.TokenKind;
@@ -63,26 +68,31 @@ import scotch.compiler.syntax.Definition;
 import scotch.compiler.syntax.DefinitionEntry;
 import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.Import;
+import scotch.compiler.syntax.NamedSourcePoint;
 import scotch.compiler.syntax.Operator.Fixity;
 import scotch.compiler.syntax.PatternMatch;
+import scotch.compiler.syntax.SourceAware;
+import scotch.compiler.syntax.SourceRange;
 import scotch.compiler.syntax.Symbol;
 import scotch.compiler.syntax.SymbolTable;
 import scotch.compiler.syntax.Type;
 import scotch.compiler.syntax.Value;
-import scotch.compiler.util.SourcePosition;
 import scotch.compiler.util.TextUtil;
+import scotch.data.tuple.Tuple2;
 
 public class InputParser {
 
     private static final List<TokenKind> literals = asList(STRING, INT, CHAR, DOUBLE, BOOL);
-    private final LookAheadScanner      scanner;
-    private final List<DefinitionEntry> definitions;
-    private       String                currentModule;
-    private       int                   sequence;
+    private final LookAheadScanner        scanner;
+    private final List<DefinitionEntry>   definitions;
+    private final Deque<NamedSourcePoint> positions;
+    private       String                  currentModule;
+    private       int                     sequence;
 
     public InputParser(Scanner scanner) {
         this.scanner = new LookAheadScanner(scanner);
         this.definitions = new ArrayList<>();
+        this.positions = new ArrayDeque<>();
     }
 
     public SymbolTable parse() {
@@ -95,7 +105,9 @@ public class InputParser {
         }
         require(EOF);
         collect(root(modules));
-        return new SymbolTable(sequence, definitions);
+        return symbols(definitions)
+            .withSequence(sequence)
+            .build();
     }
 
     private DefinitionReference collect(Definition definition) {
@@ -178,6 +190,14 @@ public class InputParser {
         return expectsAt(offset, WORD) && Objects.equals(scanner.peekAt(offset).getValue(), value);
     }
 
+    private void markPosition() {
+        positions.push(scanner.getPosition());
+    }
+
+    private SourceRange getSourceRange() {
+        return positions.pop().to(scanner.getPosition());
+    }
+
     private void nextToken() {
         scanner.nextToken();
     }
@@ -191,9 +211,11 @@ public class InputParser {
     }
 
     private DefinitionReference parseClassDefinition() {
-        requireWord("class");
-        String name = requireWord();
-        return collect(classDef(qualified(currentModule, name), parseClassArguments(), parseClassMembers()));
+        return collect(withSourceRange(() -> {
+            requireWord("class");
+            String name = requireWord();
+            return classDef(qualified(currentModule, name), parseClassArguments(), parseClassMembers());
+        }));
     }
 
     private List<DefinitionReference> parseClassMembers() {
@@ -227,8 +249,10 @@ public class InputParser {
     }
 
     private Import parseImport() {
-        requireWord("import");
-        return moduleImport(parseQualifiedName());
+        return withSourceRange(() -> {
+            requireWord("import");
+            return moduleImport(parseQualifiedName());
+        });
     }
 
     private List<Import> parseImports() {
@@ -241,32 +265,39 @@ public class InputParser {
     }
 
     private Value parseLiteral() {
-        if (expects(STRING)) {
-            return literal(requireString(), reserveType());
-        } else if (expects(INT)) {
-            return literal(requireInt(), reserveType());
-        } else if (expects(CHAR)) {
-            return literal(requireChar(), reserveType());
-        } else if (expects(DOUBLE)) {
-            return literal(requireDouble(), reserveType());
-        } else if (expects(BOOL)) {
-            return literal(requireBool(), reserveType());
-        } else {
-            throw unexpected(literals);
-        }
+        return withSourceRange(() -> {
+            if (expects(STRING)) {
+                return literal(requireString(), reserveType());
+            } else if (expects(INT)) {
+                return literal(requireInt(), reserveType());
+            } else if (expects(CHAR)) {
+                return literal(requireChar(), reserveType());
+            } else if (expects(DOUBLE)) {
+                return literal(requireDouble(), reserveType());
+            } else if (expects(BOOL)) {
+                return literal(requireBool(), reserveType());
+            } else {
+                throw unexpected(literals);
+            }
+        });
     }
 
     private Optional<PatternMatch> parseMatch(boolean required) {
         PatternMatch match = null;
         if (expectsWord()) {
-            match = parseWordReference().accept(new ValueVisitor<PatternMatch>() {
+            match = withSourceRange(() -> parseWordReference().accept(new ValueVisitor<PatternMatch>() {
                 @Override
                 public PatternMatch visit(Identifier identifier) {
                     return capture(identifier.getSymbol(), identifier.getType());
                 }
-            });
+
+                @Override
+                public PatternMatch visitOtherwise(Value value) {
+                    throw new UnsupportedOperationException(); // TODO
+                }
+            }));
         } else if (expectsLiteral()) {
-            match = equal(parseLiteral());
+            match = withSourceRange(() -> equal(parseLiteral()));
         } else if (required) {
             throw unexpected(WORD);
         }
@@ -274,24 +305,28 @@ public class InputParser {
     }
 
     private Value parseMessage() {
-        List<Value> values = new ArrayList<>();
-        values.add(parseRequiredPrimary());
-        Optional<Value> argument = parseOptionalPrimary();
-        while (argument.isPresent()) {
-            values.add(argument.get());
-            argument = parseOptionalPrimary();
-        }
-        return message(values);
+        return withSourceRange(() -> {
+            List<Value> values = new ArrayList<>();
+            values.add(parseRequiredPrimary());
+            Optional<Value> argument = parseOptionalPrimary();
+            while (argument.isPresent()) {
+                values.add(argument.get());
+                argument = parseOptionalPrimary();
+            }
+            return message(values);
+        });
     }
 
     @SuppressWarnings("unchecked")
     private DefinitionReference parseModule() {
-        requireWord("module");
-        currentModule = parseQualifiedName();
-        requireTerminator();
-        List<Import> imports = parseImports();
-        List<DefinitionReference> definitions = parseModuleDefinitions();
-        return collect(module(currentModule, imports, definitions));
+        return collect(withSourceRange(() -> {
+            requireWord("module");
+            currentModule = parseQualifiedName();
+            requireTerminator();
+            List<Import> imports = parseImports();
+            List<DefinitionReference> definitions = parseModuleDefinitions();
+            return module(currentModule, imports, definitions);
+        }));
     }
 
     private List<DefinitionReference> parseModuleDefinitions() {
@@ -307,10 +342,11 @@ public class InputParser {
         Fixity fixity = parseOperatorFixity();
         int precedence = parseOperatorPrecedence();
         List<DefinitionReference> references = new ArrayList<>();
-        parseSymbols().forEach(symbol -> {
-            Definition operator = operatorDef(symbol, fixity, precedence);
+        parseSymbols().forEach(pair -> pair.into((symbol, sourceRange) -> {
+            Definition operator = operatorDef(symbol, fixity, precedence).withSourceRange(sourceRange);
             references.add(collect(operator));
-        });
+            return null;
+        }));
         return references;
     }
 
@@ -401,40 +437,57 @@ public class InputParser {
         }
     }
 
-    private List<Symbol> parseSymbols() {
-        List<Symbol> symbols = new ArrayList<>();
-        symbols.add(parseSymbol());
+    private List<Tuple2<Symbol, SourceRange>> parseSymbols() {
+        List<Tuple2<Symbol, SourceRange>> symbols = new ArrayList<>();
+        markPosition();
+        symbols.add(tuple2(parseSymbol(), getSourceRange()));
         while (expects(COMMA)) {
             nextToken();
-            symbols.add(parseSymbol());
+            markPosition();
+            symbols.add(tuple2(parseSymbol(), getSourceRange()));
         }
         return symbols;
     }
 
     private Type parseType() {
         return splitQualified(parseQualifiedName()).into((optionalModuleName, memberName) -> {
-            if (isLowerCase(memberName.charAt(0))) {
-                if (optionalModuleName.isPresent()) {
-                    throw new ParseException("Type name must be uppercase"); // TODO better error reporting
+            try {
+                markPosition();
+                if (isLowerCase(memberName.charAt(0))) {
+                    if (optionalModuleName.isPresent()) {
+                        throw parseException("Type name must be uppercase; in " + peekSourceRange().prettyPrint());
+                    } else {
+                        return var(memberName);
+                    }
                 } else {
-                    return var(memberName);
+                    return sum(normalizeQualified(optionalModuleName, memberName));
                 }
-            } else {
-                return sum(normalizeQualified(optionalModuleName, memberName));
+            } finally {
+                positions.pop();
             }
         });
     }
 
+    private SourceRange peekSourceRange() {
+        return positions.peek().to(scanner.getPosition());
+    }
+
+    private ParseException parseException(String message) {
+        throw new ParseException(message + "; in " + peekSourceRange().prettyPrint());
+    }
+
     private DefinitionReference parseValueDefinition() {
-        if (expectsAt(1, ASSIGN)) {
-            String name = requireWord();
-            nextToken();
-            return collect(value(qualified(currentModule, name), reserveType(), parseMessage()));
-        } else {
-            List<PatternMatch> patternMatches = parsePatternMatches();
-            require(ASSIGN);
-            return collect(unshuffled(qualified(currentModule, "pattern#" + sequence++), patternMatches, parseMessage()));
-        }
+        return collect(withSourceRange(() -> {
+            if (expectsAt(1, ASSIGN)) {
+                String name = requireWord();
+                nextToken();
+                return value(qualified(currentModule, name), reserveType(), parseMessage());
+            } else {
+                List<PatternMatch> patternMatches = parsePatternMatches();
+                require(ASSIGN);
+                return unshuffled(qualified(currentModule, "pattern#" + sequence++), patternMatches, parseMessage());
+            }
+        }));
     }
 
     private Type parseValueSignature() {
@@ -453,18 +506,33 @@ public class InputParser {
 
     private List<DefinitionReference> parseValueSignatures() {
         List<DefinitionReference> references = new ArrayList<>();
-        List<Symbol> symbolList = parseSymbols();
+        List<Tuple2<Symbol, SourceRange>> symbolList = parseSymbols();
         Type type = parseValueSignature();
-        symbolList.forEach(symbol -> {
-            Definition signature = signature(symbol, type);
+        symbolList.forEach(pair -> pair.into((symbol, sourceRange) -> {
+            Definition signature = signature(symbol, type).withSourceRange(sourceRange);
             references.add(collect(signature));
-        });
+            return null;
+        }));
         return references;
     }
 
     private Value parseWordReference() {
-        String word = requireWord();
-        return id(word, reserveType());
+        return withSourceRange(() -> {
+            String word = requireWord();
+            return id(word, reserveType());
+        });
+    }
+
+    private <T extends SourceAware<T>> T withSourceRange(Supplier<T> supplier) {
+        markPosition();
+        T result;
+        try {
+            result = supplier.get();
+        } catch (RuntimeException exception) {
+            positions.pop();
+            throw exception;
+        }
+        return result.withSourceRange(getSourceRange());
     }
 
     private Token peekAt(int offset) {
@@ -548,14 +616,14 @@ public class InputParser {
     private ParseException unexpected(TokenKind wantedKind) {
         throw new ParseException(
             "Unexpected token " + scanner.peekAt(0).getKind()
-                + "; wanted " + wantedKind + " at " + scanner.getPosition()
+                + "; wanted " + wantedKind + " in " + scanner.getPosition().prettyPrint()
         );
     }
 
     private ParseException unexpected(TokenKind wantedKind, Object wantedValue) {
         throw new ParseException(
             "Unexpected token " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
-                + "; wanted " + wantedKind + " with value " + quote(wantedValue) + " at " + scanner.getPosition()
+                + "; wanted " + wantedKind + " with value " + quote(wantedValue) + " in " + scanner.getPosition().prettyPrint()
         );
     }
 
@@ -563,7 +631,7 @@ public class InputParser {
         throw new ParseException(
             "Unexpected token " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
                 + "; wanted " + wantedKind + " with one value of"
-                + " [" + join(", ", stream(wantedValues).map(TextUtil::quote).collect(toList())) + "] at " + scanner.getPosition()
+                + " [" + join(", ", stream(wantedValues).map(TextUtil::quote).collect(toList())) + "] in " + scanner.getPosition().prettyPrint()
         );
     }
 
@@ -571,7 +639,7 @@ public class InputParser {
         throw new ParseException(
             "Unexpected token " + scanner.peekAt(0).getKind()
                 + "; wanted one of [" + join(", ", wantedKinds.stream().map(Object::toString).collect(toList())) + "]"
-                + " at " + scanner.getPosition()
+                + " at " + scanner.getPosition().prettyPrint()
         );
     }
 
@@ -586,8 +654,8 @@ public class InputParser {
             this.tokens = new ArrayList<>();
         }
 
-        public SourcePosition getPosition() {
-            return new SourcePosition(delegate.getSource(), peekAt(0).getStart());
+        public NamedSourcePoint getPosition() {
+            return peekAt(0).getStart();
         }
 
         public void nextToken() {

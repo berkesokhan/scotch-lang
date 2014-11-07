@@ -46,8 +46,8 @@ import static scotch.compiler.parser.Token.TokenKind.STRING;
 import static scotch.compiler.parser.Token.TokenKind.THEN;
 import static scotch.compiler.parser.Token.TokenKind.WHERE;
 import static scotch.compiler.parser.Token.TokenKind.WORD;
-import static scotch.compiler.util.SourceCoordinate.coordinate;
-import static scotch.compiler.util.SourcePosition.position;
+import static scotch.compiler.parser.Token.token;
+import static scotch.compiler.syntax.SourceRange.point;
 import static scotch.compiler.util.TextUtil.isAsciiEscape;
 import static scotch.compiler.util.TextUtil.isBackslash;
 import static scotch.compiler.util.TextUtil.isBacktick;
@@ -71,19 +71,10 @@ import java.util.Optional;
 import java.util.function.Function;
 import com.google.common.collect.ImmutableMap;
 import scotch.compiler.parser.Token.TokenKind;
-import scotch.compiler.util.SourceCoordinate;
-import scotch.compiler.util.SourcePosition;
-import scotch.compiler.util.SourceRange.RangeBuilder;
+import scotch.compiler.syntax.NamedSourcePoint;
+import scotch.compiler.syntax.SourcePoint;
 
 public final class DefaultScanner implements Scanner {
-
-    private static Acceptor take(TokenKind kind) {
-        return new Acceptor(kind);
-    }
-
-    private static Acceptor takeBool() {
-        return new Acceptor(BOOL, Boolean::valueOf);
-    }
 
     private static final Map<String, Acceptor> dictionary = ImmutableMap.<String, Acceptor>builder()
         .put("->", take(ARROW))
@@ -100,35 +91,44 @@ public final class DefaultScanner implements Scanner {
         .put("match", take(MATCH))
         .put("on", take(ON))
         .build();
-    private final String                       source;
-    private final char[]                       data;
-    private final ArrayDeque<SaveState>        saves;
-    private final ArrayDeque<State>            states;
-    private final ArrayDeque<SourceCoordinate> marks;
-    private       Action                       action;
-    private       Optional<Token>              token;
-    private       Optional<String>             text;
-    private       SourceCoordinate             coordinate;
 
-    public DefaultScanner(String source, char[] data) {
-        this.source = source;
+    private static Acceptor take(TokenKind kind) {
+        return new Acceptor(kind);
+    }
+
+    private static Acceptor takeBool() {
+        return new Acceptor(BOOL, Boolean::valueOf);
+    }
+
+    private final String                  sourceName;
+    private final char[]                  data;
+    private final ArrayDeque<SaveState>   saves;
+    private final ArrayDeque<State>       states;
+    private final ArrayDeque<SourcePoint> marks;
+    private       Action                  action;
+    private       Optional<Token>         token;
+    private       Optional<String>        text;
+    private       SourcePoint             location;
+
+    public DefaultScanner(String sourceName, char[] data) {
+        this.sourceName = sourceName;
         this.data = data;
         this.saves = new ArrayDeque<>();
         this.states = new ArrayDeque<>(asList(SCAN_DEFAULT));
-        this.marks = new ArrayDeque<>(asList(coordinate(0, 1, 1)));
+        this.marks = new ArrayDeque<>(asList(point(0, 1, 1)));
         this.action = KEEP_GOING;
         this.token = empty();
         this.text = empty();
-        this.coordinate = coordinate(0, 1, 1);
+        this.location = point(0, 1, 1);
     }
 
     @Override
-    public SourcePosition getPosition() {
-        return position(getSource(), coordinate);
+    public NamedSourcePoint getPosition() {
+        return location.withSourceName(sourceName);
     }
 
-    public String getSource() {
-        return source;
+    public String getSourceName() {
+        return sourceName;
     }
 
     @Override
@@ -151,8 +151,8 @@ public final class DefaultScanner implements Scanner {
     @Override
     public String toString() {
         return stringify(this) + "("
-            + "source=" + quote(source)
-            + ", coordinate=" + coordinate
+            + "source=" + quote(sourceName)
+            + ", coord=" + location
             + ")";
     }
 
@@ -174,12 +174,7 @@ public final class DefaultScanner implements Scanner {
 
     private void accept(TokenKind kind, Object value) {
         accept();
-        token = of(Token.token(kind, value, new RangeBuilder()
-                .setSource(source)
-                .setStart(marks.peek())
-                .setEnd(coordinate)
-                .toPosition()
-        ));
+        token = of(token(kind, value, marks.peek().withSourceName(sourceName).to(getPosition())));
     }
 
     private void acceptChar() {
@@ -208,7 +203,7 @@ public final class DefaultScanner implements Scanner {
     }
 
     private DefaultScanner emptyChar() {
-        throw new ScanException("Empty char literal " + getPosition());
+        throw new ScanException("Empty char literal " + getPosition().prettyPrint());
     }
 
     private void end() {
@@ -228,8 +223,8 @@ public final class DefaultScanner implements Scanner {
         read();
     }
 
-    private SourcePosition getMarkedPosition() {
-        return position(source, marks.peek());
+    private NamedSourcePoint getMarkedPosition() {
+        return marks.peek().withSourceName(sourceName);
     }
 
     private String getText() {
@@ -237,7 +232,7 @@ public final class DefaultScanner implements Scanner {
     }
 
     private DefaultScanner invalidHexEscape() {
-        throw new ScanException("Invalid hex escape character " + quote(peekChar()) + " " + getPosition());
+        throw new ScanException("Invalid hex escape character " + quote(peekChar()) + " " + getPosition().prettyPrint());
     }
 
     private boolean isEOF() {
@@ -274,11 +269,11 @@ public final class DefaultScanner implements Scanner {
     }
 
     private void mark() {
-        marks.push(coordinate);
+        marks.push(location);
     }
 
     private int markedLength() {
-        return coordinate.getOffset() - marks.peek().getOffset();
+        return location.getOffset() - marks.peek().getOffset();
     }
 
     private String markedText() {
@@ -371,10 +366,10 @@ public final class DefaultScanner implements Scanner {
     }
 
     private int peekAt(int offset) {
-        if (coordinate.getOffset() + offset >= data.length || data[coordinate.getOffset() + offset] == '\0') {
+        if (location.getOffset() + offset >= data.length || data[location.getOffset() + offset] == '\0') {
             return -1;
         } else {
-            return data[coordinate.getOffset() + offset];
+            return data[location.getOffset() + offset];
         }
     }
 
@@ -385,11 +380,11 @@ public final class DefaultScanner implements Scanner {
     private void read() {
         if (!isEOF()) {
             if (peek() == '\n') {
-                coordinate = coordinate.nextLine();
+                location = location.nextLine();
             } else if (peek() == '\t') {
-                coordinate = coordinate.nextTab();
+                location = location.nextTab();
             } else {
-                coordinate = coordinate.nextChar();
+                location = location.nextChar();
             }
         }
     }
@@ -565,7 +560,7 @@ public final class DefaultScanner implements Scanner {
             if (isBacktick(peek())) {
                 String word = markedText().substring(1, markedLength());
                 if (dictionary.containsKey(word)) {
-                    throw new ScanException("Cannot quote reserved word " + quote(word) + " " + getMarkedPosition());
+                    throw new ScanException("Cannot quote reserved word " + quote(word) + " " + getMarkedPosition().prettyPrint());
                 } else {
                     read();
                     accept(OPERATOR, word);
@@ -641,7 +636,7 @@ public final class DefaultScanner implements Scanner {
             read();
             acceptChar();
         } else {
-            throw new ScanException("Unterminated character literal: unexpected " + nameOf(peek()) + " " + getPosition());
+            throw new ScanException("Unterminated character literal: unexpected " + nameOf(peek()) + " " + getPosition().prettyPrint());
         }
     }
 
@@ -650,15 +645,15 @@ public final class DefaultScanner implements Scanner {
     }
 
     private void unexpected() {
-        throw new ScanException("Unexpected " + nameOf(peek()) + " " + getPosition());
+        throw new ScanException("Unexpected " + nameOf(peek()) + " " + getPosition().prettyPrint());
     }
 
     private DefaultScanner unterminatedChar() {
-        throw new ScanException("Unterminated char literal " + getPosition());
+        throw new ScanException("Unterminated char literal " + getPosition().prettyPrint());
     }
 
     private DefaultScanner unterminatedString() {
-        throw new ScanException("Unterminated string " + getPosition());
+        throw new ScanException("Unterminated string " + getPosition().prettyPrint());
     }
 
     enum Action {
@@ -699,13 +694,13 @@ public final class DefaultScanner implements Scanner {
 
     private static final class SaveState {
 
-        private final ArrayDeque<SaveState>        saves;
-        private final ArrayDeque<State>            states;
-        private final ArrayDeque<SourceCoordinate> marks;
-        private final Action                       action;
-        private final Optional<Token>              token;
-        private final Optional<String>             text;
-        private final SourceCoordinate             coordinate;
+        private final ArrayDeque<SaveState>   saves;
+        private final ArrayDeque<State>       states;
+        private final ArrayDeque<SourcePoint> marks;
+        private final Action                  action;
+        private final Optional<Token>         token;
+        private final Optional<String>        text;
+        private final SourcePoint             coordinate;
 
         public SaveState(DefaultScanner scanner) {
             saves = new ArrayDeque<>(scanner.saves);
@@ -714,7 +709,7 @@ public final class DefaultScanner implements Scanner {
             action = scanner.action;
             token = scanner.token;
             text = scanner.text;
-            coordinate = scanner.coordinate;
+            coordinate = scanner.location;
         }
 
         public void restore(DefaultScanner scanner) {
@@ -727,7 +722,7 @@ public final class DefaultScanner implements Scanner {
             scanner.action = action;
             scanner.token = token;
             scanner.text = text;
-            scanner.coordinate = coordinate;
+            scanner.location = coordinate;
         }
     }
 }

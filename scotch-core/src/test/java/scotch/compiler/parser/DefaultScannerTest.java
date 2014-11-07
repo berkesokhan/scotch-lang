@@ -28,12 +28,13 @@ import static scotch.compiler.parser.Token.TokenKind.STRING;
 import static scotch.compiler.parser.Token.TokenKind.WHERE;
 import static scotch.compiler.parser.Token.TokenKind.WORD;
 import static scotch.compiler.parser.Token.token;
-import static scotch.compiler.util.SourceCoordinate.coordinate;
+import static scotch.compiler.syntax.SourceRange.point;
+import static scotch.compiler.syntax.SourceRange.source;
+import static scotch.compiler.util.TestUtil.token;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import scotch.compiler.util.SourceRange.RangeBuilder;
 
 public class DefaultScannerTest {
 
@@ -52,22 +53,12 @@ public class DefaultScannerTest {
 
     @Test
     public void shouldGetArgumentAfterLambdaPrefix() {
-        assertThat(secondFrom("\\x -> y"), equalTo(token(WORD, "x", new RangeBuilder()
-                .setSource("test")
-                .setStart(coordinate(1, 1, 2))
-                .setEnd(coordinate(2, 1, 3))
-                .toPosition()
-        )));
+        assertThat(secondFrom("\\x -> y"), equalTo(token(WORD, "x", source("test", point(1, 1, 2), point(2, 1, 3)))));
     }
 
     @Test
     public void shouldGetArrow() {
-        assertThat(firstFrom("-> arrow?"), equalTo(token(ARROW, "->", new RangeBuilder()
-                .setSource("test")
-                .setStart(coordinate(0, 1, 1))
-                .setEnd(coordinate(2, 1, 3))
-                .toPosition()
-        )));
+        assertThat(firstFrom("-> arrow?"), equalTo(token(ARROW, "->", source("test", point(0, 1, 1), point(2, 1, 3)))));
     }
 
     @Test
@@ -102,12 +93,7 @@ public class DefaultScannerTest {
 
     @Test
     public void shouldGetIdentifier() {
-        assertThat(firstFrom("asteroids yo"), equalTo(token(WORD, "asteroids", new RangeBuilder()
-                .setSource("test")
-                .setStart(coordinate(0, 1, 1))
-                .setEnd(coordinate(9, 1, 10))
-                .toPosition()
-        )));
+        assertThat(firstFrom("asteroids yo"), equalTo(token(WORD, "asteroids", source("test", point(0, 1, 1), point(9, 1, 10)))));
     }
 
     @Test
@@ -117,12 +103,7 @@ public class DefaultScannerTest {
 
     @Test
     public void shouldGetIdentifierSuffixedWithQuote() {
-        assertThat(firstFrom("asteroids' again"), equalTo(token(WORD, "asteroids'", new RangeBuilder()
-                .setSource("test")
-                .setStart(coordinate(0, 1, 1))
-                .setEnd(coordinate(10, 1, 11))
-                .toPosition()
-        )));
+        assertThat(firstFrom("asteroids' again"), equalTo(token(WORD, "asteroids'", source("test", point(0, 1, 1), point(10, 1, 11)))));
     }
 
     @Test
@@ -147,12 +128,7 @@ public class DefaultScannerTest {
 
     @Test
     public void shouldGetLambdaPrefix() {
-        assertThat(secondFrom("asteroids \\x -> boom!"), equalTo(token(LAMBDA, "\\", new RangeBuilder()
-                .setSource("test")
-                .setStart(coordinate(10, 1, 11))
-                .setEnd(coordinate(11, 1, 12))
-                .toPosition()
-        )));
+        assertThat(secondFrom("asteroids \\x -> boom!"), equalTo(token(LAMBDA, "\\", source("test", point(10, 1, 11), point(11, 1, 12)))));
     }
 
     @Test

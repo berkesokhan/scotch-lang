@@ -14,15 +14,13 @@ import static scotch.compiler.parser.Token.TokenKind.RCURLY;
 import static scotch.compiler.parser.Token.TokenKind.RSQUARE;
 import static scotch.compiler.parser.Token.TokenKind.SEMICOLON;
 import static scotch.compiler.parser.Token.token;
-import static scotch.compiler.util.SourceRange.range;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import scotch.compiler.parser.Token.TokenKind;
-import scotch.compiler.util.SourcePosition;
-import scotch.compiler.util.SourceRange;
+import scotch.compiler.syntax.NamedSourcePoint;
 
 public final class LayoutScanner implements Scanner {
 
@@ -44,13 +42,13 @@ public final class LayoutScanner implements Scanner {
     }
 
     @Override
-    public SourcePosition getPosition() {
+    public NamedSourcePoint getPosition() {
         return delegate.getPosition();
     }
 
     @Override
-    public String getSource() {
-        return delegate.getSource();
+    public String getSourceName() {
+        return delegate.getSourceName();
     }
 
     @Override
@@ -73,10 +71,6 @@ public final class LayoutScanner implements Scanner {
         tokens.remove(0);
     }
 
-    private SourceRange at(Token token) {
-        return range(token.getRange().getSource(), token.getStart(), token.getStart());
-    }
-
     private void bracesDown() {
         braces.push(braces.pop() - 1);
     }
@@ -94,7 +88,7 @@ public final class LayoutScanner implements Scanner {
     private void buffer_() {
         Token token = delegate.nextToken();
         if (token.is(TokenKind.EOF) && !lastToken().is(SEMICOLON)) {
-            tokens.add(token(SEMICOLON, ";"));
+            tokens.add(token(SEMICOLON, ";", token.getSourceRange()));
         }
         tokens.add(token);
         buffer();
@@ -186,19 +180,19 @@ public final class LayoutScanner implements Scanner {
     }
 
     private void insertIn() {
-        insertToken(token(IN, "in"));
+        insertToken(token(IN, "in", firstToken().getSourceRange()));
     }
 
     private void insertLCurly() {
-        tokens.add(1, token(LCURLY, "{", at(tokens.get(2))));
+        tokens.add(1, token(LCURLY, "{", tokens.get(2).getSourceRange()));
     }
 
     private void insertRCurly() {
-        insertToken(token(RCURLY, "}", at(firstToken())));
+        insertToken(token(RCURLY, "}", firstToken().getSourceRange()));
     }
 
     private void insertSemicolon() {
-        insertToken(token(SEMICOLON, ";", at(firstToken())));
+        insertToken(token(SEMICOLON, ";", firstToken().getSourceRange()));
     }
 
     private void insertToken(Token token) {

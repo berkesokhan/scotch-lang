@@ -1,38 +1,27 @@
 package scotch.compiler.parser;
 
-import static scotch.compiler.util.SourceRange.NULL_RANGE;
 import static scotch.compiler.util.TextUtil.quote;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.Objects;
 import org.apache.commons.lang.builder.EqualsBuilder;
-import scotch.compiler.util.SourceCoordinate;
-import scotch.compiler.util.SourceRange;
+import scotch.compiler.syntax.NamedSourcePoint;
+import scotch.compiler.syntax.SourceRange;
 
 public class Token {
 
-    public static Token token(TokenKind kind, Object value) {
-        return new Token(kind, value);
-    }
-
-    public static Token token(TokenKind kind, Object value, SourceRange position) {
-        return new Token(kind, value, position);
+    public static Token token(TokenKind kind, Object value, SourceRange sourceRange) {
+        return new Token(sourceRange, kind, value);
     }
 
     private final TokenKind   kind;
     private final Object      value;
-    private final SourceRange range;
+    private final SourceRange sourceRange;
 
-    private Token(TokenKind kind, Object value) {
+    private Token(SourceRange sourceRange, TokenKind kind, Object value) {
         this.kind = kind;
         this.value = value;
-        this.range = NULL_RANGE;
-    }
-
-    private Token(TokenKind kind, Object value, SourceRange range) {
-        this.kind = kind;
-        this.value = value;
-        this.range = range;
+        this.sourceRange = sourceRange;
     }
 
     @Override
@@ -44,7 +33,7 @@ public class Token {
             return new EqualsBuilder()
                 .append(kind, other.kind)
                 .append(value, other.value)
-                .append(range, other.range)
+                .append(sourceRange, other.sourceRange)
                 .isEquals();
         } else {
             return false;
@@ -52,19 +41,19 @@ public class Token {
     }
 
     public int getColumn() {
-        return range.getStart().getColumn();
+        return sourceRange.getStart().getColumn();
     }
 
     public TokenKind getKind() {
         return kind;
     }
 
-    public SourceRange getRange() {
-        return range;
+    public SourceRange getSourceRange() {
+        return sourceRange;
     }
 
-    public SourceCoordinate getStart() {
-        return range.getStart();
+    public NamedSourcePoint getStart() {
+        return sourceRange.getStart();
     }
 
     public Object getValue() {
@@ -90,7 +79,7 @@ public class Token {
         if (value instanceof String || value instanceof Character) {
             valueString = quote(valueString);
         }
-        return stringify(this) + "(kind=" + kind + ", value=" + valueString + ", range=" + range + ")";
+        return stringify(this) + "(kind=" + kind + ", value=" + valueString + ", range=" + sourceRange + ")";
     }
 
     public enum TokenKind {

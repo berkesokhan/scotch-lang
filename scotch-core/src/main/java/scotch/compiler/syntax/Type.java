@@ -86,9 +86,7 @@ public abstract class Type {
             return visitOtherwise(type);
         }
 
-        default T visitOtherwise(Type type) {
-            throw new UnsupportedOperationException("Can't visit " + type.getClass().getSimpleName());
-        }
+        T visitOtherwise(Type type);
     }
 
     public static class FunctionType extends Type {
@@ -139,6 +137,14 @@ public abstract class Type {
         @Override
         public Unification unify(Type type, TypeScope scope) {
             return type.unifyWith(this, scope);
+        }
+
+        public FunctionType withArgument(Type argument) {
+            return new FunctionType(argument, result);
+        }
+
+        public FunctionType withResult(Type result) {
+            return new FunctionType(argument, result);
         }
 
         @Override
@@ -209,6 +215,10 @@ public abstract class Type {
         @Override
         public Unification unify(Type type, TypeScope scope) {
             return type.unifyWith(this, scope);
+        }
+
+        public SumType withSymbol(Symbol symbol) {
+            return new SumType(symbol);
         }
 
         private void shouldBeUpperCase(String name) {

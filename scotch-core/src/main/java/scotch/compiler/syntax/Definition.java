@@ -8,6 +8,7 @@ import static scotch.compiler.syntax.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.DefinitionReference.signatureRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
 import static scotch.compiler.syntax.Operator.operator;
+import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
 import static scotch.compiler.syntax.Symbol.fromString;
 import static scotch.compiler.util.TextUtil.stringify;
 
@@ -16,18 +17,18 @@ import java.util.Objects;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.syntax.Operator.Fixity;
 
-public abstract class Definition {
+public abstract class Definition implements SourceAware<Definition> {
 
     public static Definition classDef(String name, List<Type> arguments, List<DefinitionReference> members) {
         return classDef(fromString(name), arguments, members);
     }
 
     public static Definition classDef(Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
-        return new ClassDefinition(symbol, arguments, members);
+        return new ClassDefinition(NULL_SOURCE, symbol, arguments, members);
     }
 
     public static Definition module(String symbol, List<Import> imports, List<DefinitionReference> definitions) {
-        return new ModuleDefinition(symbol, imports, definitions);
+        return new ModuleDefinition(NULL_SOURCE, symbol, imports, definitions);
     }
 
     public static Definition operatorDef(String name, Fixity fixity, int precedence) {
@@ -35,11 +36,11 @@ public abstract class Definition {
     }
 
     public static Definition operatorDef(Symbol symbol, Fixity fixity, int precedence) {
-        return new OperatorDefinition(symbol, fixity, precedence);
+        return new OperatorDefinition(NULL_SOURCE, symbol, fixity, precedence);
     }
 
     public static Definition root(List<DefinitionReference> definitions) {
-        return new RootDefinition(definitions);
+        return new RootDefinition(NULL_SOURCE, definitions);
     }
 
     public static Definition signature(String name, Type type) {
@@ -47,23 +48,23 @@ public abstract class Definition {
     }
 
     public static Definition signature(Symbol symbol, Type type) {
-        return new ValueSignature(symbol, type);
+        return new ValueSignature(NULL_SOURCE, symbol, type);
     }
 
-    public static Definition unshuffled(String name, List<PatternMatch> matches, Value body) {
+    public static UnshuffledPattern unshuffled(String name, List<PatternMatch> matches, Value body) {
         return unshuffled(fromString(name), matches, body);
     }
 
-    public static Definition unshuffled(Symbol symbol, List<PatternMatch> matches, Value body) {
-        return new UnshuffledPattern(symbol, matches, body);
+    public static UnshuffledPattern unshuffled(Symbol symbol, List<PatternMatch> matches, Value body) {
+        return new UnshuffledPattern(NULL_SOURCE, symbol, matches, body);
     }
 
-    public static Definition value(String name, Type type, Value value) {
+    public static ValueDefinition value(String name, Type type, Value value) {
         return value(fromString(name), type, value);
     }
 
-    public static Definition value(Symbol symbol, Type type, Value value) {
-        return new ValueDefinition(symbol, value, type);
+    public static ValueDefinition value(Symbol symbol, Type type, Value value) {
+        return new ValueDefinition(NULL_SOURCE, symbol, value, type);
     }
 
     private Definition() {
@@ -113,18 +114,18 @@ public abstract class Definition {
             return visitOtherwise(signature);
         }
 
-        default T visitOtherwise(Definition definition) {
-            throw new UnsupportedOperationException("Can't visit " + definition);
-        }
+        T visitOtherwise(Definition definition);
     }
 
     public static class ClassDefinition extends Definition {
 
+        private final SourceRange               sourceRange;
         private final Symbol                    symbol;
         private final List<Type>                arguments;
         private final List<DefinitionReference> members;
 
-        private ClassDefinition(Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
+        private ClassDefinition(SourceRange sourceRange, Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
+            this.sourceRange = sourceRange;
             this.symbol = symbol;
             this.arguments = ImmutableList.copyOf(arguments);
             this.members = ImmutableList.copyOf(members);
@@ -155,6 +156,11 @@ public abstract class Definition {
         }
 
         @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(symbol, arguments, members);
         }
@@ -163,15 +169,22 @@ public abstract class Definition {
         public String toString() {
             return stringify(this) + "(" + symbol + ")";
         }
+
+        @Override
+        public ClassDefinition withSourceRange(SourceRange sourceRange) {
+            return new ClassDefinition(sourceRange, symbol, arguments, members);
+        }
     }
 
     public static class ModuleDefinition extends Definition {
 
+        private final SourceRange               sourceRange;
         private final String                    symbol;
         private final List<Import>              imports;
         private final List<DefinitionReference> definitions;
 
-        private ModuleDefinition(String symbol, List<Import> imports, List<DefinitionReference> definitions) {
+        private ModuleDefinition(SourceRange sourceRange, String symbol, List<Import> imports, List<DefinitionReference> definitions) {
+            this.sourceRange = sourceRange;
             this.symbol = symbol;
             this.imports = ImmutableList.copyOf(imports);
             this.definitions = ImmutableList.copyOf(definitions);
@@ -210,6 +223,11 @@ public abstract class Definition {
         }
 
         @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(symbol, imports, definitions);
         }
@@ -220,17 +238,24 @@ public abstract class Definition {
         }
 
         public ModuleDefinition withDefinitions(List<DefinitionReference> definitions) {
-            return new ModuleDefinition(symbol, imports, definitions);
+            return new ModuleDefinition(sourceRange, symbol, imports, definitions);
+        }
+
+        @Override
+        public ModuleDefinition withSourceRange(SourceRange sourceRange) {
+            return new ModuleDefinition(sourceRange, symbol, imports, definitions);
         }
     }
 
     public static class OperatorDefinition extends Definition {
 
-        private final Symbol symbol;
-        private final Fixity fixity;
-        private final int    precedence;
+        private final SourceRange sourceRange;
+        private final Symbol      symbol;
+        private final Fixity      fixity;
+        private final int         precedence;
 
-        private OperatorDefinition(Symbol symbol, Fixity fixity, int precedence) {
+        private OperatorDefinition(SourceRange sourceRange, Symbol symbol, Fixity fixity, int precedence) {
+            this.sourceRange = sourceRange;
             this.symbol = symbol;
             this.fixity = fixity;
             this.precedence = precedence;
@@ -264,6 +289,11 @@ public abstract class Definition {
             return operatorRef(symbol);
         }
 
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
         public Symbol getSymbol() {
             return symbol;
         }
@@ -277,13 +307,20 @@ public abstract class Definition {
         public String toString() {
             return stringify(this) + "(" + symbol + " :: " + fixity + ", " + precedence + ")";
         }
+
+        @Override
+        public OperatorDefinition withSourceRange(SourceRange sourceRange) {
+            return new OperatorDefinition(sourceRange, symbol, fixity, precedence);
+        }
     }
 
     public static class RootDefinition extends Definition {
 
+        private final SourceRange               sourceRange;
         private final List<DefinitionReference> definitions;
 
-        private RootDefinition(List<DefinitionReference> definitions) {
+        private RootDefinition(SourceRange sourceRange, List<DefinitionReference> definitions) {
+            this.sourceRange = sourceRange;
             this.definitions = ImmutableList.copyOf(definitions);
         }
 
@@ -307,6 +344,11 @@ public abstract class Definition {
         }
 
         @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(definitions);
         }
@@ -317,17 +359,24 @@ public abstract class Definition {
         }
 
         public RootDefinition withDefinitions(List<DefinitionReference> definitions) {
-            return new RootDefinition(definitions);
+            return new RootDefinition(sourceRange, definitions);
+        }
+
+        @Override
+        public RootDefinition withSourceRange(SourceRange sourceRange) {
+            return new RootDefinition(sourceRange, definitions);
         }
     }
 
     public static class UnshuffledPattern extends Definition {
 
+        private final SourceRange        sourceRange;
         private final Symbol             symbol;
         private final List<PatternMatch> matches;
         private final Value              body;
 
-        private UnshuffledPattern(Symbol symbol, List<PatternMatch> matches, Value body) {
+        private UnshuffledPattern(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
+            this.sourceRange = sourceRange;
             this.symbol = symbol;
             this.matches = ImmutableList.copyOf(matches);
             this.body = body;
@@ -365,6 +414,11 @@ public abstract class Definition {
             return patternRef(symbol);
         }
 
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
         public Symbol getSymbol() {
             return symbol;
         }
@@ -378,15 +432,22 @@ public abstract class Definition {
         public String toString() {
             return stringify(this) + "(" + symbol + ")";
         }
+
+        @Override
+        public UnshuffledPattern withSourceRange(SourceRange sourceRange) {
+            return new UnshuffledPattern(sourceRange, symbol, matches, body);
+        }
     }
 
     public static class ValueDefinition extends Definition {
 
-        private final Symbol symbol;
-        private final Value  body;
-        private final Type   type;
+        private final SourceRange sourceRange;
+        private final Symbol      symbol;
+        private final Value       body;
+        private final Type        type;
 
-        private ValueDefinition(Symbol symbol, Value body, Type type) {
+        private ValueDefinition(SourceRange sourceRange, Symbol symbol, Value body, Type type) {
+            this.sourceRange = sourceRange;
             this.symbol = symbol;
             this.body = body;
             this.type = type;
@@ -420,6 +481,11 @@ public abstract class Definition {
             return valueRef(symbol);
         }
 
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
         public Symbol getSymbol() {
             return symbol;
         }
@@ -439,20 +505,27 @@ public abstract class Definition {
         }
 
         public ValueDefinition withBody(Value body) {
-            return new ValueDefinition(symbol, body, type);
+            return new ValueDefinition(sourceRange, symbol, body, type);
+        }
+
+        @Override
+        public ValueDefinition withSourceRange(SourceRange sourceRange) {
+            return new ValueDefinition(sourceRange, symbol, body, type);
         }
 
         public ValueDefinition withType(Type type) {
-            return new ValueDefinition(symbol, body, type);
+            return new ValueDefinition(sourceRange, symbol, body, type);
         }
     }
 
     public static class ValueSignature extends Definition {
 
-        private final Symbol symbol;
-        private final Type   type;
+        private final SourceRange sourceRange;
+        private final Symbol      symbol;
+        private final Type        type;
 
-        private ValueSignature(Symbol symbol, Type type) {
+        private ValueSignature(SourceRange sourceRange, Symbol symbol, Type type) {
+            this.sourceRange = sourceRange;
             this.symbol = symbol;
             this.type = type;
         }
@@ -478,6 +551,20 @@ public abstract class Definition {
         @Override
         public DefinitionReference getReference() {
             return signatureRef(symbol);
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        @Override
+        public ValueSignature withSourceRange(SourceRange sourceRange) {
+            return new ValueSignature(sourceRange, symbol, type);
+        }
+
+        public Symbol getSymbol() {
+            return symbol;
         }
 
         public Type getType() {

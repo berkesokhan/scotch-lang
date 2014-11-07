@@ -34,6 +34,7 @@ import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
 import scotch.compiler.syntax.PatternMatcher;
 import scotch.compiler.syntax.Symbol;
 import scotch.compiler.syntax.Type;
+import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.PatternMatchers;
 import scotch.compiler.syntax.Value.ValueVisitor;
 import scotch.data.tuple.Tuple2;
@@ -77,7 +78,17 @@ public class PatternShuffler {
                                                 .build()
                                         ));
                                     }
+
+                                    @Override
+                                    public Definition visitOtherwise(Value value) {
+                                        throw new UnsupportedOperationException(); // TODO
+                                    }
                                 });
+                            }
+
+                            @Override
+                            public Definition visitOtherwise(Definition definition) {
+                                throw new UnsupportedOperationException(); // TODO
                             }
                         });
                     }
@@ -96,11 +107,15 @@ public class PatternShuffler {
     }
 
     private Tuple2<Optional<Definition>, DefinitionReference> createPattern(Symbol symbol) {
-        Type type = scope.reserveType();
+        Type type = tryGetType(symbol);
         Definition definition = scope.collect(value(symbol, type, patterns(scope.reserveType())));
         scope.defineValue(symbol, type);
         scope.addPattern(symbol);
         return tuple2(Optional.of(definition), definition.getReference());
+    }
+
+    private Type tryGetType(Symbol symbol) {
+        return scope.getSignature(symbol).orElseGet(scope::reserveType);
     }
 
     private boolean expectsArgument(Deque<PatternMatch> input) {
@@ -116,6 +131,11 @@ public class PatternShuffler {
                     throw new ParseException("Unexpected binary operator " + quote(match.getSymbol()));
                 }
                 return new OperatorPair<>(operator, match);
+            }
+
+            @Override
+            public OperatorPair<CaptureMatch> visitOtherwise(PatternMatch match) {
+                throw new UnsupportedOperationException(); // TODO
             }
         });
     }

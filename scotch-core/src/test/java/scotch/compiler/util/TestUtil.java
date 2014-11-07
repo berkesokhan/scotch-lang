@@ -1,12 +1,14 @@
 package scotch.compiler.util;
 
 import static scotch.compiler.parser.Scanner.forString;
+import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
 
 import scotch.compiler.analyzer.TypeAnalyzer;
 import scotch.compiler.parser.InputParser;
 import scotch.compiler.parser.Scanner;
 import scotch.compiler.parser.SyntaxParser;
 import scotch.compiler.parser.Token;
+import scotch.compiler.parser.Token.TokenKind;
 import scotch.compiler.syntax.Definition;
 import scotch.compiler.syntax.Definition.DefinitionVisitor;
 import scotch.compiler.syntax.Definition.ValueDefinition;
@@ -15,6 +17,10 @@ import scotch.compiler.syntax.SymbolTable;
 import scotch.compiler.syntax.Value;
 
 public class TestUtil {
+
+    public static Token token(TokenKind kind, Object value) {
+        return Token.token(kind, value, NULL_SOURCE);
+    }
 
     public static SymbolTable analyzeTypes(SymbolResolver resolver, String... data) {
         return new TypeAnalyzer(parseAst(resolver, data)).analyze();
@@ -26,6 +32,11 @@ public class TestUtil {
             public Value visit(ValueDefinition definition) {
                 return definition.getBody();
             }
+
+            @Override
+            public Value visitOtherwise(Definition definition) {
+                throw new UnsupportedOperationException("Can't get body from " + definition.getClass().getSimpleName());
+            }
         });
     }
 
@@ -34,7 +45,7 @@ public class TestUtil {
     }
 
     public static SymbolTable parseInput(String... data) {
-        return new InputParser(forString("test-source.sch", data)).parse();
+        return new InputParser(forString("$test", data)).parse();
     }
 
     public static Token tokenAt(Scanner scanner, int offset) {

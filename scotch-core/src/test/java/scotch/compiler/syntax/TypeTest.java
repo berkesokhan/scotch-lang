@@ -125,6 +125,11 @@ public class TypeTest {
             public Type visit(FunctionType type) {
                 return type.getArgument();
             }
+
+            @Override
+            public Type visitOtherwise(Type type) {
+                throw new UnsupportedOperationException("Can't get argument from " + type.getClass().getSimpleName());
+            }
         });
     }
 

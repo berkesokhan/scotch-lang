@@ -35,6 +35,8 @@ public abstract class Scope implements TypeScope {
 
     public abstract void defineOperator(Symbol symbol, Operator operator);
 
+    public abstract void defineSignature(Symbol symbol, Type type);
+
     public abstract void defineValue(Symbol symbol, Type type);
 
     public abstract Scope enterScope();
@@ -42,6 +44,8 @@ public abstract class Scope implements TypeScope {
     public abstract Scope enterScope(String moduleName, List<Import> imports);
 
     public abstract Operator getOperator(Symbol symbol);
+
+    public abstract Optional<Type> getSignature(Symbol symbol);
 
     public abstract Type getValue(Symbol symbol);
 
@@ -82,6 +86,11 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public void defineSignature(Symbol symbol, Type type) {
+            define(symbol).defineSignature(type);
+        }
+
+        @Override
         public void defineValue(Symbol symbol, Type type) {
             define(symbol).defineValue(type);
         }
@@ -104,6 +113,11 @@ public abstract class Scope implements TypeScope {
         @Override
         public Operator getOperator(Symbol symbol) {
             return requireEntry(symbol).getOperator();
+        }
+
+        @Override
+        public Optional<Type> getSignature(Symbol symbol) {
+            return requireEntry(symbol).getSignature();
         }
 
         @Override
@@ -238,6 +252,11 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public void defineSignature(Symbol symbol, Type type) {
+            define(symbol).defineSignature(type);
+        }
+
+        @Override
         public void defineValue(Symbol symbol, Type type) {
             define(symbol).defineValue(type);
         }
@@ -260,6 +279,11 @@ public abstract class Scope implements TypeScope {
         @Override
         public Operator getOperator(Symbol symbol) {
             return getEntry(symbol).map(SymbolEntry::getOperator).orElseThrow(() -> symbolNotFound(symbol));
+        }
+
+        @Override
+        public Optional<Type> getSignature(Symbol symbol) {
+            return getEntry(symbol).flatMap(SymbolEntry::getSignature);
         }
 
         @Override
@@ -400,6 +424,11 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public void defineSignature(Symbol symbol, Type type) {
+            throw new IllegalStateException();
+        }
+
+        @Override
         public void defineValue(Symbol symbol, Type type) {
             throw new IllegalStateException();
         }
@@ -418,7 +447,7 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public Type generate(Type type) {
-            throw new UnsupportedOperationException(); // TODO
+            throw new IllegalStateException();
         }
 
         @Override
@@ -427,8 +456,13 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public Optional<Type> getSignature(Symbol symbol) {
+            throw new IllegalStateException();
+        }
+
+        @Override
         public Type getTarget(Type type) {
-            throw new UnsupportedOperationException(); // TODO
+            throw new IllegalStateException();
         }
 
         @Override
@@ -438,7 +472,7 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public boolean isBound(VariableType type) {
-            throw new UnsupportedOperationException(); // TODO
+            throw new IllegalStateException();
         }
 
         @Override

@@ -76,6 +76,10 @@ public class ScopeBuilder {
         });
     }
 
+    public void defineSignature(Symbol symbol, Type type) {
+        scope.defineSignature(symbol, type);
+    }
+
     public void defineValue(Symbol symbol, Type type) {
         scope.defineValue(symbol, type);
     }
@@ -104,6 +108,10 @@ public class ScopeBuilder {
 
     public int getSequence() {
         return sequence;
+    }
+
+    public Optional<Type> getSignature(Symbol symbol) {
+        return scope.getSignature(symbol);
     }
 
     public boolean isOperator(Symbol symbol) {

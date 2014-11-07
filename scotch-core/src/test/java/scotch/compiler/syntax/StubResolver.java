@@ -12,6 +12,12 @@ import java.util.Map;
 
 public class StubResolver implements SymbolResolver {
 
+    public static SymbolEntry defaultInt() {
+        return immutableEntry(qualified("scotch.data.int", "Int"))
+            .withType(sum("scotch.data.int.Int"))
+            .build();
+    }
+
     public static SymbolEntry defaultMinus() {
         return immutableEntry(qualified("scotch.data.num", "-"))
             .withOperator(operator(LEFT_INFIX, 6))

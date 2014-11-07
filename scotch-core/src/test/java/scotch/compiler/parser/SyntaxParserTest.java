@@ -3,8 +3,6 @@ package scotch.compiler.parser;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static scotch.compiler.syntax.Definition.value;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
 import static scotch.compiler.syntax.PatternMatch.capture;
@@ -12,6 +10,9 @@ import static scotch.compiler.syntax.PatternMatch.equal;
 import static scotch.compiler.syntax.PatternMatcher.pattern;
 import static scotch.compiler.syntax.Symbol.qualified;
 import static scotch.compiler.syntax.Symbol.unqualified;
+import static scotch.compiler.syntax.SymbolEntry.immutableEntry;
+import static scotch.compiler.syntax.Type.fn;
+import static scotch.compiler.syntax.Type.sum;
 import static scotch.compiler.syntax.Type.t;
 import static scotch.compiler.syntax.Value.apply;
 import static scotch.compiler.syntax.Value.id;
@@ -19,24 +20,24 @@ import static scotch.compiler.syntax.Value.literal;
 import static scotch.compiler.syntax.Value.patterns;
 import static scotch.compiler.util.TestUtil.parseAst;
 
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
-import scotch.compiler.syntax.SymbolEntry;
-import scotch.compiler.syntax.SymbolResolver;
+import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.SymbolTable;
 
-@RunWith(MockitoJUnitRunner.class)
 public class SyntaxParserTest {
 
-    @Mock
-    private SymbolResolver resolver;
+    private StubResolver resolver;
+
+    @Before
+    public void setUp() {
+        resolver = new StubResolver()
+            .define(immutableEntry(qualified("scotch.data.int", "Int")).withType(sum("scotch.data.int.Int")).build());
+    }
 
     @Test
     public void shouldShufflePattern() {
-        when(resolver.isDefined(qualified("scotch.data.bool", "not"))).thenReturn(true);
-        when(resolver.getEntry(qualified("scotch.data.bool", "not"))).thenReturn(mock(SymbolEntry.class));
+        resolver.define(immutableEntry(qualified("scotch.data.bool", "not")).build());
         SymbolTable symbols = parseAst(
             resolver,
             "module scotch.test",
@@ -70,7 +71,7 @@ public class SyntaxParserTest {
             "fib n = fib (n - 1) + fib (n - 2)"
         );
         assertThat(symbols.getDefinition(valueRef("scotch.test", "fib")), is(
-            value("scotch.test.fib", t(20), patterns(t(20),
+            value("scotch.test.fib", t(20), patterns(t(21),
                 pattern(qualified("scotch.test", "pattern#2"), asList(equal(literal(0, t(1)))), literal(0, t(3))),
                 pattern(qualified("scotch.test", "pattern#6"), asList(equal(literal(1, t(5)))), literal(1, t(7))),
                 pattern(qualified("scotch.test", "pattern#10"), asList(capture(unqualified("n"), t(9))), apply(
@@ -100,5 +101,17 @@ public class SyntaxParserTest {
                 ))
             ))
         ));
+    }
+
+    @Test
+    public void shouldQualifyTypeNames() {
+        SymbolTable symbols = parseAst(
+            resolver,
+            "module scotch.test",
+            "import scotch.data.int",
+            "fn :: Int -> Int",
+            "fn n = n"
+        );
+        assertThat(symbols.getValue(valueRef("scotch.test", "fn")), is(fn(sum("scotch.data.int.Int"), sum("scotch.data.int.Int"))));
     }
 }
