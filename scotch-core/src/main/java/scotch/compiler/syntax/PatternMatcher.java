@@ -1,6 +1,7 @@
 package scotch.compiler.syntax;
 
 import static scotch.compiler.syntax.DefinitionReference.patternRef;
+import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
 import static scotch.compiler.syntax.Type.fn;
 import static scotch.compiler.util.TextUtil.stringify;
 
@@ -11,14 +12,16 @@ import com.google.common.collect.ImmutableList;
 public class PatternMatcher {
 
     public static PatternMatcher pattern(Symbol symbol, List<PatternMatch> matches, Value body) {
-        return new PatternMatcher(symbol, matches, body);
+        return new PatternMatcher(NULL_SOURCE, symbol, matches, body);
     }
 
+    private final SourceRange        sourceRange;
     private final Symbol             symbol;
     private final List<PatternMatch> matches;
     private final Value              body;
 
-    private PatternMatcher(Symbol symbol, List<PatternMatch> matches, Value body) {
+    private PatternMatcher(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
+        this.sourceRange = sourceRange;
         this.symbol = symbol;
         this.matches = ImmutableList.copyOf(matches);
         this.body = body;
@@ -50,6 +53,10 @@ public class PatternMatcher {
         return patternRef(symbol);
     }
 
+    public SourceRange getSourceRange() {
+        return sourceRange;
+    }
+
     public Type getType() {
         return matches.stream()
             .map(PatternMatch::getType)
@@ -67,14 +74,18 @@ public class PatternMatcher {
     }
 
     public PatternMatcher withBody(Value body) {
-        return new PatternMatcher(symbol, matches, body);
+        return new PatternMatcher(sourceRange, symbol, matches, body);
     }
 
     public PatternMatcher withMatches(List<PatternMatch> matches) {
-        return new PatternMatcher(symbol, matches, body);
+        return new PatternMatcher(sourceRange, symbol, matches, body);
+    }
+
+    public PatternMatcher withSourceRange(SourceRange sourceRange) {
+        return new PatternMatcher(sourceRange, symbol, matches, body);
     }
 
     public PatternMatcher withType(Type type) {
-        return new PatternMatcher(symbol, matches, body);
+        return new PatternMatcher(sourceRange, symbol, matches, body.withType(type));
     }
 }

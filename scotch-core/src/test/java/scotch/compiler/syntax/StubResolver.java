@@ -32,6 +32,12 @@ public class StubResolver implements SymbolResolver {
             .build();
     }
 
+    public static SymbolEntry defaultString() {
+        return immutableEntry(qualified("scotch.data.string", "String"))
+            .withType(sum("scotch.data.string.String"))
+            .build();
+    }
+
     private final Map<Symbol, SymbolEntry> symbols = new HashMap<>();
 
     public StubResolver define(SymbolEntry entry) {

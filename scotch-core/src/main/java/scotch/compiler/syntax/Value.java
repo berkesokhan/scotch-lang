@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 public abstract class Value implements SourceAware<Value> {
 
     public static Value apply(Value function, Value argument, Type type) {
-        return new Apply(NULL_SOURCE, function, argument, type);
+        return new Apply(function.getSourceRange().extend(argument.getSourceRange()), function, argument, type);
     }
 
     public static Value id(String name, Type type) {
@@ -62,7 +62,7 @@ public abstract class Value implements SourceAware<Value> {
     @Override
     public abstract String toString();
 
-    public abstract Value withSourceRange(SourceRange sourceRange);
+    public abstract Value withType(Type type);
 
     public interface ValueVisitor<T> {
 
@@ -86,7 +86,9 @@ public abstract class Value implements SourceAware<Value> {
             return visitOtherwise(matchers);
         }
 
-        T visitOtherwise(Value value);
+        default T visitOtherwise(Value value) {
+            throw new UnsupportedOperationException("Can't visit " + value.getClass().getSimpleName());
+        }
     }
 
     public static class Apply extends Value {
@@ -163,6 +165,7 @@ public abstract class Value implements SourceAware<Value> {
             return new Apply(sourceRange, function, argument, type);
         }
 
+        @Override
         public Apply withType(Type type) {
             return new Apply(sourceRange, function, argument, type);
         }
@@ -344,6 +347,11 @@ public abstract class Value implements SourceAware<Value> {
         }
 
         @Override
+        public Value withType(Type type) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public Message withSourceRange(SourceRange sourceRange) {
             return new Message(sourceRange, members);
         }
@@ -413,6 +421,7 @@ public abstract class Value implements SourceAware<Value> {
             return new PatternMatchers(sourceRange, matchers, type);
         }
 
+        @Override
         public PatternMatchers withType(Type type) {
             return new PatternMatchers(sourceRange, matchers, type);
         }

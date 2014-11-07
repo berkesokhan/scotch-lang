@@ -44,6 +44,10 @@ public class Token {
         return sourceRange.getStart().getColumn();
     }
 
+    public NamedSourcePoint getEnd() {
+        return sourceRange.getEnd();
+    }
+
     public TokenKind getKind() {
         return kind;
     }

@@ -1,6 +1,6 @@
 package scotch.compiler.syntax;
 
-import static scotch.compiler.syntax.SourceRange.point;
+import static scotch.compiler.syntax.SourcePoint.point;
 import static scotch.compiler.util.TextUtil.quote;
 import static scotch.compiler.util.TextUtil.stringify;
 

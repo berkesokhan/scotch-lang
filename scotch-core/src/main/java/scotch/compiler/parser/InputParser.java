@@ -190,12 +190,12 @@ public class InputParser {
         return expectsAt(offset, WORD) && Objects.equals(scanner.peekAt(offset).getValue(), value);
     }
 
-    private void markPosition() {
-        positions.push(scanner.getPosition());
+    private SourceRange getSourceRange() {
+        return positions.pop().to(scanner.getPreviousPosition());
     }
 
-    private SourceRange getSourceRange() {
-        return positions.pop().to(scanner.getPosition());
+    private void markPosition() {
+        positions.push(scanner.getPosition());
     }
 
     private void nextToken() {
@@ -248,6 +248,10 @@ public class InputParser {
         return definitions;
     }
 
+    private ParseException parseException(String message) {
+        throw new ParseException(message + "; in " + peekSourceRange().prettyPrint());
+    }
+
     private Import parseImport() {
         return withSourceRange(() -> {
             requireWord("import");
@@ -289,11 +293,6 @@ public class InputParser {
                 @Override
                 public PatternMatch visit(Identifier identifier) {
                     return capture(identifier.getSymbol(), identifier.getType());
-                }
-
-                @Override
-                public PatternMatch visitOtherwise(Value value) {
-                    throw new UnsupportedOperationException(); // TODO
                 }
             }));
         } else if (expectsLiteral()) {
@@ -468,14 +467,6 @@ public class InputParser {
         });
     }
 
-    private SourceRange peekSourceRange() {
-        return positions.peek().to(scanner.getPosition());
-    }
-
-    private ParseException parseException(String message) {
-        throw new ParseException(message + "; in " + peekSourceRange().prettyPrint());
-    }
-
     private DefinitionReference parseValueDefinition() {
         return collect(withSourceRange(() -> {
             if (expectsAt(1, ASSIGN)) {
@@ -523,20 +514,12 @@ public class InputParser {
         });
     }
 
-    private <T extends SourceAware<T>> T withSourceRange(Supplier<T> supplier) {
-        markPosition();
-        T result;
-        try {
-            result = supplier.get();
-        } catch (RuntimeException exception) {
-            positions.pop();
-            throw exception;
-        }
-        return result.withSourceRange(getSourceRange());
-    }
-
     private Token peekAt(int offset) {
         return scanner.peekAt(offset);
+    }
+
+    private SourceRange peekSourceRange() {
+        return positions.peek().to(scanner.getPosition());
     }
 
     private Token require(TokenKind kind) {
@@ -643,11 +626,24 @@ public class InputParser {
         );
     }
 
+    private <T extends SourceAware<T>> T withSourceRange(Supplier<T> supplier) {
+        markPosition();
+        T result;
+        try {
+            result = supplier.get();
+        } catch (RuntimeException exception) {
+            positions.pop();
+            throw exception;
+        }
+        return result.withSourceRange(getSourceRange());
+    }
+
     private static final class LookAheadScanner {
 
-        private final Scanner     delegate;
-        private final List<Token> tokens;
-        private       int         position;
+        private final Scanner          delegate;
+        private final List<Token>      tokens;
+        private       int              position;
+        private       NamedSourcePoint previousPosition;
 
         public LookAheadScanner(Scanner delegate) {
             this.delegate = delegate;
@@ -658,9 +654,14 @@ public class InputParser {
             return peekAt(0).getStart();
         }
 
+        public NamedSourcePoint getPreviousPosition() {
+            return previousPosition;
+        }
+
         public void nextToken() {
             buffer();
             if (position < tokens.size()) {
+                previousPosition = peekAt(0).getEnd();
                 position++;
             }
         }

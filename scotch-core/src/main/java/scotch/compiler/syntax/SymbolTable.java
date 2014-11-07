@@ -78,6 +78,10 @@ public class SymbolTable {
         });
     }
 
+    public boolean hasErrors() {
+        return !errors.isEmpty();
+    }
+
     public static class SymbolTableBuilder {
 
         private final Collection<DefinitionEntry> definitions;

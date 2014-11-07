@@ -127,17 +127,17 @@ public class ScopeBuilder {
         scope = scope.leaveScope();
     }
 
-    public void modify(DefinitionReference reference, DefinitionEntryVisitor<Definition> visitor) {
-        DefinitionEntry entry = getDefinition(reference);
-        definitions.put(reference, entry.withDefinition(entry.accept(visitor)));
-    }
-
     public Optional<Symbol> qualify(Symbol symbol) {
         return scope.qualify(symbol);
     }
 
     public Symbol qualifyCurrent(Symbol symbol) {
         return symbol.qualifyWith(currentModule);
+    }
+
+    public void replace(DefinitionReference reference, DefinitionEntryVisitor<Definition> visitor) {
+        DefinitionEntry entry = getDefinition(reference);
+        definitions.put(reference, entry.withDefinition(entry.accept(visitor)));
     }
 
     public Type reserveType() {

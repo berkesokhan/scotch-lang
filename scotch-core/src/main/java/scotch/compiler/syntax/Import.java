@@ -62,11 +62,6 @@ public abstract class Import implements SourceAware<Import> {
         }
 
         @Override
-        public SourceRange getSourceRange() {
-            return sourceRange;
-        }
-
-        @Override
         public int hashCode() {
             return Objects.hash(moduleName, includes);
         }
@@ -109,11 +104,6 @@ public abstract class Import implements SourceAware<Import> {
         @Override
         public boolean equals(Object o) {
             return o == this || o instanceof ModuleImport && Objects.equals(moduleName, ((ModuleImport) o).moduleName);
-        }
-
-        @Override
-        public SourceRange getSourceRange() {
-            return sourceRange;
         }
 
         @Override

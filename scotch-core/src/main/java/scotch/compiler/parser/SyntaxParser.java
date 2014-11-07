@@ -165,26 +165,6 @@ public class SyntaxParser implements
     }
 
     @Override
-    public PatternMatch visitOtherwise(PatternMatch match) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
-    public Value visitOtherwise(Value value) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
-    public Optional<Definition> visitOtherwise(Definition definition) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
-    public Type visitOtherwise(Type type) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
     public Optional<DefinitionReference> visitOtherwise(DefinitionReference reference) {
         return parseDefinition(reference);
     }

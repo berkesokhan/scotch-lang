@@ -4,7 +4,6 @@ import static java.util.Collections.reverse;
 import static scotch.compiler.parser.ParseUtil.nextOperatorHasGreaterPrecedence;
 import static scotch.compiler.syntax.Definition.value;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
-import static scotch.compiler.syntax.PatternMatcher.pattern;
 import static scotch.compiler.syntax.Value.patterns;
 import static scotch.compiler.util.TextUtil.quote;
 import static scotch.data.tuple.TupleValues.tuple2;
@@ -54,7 +53,7 @@ public class PatternShuffler {
     public Optional<Definition> shuffle(UnshuffledPattern pattern) {
         return splitPattern(pattern).into(
             (symbol, matches) -> createOrRetrievePattern(symbol).into((optionalDefinition, reference) -> {
-                scope.modify(reference, new DefinitionEntryVisitor<Definition>() {
+                scope.replace(reference, new DefinitionEntryVisitor<Definition>() {
                     @Override
                     public Definition visit(UnscopedEntry entry) {
                         return accumulate(entry.getDefinition());
@@ -72,11 +71,12 @@ public class PatternShuffler {
                                 return definition.getBody().<Definition>accept(new ValueVisitor<Definition>() {
                                     @Override
                                     public Definition visit(PatternMatchers matchers) {
-                                        return definition.withBody(matchers.withMatchers(ImmutableList.<PatternMatcher>builder()
+                                        return definition
+                                            .withSourceRange(matchers.getSourceRange().extend(pattern.getSourceRange()))
+                                            .withBody(matchers.withMatchers(ImmutableList.<PatternMatcher>builder()
                                                 .addAll(matchers.getMatchers())
-                                                .add(parser.apply(pattern(pattern.getSymbol(), matches, pattern.getBody())))
-                                                .build()
-                                        ));
+                                                .add(parser.apply(pattern.asPatternMatcher(matches)))
+                                                .build()));
                                     }
 
                                     @Override
@@ -131,11 +131,6 @@ public class PatternShuffler {
                     throw new ParseException("Unexpected binary operator " + quote(match.getSymbol()));
                 }
                 return new OperatorPair<>(operator, match);
-            }
-
-            @Override
-            public OperatorPair<CaptureMatch> visitOtherwise(PatternMatch match) {
-                throw new UnsupportedOperationException(); // TODO
             }
         });
     }

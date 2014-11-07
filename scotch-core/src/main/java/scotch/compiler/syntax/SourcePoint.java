@@ -6,11 +6,15 @@ import java.util.Objects;
 
 public class SourcePoint {
 
+    public static SourcePoint point(int offset, int line, int column) {
+        return new SourcePoint(offset, line, column);
+    }
+
     private final int offset;
     private final int line;
     private final int column;
 
-    SourcePoint(int offset, int line, int column) {
+    private SourcePoint(int offset, int line, int column) {
         this.offset = offset;
         this.line = line;
         this.column = column;
@@ -30,14 +34,6 @@ public class SourcePoint {
         }
     }
 
-    public int getColumn() {
-        return column;
-    }
-
-    public int getLine() {
-        return line;
-    }
-
     public int getOffset() {
         return offset;
     }
@@ -45,6 +41,22 @@ public class SourcePoint {
     @Override
     public int hashCode() {
         return Objects.hash(offset, line, column);
+    }
+
+    public SourcePoint max(SourcePoint other) {
+        return new SourcePoint(
+            Math.max(offset, other.offset),
+            Math.max(line, other.line),
+            Math.max(column, other.column)
+        );
+    }
+
+    public SourcePoint min(SourcePoint other) {
+        return new SourcePoint(
+            Math.min(offset, other.offset),
+            Math.min(line, other.line),
+            Math.min(column, other.column)
+        );
     }
 
     public SourcePoint nextChar() {

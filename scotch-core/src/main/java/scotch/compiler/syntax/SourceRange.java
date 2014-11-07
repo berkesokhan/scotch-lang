@@ -1,5 +1,6 @@
 package scotch.compiler.syntax;
 
+import static scotch.compiler.syntax.SourcePoint.point;
 import static scotch.compiler.util.TextUtil.quote;
 import static scotch.compiler.util.TextUtil.stringify;
 
@@ -9,12 +10,8 @@ public class SourceRange {
 
     public static final SourceRange NULL_SOURCE = source("NULL", point(-1, -1, -1), point(-1, -1, -1));
 
-    public static SourceRange source(String source, SourcePoint start, SourcePoint end) {
-        return new SourceRange(source, start, end);
-    }
-
-    public static SourcePoint point(int offset, int line, int column) {
-        return new SourcePoint(offset, line, column);
+    public static SourceRange source(String sourceName, SourcePoint start, SourcePoint end) {
+        return new SourceRange(sourceName, start, end);
     }
 
     private final String      sourceName;
@@ -43,8 +40,22 @@ public class SourceRange {
         }
     }
 
+    public SourceRange extend(SourceRange sourceRange) {
+        if (this == NULL_SOURCE) {
+            return sourceRange;
+        } else if (sourceRange == NULL_SOURCE) {
+            return this;
+        } else {
+            return source(sourceName, start.min(sourceRange.start), end.max(sourceRange.end));
+        }
+    }
+
+    public NamedSourcePoint getEnd() {
+        return end.withSourceName(sourceName);
+    }
+
     public NamedSourcePoint getStart() {
-        return NamedSourcePoint.source(sourceName, start.getOffset(), start.getLine(), start.getColumn());
+        return start.withSourceName(sourceName);
     }
 
     public String prettyPrint() {

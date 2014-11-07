@@ -47,7 +47,9 @@ public abstract class PatternMatch implements SourceAware<PatternMatch> {
             return visitOtherwise(match);
         }
 
-        T visitOtherwise(PatternMatch match);
+        default T visitOtherwise(PatternMatch match) {
+            throw new UnsupportedOperationException("Can't visit " + match.getClass().getSimpleName());
+        }
     }
 
     public static class CaptureMatch extends PatternMatch {
@@ -78,11 +80,6 @@ public abstract class PatternMatch implements SourceAware<PatternMatch> {
             } else {
                 return false;
             }
-        }
-
-        @Override
-        public SourceRange getSourceRange() {
-            return sourceRange;
         }
 
         public Symbol getSymbol() {
@@ -128,11 +125,6 @@ public abstract class PatternMatch implements SourceAware<PatternMatch> {
         @Override
         public boolean equals(Object o) {
             return o == this || o instanceof EqualMatch && Objects.equals(value, ((EqualMatch) o).value);
-        }
-
-        @Override
-        public SourceRange getSourceRange() {
-            throw new UnsupportedOperationException(); // TODO
         }
 
         @Override

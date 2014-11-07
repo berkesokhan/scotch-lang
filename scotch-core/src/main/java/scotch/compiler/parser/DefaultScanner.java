@@ -47,7 +47,7 @@ import static scotch.compiler.parser.Token.TokenKind.THEN;
 import static scotch.compiler.parser.Token.TokenKind.WHERE;
 import static scotch.compiler.parser.Token.TokenKind.WORD;
 import static scotch.compiler.parser.Token.token;
-import static scotch.compiler.syntax.SourceRange.point;
+import static scotch.compiler.syntax.SourcePoint.point;
 import static scotch.compiler.util.TextUtil.isAsciiEscape;
 import static scotch.compiler.util.TextUtil.isBackslash;
 import static scotch.compiler.util.TextUtil.isBacktick;

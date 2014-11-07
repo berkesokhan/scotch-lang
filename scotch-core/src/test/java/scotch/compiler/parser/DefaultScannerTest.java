@@ -28,7 +28,7 @@ import static scotch.compiler.parser.Token.TokenKind.STRING;
 import static scotch.compiler.parser.Token.TokenKind.WHERE;
 import static scotch.compiler.parser.Token.TokenKind.WORD;
 import static scotch.compiler.parser.Token.token;
-import static scotch.compiler.syntax.SourceRange.point;
+import static scotch.compiler.syntax.SourcePoint.point;
 import static scotch.compiler.syntax.SourceRange.source;
 import static scotch.compiler.util.TestUtil.token;
 

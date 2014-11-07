@@ -115,7 +115,8 @@ public class TypeAnalyzer implements
 
                 @Override
                 public Type visitOtherwise(Unification unification) {
-                    throw new UnsupportedOperationException(); // TODO
+                    errors.add(typeError(unification, pattern.getSourceRange()));
+                    return matchers.getType();
                 }
             }));
             type = currentScope().generate(type);
@@ -146,7 +147,8 @@ public class TypeAnalyzer implements
 
             @Override
             public Value visitOtherwise(Unification unification) {
-                return report(unification);
+                errors.add(typeError(unification, apply.getSourceRange()));
+                return apply.withType(resultType);
             }
         });
     }

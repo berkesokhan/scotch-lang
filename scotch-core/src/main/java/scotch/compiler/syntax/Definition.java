@@ -8,6 +8,7 @@ import static scotch.compiler.syntax.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.DefinitionReference.signatureRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
 import static scotch.compiler.syntax.Operator.operator;
+import static scotch.compiler.syntax.PatternMatcher.pattern;
 import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
 import static scotch.compiler.syntax.Symbol.fromString;
 import static scotch.compiler.util.TextUtil.stringify;
@@ -114,7 +115,9 @@ public abstract class Definition implements SourceAware<Definition> {
             return visitOtherwise(signature);
         }
 
-        T visitOtherwise(Definition definition);
+        default T visitOtherwise(Definition definition) {
+            throw new UnsupportedOperationException("Can't visit " + definition.getClass().getSimpleName());
+        }
     }
 
     public static class ClassDefinition extends Definition {
@@ -153,11 +156,6 @@ public abstract class Definition implements SourceAware<Definition> {
         @Override
         public DefinitionReference getReference() {
             return classRef(symbol);
-        }
-
-        @Override
-        public SourceRange getSourceRange() {
-            return sourceRange;
         }
 
         @Override
@@ -223,11 +221,6 @@ public abstract class Definition implements SourceAware<Definition> {
         }
 
         @Override
-        public SourceRange getSourceRange() {
-            return sourceRange;
-        }
-
-        @Override
         public int hashCode() {
             return Objects.hash(symbol, imports, definitions);
         }
@@ -289,11 +282,6 @@ public abstract class Definition implements SourceAware<Definition> {
             return operatorRef(symbol);
         }
 
-        @Override
-        public SourceRange getSourceRange() {
-            return sourceRange;
-        }
-
         public Symbol getSymbol() {
             return symbol;
         }
@@ -344,11 +332,6 @@ public abstract class Definition implements SourceAware<Definition> {
         }
 
         @Override
-        public SourceRange getSourceRange() {
-            return sourceRange;
-        }
-
-        @Override
         public int hashCode() {
             return Objects.hash(definitions);
         }
@@ -387,6 +370,10 @@ public abstract class Definition implements SourceAware<Definition> {
             return visitor.visit(this);
         }
 
+        public PatternMatcher asPatternMatcher(List<PatternMatch> matches) {
+            return pattern(symbol, matches, body).withSourceRange(sourceRange);
+        }
+
         @Override
         public boolean equals(Object o) {
             if (o == this) {
@@ -401,10 +388,6 @@ public abstract class Definition implements SourceAware<Definition> {
             }
         }
 
-        public Value getBody() {
-            return body;
-        }
-
         public List<PatternMatch> getMatches() {
             return matches;
         }
@@ -414,7 +397,6 @@ public abstract class Definition implements SourceAware<Definition> {
             return patternRef(symbol);
         }
 
-        @Override
         public SourceRange getSourceRange() {
             return sourceRange;
         }
@@ -481,7 +463,6 @@ public abstract class Definition implements SourceAware<Definition> {
             return valueRef(symbol);
         }
 
-        @Override
         public SourceRange getSourceRange() {
             return sourceRange;
         }
@@ -551,11 +532,6 @@ public abstract class Definition implements SourceAware<Definition> {
         @Override
         public DefinitionReference getReference() {
             return signatureRef(symbol);
-        }
-
-        @Override
-        public SourceRange getSourceRange() {
-            return sourceRange;
         }
 
         @Override

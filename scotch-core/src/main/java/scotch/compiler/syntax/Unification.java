@@ -55,7 +55,9 @@ public abstract class Unification {
             return visitOtherwise(unified);
         }
 
-        T visitOtherwise(Unification unification);
+        default T visitOtherwise(Unification unification) {
+            throw new UnsupportedOperationException("Can't visit " + unification.getClass().getSimpleName());
+        }
     }
 
     public static class CircularReference extends Unification {

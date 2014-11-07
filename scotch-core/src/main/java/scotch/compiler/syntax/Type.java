@@ -86,7 +86,9 @@ public abstract class Type {
             return visitOtherwise(type);
         }
 
-        T visitOtherwise(Type type);
+        default T visitOtherwise(Type type) {
+            throw new UnsupportedOperationException("Can't visit " + type.getClass().getSimpleName());
+        }
     }
 
     public static class FunctionType extends Type {
