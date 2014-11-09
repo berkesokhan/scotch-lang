@@ -2,8 +2,10 @@ package scotch.compiler.parser;
 
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
-import static scotch.compiler.syntax.Scope.symbolNotFound;
+import static scotch.compiler.syntax.SyntaxError.symbolNotFound;
+import static scotch.compiler.syntax.Value.message;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -28,6 +30,7 @@ import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
 import scotch.compiler.syntax.PatternMatcher;
 import scotch.compiler.syntax.SymbolResolver;
 import scotch.compiler.syntax.SymbolTable;
+import scotch.compiler.syntax.SyntaxError;
 import scotch.compiler.syntax.Type;
 import scotch.compiler.syntax.Type.FunctionType;
 import scotch.compiler.syntax.Type.SumType;
@@ -39,6 +42,7 @@ import scotch.compiler.syntax.Value.LiteralValue;
 import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.syntax.Value.PatternMatchers;
 import scotch.compiler.syntax.Value.ValueVisitor;
+import scotch.lang.Either.EitherVisitor;
 
 public class SyntaxParser implements
     DefinitionReferenceVisitor<Optional<DefinitionReference>>,
@@ -48,16 +52,18 @@ public class SyntaxParser implements
     PatternMatchVisitor<PatternMatch>,
     TypeVisitor<Type> {
 
-    private final SymbolTable     symbols;
-    private final ScopeBuilder    scope;
-    private final PatternShuffler patternShuffler;
-    private final ValueShuffler   valueShuffler;
+    private final SymbolTable       symbols;
+    private final ScopeBuilder      scope;
+    private final PatternShuffler   patternShuffler;
+    private final ValueShuffler     valueShuffler;
+    private final List<SyntaxError> errors;
 
     public SyntaxParser(SymbolTable symbols, SymbolResolver resolver) {
         this.symbols = symbols;
         this.scope = new ScopeBuilder(symbols.getSequence(), resolver);
         this.patternShuffler = new PatternShuffler(scope, this::visitMatcher);
         this.valueShuffler = new ValueShuffler(scope, value -> value.accept(this));
+        this.errors = new ArrayList<>();
     }
 
     public SymbolTable analyze() {
@@ -65,6 +71,7 @@ public class SyntaxParser implements
         return symbols
             .copyWith(scope.getDefinitions())
             .withSequence(scope.getSequence())
+            .withErrors(errors)
             .build();
     }
 
@@ -95,7 +102,10 @@ public class SyntaxParser implements
 
     @Override
     public Optional<Definition> visit(UnshuffledPattern pattern) {
-        return patternShuffler.shuffle(pattern);
+        return patternShuffler.shuffle(pattern).into((optionalDefinition, shuffleErrors) -> {
+            errors.addAll(shuffleErrors);
+            return optionalDefinition;
+        });
     }
 
     @Override
@@ -107,7 +117,10 @@ public class SyntaxParser implements
     public Value visit(Identifier identifier) {
         return scope.qualify(identifier.getSymbol())
             .map(identifier::withSymbol)
-            .orElseThrow(() -> symbolNotFound(identifier.getSymbol()));
+            .orElseGet(() -> {
+                errors.add(symbolNotFound(identifier.getSymbol(), identifier.getSourceRange()));
+                return identifier;
+            });
     }
 
     @Override
@@ -156,7 +169,12 @@ public class SyntaxParser implements
 
     @Override
     public Type visit(SumType type) {
-        return type.withSymbol(scope.qualify(type.getSymbol()).orElseThrow(() -> symbolNotFound(type.getSymbol())));
+        return scope.qualify(type.getSymbol())
+            .<Type>map(type::withSymbol)
+            .orElseGet(() -> {
+                errors.add(symbolNotFound(type.getSymbol(), type.getSourceRange()));
+                return scope.reserveType();
+            });
     }
 
     @Override
@@ -208,7 +226,18 @@ public class SyntaxParser implements
     }
 
     private Value shuffleMessage(List<Value> message) {
-        return valueShuffler.shuffle(message);
+        return valueShuffler.shuffle(message).accept(new EitherVisitor<SyntaxError, Value, Value>() {
+            @Override
+            public Value visitLeft(SyntaxError left) {
+                errors.add(left);
+                return message(message);
+            }
+
+            @Override
+            public Value visitRight(Value right) {
+                return right;
+            }
+        });
     }
 
     private Value unwrap(Value value) {

@@ -3,6 +3,7 @@ package scotch.compiler.syntax;
 import static java.lang.Character.isLowerCase;
 import static java.lang.Character.isUpperCase;
 import static java.util.Collections.emptyList;
+import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
 import static scotch.compiler.syntax.Symbol.fromString;
 import static scotch.compiler.syntax.Unification.circular;
 import static scotch.compiler.syntax.Unification.mismatch;
@@ -12,10 +13,10 @@ import static scotch.compiler.util.TextUtil.stringify;
 import java.util.List;
 import java.util.Objects;
 
-public abstract class Type {
+public abstract class Type implements SourceAware<Type> {
 
     public static Type fn(Type argument, Type result) {
-        return new FunctionType(argument, result);
+        return new FunctionType(NULL_SOURCE, argument, result);
     }
 
     public static Type sum(String name) {
@@ -27,7 +28,7 @@ public abstract class Type {
     }
 
     public static Type sum(Symbol symbol) {
-        return new SumType(symbol);
+        return new SumType(NULL_SOURCE, symbol);
     }
 
     public static Type t(int id) {
@@ -35,7 +36,7 @@ public abstract class Type {
     }
 
     public static VariableType var(String name) {
-        return new VariableType(name);
+        return new VariableType(NULL_SOURCE, name);
     }
 
     private static Unification unifyVariable(Type target, VariableType variableType, TypeScope typeScope) {
@@ -58,6 +59,8 @@ public abstract class Type {
 
     @Override
     public abstract int hashCode();
+
+    public abstract String prettyPrint();
 
     @Override
     public abstract String toString();
@@ -93,10 +96,12 @@ public abstract class Type {
 
     public static class FunctionType extends Type {
 
-        private final Type argument;
-        private final Type result;
+        private final SourceRange sourceRange;
+        private final Type        argument;
+        private final Type        result;
 
-        private FunctionType(Type argument, Type result) {
+        private FunctionType(SourceRange sourceRange, Type argument, Type result) {
+            this.sourceRange = sourceRange;
             this.argument = argument;
             this.result = result;
         }
@@ -132,6 +137,21 @@ public abstract class Type {
         }
 
         @Override
+        public String prettyPrint() {
+            return argument.accept(new TypeVisitor<String>() {
+                @Override
+                public String visit(FunctionType type) {
+                    return "(" + type.prettyPrint() + ")";
+                }
+
+                @Override
+                public String visitOtherwise(Type type) {
+                    return type.prettyPrint();
+                }
+            }) + " -> " + result.prettyPrint();
+        }
+
+        @Override
         public String toString() {
             return stringify(this) + "(" + argument + " -> " + result + ")";
         }
@@ -142,11 +162,16 @@ public abstract class Type {
         }
 
         public FunctionType withArgument(Type argument) {
-            return new FunctionType(argument, result);
+            return new FunctionType(sourceRange, argument, result);
         }
 
         public FunctionType withResult(Type result) {
-            return new FunctionType(argument, result);
+            return new FunctionType(sourceRange, argument, result);
+        }
+
+        @Override
+        public FunctionType withSourceRange(SourceRange sourceRange) {
+            return new FunctionType(sourceRange, argument, result);
         }
 
         @Override
@@ -176,10 +201,12 @@ public abstract class Type {
 
     public static class SumType extends Type {
 
-        private final Symbol symbol;
+        private final SourceRange sourceRange;
+        private final Symbol      symbol;
 
-        private SumType(Symbol symbol) {
+        private SumType(SourceRange sourceRange, Symbol symbol) {
             shouldBeUpperCase(symbol.getMemberName());
+            this.sourceRange = sourceRange;
             this.symbol = symbol;
         }
 
@@ -200,6 +227,10 @@ public abstract class Type {
             }
         }
 
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
         public Symbol getSymbol() {
             return symbol;
         }
@@ -207,6 +238,11 @@ public abstract class Type {
         @Override
         public int hashCode() {
             return Objects.hash(symbol);
+        }
+
+        @Override
+        public String prettyPrint() {
+            return symbol.getCanonicalName();
         }
 
         @Override
@@ -219,13 +255,18 @@ public abstract class Type {
             return type.unifyWith(this, scope);
         }
 
+        @Override
+        public SumType withSourceRange(SourceRange sourceRange) {
+            return new SumType(sourceRange, symbol);
+        }
+
         public SumType withSymbol(Symbol symbol) {
-            return new SumType(symbol);
+            return new SumType(sourceRange, symbol);
         }
 
         private void shouldBeUpperCase(String name) {
             if (!isUpperCase(name.charAt(0))) {
-                throw new IllegalArgumentException("Union type should have upper-case name: got '" + name + "'");
+                throw new IllegalArgumentException("Sum type should have upper-case name: got '" + name + "'");
             }
         }
 
@@ -256,12 +297,14 @@ public abstract class Type {
 
     public static class VariableType extends Type {
 
-        private final String name;
+        private final SourceRange sourceRange;
+        private final String      name;
 
-        private VariableType(String name) {
+        private VariableType(SourceRange sourceRange, String name) {
             if (!isLowerCase(name.charAt(0))) {
                 throw new IllegalArgumentException("Variable type should have lower-case name: got '" + name + "'");
             }
+            this.sourceRange = sourceRange;
             this.name = name;
         }
 
@@ -288,6 +331,11 @@ public abstract class Type {
         }
 
         @Override
+        public String prettyPrint() {
+            return name;
+        }
+
+        @Override
         public String toString() {
             return stringify(this) + "(" + name + ")";
         }
@@ -295,6 +343,11 @@ public abstract class Type {
         @Override
         public Unification unify(Type type, TypeScope scope) {
             return type.unifyWith(this, scope);
+        }
+
+        @Override
+        public VariableType withSourceRange(SourceRange sourceRange) {
+            return new VariableType(sourceRange, name);
         }
 
         private Unification bind(Type target, TypeScope typeScope) {

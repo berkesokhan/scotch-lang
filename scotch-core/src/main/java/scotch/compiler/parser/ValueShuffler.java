@@ -1,6 +1,7 @@
 package scotch.compiler.parser;
 
 import static java.util.Arrays.asList;
+import static scotch.compiler.syntax.SyntaxError.parseError;
 import static scotch.compiler.syntax.Value.apply;
 import static scotch.compiler.syntax.Value.message;
 import static scotch.lang.Either.left;
@@ -10,17 +11,18 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.function.Function;
-import scotch.compiler.ParseException;
 import scotch.compiler.syntax.Operator;
 import scotch.compiler.syntax.PatternMatch;
 import scotch.compiler.syntax.PatternMatch.CaptureMatch;
 import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
+import scotch.compiler.syntax.SyntaxError;
 import scotch.compiler.syntax.Type;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Identifier;
 import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.syntax.Value.ValueVisitor;
 import scotch.lang.Either;
+import scotch.lang.Either.EitherVisitor;
 
 public class ValueShuffler {
 
@@ -32,11 +34,15 @@ public class ValueShuffler {
         this.parser = parser;
     }
 
-    public Value shuffle(List<Value> message) {
+    public Either<SyntaxError, Value> shuffle(List<Value> message) {
         if (message.size() == 1) {
-            return message(asList(parser.apply(message.get(0))));
+            return right(message(asList(parser.apply(message.get(0)))));
         } else {
-            return parser.apply(shuffleMessage_(message));
+            try {
+                return right(parser.apply(shuffleMessage(message)));
+            } catch (ShuffleException exception) {
+                return left(exception.syntaxError);
+            }
         }
     }
 
@@ -56,9 +62,11 @@ public class ValueShuffler {
         return value.accept(new ValueVisitor<OperatorPair<Identifier>>() {
             @Override
             public OperatorPair<Identifier> visit(Identifier identifier) {
-                Operator operator = scope.qualify(identifier.getSymbol()).map(scope::getOperator).get(); // TODO
+                Operator operator = scope.qualify(identifier.getSymbol())
+                    .map(scope::getOperator)
+                    .orElseThrow(() -> new ShuffleException(parseError("Symbol is not an operator: " + identifier.getSymbol(), identifier.getSourceRange())));
                 if (expectsPrefix && !operator.isPrefix()) {
-                    throw new ParseException("Unexpected binary operator " + identifier.getSymbol());
+                    throw new ShuffleException(parseError("Unexpected binary operator " + identifier.getSymbol(), identifier.getSourceRange()));
                 }
                 return new OperatorPair<>(operator, identifier);
             }
@@ -116,7 +124,7 @@ public class ValueShuffler {
         return stack.pop();
     }
 
-    private Value shuffleMessage_(List<Value> message) {
+    private Value shuffleMessage(List<Value> message) {
         Deque<Value> input = new ArrayDeque<>(message);
         Deque<Either<OperatorPair<Identifier>, Value>> output = new ArrayDeque<>();
         Deque<OperatorPair<Identifier>> stack = new ArrayDeque<>();
@@ -124,7 +132,7 @@ public class ValueShuffler {
         while (!input.isEmpty()) {
             if (isOperator(input.peek())) {
                 OperatorPair<Identifier> o1 = getOperator(input.poll(), expectsPrefix);
-                while (ParseUtil.nextOperatorHasGreaterPrecedence(o1, stack)) {
+                while (!stack.isEmpty() && o1.isLessPrecedentThan(stack.peek())) {
                     output.push(left(stack.pop()));
                 }
                 stack.push(o1);
@@ -150,7 +158,17 @@ public class ValueShuffler {
         return input.poll().accept(new ValueVisitor<Value>() {
             @Override
             public Value visit(Message message) {
-                return shuffle(message.getMembers());
+                return shuffle(message.getMembers()).accept(new EitherVisitor<SyntaxError, Value, Value>() {
+                    @Override
+                    public Value visitLeft(SyntaxError left) {
+                        throw new ShuffleException(left);
+                    }
+
+                    @Override
+                    public Value visitRight(Value right) {
+                        return right;
+                    }
+                });
             }
 
             @Override
@@ -158,5 +176,15 @@ public class ValueShuffler {
                 return value;
             }
         });
+    }
+
+    private static final class ShuffleException extends RuntimeException {
+
+        private final SyntaxError syntaxError;
+
+        private ShuffleException(SyntaxError syntaxError) {
+            super(syntaxError.prettyPrint());
+            this.syntaxError = syntaxError;
+        }
     }
 }

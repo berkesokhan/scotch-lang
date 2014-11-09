@@ -13,12 +13,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.syntax.Definition;
 import scotch.compiler.syntax.Definition.DefinitionVisitor;
 import scotch.compiler.syntax.Definition.OperatorDefinition;
+import scotch.compiler.syntax.Definition.ValueDefinition;
 import scotch.compiler.syntax.DefinitionEntry;
 import scotch.compiler.syntax.DefinitionEntry.DefinitionEntryVisitor;
+import scotch.compiler.syntax.DefinitionEntry.ScopedEntry;
 import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.Import;
 import scotch.compiler.syntax.Operator;
@@ -27,6 +30,7 @@ import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.Symbol;
 import scotch.compiler.syntax.SymbolResolver;
 import scotch.compiler.syntax.Type;
+import scotch.compiler.syntax.Value.ValueVisitor;
 
 public class ScopeBuilder {
 
@@ -135,9 +139,19 @@ public class ScopeBuilder {
         return symbol.qualifyWith(currentModule);
     }
 
-    public void replace(DefinitionReference reference, DefinitionEntryVisitor<Definition> visitor) {
+    public void replaceDefinitionValue(DefinitionReference reference, Function<ValueDefinition, ValueVisitor<ValueDefinition>> function) {
         DefinitionEntry entry = getDefinition(reference);
-        definitions.put(reference, entry.withDefinition(entry.accept(visitor)));
+        definitions.put(reference, entry.withDefinition(entry.accept(new DefinitionEntryVisitor<Definition>() {
+            @Override
+            public Definition visit(ScopedEntry entry) {
+                return entry.getDefinition().accept(new DefinitionVisitor<Definition>() {
+                    @Override
+                    public Definition visit(ValueDefinition definition) {
+                        return definition.getBody().accept(function.apply(definition));
+                    }
+                });
+            }
+        })));
     }
 
     public Type reserveType() {

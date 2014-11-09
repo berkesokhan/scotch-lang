@@ -32,6 +32,8 @@ public abstract class Unification {
 
     public abstract boolean isUnified();
 
+    public abstract String prettyPrint();
+
     @Override
     public abstract String toString();
 
@@ -104,6 +106,12 @@ public abstract class Unification {
         }
 
         @Override
+        public String prettyPrint() {
+            return "Circular type reference: type " + reference.prettyPrint()
+                + " is referenced by target type " + expected.prettyPrint();
+        }
+
+        @Override
         public String toString() {
             return "CircularReference(expected=" + expected + ", reference=" + reference + ")";
         }
@@ -153,6 +161,11 @@ public abstract class Unification {
         }
 
         @Override
+        public String prettyPrint() {
+            return "Type mismatch: expected type " + expected.prettyPrint() + " but got " + actual.prettyPrint();
+        }
+
+        @Override
         public String toString() {
             return "TypeMismatch(expected=" + expected + ", actual=" + actual + ")";
         }
@@ -193,6 +206,11 @@ public abstract class Unification {
         @Override
         public boolean isUnified() {
             return true;
+        }
+
+        @Override
+        public String prettyPrint() {
+            return "Successful unification to target type: " + unifiedType.prettyPrint();
         }
 
         @Override

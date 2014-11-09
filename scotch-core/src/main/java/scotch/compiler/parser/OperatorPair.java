@@ -2,12 +2,12 @@ package scotch.compiler.parser;
 
 import scotch.compiler.syntax.Operator;
 
-public class OperatorPair<T> {
+class OperatorPair<T> {
 
     private final Operator operator;
     private final T        value;
 
-    OperatorPair(Operator operator, T value) {
+    public OperatorPair(Operator operator, T value) {
         this.operator = operator;
         this.value = value;
     }
@@ -16,12 +16,9 @@ public class OperatorPair<T> {
         return value;
     }
 
-    public boolean hasLessPrecedenceThan(OperatorPair other) {
-        return operator.hasLessPrecedenceThan(other.operator);
-    }
-
-    public boolean hasSamePrecedenceAs(OperatorPair other) {
-        return operator.hasSamePrecedenceAs(other.operator);
+    public boolean isLessPrecedentThan(OperatorPair<T> other) {
+        return isLeftAssociative() && operator.hasSamePrecedenceAs(other.operator)
+            || operator.hasLessPrecedenceThan(other.operator);
     }
 
     public boolean isLeftAssociative() {

@@ -2,6 +2,7 @@ package scotch.compiler.syntax;
 
 import static scotch.compiler.util.TextUtil.normalizeQualified;
 import static scotch.compiler.util.TextUtil.splitQualified;
+import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.Objects;
 import scotch.compiler.util.TextUtil;
@@ -33,6 +34,8 @@ public abstract class Symbol {
     @Override
     public abstract boolean equals(Object o);
 
+    public abstract String getCanonicalName();
+
     public abstract String getMemberName();
 
     @Override
@@ -41,11 +44,13 @@ public abstract class Symbol {
     public abstract Symbol qualifyWith(String moduleName);
 
     public String quote() {
-        return TextUtil.quote(toString());
+        return TextUtil.quote(getCanonicalName());
     }
 
     @Override
-    public abstract String toString();
+    public String toString() {
+        return stringify(this) + "(" + getCanonicalName() + ")";
+    }
 
     public interface SymbolVisitor<T> {
 
@@ -83,6 +88,11 @@ public abstract class Symbol {
         }
 
         @Override
+        public String getCanonicalName() {
+            return normalizeQualified(moduleName, memberName);
+        }
+
+        @Override
         public String getMemberName() {
             return memberName;
         }
@@ -99,11 +109,6 @@ public abstract class Symbol {
         @Override
         public Symbol qualifyWith(String moduleName) {
             return qualified(moduleName, memberName);
-        }
-
-        @Override
-        public String toString() {
-            return normalizeQualified(moduleName, memberName);
         }
     }
 
@@ -126,6 +131,11 @@ public abstract class Symbol {
         }
 
         @Override
+        public String getCanonicalName() {
+            return memberName;
+        }
+
+        @Override
         public String getMemberName() {
             return memberName;
         }
@@ -138,11 +148,6 @@ public abstract class Symbol {
         @Override
         public Symbol qualifyWith(String moduleName) {
             return qualified(moduleName, memberName);
-        }
-
-        @Override
-        public String toString() {
-            return memberName;
         }
     }
 }

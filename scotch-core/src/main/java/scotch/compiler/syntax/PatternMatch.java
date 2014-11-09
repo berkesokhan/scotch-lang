@@ -29,6 +29,8 @@ public abstract class PatternMatch implements SourceAware<PatternMatch> {
     @Override
     public abstract boolean equals(Object o);
 
+    public abstract SourceRange getSourceRange();
+
     public abstract Type getType();
 
     @Override
@@ -82,6 +84,11 @@ public abstract class PatternMatch implements SourceAware<PatternMatch> {
             }
         }
 
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
         public Symbol getSymbol() {
             return symbol;
         }
@@ -125,6 +132,11 @@ public abstract class PatternMatch implements SourceAware<PatternMatch> {
         @Override
         public boolean equals(Object o) {
             return o == this || o instanceof EqualMatch && Objects.equals(value, ((EqualMatch) o).value);
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
         }
 
         @Override
