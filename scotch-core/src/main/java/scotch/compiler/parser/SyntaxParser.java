@@ -1,14 +1,26 @@
 package scotch.compiler.parser;
 
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.syntax.Definition.value;
+import static scotch.compiler.syntax.DefinitionEntry.patternEntry;
+import static scotch.compiler.syntax.DefinitionEntry.scopedEntry;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
+import static scotch.compiler.syntax.DefinitionReference.valueRef;
+import static scotch.compiler.syntax.Scope.scope;
 import static scotch.compiler.syntax.SyntaxError.symbolNotFound;
-import static scotch.compiler.syntax.Value.message;
+import static scotch.compiler.syntax.Value.patterns;
+import static scotch.data.tuple.TupleValues.tuple2;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import com.google.common.collect.ImmutableList;
+import scotch.compiler.parser.PatternShuffler.ResultVisitor;
 import scotch.compiler.syntax.Definition;
 import scotch.compiler.syntax.Definition.DefinitionVisitor;
 import scotch.compiler.syntax.Definition.ModuleDefinition;
@@ -19,6 +31,7 @@ import scotch.compiler.syntax.Definition.ValueDefinition;
 import scotch.compiler.syntax.Definition.ValueSignature;
 import scotch.compiler.syntax.DefinitionEntry;
 import scotch.compiler.syntax.DefinitionEntry.DefinitionEntryVisitor;
+import scotch.compiler.syntax.DefinitionEntry.ScopedEntry;
 import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.DefinitionReference.DefinitionReferenceVisitor;
 import scotch.compiler.syntax.DefinitionReference.ModuleReference;
@@ -28,6 +41,8 @@ import scotch.compiler.syntax.PatternMatch.CaptureMatch;
 import scotch.compiler.syntax.PatternMatch.EqualMatch;
 import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
 import scotch.compiler.syntax.PatternMatcher;
+import scotch.compiler.syntax.Scope;
+import scotch.compiler.syntax.Symbol;
 import scotch.compiler.syntax.SymbolResolver;
 import scotch.compiler.syntax.SymbolTable;
 import scotch.compiler.syntax.SyntaxError;
@@ -35,6 +50,7 @@ import scotch.compiler.syntax.Type;
 import scotch.compiler.syntax.Type.FunctionType;
 import scotch.compiler.syntax.Type.SumType;
 import scotch.compiler.syntax.Type.TypeVisitor;
+import scotch.compiler.syntax.TypeGenerator;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
 import scotch.compiler.syntax.Value.Identifier;
@@ -42,6 +58,7 @@ import scotch.compiler.syntax.Value.LiteralValue;
 import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.syntax.Value.PatternMatchers;
 import scotch.compiler.syntax.Value.ValueVisitor;
+import scotch.data.tuple.Tuple2;
 import scotch.lang.Either.EitherVisitor;
 
 public class SyntaxParser implements
@@ -52,25 +69,30 @@ public class SyntaxParser implements
     PatternMatchVisitor<PatternMatch>,
     TypeVisitor<Type> {
 
-    private final SymbolTable       symbols;
-    private final ScopeBuilder      scope;
-    private final PatternShuffler   patternShuffler;
-    private final ValueShuffler     valueShuffler;
-    private final List<SyntaxError> errors;
+    private final SymbolTable                               symbols;
+    private final PatternShuffler                           patternShuffler;
+    private final ValueShuffler                             valueShuffler;
+    private final List<SyntaxError>                         errors;
+    private final TypeGenerator                             typeGenerator;
+    private final Map<DefinitionReference, DefinitionEntry> definitions;
+    private       Scope                                     scope;
+    private       String                                    currentModule;
 
     public SyntaxParser(SymbolTable symbols, SymbolResolver resolver) {
         this.symbols = symbols;
-        this.scope = new ScopeBuilder(symbols.getSequence(), resolver);
-        this.patternShuffler = new PatternShuffler(scope, this::visitMatcher);
-        this.valueShuffler = new ValueShuffler(scope, value -> value.accept(this));
+        this.patternShuffler = new PatternShuffler();
+        this.valueShuffler = new ValueShuffler(value -> value.accept(this));
         this.errors = new ArrayList<>();
+        this.typeGenerator = symbols.getTypeGenerator();
+        this.scope = scope(typeGenerator, resolver);
+        this.definitions = new HashMap<>();
     }
 
     public SymbolTable analyze() {
         symbols.getDefinition(rootRef()).accept(this);
         return symbols
-            .copyWith(scope.getDefinitions())
-            .withSequence(scope.getSequence())
+            .copyWith(ImmutableList.copyOf(definitions.values()))
+            .withSequence(typeGenerator)
             .withErrors(errors)
             .build();
     }
@@ -85,13 +107,13 @@ public class SyntaxParser implements
 
     @Override
     public Optional<DefinitionReference> visit(ModuleReference reference) {
-        scope.setCurrentModule(reference.getName());
+        currentModule = reference.getName();
         return parseDefinition(reference);
     }
 
     @Override
     public Optional<Definition> visit(OperatorDefinition definition) {
-        scope.defineOperator(definition.getSymbol(), definition);
+        scope.defineOperator(definition.getSymbol(), definition.getOperator());
         return Optional.of(collect(definition));
     }
 
@@ -102,9 +124,27 @@ public class SyntaxParser implements
 
     @Override
     public Optional<Definition> visit(UnshuffledPattern pattern) {
-        return patternShuffler.shuffle(pattern).into((optionalDefinition, shuffleErrors) -> {
-            errors.addAll(shuffleErrors);
-            return optionalDefinition;
+        return patternShuffler.shuffle(scope, pattern).accept(new ResultVisitor<Optional<Definition>>() {
+            @Override
+            public Optional<Definition> error(SyntaxError error) {
+                errors.add(error);
+                return Optional.empty();
+            }
+
+            @Override
+            public Optional<Definition> success(Symbol symbol, List<PatternMatch> matches) {
+                return appendPattern(symbol, reference -> replaceDefinitionValue(reference, definition -> new ValueVisitor<ValueDefinition>() {
+                    @Override
+                    public ValueDefinition visit(PatternMatchers matchers) {
+                        return definition
+                            .withSourceRange(matchers.getSourceRange().extend(pattern.getSourceRange()))
+                            .withBody(matchers.withMatchers(ImmutableList.<PatternMatcher>builder()
+                                .addAll(matchers.getMatchers())
+                                .add(visitMatcher(pattern.asPatternMatcher(matches)))
+                                .build()));
+                    }
+                }));
+            }
         });
     }
 
@@ -153,7 +193,18 @@ public class SyntaxParser implements
 
     @Override
     public Value visit(Message message) {
-        return shuffleMessage(message.getMembers());
+        return valueShuffler.shuffle(scope, message.getMembers()).accept(new EitherVisitor<SyntaxError, Value, Value>() {
+            @Override
+            public Value visitLeft(SyntaxError left) {
+                errors.add(left);
+                return message;
+            }
+
+            @Override
+            public Value visitRight(Value right) {
+                return right;
+            }
+        });
     }
 
     @Override
@@ -187,12 +238,31 @@ public class SyntaxParser implements
         return parseDefinition(reference);
     }
 
+    private Optional<Definition> appendPattern(Symbol symbol, Consumer<DefinitionReference> consumer) {
+        return (scope.isPattern(symbol) ? retrievePattern(symbol) : createPattern(symbol)).into(
+            (optionalDefinition, reference) -> {
+                consumer.accept(reference);
+                return optionalDefinition;
+            }
+        );
+    }
+
     private Definition collect(Definition definition) {
-        return scope.collect(definition);
+        definitions.put(definition.getReference(), scopedEntry(definition, scope));
+        return definition;
     }
 
     private PatternMatcher collect(PatternMatcher pattern) {
-        return scope.collect(pattern);
+        definitions.put(pattern.getReference(), patternEntry(pattern, scope));
+        return pattern;
+    }
+
+    private Tuple2<Optional<Definition>, DefinitionReference> createPattern(Symbol symbol) {
+        Type type = tryGetType(symbol);
+        Definition definition = collect(value(symbol, type, patterns(scope.reserveType())));
+        scope.defineValue(symbol, type);
+        scope.addPattern(symbol);
+        return tuple2(Optional.of(definition), definition.getReference());
     }
 
     private List<DefinitionReference> mapDefinitions(List<DefinitionReference> definitions) {
@@ -207,37 +277,39 @@ public class SyntaxParser implements
         return symbols.getDefinition(reference).accept(this).map(Definition::getReference);
     }
 
-    private <T> T scoped(List<Import> imports, Supplier<T> supplier) {
-        scope.enterScope(imports);
+    private void replaceDefinitionValue(DefinitionReference reference, Function<ValueDefinition, ValueVisitor<ValueDefinition>> function) {
+        ScopedEntry entry = (ScopedEntry) definitions.get(reference);
+        definitions.put(reference, entry.withDefinition(entry.getDefinition().accept(new DefinitionVisitor<Definition>() {
+            @Override
+            public Definition visit(ValueDefinition definition) {
+                return definition.getBody().accept(function.apply(definition));
+            }
+        })));
+    }
+
+    private Tuple2<Optional<Definition>, DefinitionReference> retrievePattern(Symbol symbol) {
+        return tuple2(Optional.empty(), valueRef(symbol));
+    }
+
+    private <T> T scoped(Optional<List<Import>> imports, Supplier<T> supplier) {
+        scope = imports.map(i -> scope.enterScope(currentModule, i)).orElseGet(scope::enterScope);
         try {
             return supplier.get();
         } finally {
-            scope.leaveScope();
+            scope = scope.leaveScope();
         }
+    }
+
+    private <T> T scoped(List<Import> imports, Supplier<T> supplier) {
+        return scoped(Optional.of(imports), supplier);
     }
 
     private <T> T scoped(Supplier<T> supplier) {
-        scope.enterScope();
-        try {
-            return supplier.get();
-        } finally {
-            scope.leaveScope();
-        }
+        return scoped(Optional.empty(), supplier);
     }
 
-    private Value shuffleMessage(List<Value> message) {
-        return valueShuffler.shuffle(message).accept(new EitherVisitor<SyntaxError, Value, Value>() {
-            @Override
-            public Value visitLeft(SyntaxError left) {
-                errors.add(left);
-                return message(message);
-            }
-
-            @Override
-            public Value visitRight(Value right) {
-                return right;
-            }
-        });
+    private Type tryGetType(Symbol symbol) {
+        return scope.getSignature(symbol).orElseGet(scope::reserveType);
     }
 
     private Value unwrap(Value value) {

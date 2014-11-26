@@ -3,35 +3,40 @@ package scotch.compiler.syntax;
 import static scotch.compiler.syntax.Symbol.qualified;
 import static scotch.compiler.util.TextUtil.stringify;
 
+import java.util.List;
 import java.util.Objects;
 
 public abstract class DefinitionReference {
 
-    public static DefinitionReference classRef(String moduleName, String name) {
+    public static ClassReference classRef(String moduleName, String name) {
         return classRef(qualified(moduleName, name));
     }
 
-    public static DefinitionReference classRef(Symbol symbol) {
+    public static ClassReference classRef(Symbol symbol) {
         return new ClassReference(symbol);
     }
 
-    public static DefinitionReference moduleRef(String name) {
+    public static InstanceReference instanceRef(ClassReference classReference, ModuleReference moduleReference, List<Type> types) {
+        return new InstanceReference(classReference, moduleReference, types);
+    }
+
+    public static ModuleReference moduleRef(String name) {
         return new ModuleReference(name);
     }
 
-    public static DefinitionReference operatorRef(String moduleName, String name) {
+    public static OperatorReference operatorRef(String moduleName, String name) {
         return operatorRef(qualified(moduleName, name));
     }
 
-    public static DefinitionReference operatorRef(Symbol symbol) {
+    public static OperatorReference operatorRef(Symbol symbol) {
         return new OperatorReference(symbol);
     }
 
-    public static DefinitionReference patternRef(String moduleName, String name) {
+    public static PatternReference patternRef(String moduleName, String name) {
         return patternRef(qualified(moduleName, name));
     }
 
-    public static DefinitionReference patternRef(Symbol symbol) {
+    public static PatternReference patternRef(Symbol symbol) {
         return new PatternReference(symbol);
     }
 
@@ -39,11 +44,11 @@ public abstract class DefinitionReference {
         return rootRef;
     }
 
-    public static DefinitionReference signatureRef(String moduleName, String name) {
+    public static SignatureReference signatureRef(String moduleName, String name) {
         return signatureRef(qualified(moduleName, name));
     }
 
-    public static DefinitionReference signatureRef(Symbol symbol) {
+    public static SignatureReference signatureRef(Symbol symbol) {
         return new SignatureReference(symbol);
     }
 
@@ -51,7 +56,7 @@ public abstract class DefinitionReference {
         return valueRef(qualified(moduleName, name));
     }
 
-    public static DefinitionReference valueRef(Symbol symbol) {
+    public static ValueReference valueRef(Symbol symbol) {
         return new ValueReference(symbol);
     }
 
@@ -75,6 +80,10 @@ public abstract class DefinitionReference {
     public interface DefinitionReferenceVisitor<T> {
 
         default T visit(ClassReference reference) {
+            return visitOtherwise(reference);
+        }
+
+        default T visit(InstanceReference reference) {
             return visitOtherwise(reference);
         }
 
@@ -133,6 +142,48 @@ public abstract class DefinitionReference {
         @Override
         public String toString() {
             return stringify(this) + "(" + symbol + ")";
+        }
+    }
+
+    public static class InstanceReference extends DefinitionReference {
+
+        private final ClassReference  classReference;
+        private final ModuleReference moduleReference;
+        private final List<Type> types;
+
+        public InstanceReference(ClassReference classReference, ModuleReference moduleReference, List<Type> types) {
+            this.classReference = classReference;
+            this.moduleReference = moduleReference;
+            this.types = types;
+        }
+
+        @Override
+        public <T> T accept(DefinitionReferenceVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof DefinitionReference) {
+                InstanceReference other = (InstanceReference) o;
+                return Objects.equals(classReference, other.classReference)
+                    && Objects.equals(moduleReference, other.moduleReference)
+                    && Objects.equals(types, other.types);
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(classReference, moduleReference, types);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(classReference=" + classReference + ", moduleReference=" + moduleReference + ", types=" + types + ")";
         }
     }
 

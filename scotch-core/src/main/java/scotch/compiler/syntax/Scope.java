@@ -1,10 +1,12 @@
 package scotch.compiler.syntax;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.syntax.Symbol.QualifiedSymbol;
 import scotch.compiler.syntax.Symbol.SymbolVisitor;
@@ -13,8 +15,8 @@ import scotch.compiler.syntax.Type.VariableType;
 
 public abstract class Scope implements TypeScope {
 
-    public static Scope scope(SymbolResolver resolver) {
-        return new RootScope(resolver);
+    public static Scope scope(TypeGenerator typeGenerator, SymbolResolver resolver) {
+        return new RootScope(typeGenerator, resolver);
     }
 
     public static Scope scope(Scope parent, SymbolResolver resolver, String moduleName, List<Import> imports) {
@@ -33,6 +35,8 @@ public abstract class Scope implements TypeScope {
         // intentionally empty
     }
 
+    public abstract void addPattern(Symbol symbol);
+
     public abstract void defineOperator(Symbol symbol, Operator operator);
 
     public abstract void defineSignature(Symbol symbol, Type type);
@@ -43,6 +47,11 @@ public abstract class Scope implements TypeScope {
 
     public abstract Scope enterScope(String moduleName, List<Import> imports);
 
+    @Override
+    public Set<Symbol> getContext(Type type) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
     public abstract Operator getOperator(Symbol symbol);
 
     public abstract Optional<Type> getSignature(Symbol symbol);
@@ -51,33 +60,55 @@ public abstract class Scope implements TypeScope {
 
     public abstract boolean isDefined(Symbol symbol);
 
-    public abstract boolean isOperator(Symbol symbol);
+    public boolean isOperator(Symbol symbol) {
+        return qualify(symbol).map(this::isOperator_).orElse(false);
+    }
+
+    public abstract boolean isPattern(Symbol symbol);
 
     public abstract Scope leaveScope();
 
     public abstract Optional<Symbol> qualify(Symbol symbol);
 
+    public abstract Symbol qualifyCurrent(Symbol symbol);
+
     public abstract void redefineValue(Symbol symbol, Type type);
+
+    public abstract Type reserveType();
 
     protected abstract Optional<SymbolEntry> getEntry(Symbol symbol);
 
     protected abstract boolean isDefinedLocally(Symbol symbol);
 
+    protected abstract boolean isOperator_(Symbol symbol);
+
     public static class ChildScope extends Scope {
 
         private final Scope                    parent;
-        private final Map<Symbol, SymbolEntry> entries;
         private final TypeScope                types;
+        private final Map<Symbol, SymbolEntry> entries;
+        private final Set<Symbol>              patterns;
 
         private ChildScope(Scope parent, TypeScope types) {
             this.parent = parent;
-            this.entries = new HashMap<>();
             this.types = types;
+            this.entries = new HashMap<>();
+            this.patterns = new HashSet<>();
+        }
+
+        @Override
+        public void addPattern(Symbol symbol) {
+            patterns.add(symbol);
         }
 
         @Override
         public void bind(VariableType variableType, Type target) {
             types.bind(variableType, target);
+        }
+
+        @Override
+        public void extendContext(Type type, Set<Symbol> additionalContext) {
+            types.extendContext(type, additionalContext);
         }
 
         @Override
@@ -107,6 +138,11 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public Type generate(Type type) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        public Set<Symbol> getContext(Type type) {
             throw new UnsupportedOperationException(); // TODO
         }
 
@@ -151,8 +187,13 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public boolean isOperator(Symbol symbol) {
-            return parent.isOperator(symbol);
+        public boolean isOperator_(Symbol symbol) {
+            return parent.isOperator_(symbol);
+        }
+
+        @Override
+        public boolean isPattern(Symbol symbol) {
+            return patterns.contains(symbol);
         }
 
         @Override
@@ -180,6 +221,11 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public Symbol qualifyCurrent(Symbol symbol) {
+            return parent.qualifyCurrent(symbol);
+        }
+
+        @Override
         public void redefineValue(Symbol symbol, Type type) {
             Optional<SymbolEntry> optionalEntry = getEntry(symbol);
             if (optionalEntry.isPresent()) {
@@ -187,6 +233,11 @@ public abstract class Scope implements TypeScope {
             } else {
                 throw symbolNotFound(symbol);
             }
+        }
+
+        @Override
+        public Type reserveType() {
+            return parent.reserveType();
         }
 
         private SymbolEntry define(Symbol symbol) {
@@ -225,20 +276,27 @@ public abstract class Scope implements TypeScope {
 
     public static class ModuleScope extends Scope {
 
+        private final Scope                    parent;
+        private final TypeScope                types;
         private final SymbolResolver           resolver;
         private final String                   moduleName;
         private final List<Import>             imports;
-        private final Scope                    parent;
         private final Map<Symbol, SymbolEntry> entries;
-        private final TypeScope                types;
+        private final Set<Symbol>              patterns;
 
         private ModuleScope(Scope parent, TypeScope types, SymbolResolver resolver, String moduleName, List<Import> imports) {
+            this.parent = parent;
+            this.types = types;
             this.resolver = resolver;
             this.moduleName = moduleName;
             this.imports = ImmutableList.copyOf(imports);
-            this.parent = parent;
             this.entries = new HashMap<>();
-            this.types = types;
+            this.patterns = new HashSet<>();
+        }
+
+        @Override
+        public void addPattern(Symbol symbol) {
+            patterns.add(symbol);
         }
 
         @Override
@@ -272,8 +330,18 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public void extendContext(Type type, Set<Symbol> additionalContext) {
+            types.extendContext(type, additionalContext);
+        }
+
+        @Override
         public Type generate(Type type) {
             return types.generate(type);
+        }
+
+        @Override
+        public Set<Symbol> getContext(Type type) {
+            throw new UnsupportedOperationException(); // TODO
         }
 
         @Override
@@ -309,8 +377,13 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public boolean isOperator(Symbol symbol) {
+        public boolean isOperator_(Symbol symbol) {
             return getEntry(symbol).map(SymbolEntry::isOperator).orElse(false);
+        }
+
+        @Override
+        public boolean isPattern(Symbol symbol) {
+            return patterns.contains(symbol);
         }
 
         @Override
@@ -350,6 +423,11 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public Symbol qualifyCurrent(Symbol symbol) {
+            return symbol.qualifyWith(moduleName);
+        }
+
+        @Override
         public void redefineValue(Symbol symbol, Type type) {
             Optional<SymbolEntry> optionalEntry = getEntry(symbol);
             if (optionalEntry.isPresent()) {
@@ -357,6 +435,11 @@ public abstract class Scope implements TypeScope {
             } else {
                 throw symbolNotFound(symbol);
             }
+        }
+
+        @Override
+        public Type reserveType() {
+            return parent.reserveType();
         }
 
         private SymbolEntry define(Symbol symbol) {
@@ -405,12 +488,19 @@ public abstract class Scope implements TypeScope {
 
     public static class RootScope extends Scope {
 
+        private final TypeGenerator      typeGenerator;
         private final SymbolResolver     resolver;
         private final Map<String, Scope> children;
 
-        private RootScope(SymbolResolver resolver) {
+        private RootScope(TypeGenerator typeGenerator, SymbolResolver resolver) {
+            this.typeGenerator = typeGenerator;
             this.resolver = new RootResolver(resolver);
             this.children = new HashMap<>();
+        }
+
+        @Override
+        public void addPattern(Symbol symbol) {
+            throw new IllegalStateException();
         }
 
         @Override
@@ -446,8 +536,18 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public void extendContext(Type type, Set<Symbol> additionalContext) {
+            throw new IllegalStateException();
+        }
+
+        @Override
         public Type generate(Type type) {
             throw new IllegalStateException();
+        }
+
+        @Override
+        public Set<Symbol> getContext(Type type) {
+            throw new UnsupportedOperationException(); // TODO
         }
 
         @Override
@@ -481,11 +581,11 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public boolean isOperator(Symbol symbol) {
+        public boolean isOperator_(Symbol symbol) {
             return symbol.accept(new SymbolVisitor<Boolean>() {
                 @Override
                 public Boolean visit(QualifiedSymbol symbol) {
-                    return children.containsKey(symbol.getModuleName()) && children.get(symbol.getModuleName()).isOperator(symbol);
+                    return children.containsKey(symbol.getModuleName()) && children.get(symbol.getModuleName()).isOperator_(symbol);
                 }
 
                 @Override
@@ -493,6 +593,11 @@ public abstract class Scope implements TypeScope {
                     return false;
                 }
             });
+        }
+
+        @Override
+        public boolean isPattern(Symbol symbol) {
+            return false;
         }
 
         @Override
@@ -520,8 +625,18 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public Symbol qualifyCurrent(Symbol symbol) {
+            throw new IllegalStateException();
+        }
+
+        @Override
         public void redefineValue(Symbol symbol, Type type) {
             throw new IllegalStateException();
+        }
+
+        @Override
+        public Type reserveType() {
+            return typeGenerator.reserveType();
         }
 
         @Override

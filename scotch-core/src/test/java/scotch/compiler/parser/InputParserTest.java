@@ -201,6 +201,36 @@ public class InputParserTest {
         );
     }
 
+    @Test
+    public void shouldParseTypeConstraintInSignature() {
+        SymbolTable symbols = parseInput(
+            "module scotch.test",
+            "fn :: (Eq a) => a -> a -> Bool"
+        );
+        assertThat(symbols.getValue(signatureRef("scotch.test", "fn")),
+            is(fn(var("a", asList("Eq")), fn(var("a", asList("Eq")), sum("Bool")))));
+    }
+
+    @Test
+    public void shouldParseMultipleConstraintsOnSameVariable() {
+        SymbolTable symbols = parseInput(
+            "module scotch.test",
+            "fn :: (Eq a, Show a) => a -> a -> Bool"
+        );
+        assertThat(symbols.getValue(signatureRef("scotch.test", "fn")),
+            is(fn(var("a", asList("Eq", "Show")), fn(var("a", asList("Eq", "Show")), sum("Bool")))));
+    }
+
+    @Test
+    public void shouldParseCompoundConstraints() {
+        SymbolTable symbols = parseInput(
+            "module scotch.test",
+            "fn :: (Eq a, Show b) => a -> b -> Bool"
+        );
+        assertThat(symbols.getValue(signatureRef("scotch.test", "fn")),
+            is(fn(var("a", asList("Eq")), fn(var("b", asList("Show")), sum("Bool")))));
+    }
+
     private void expectParseException(String message) {
         exception.expect(ParseException.class);
         exception.expectMessage(containsString(message));

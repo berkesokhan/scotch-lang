@@ -9,13 +9,13 @@ import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 
-public abstract class Import implements SourceAware<Import> {
+public abstract class Import {
 
-    public static Import moduleImport(String moduleName) {
+    public static ModuleImport moduleImport(String moduleName) {
         return new ModuleImport(NULL_SOURCE, moduleName);
     }
 
-    public static Import inclusionImport(String moduleName, List<String> includes) {
+    public static InclusionImport inclusionImport(String moduleName, List<String> includes) {
         return new InclusionImport(NULL_SOURCE, moduleName, includes);
     }
 
@@ -85,8 +85,7 @@ public abstract class Import implements SourceAware<Import> {
             return stringify(this) + "(" + moduleName + ", " + includes + ")";
         }
 
-        @Override
-        public Import withSourceRange(SourceRange sourceRange) {
+        public InclusionImport withSourceRange(SourceRange sourceRange) {
             return new InclusionImport(sourceRange, moduleName, includes);
         }
     }
@@ -130,8 +129,7 @@ public abstract class Import implements SourceAware<Import> {
             return stringify(this) + "(" + moduleName + ")";
         }
 
-        @Override
-        public Import withSourceRange(SourceRange sourceRange) {
+        public ModuleImport withSourceRange(SourceRange sourceRange) {
             return new ModuleImport(sourceRange, moduleName);
         }
     }

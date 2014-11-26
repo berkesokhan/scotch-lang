@@ -2,22 +2,16 @@ package scotch.compiler.parser;
 
 import static scotch.compiler.syntax.DefinitionEntry.patternEntry;
 import static scotch.compiler.syntax.DefinitionEntry.scopedEntry;
-import static scotch.compiler.syntax.Scope.scope;
 import static scotch.compiler.syntax.Type.t;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.syntax.Definition;
 import scotch.compiler.syntax.Definition.DefinitionVisitor;
-import scotch.compiler.syntax.Definition.OperatorDefinition;
 import scotch.compiler.syntax.Definition.ValueDefinition;
 import scotch.compiler.syntax.DefinitionEntry;
 import scotch.compiler.syntax.DefinitionEntry.DefinitionEntryVisitor;
@@ -36,48 +30,31 @@ public class ScopeBuilder {
 
     private final Map<DefinitionReference, DefinitionEntry> definitions;
     private       String                                    currentModule;
-    private final Deque<Set<Symbol>>                        patterns;
     private       Scope                                     scope;
     private       int                                       sequence;
 
     public ScopeBuilder(int sequence, SymbolResolver resolver) {
         this.definitions = new HashMap<>();
-        this.patterns = new ArrayDeque<>();
-        this.scope = scope(resolver);
+        this.scope = null;
         this.sequence = sequence;
     }
 
     public void addPattern(Symbol symbol) {
-        patterns.peek().add(symbol);
-    }
-
-    public Scope build() {
-        return scope;
+        scope.addPattern(symbol);
     }
 
     public PatternMatcher collect(PatternMatcher pattern) {
-        definitions.put(pattern.getReference(), patternEntry(pattern, build()));
+        definitions.put(pattern.getReference(), patternEntry(pattern, scope));
         return pattern;
     }
 
     public Definition collect(Definition definition) {
-        definitions.put(definition.getReference(), scopedEntry(definition, build()));
+        definitions.put(definition.getReference(), scopedEntry(definition, scope));
         return definition;
     }
 
-    public void defineOperator(Symbol symbol, Definition definition) {
-        definition.accept(new DefinitionVisitor<Void>() {
-            @Override
-            public Void visit(OperatorDefinition definition) {
-                scope.defineOperator(symbol, definition.getOperator());
-                return null;
-            }
-
-            @Override
-            public Void visitOtherwise(Definition definition) {
-                throw new UnsupportedOperationException("Can't define operator for " + definition.getClass().getSimpleName());
-            }
-        });
+    public void defineOperator(Symbol symbol, Operator operator) {
+        scope.defineOperator(symbol, operator);
     }
 
     public void defineSignature(Symbol symbol, Type type) {
@@ -89,12 +66,10 @@ public class ScopeBuilder {
     }
 
     public void enterScope() {
-        patterns.push(new HashSet<>());
         scope = scope.enterScope();
     }
 
     public void enterScope(List<Import> imports) {
-        patterns.push(new HashSet<>());
         scope = scope.enterScope(currentModule, imports);
     }
 
@@ -119,15 +94,14 @@ public class ScopeBuilder {
     }
 
     public boolean isOperator(Symbol symbol) {
-        return qualify(symbol).map(scope::isOperator).orElse(false);
+        return scope.isOperator(symbol);
     }
 
     public boolean isPattern(Symbol symbol) {
-        return patterns.peek().contains(symbol);
+        return scope.isPattern(symbol);
     }
 
     public void leaveScope() {
-        patterns.pop();
         scope = scope.leaveScope();
     }
 

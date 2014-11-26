@@ -1,11 +1,22 @@
 package scotch.compiler.syntax;
 
+import static java.lang.String.join;
+import static java.util.stream.Collectors.toList;
+import static scotch.compiler.util.TextUtil.stringify;
+
+import java.util.Collection;
 import java.util.Objects;
+import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 
 public abstract class Unification {
 
     public static Unification circular(Type expected, Type reference) {
         return new CircularReference(expected, reference);
+    }
+
+    public static Unification contextMismatch(Type expected, Type actual, Collection<Symbol> contextDifference) {
+        return new ContextMismatch(expected, actual, contextDifference);
     }
 
     public static Unification mismatch(Type expected, Type actual) {
@@ -47,6 +58,10 @@ public abstract class Unification {
 
         default T visit(CircularReference circularReference) {
             return visitOtherwise(circularReference);
+        }
+
+        default T visit(ContextMismatch contextMismatch) {
+            return visitOtherwise(contextMismatch);
         }
 
         default T visit(TypeMismatch typeMismatch) {
@@ -113,7 +128,66 @@ public abstract class Unification {
 
         @Override
         public String toString() {
-            return "CircularReference(expected=" + expected + ", reference=" + reference + ")";
+            return stringify(this) + "(expected=" + expected + ", reference=" + reference + ")";
+        }
+    }
+
+    public static class ContextMismatch extends Unification {
+
+        private final Type        expected;
+        private final Type        actual;
+        private final Set<Symbol> contextDifference;
+
+        public ContextMismatch(Type expected, Type actual, Collection<Symbol> contextDifference) {
+            this.expected = expected;
+            this.actual = actual;
+            this.contextDifference = ImmutableSet.copyOf(contextDifference);
+        }
+
+        @Override
+        public <T> T accept(UnificationVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public Unification andThen(Binding binding) {
+            return this;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof ContextMismatch) {
+                ContextMismatch other = (ContextMismatch) o;
+                return Objects.equals(expected, other.expected)
+                    && Objects.equals(actual, other.actual)
+                    && Objects.equals(contextDifference, other.contextDifference);
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(expected, actual, contextDifference);
+        }
+
+        @Override
+        public boolean isUnified() {
+            return false;
+        }
+
+        @Override
+        public String prettyPrint() {
+            return "Type mismatch: " + actual.prettyPrint()
+                + " does not implement entire context of " + expected.prettyPrint() + ":"
+                + " difference is [" + join(", ", contextDifference.stream().map(Symbol::getCanonicalName).collect(toList())) + "]";
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(expected=" + expected + ", actual=" + actual + ", contextDifference=" + contextDifference + ")";
         }
     }
 
@@ -167,7 +241,7 @@ public abstract class Unification {
 
         @Override
         public String toString() {
-            return "TypeMismatch(expected=" + expected + ", actual=" + actual + ")";
+            return stringify(this) + "(expected=" + expected + ", actual=" + actual + ")";
         }
     }
 
@@ -215,7 +289,7 @@ public abstract class Unification {
 
         @Override
         public String toString() {
-            return "Unified(" + unifiedType + ")";
+            return stringify(this) + "(" + unifiedType + ")";
         }
     }
 }

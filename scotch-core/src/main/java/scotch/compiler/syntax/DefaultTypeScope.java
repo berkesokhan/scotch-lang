@@ -1,9 +1,12 @@
 package scotch.compiler.syntax;
 
+import static java.util.Collections.emptySet;
 import static scotch.compiler.syntax.Type.fn;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import scotch.compiler.syntax.Type.FunctionType;
 import scotch.compiler.syntax.Type.SumType;
 import scotch.compiler.syntax.Type.TypeVisitor;
@@ -11,10 +14,12 @@ import scotch.compiler.syntax.Type.VariableType;
 
 public class DefaultTypeScope implements TypeScope {
 
-    private final Map<Type, Type> bindings;
+    private final Map<Type, Type>        bindings;
+    private final Map<Type, Set<Symbol>> contexts;
 
     public DefaultTypeScope() {
         this.bindings = new HashMap<>();
+        this.contexts = new HashMap<>();
     }
 
     @Override
@@ -25,6 +30,11 @@ public class DefaultTypeScope implements TypeScope {
         } else {
             bindings.put(variableType, targetType);
         }
+    }
+
+    @Override
+    public void extendContext(Type type, Set<Symbol> additionalContext) {
+        contexts.computeIfAbsent(type, k -> new LinkedHashSet<>()).addAll(additionalContext);
     }
 
     @Override
@@ -53,6 +63,22 @@ public class DefaultTypeScope implements TypeScope {
     }
 
     @Override
+    public Set<Symbol> getContext(Type type) {
+        return type.accept(new TypeVisitor<Set<Symbol>>() {
+            @Override
+            public Set<Symbol> visit(VariableType type) {
+                extendContext(type, type.getContext());
+                return contexts.get(type);
+            }
+
+            @Override
+            public Set<Symbol> visitOtherwise(Type type) {
+                return contexts.getOrDefault(type, emptySet());
+            }
+        });
+    }
+
+    @Override
     public Type getTarget(Type type) {
         return type.accept(new TypeVisitor<Type>() {
             @Override
@@ -61,7 +87,17 @@ public class DefaultTypeScope implements TypeScope {
                 while (bindings.containsKey(result)) {
                     result = bindings.get(result);
                 }
-                return result;
+                return result.accept(new TypeVisitor<Type>() {
+                    @Override
+                    public Type visit(VariableType type) {
+                        return type.withContext(getContext(type));
+                    }
+
+                    @Override
+                    public Type visitOtherwise(Type type) {
+                        return type;
+                    }
+                });
             }
 
             @Override

@@ -26,19 +26,21 @@ public class RootScopeTest {
 
     @Mock
     private SymbolResolver resolver;
+    @Mock
+    private TypeGenerator typeGenerator;
     private Scope          rootScope;
     private Scope          module1Scope;
     private Scope          module2Scope;
 
     @Test
     public void nothingShouldBeAnOperator() {
-        assertThat(rootScope.isOperator(qualified("scotch.module1", "fn")), is(false));
-        assertThat(rootScope.isOperator(unqualified("fn")), is(false));
+        assertThat(rootScope.isOperator_(qualified("scotch.module1", "fn")), is(false));
+        assertThat(rootScope.isOperator_(unqualified("fn")), is(false));
     }
 
     @Before
     public void setUp() {
-        rootScope = scope(resolver);
+        rootScope = scope(typeGenerator, resolver);
         module1Scope = rootScope.enterScope("scotch.module1", emptyList());
         module2Scope = rootScope.enterScope("scotch.module2", asList(moduleImport("scotch.module1")));
     }

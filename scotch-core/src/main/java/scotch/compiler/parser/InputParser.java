@@ -4,8 +4,10 @@ import static java.lang.Character.isLowerCase;
 import static java.lang.String.join;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
+import static java.util.Collections.emptyMap;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 import static scotch.compiler.parser.Token.TokenKind.ARROW;
 import static scotch.compiler.parser.Token.TokenKind.ASSIGN;
 import static scotch.compiler.parser.Token.TokenKind.BOOL;
@@ -13,6 +15,7 @@ import static scotch.compiler.parser.Token.TokenKind.CHAR;
 import static scotch.compiler.parser.Token.TokenKind.COMMA;
 import static scotch.compiler.parser.Token.TokenKind.DOT;
 import static scotch.compiler.parser.Token.TokenKind.DOUBLE;
+import static scotch.compiler.parser.Token.TokenKind.DOUBLE_ARROW;
 import static scotch.compiler.parser.Token.TokenKind.DOUBLE_COLON;
 import static scotch.compiler.parser.Token.TokenKind.EOF;
 import static scotch.compiler.parser.Token.TokenKind.INT;
@@ -24,31 +27,17 @@ import static scotch.compiler.parser.Token.TokenKind.SEMICOLON;
 import static scotch.compiler.parser.Token.TokenKind.STRING;
 import static scotch.compiler.parser.Token.TokenKind.WHERE;
 import static scotch.compiler.parser.Token.TokenKind.WORD;
-import static scotch.compiler.syntax.Definition.classDef;
-import static scotch.compiler.syntax.Definition.module;
-import static scotch.compiler.syntax.Definition.operatorDef;
-import static scotch.compiler.syntax.Definition.root;
-import static scotch.compiler.syntax.Definition.signature;
-import static scotch.compiler.syntax.Definition.unshuffled;
-import static scotch.compiler.syntax.Definition.value;
 import static scotch.compiler.syntax.DefinitionEntry.unscopedEntry;
-import static scotch.compiler.syntax.Import.moduleImport;
 import static scotch.compiler.syntax.Operator.Fixity.LEFT_INFIX;
 import static scotch.compiler.syntax.Operator.Fixity.PREFIX;
 import static scotch.compiler.syntax.Operator.Fixity.RIGHT_INFIX;
-import static scotch.compiler.syntax.PatternMatch.capture;
-import static scotch.compiler.syntax.PatternMatch.equal;
+import static scotch.compiler.syntax.Symbol.fromString;
 import static scotch.compiler.syntax.Symbol.qualified;
-import static scotch.compiler.syntax.SymbolTable.symbols;
+import static scotch.compiler.syntax.Symbol.unqualified;
 import static scotch.compiler.syntax.Type.fn;
 import static scotch.compiler.syntax.Type.sum;
-import static scotch.compiler.syntax.Type.t;
 import static scotch.compiler.syntax.Type.var;
 import static scotch.compiler.syntax.Value.Identifier;
-import static scotch.compiler.syntax.Value.ValueVisitor;
-import static scotch.compiler.syntax.Value.id;
-import static scotch.compiler.syntax.Value.literal;
-import static scotch.compiler.syntax.Value.message;
 import static scotch.compiler.util.TextUtil.normalizeQualified;
 import static scotch.compiler.util.TextUtil.quote;
 import static scotch.compiler.util.TextUtil.splitQualified;
@@ -57,9 +46,13 @@ import static scotch.data.tuple.TupleValues.tuple2;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.ParseException;
@@ -71,12 +64,14 @@ import scotch.compiler.syntax.Import;
 import scotch.compiler.syntax.NamedSourcePoint;
 import scotch.compiler.syntax.Operator.Fixity;
 import scotch.compiler.syntax.PatternMatch;
-import scotch.compiler.syntax.SourceAware;
 import scotch.compiler.syntax.SourceRange;
 import scotch.compiler.syntax.Symbol;
 import scotch.compiler.syntax.SymbolTable;
 import scotch.compiler.syntax.Type;
+import scotch.compiler.syntax.TypeGenerator;
 import scotch.compiler.syntax.Value;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
+import scotch.compiler.syntax.builder.SyntaxBuilderFactory;
 import scotch.compiler.util.TextUtil;
 import scotch.data.tuple.Tuple2;
 
@@ -86,33 +81,32 @@ public class InputParser {
     private final LookAheadScanner        scanner;
     private final List<DefinitionEntry>   definitions;
     private final Deque<NamedSourcePoint> positions;
+    private final SyntaxBuilderFactory    builderFactory;
+    private final TypeGenerator           symbolGenerator;
     private       String                  currentModule;
-    private       int                     sequence;
 
-    public InputParser(Scanner scanner) {
+    public InputParser(Scanner scanner, SyntaxBuilderFactory builderFactory) {
+        this.builderFactory = builderFactory;
         this.scanner = new LookAheadScanner(scanner);
         this.definitions = new ArrayList<>();
         this.positions = new ArrayDeque<>();
+        this.symbolGenerator = new TypeGenerator();
     }
 
     public SymbolTable parse() {
-        List<DefinitionReference> modules = new ArrayList<>();
-        if (!expects(EOF)) {
-            modules.add(parseModule());
-            while (expectsModule()) {
-                modules.add(parseModule());
-            }
-        }
-        require(EOF);
-        collect(root(modules));
-        return symbols(definitions)
-            .withSequence(sequence)
+        parseRoot();
+        return builderFactory.symbolTableBuilder(definitions)
+            .withSequence(symbolGenerator)
             .build();
     }
 
     private DefinitionReference collect(Definition definition) {
         definitions.add(unscopedEntry(definition));
         return definition.getReference();
+    }
+
+    private <D extends Definition, B extends SyntaxBuilder<D>> DefinitionReference definition(Supplier<B> supplier, Consumer<B> consumer) {
+        return collect(node(supplier, consumer));
     }
 
     private boolean expects(TokenKind kind) {
@@ -202,6 +196,18 @@ public class InputParser {
         scanner.nextToken();
     }
 
+    private <N, B extends SyntaxBuilder<N>> N node(Supplier<B> supplier, Consumer<B> consumer) {
+        markPosition();
+        B builder = supplier.get();
+        try {
+            consumer.accept(builder);
+        } catch (RuntimeException exception) {
+            positions.pop();
+            throw exception;
+        }
+        return builder.withSourceRange(getSourceRange()).build();
+    }
+
     private List<Type> parseClassArguments() {
         List<Type> arguments = new ArrayList<>();
         do {
@@ -211,11 +217,12 @@ public class InputParser {
     }
 
     private DefinitionReference parseClassDefinition() {
-        return collect(withSourceRange(() -> {
+        return definition(builderFactory::classBuilder, builder -> {
             requireWord("class");
-            String name = requireWord();
-            return classDef(qualified(currentModule, name), parseClassArguments(), parseClassMembers());
-        }));
+            builder.withSymbol(qualified(currentModule, requireWord()))
+                .withArguments(parseClassArguments())
+                .withMembers(parseClassMembers());
+        });
     }
 
     private List<DefinitionReference> parseClassMembers() {
@@ -232,6 +239,26 @@ public class InputParser {
         }
         require(RCURLY);
         return members;
+    }
+
+    private void parseConstraint(Map<String, List<Symbol>> constraints) {
+        Symbol typeClass = fromString(parseQualifiedName());
+        String variable = requireWord();
+        constraints.computeIfAbsent(variable, k -> new ArrayList<>()).add(typeClass);
+    }
+
+    private Map<String, Type> parseConstraints() {
+        Map<String, List<Symbol>> constraints = new HashMap<>();
+        require(LPAREN);
+        parseConstraint(constraints);
+        while (expects(COMMA)) {
+            nextToken();
+            parseConstraint(constraints);
+        }
+        require(RPAREN);
+        require(DOUBLE_ARROW);
+        return constraints.entrySet().stream()
+            .collect(toMap(Entry::getKey, entry -> var(entry.getKey(), entry.getValue())));
     }
 
     private List<DefinitionReference> parseDefinitions() {
@@ -253,9 +280,9 @@ public class InputParser {
     }
 
     private Import parseImport() {
-        return withSourceRange(() -> {
+        return node(builderFactory::moduleImportBuilder, builder -> {
             requireWord("import");
-            return moduleImport(parseQualifiedName());
+            builder.withModuleName(parseQualifiedName());
         });
     }
 
@@ -269,34 +296,30 @@ public class InputParser {
     }
 
     private Value parseLiteral() {
-        return withSourceRange(() -> {
+        return node(builderFactory::literalBuilder, builder -> {
             if (expects(STRING)) {
-                return literal(requireString(), reserveType());
+                builder.withValue(requireString());
             } else if (expects(INT)) {
-                return literal(requireInt(), reserveType());
+                builder.withValue(requireInt());
             } else if (expects(CHAR)) {
-                return literal(requireChar(), reserveType());
+                builder.withValue(requireChar());
             } else if (expects(DOUBLE)) {
-                return literal(requireDouble(), reserveType());
+                builder.withValue(requireDouble());
             } else if (expects(BOOL)) {
-                return literal(requireBool(), reserveType());
+                builder.withValue(requireBool());
             } else {
                 throw unexpected(literals);
             }
+            builder.withType(reserveType());
         });
     }
 
     private Optional<PatternMatch> parseMatch(boolean required) {
         PatternMatch match = null;
         if (expectsWord()) {
-            match = withSourceRange(() -> parseWordReference().accept(new ValueVisitor<PatternMatch>() {
-                @Override
-                public PatternMatch visit(Identifier identifier) {
-                    return capture(identifier.getSymbol(), identifier.getType());
-                }
-            }));
+            match = node(builderFactory::captureMatchBuilder, builder -> builder.withIdentifier(parseWordReference()));
         } else if (expectsLiteral()) {
-            match = withSourceRange(() -> equal(parseLiteral()));
+            match = node(builderFactory::equalMatchBuilder, builder -> builder.withValue(parseLiteral()));
         } else if (required) {
             throw unexpected(WORD);
         }
@@ -304,28 +327,25 @@ public class InputParser {
     }
 
     private Value parseMessage() {
-        return withSourceRange(() -> {
-            List<Value> values = new ArrayList<>();
-            values.add(parseRequiredPrimary());
+        return node(builderFactory::messageBuilder, builder -> {
+            builder.withMember(parseRequiredPrimary());
             Optional<Value> argument = parseOptionalPrimary();
             while (argument.isPresent()) {
-                values.add(argument.get());
+                builder.withMember(argument.get());
                 argument = parseOptionalPrimary();
             }
-            return message(values);
         });
     }
 
     @SuppressWarnings("unchecked")
     private DefinitionReference parseModule() {
-        return collect(withSourceRange(() -> {
+        return definition(builderFactory::moduleBuilder, builder -> {
             requireWord("module");
-            currentModule = parseQualifiedName();
+            builder.withSymbol(currentModule = parseQualifiedName());
             requireTerminator();
-            List<Import> imports = parseImports();
-            List<DefinitionReference> definitions = parseModuleDefinitions();
-            return module(currentModule, imports, definitions);
-        }));
+            builder.withImports(parseImports())
+                .withDefinitions(parseModuleDefinitions());
+        });
     }
 
     private List<DefinitionReference> parseModuleDefinitions() {
@@ -340,13 +360,17 @@ public class InputParser {
     private List<DefinitionReference> parseOperatorDefinition() {
         Fixity fixity = parseOperatorFixity();
         int precedence = parseOperatorPrecedence();
-        List<DefinitionReference> references = new ArrayList<>();
-        parseSymbols().forEach(pair -> pair.into((symbol, sourceRange) -> {
-            Definition operator = operatorDef(symbol, fixity, precedence).withSourceRange(sourceRange);
-            references.add(collect(operator));
-            return null;
-        }));
-        return references;
+        return parseSymbols().stream()
+            .map(pair -> pair.into(
+                (symbol, sourceRange) -> builderFactory.operatorBuilder()
+                    .withSourceRange(sourceRange)
+                    .withSymbol(symbol)
+                    .withFixity(fixity)
+                    .withPrecedence(precedence)
+                    .build()
+            ))
+            .map(this::collect)
+            .collect(toList());
     }
 
     private Fixity parseOperatorFixity() {
@@ -423,6 +447,32 @@ public class InputParser {
         return parsePrimary(true).get();
     }
 
+    private void parseRoot() {
+        definition(builderFactory::rootBuilder, builder -> {
+            if (!expects(EOF)) {
+                builder.withModule(parseModule());
+                while (expectsModule()) {
+                    builder.withModule(parseModule());
+                }
+            }
+            require(EOF);
+        });
+    }
+
+    private Map<String, Type> parseSignatureConstraints() {
+        if (expects(LPAREN)) {
+            int offset = 0;
+            while (!peekAt(offset).is(SEMICOLON)) {
+                if (peekAt(offset).is(RPAREN) && peekAt(offset + 1).is(DOUBLE_ARROW)) {
+                    return parseConstraints();
+                } else {
+                    offset++;
+                }
+            }
+        }
+        return emptyMap();
+    }
+
     private Symbol parseSymbol() {
         if (expects(WORD)) {
             return qualified(currentModule, requireWord());
@@ -448,7 +498,7 @@ public class InputParser {
         return symbols;
     }
 
-    private Type parseType() {
+    private Type parseType(Map<String, Type> constraints) {
         return splitQualified(parseQualifiedName()).into((optionalModuleName, memberName) -> {
             try {
                 markPosition();
@@ -456,7 +506,8 @@ public class InputParser {
                     if (optionalModuleName.isPresent()) {
                         throw parseException("Type name must be uppercase; in " + peekSourceRange().prettyPrint());
                     } else {
-                        return var(memberName);
+                        Type type = var(memberName);
+                        return constraints.getOrDefault(memberName, type);
                     }
                 } else {
                     return sum(normalizeQualified(optionalModuleName, memberName));
@@ -468,50 +519,57 @@ public class InputParser {
     }
 
     private DefinitionReference parseValueDefinition() {
-        return collect(withSourceRange(() -> {
-            if (expectsAt(1, ASSIGN)) {
-                String name = requireWord();
-                nextToken();
-                return value(qualified(currentModule, name), reserveType(), parseMessage());
-            } else {
-                List<PatternMatch> patternMatches = parsePatternMatches();
+        if (expectsAt(1, ASSIGN)) {
+            return definition(builderFactory::valueDefBuilder, builder -> {
+                builder.withSymbol(qualified(currentModule, requireWord()));
                 require(ASSIGN);
-                return unshuffled(qualified(currentModule, "pattern#" + sequence++), patternMatches, parseMessage());
-            }
-        }));
+                builder.withType(reserveType())
+                    .withBody(parseMessage());
+            });
+        } else {
+            return definition(builderFactory::unshuffledBuilder, builder -> {
+                builder.withMatches(parsePatternMatches());
+                require(ASSIGN);
+                builder.withSymbol(symbolGenerator.reservePattern(currentModule))
+                    .withBody(parseMessage());
+            });
+        }
     }
 
     private Type parseValueSignature() {
         require(DOUBLE_COLON);
-        return parseValueSignature_();
+        return parseValueSignature_(parseSignatureConstraints());
     }
 
-    private Type parseValueSignature_() {
-        Type type = parseType();
+    private Type parseValueSignature_(Map<String, Type> constraints) {
+        Type type = parseType(constraints);
         if (expects(ARROW)) {
             require(ARROW);
-            type = fn(type, parseValueSignature_());
+            type = fn(type, parseValueSignature_(constraints));
         }
         return type;
     }
 
     private List<DefinitionReference> parseValueSignatures() {
-        List<DefinitionReference> references = new ArrayList<>();
         List<Tuple2<Symbol, SourceRange>> symbolList = parseSymbols();
         Type type = parseValueSignature();
-        symbolList.forEach(pair -> pair.into((symbol, sourceRange) -> {
-            Definition signature = signature(symbol, type).withSourceRange(sourceRange);
-            references.add(collect(signature));
-            return null;
-        }));
-        return references;
+        return symbolList.stream()
+            .map(pair -> pair.into(
+                (symbol, sourceRange) -> builderFactory.signatureBuilder()
+                    .withSymbol(symbol)
+                    .withType(type)
+                    .withSourceRange(sourceRange)
+                    .build()
+            ))
+            .map(this::collect)
+            .collect(toList());
     }
 
-    private Value parseWordReference() {
-        return withSourceRange(() -> {
-            String word = requireWord();
-            return id(word, reserveType());
-        });
+    private Identifier parseWordReference() {
+        return node(builderFactory::idBuilder, builder -> builder
+                .withSymbol(unqualified(requireWord()))
+                .withType(reserveType())
+        );
     }
 
     private Token peekAt(int offset) {
@@ -593,25 +651,25 @@ public class InputParser {
     }
 
     private Type reserveType() {
-        return t(sequence++);
+        return symbolGenerator.reserveType();
     }
 
     private ParseException unexpected(TokenKind wantedKind) {
-        throw new ParseException(
+        return new ParseException(
             "Unexpected token " + scanner.peekAt(0).getKind()
                 + "; wanted " + wantedKind + " in " + scanner.getPosition().prettyPrint()
         );
     }
 
     private ParseException unexpected(TokenKind wantedKind, Object wantedValue) {
-        throw new ParseException(
+        return new ParseException(
             "Unexpected token " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
                 + "; wanted " + wantedKind + " with value " + quote(wantedValue) + " in " + scanner.getPosition().prettyPrint()
         );
     }
 
     private ParseException unexpected(TokenKind wantedKind, Object... wantedValues) {
-        throw new ParseException(
+        return new ParseException(
             "Unexpected token " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
                 + "; wanted " + wantedKind + " with one value of"
                 + " [" + join(", ", stream(wantedValues).map(TextUtil::quote).collect(toList())) + "] in " + scanner.getPosition().prettyPrint()
@@ -619,23 +677,11 @@ public class InputParser {
     }
 
     private ParseException unexpected(List<TokenKind> wantedKinds) {
-        throw new ParseException(
+        return new ParseException(
             "Unexpected token " + scanner.peekAt(0).getKind()
                 + "; wanted one of [" + join(", ", wantedKinds.stream().map(Object::toString).collect(toList())) + "]"
                 + " at " + scanner.getPosition().prettyPrint()
         );
-    }
-
-    private <T extends SourceAware<T>> T withSourceRange(Supplier<T> supplier) {
-        markPosition();
-        T result;
-        try {
-            result = supplier.get();
-        } catch (RuntimeException exception) {
-            positions.pop();
-            throw exception;
-        }
-        return result.withSourceRange(getSourceRange());
     }
 
     private static final class LookAheadScanner {

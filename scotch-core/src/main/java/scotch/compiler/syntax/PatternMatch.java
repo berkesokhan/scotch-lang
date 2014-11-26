@@ -6,17 +6,17 @@ import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.Objects;
 
-public abstract class PatternMatch implements SourceAware<PatternMatch> {
+public abstract class PatternMatch {
 
-    public static PatternMatch capture(String name, Type type) {
+    public static CaptureMatch capture(String name, Type type) {
         return capture(fromString(name), type);
     }
 
-    public static PatternMatch capture(Symbol symbol, Type type) {
+    public static CaptureMatch capture(Symbol symbol, Type type) {
         return new CaptureMatch(NULL_SOURCE, symbol, type);
     }
 
-    public static PatternMatch equal(Value value) {
+    public static EqualMatch equal(Value value) {
         return new EqualMatch(NULL_SOURCE, value);
     }
 
@@ -108,7 +108,6 @@ public abstract class PatternMatch implements SourceAware<PatternMatch> {
             return stringify(this) + "(" + symbol + ")";
         }
 
-        @Override
         public CaptureMatch withSourceRange(SourceRange sourceRange) {
             return new CaptureMatch(sourceRange, symbol, type);
         }
@@ -158,7 +157,6 @@ public abstract class PatternMatch implements SourceAware<PatternMatch> {
             return stringify(this) + "(" + value + ")";
         }
 
-        @Override
         public EqualMatch withSourceRange(SourceRange sourceRange) {
             return new EqualMatch(sourceRange, value);
         }

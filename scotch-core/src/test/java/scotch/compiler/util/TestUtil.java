@@ -15,6 +15,7 @@ import scotch.compiler.syntax.Definition.ValueDefinition;
 import scotch.compiler.syntax.SymbolResolver;
 import scotch.compiler.syntax.SymbolTable;
 import scotch.compiler.syntax.Value;
+import scotch.compiler.syntax.builder.SyntaxBuilderFactory;
 
 public class TestUtil {
 
@@ -23,7 +24,7 @@ public class TestUtil {
     }
 
     public static SymbolTable analyzeTypes(SymbolResolver resolver, String... data) {
-        return new TypeAnalyzer(parseAst(resolver, data)).analyze();
+        return new TypeAnalyzer(parseSyntax(resolver, data)).analyze();
     }
 
     public static Value bodyOf(Definition definition) {
@@ -40,12 +41,12 @@ public class TestUtil {
         });
     }
 
-    public static SymbolTable parseAst(SymbolResolver resolver, String... data) {
+    public static SymbolTable parseSyntax(SymbolResolver resolver, String... data) {
         return new SyntaxParser(parseInput(data), resolver).analyze();
     }
 
     public static SymbolTable parseInput(String... data) {
-        return new InputParser(forString("$test", data)).parse();
+        return new InputParser(forString("$test", data), new SyntaxBuilderFactory()).parse();
     }
 
     public static Token tokenAt(Scanner scanner, int offset) {

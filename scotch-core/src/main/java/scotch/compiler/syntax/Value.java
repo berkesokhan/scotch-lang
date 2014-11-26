@@ -9,37 +9,37 @@ import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
 
-public abstract class Value implements SourceAware<Value> {
+public abstract class Value {
 
-    public static Value apply(Value function, Value argument, Type type) {
+    public static Apply apply(Value function, Value argument, Type type) {
         return new Apply(function.getSourceRange().extend(argument.getSourceRange()), function, argument, type);
     }
 
-    public static Value id(String name, Type type) {
+    public static Identifier id(String name, Type type) {
         return id(fromString(name), type);
     }
 
-    public static Value id(Symbol symbol, Type type) {
+    public static Identifier id(Symbol symbol, Type type) {
         return new Identifier(NULL_SOURCE, symbol, type);
     }
 
-    public static Value literal(Object value, Type type) {
+    public static LiteralValue literal(Object value, Type type) {
         return new LiteralValue(NULL_SOURCE, value, type);
     }
 
-    public static Value message(Value... members) {
+    public static Message message(Value... members) {
         return message(asList(members));
     }
 
-    public static Value message(List<Value> members) {
+    public static Message message(List<Value> members) {
         return new Message(NULL_SOURCE, members);
     }
 
-    public static Value patterns(Type type, PatternMatcher... patterns) {
+    public static PatternMatchers patterns(Type type, PatternMatcher... patterns) {
         return patterns(type, asList(patterns));
     }
 
-    public static Value patterns(Type type, List<PatternMatcher> patterns) {
+    public static PatternMatchers patterns(Type type, List<PatternMatcher> patterns) {
         return new PatternMatchers(NULL_SOURCE, patterns, type);
     }
 
@@ -160,7 +160,6 @@ public abstract class Value implements SourceAware<Value> {
             return new Apply(sourceRange, function, argument, type);
         }
 
-        @Override
         public Apply withSourceRange(SourceRange sourceRange) {
             return new Apply(sourceRange, function, argument, type);
         }
@@ -224,7 +223,6 @@ public abstract class Value implements SourceAware<Value> {
             return stringify(this) + "(" + symbol + ")";
         }
 
-        @Override
         public Identifier withSourceRange(SourceRange sourceRange) {
             return new Identifier(sourceRange, symbol, type);
         }
@@ -292,7 +290,6 @@ public abstract class Value implements SourceAware<Value> {
             return stringify(this) + "(" + value + ")";
         }
 
-        @Override
         public LiteralValue withSourceRange(SourceRange sourceRange) {
             return new LiteralValue(sourceRange, value, type);
         }
@@ -351,7 +348,6 @@ public abstract class Value implements SourceAware<Value> {
             throw new UnsupportedOperationException();
         }
 
-        @Override
         public Message withSourceRange(SourceRange sourceRange) {
             return new Message(sourceRange, members);
         }
@@ -416,7 +412,6 @@ public abstract class Value implements SourceAware<Value> {
             return new PatternMatchers(sourceRange, matchers, type);
         }
 
-        @Override
         public PatternMatchers withSourceRange(SourceRange sourceRange) {
             return new PatternMatchers(sourceRange, matchers, type);
         }

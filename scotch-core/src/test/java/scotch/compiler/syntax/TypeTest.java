@@ -1,5 +1,8 @@
 package scotch.compiler.syntax;
 
+import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -8,9 +11,11 @@ import static scotch.compiler.syntax.Type.fn;
 import static scotch.compiler.syntax.Type.sum;
 import static scotch.compiler.syntax.Type.var;
 import static scotch.compiler.syntax.Unification.circular;
+import static scotch.compiler.syntax.Unification.contextMismatch;
 import static scotch.compiler.syntax.Unification.mismatch;
 import static scotch.compiler.syntax.Unification.unified;
 
+import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import scotch.compiler.syntax.Type.FunctionType;
@@ -117,6 +122,39 @@ public class TypeTest {
         Type target = sum("Char");
         scope.bind(variable, target);
         scope.bind(variable, sum("Int"));
+    }
+
+    @Test
+    public void shouldMutuallyExtendContexts_whenUnifyingVariables() {
+        VariableType a = var("a", asList("Eq"));
+        VariableType b = var("b", asList("Show"));
+        shouldBeUnified(unify(b, a), b);
+        shouldBeBound(a, var("b", asList("Eq", "Show")));
+        shouldBeBound(b, var("b", asList("Eq", "Show")));
+    }
+
+    @Test
+    public void shouldNotUnifySumToTargetVariable_whenSumDoesNotImplementEntireVariableContext() {
+        VariableType target = var("a", asList("Eq", "Show"));
+        Type sum = sum("DbCursor");
+        addContext(sum, "Show");
+        shouldBeContextMismatch(unify(target, sum), target, sum, asList("Eq"));
+    }
+
+    @Test
+    public void shouldNotUnifyFunctionToTargetVariable_whenVariableHasContext() {
+        VariableType target = var("a", asList("Eq"));
+        Type function = fn(var("b"), var("c"));
+        shouldBeContextMismatch(unify(target, function), target, function, asList("Eq"));
+    }
+
+    private void addContext(Type type, String... context) {
+        scope.extendContext(type, asList(context).stream().map(Symbol::fromString).collect(toSet()));
+    }
+
+    private void shouldBeContextMismatch(Unification unification, Type expected, Type actual, List<String> contextDifference) {
+        assertFalse(unification.isUnified());
+        assertThat(unification, is(contextMismatch(expected, actual, contextDifference.stream().map(Symbol::fromString).collect(toList()))));
     }
 
     private Type argumentOf(Type type) {

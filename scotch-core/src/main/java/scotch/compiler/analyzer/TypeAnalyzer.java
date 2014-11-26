@@ -6,7 +6,6 @@ import static scotch.compiler.syntax.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.SyntaxError.typeError;
 import static scotch.compiler.syntax.Type.fn;
 import static scotch.compiler.syntax.Type.sum;
-import static scotch.compiler.syntax.Type.t;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -32,9 +31,8 @@ import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.SymbolTable;
 import scotch.compiler.syntax.SyntaxError;
 import scotch.compiler.syntax.Type;
+import scotch.compiler.syntax.TypeGenerator;
 import scotch.compiler.syntax.Unification;
-import scotch.compiler.syntax.Unification.CircularReference;
-import scotch.compiler.syntax.Unification.TypeMismatch;
 import scotch.compiler.syntax.Unification.UnificationVisitor;
 import scotch.compiler.syntax.Unification.Unified;
 import scotch.compiler.syntax.Value;
@@ -54,21 +52,21 @@ public class TypeAnalyzer implements
     private final Map<DefinitionReference, DefinitionEntry> definitions;
     private final Deque<Scope>                              scopes;
     private final List<SyntaxError>                         errors;
-    private       int                                       sequence;
+    private       TypeGenerator                             typeGenerator;
 
     public TypeAnalyzer(SymbolTable symbols) {
         this.symbols = symbols;
         this.definitions = new HashMap<>();
         this.scopes = new ArrayDeque<>();
         this.errors = new ArrayList<>();
-        this.sequence = symbols.getSequence();
+        this.typeGenerator = symbols.getTypeGenerator();
     }
 
     public SymbolTable analyze() {
         symbols.getDefinition(rootRef()).accept(this);
         return symbols
             .copyWith(definitions.values())
-            .withSequence(sequence)
+            .withSequence(typeGenerator)
             .withErrors(errors)
             .build();
     }
@@ -217,27 +215,8 @@ public class TypeAnalyzer implements
             .collect(toList());
     }
 
-    private <T> T report(Unification unification) {
-        return unification.accept(new UnificationVisitor<T>() {
-            @Override
-            public T visit(CircularReference circularReference) {
-                throw new UnsupportedOperationException(); // TODO
-            }
-
-            @Override
-            public T visit(TypeMismatch typeMismatch) {
-                throw new UnsupportedOperationException(typeMismatch.toString()); // TODO
-            }
-
-            @Override
-            public T visitOtherwise(Unification unification) {
-                throw new UnsupportedOperationException(); // TODO
-            }
-        });
-    }
-
     private Type reserveType() {
-        return t(sequence++);
+        return typeGenerator.reserveType();
     }
 
     private <T> T scoped(DefinitionReference reference, Supplier<T> supplier) {

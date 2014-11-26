@@ -1,6 +1,7 @@
 package scotch.compiler.syntax;
 
 import static scotch.compiler.syntax.DefinitionReference.classRef;
+import static scotch.compiler.syntax.DefinitionReference.instanceRef;
 import static scotch.compiler.syntax.DefinitionReference.moduleRef;
 import static scotch.compiler.syntax.DefinitionReference.operatorRef;
 import static scotch.compiler.syntax.DefinitionReference.patternRef;
@@ -16,39 +17,45 @@ import static scotch.compiler.util.TextUtil.stringify;
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.syntax.DefinitionReference.ClassReference;
+import scotch.compiler.syntax.DefinitionReference.ModuleReference;
 import scotch.compiler.syntax.Operator.Fixity;
 
-public abstract class Definition implements SourceAware<Definition> {
+public abstract class Definition {
 
-    public static Definition classDef(String name, List<Type> arguments, List<DefinitionReference> members) {
+    public static ClassDefinition classDef(String name, List<Type> arguments, List<DefinitionReference> members) {
         return classDef(fromString(name), arguments, members);
     }
 
-    public static Definition classDef(Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
+    public static ClassDefinition classDef(Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
         return new ClassDefinition(NULL_SOURCE, symbol, arguments, members);
     }
 
-    public static Definition module(String symbol, List<Import> imports, List<DefinitionReference> definitions) {
+    public static InstanceDefinition instanceDef(ClassReference classReference, ModuleReference moduleReference, List<Type> types, List<Definition> members) {
+        return new InstanceDefinition(NULL_SOURCE, classReference, moduleReference, types, members);
+    }
+
+    public static ModuleDefinition module(String symbol, List<Import> imports, List<DefinitionReference> definitions) {
         return new ModuleDefinition(NULL_SOURCE, symbol, imports, definitions);
     }
 
-    public static Definition operatorDef(String name, Fixity fixity, int precedence) {
+    public static OperatorDefinition operatorDef(String name, Fixity fixity, int precedence) {
         return operatorDef(fromString(name), fixity, precedence);
     }
 
-    public static Definition operatorDef(Symbol symbol, Fixity fixity, int precedence) {
+    public static OperatorDefinition operatorDef(Symbol symbol, Fixity fixity, int precedence) {
         return new OperatorDefinition(NULL_SOURCE, symbol, fixity, precedence);
     }
 
-    public static Definition root(List<DefinitionReference> definitions) {
+    public static RootDefinition root(List<DefinitionReference> definitions) {
         return new RootDefinition(NULL_SOURCE, definitions);
     }
 
-    public static Definition signature(String name, Type type) {
+    public static ValueSignature signature(String name, Type type) {
         return signature(fromString(name), type);
     }
 
-    public static Definition signature(Symbol symbol, Type type) {
+    public static ValueSignature signature(Symbol symbol, Type type) {
         return new ValueSignature(NULL_SOURCE, symbol, type);
     }
 
@@ -91,6 +98,10 @@ public abstract class Definition implements SourceAware<Definition> {
             return visitOtherwise(definition);
         }
 
+        default T visit(InstanceDefinition definition) {
+            return visitOtherwise(definition);
+        }
+
         default T visit(ModuleDefinition definition) {
             return visitOtherwise(definition);
         }
@@ -128,6 +139,11 @@ public abstract class Definition implements SourceAware<Definition> {
         private final List<DefinitionReference> members;
 
         private ClassDefinition(SourceRange sourceRange, Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
+            if (arguments.isEmpty()) {
+                throw new IllegalArgumentException("Can't create class definition with 0 arguments");
+            } else if (members.isEmpty()) {
+                throw new IllegalArgumentException("Can't create class definition with 0 members");
+            }
             this.sourceRange = sourceRange;
             this.symbol = symbol;
             this.arguments = ImmutableList.copyOf(arguments);
@@ -153,9 +169,17 @@ public abstract class Definition implements SourceAware<Definition> {
             }
         }
 
+        public InstanceConstructor getConstructor(ModuleReference moduleReference) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
         @Override
         public DefinitionReference getReference() {
             return classRef(symbol);
+        }
+
+        public Symbol getSymbol() {
+            return symbol;
         }
 
         @Override
@@ -168,9 +192,71 @@ public abstract class Definition implements SourceAware<Definition> {
             return stringify(this) + "(" + symbol + ")";
         }
 
-        @Override
         public ClassDefinition withSourceRange(SourceRange sourceRange) {
             return new ClassDefinition(sourceRange, symbol, arguments, members);
+        }
+    }
+
+    public static class InstanceDefinition extends Definition {
+
+        private final SourceRange      sourceRange;
+        private final ClassReference   classReference;
+        private final ModuleReference  moduleReference;
+        private final List<Type>       types;
+        private final List<Definition> members;
+
+        public InstanceDefinition(
+            SourceRange sourceRange,
+            ClassReference classReference,
+            ModuleReference moduleReference,
+            List<Type> types,
+            List<Definition> members
+        ) {
+            this.sourceRange = sourceRange;
+            this.classReference = classReference;
+            this.moduleReference = moduleReference;
+            this.types = types;
+            this.members = members;
+        }
+
+        @Override
+        public <T> T accept(DefinitionVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof InstanceDefinition) {
+                InstanceDefinition other = (InstanceDefinition) o;
+                return Objects.equals(sourceRange, other.sourceRange)
+                    && Objects.equals(classReference, other.classReference)
+                    && Objects.equals(moduleReference, other.moduleReference)
+                    && Objects.equals(types, other.types)
+                    && Objects.equals(members, other.members);
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public DefinitionReference getReference() {
+            return instanceRef(classReference, moduleReference, types);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(sourceRange, classReference, moduleReference, types, members);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(classReference=" + classReference + ", moduleReference=" + moduleReference + ", types=" + types + ")";
+        }
+
+        public InstanceDefinition withSourceRange(SourceRange sourceRange) {
+            return new InstanceDefinition(sourceRange, classReference, moduleReference, types, members);
         }
     }
 
@@ -234,7 +320,6 @@ public abstract class Definition implements SourceAware<Definition> {
             return new ModuleDefinition(sourceRange, symbol, imports, definitions);
         }
 
-        @Override
         public ModuleDefinition withSourceRange(SourceRange sourceRange) {
             return new ModuleDefinition(sourceRange, symbol, imports, definitions);
         }
@@ -296,7 +381,6 @@ public abstract class Definition implements SourceAware<Definition> {
             return stringify(this) + "(" + symbol + " :: " + fixity + ", " + precedence + ")";
         }
 
-        @Override
         public OperatorDefinition withSourceRange(SourceRange sourceRange) {
             return new OperatorDefinition(sourceRange, symbol, fixity, precedence);
         }
@@ -345,7 +429,6 @@ public abstract class Definition implements SourceAware<Definition> {
             return new RootDefinition(sourceRange, definitions);
         }
 
-        @Override
         public RootDefinition withSourceRange(SourceRange sourceRange) {
             return new RootDefinition(sourceRange, definitions);
         }
@@ -415,7 +498,6 @@ public abstract class Definition implements SourceAware<Definition> {
             return stringify(this) + "(" + symbol + ")";
         }
 
-        @Override
         public UnshuffledPattern withSourceRange(SourceRange sourceRange) {
             return new UnshuffledPattern(sourceRange, symbol, matches, body);
         }
@@ -489,7 +571,6 @@ public abstract class Definition implements SourceAware<Definition> {
             return new ValueDefinition(sourceRange, symbol, body, type);
         }
 
-        @Override
         public ValueDefinition withSourceRange(SourceRange sourceRange) {
             return new ValueDefinition(sourceRange, symbol, body, type);
         }
@@ -534,11 +615,6 @@ public abstract class Definition implements SourceAware<Definition> {
             return signatureRef(symbol);
         }
 
-        @Override
-        public ValueSignature withSourceRange(SourceRange sourceRange) {
-            return new ValueSignature(sourceRange, symbol, type);
-        }
-
         public Symbol getSymbol() {
             return symbol;
         }
@@ -555,6 +631,10 @@ public abstract class Definition implements SourceAware<Definition> {
         @Override
         public String toString() {
             return stringify(this) + "(" + symbol + " :: " + type + ")";
+        }
+
+        public ValueSignature withSourceRange(SourceRange sourceRange) {
+            return new ValueSignature(sourceRange, symbol, type);
         }
     }
 }

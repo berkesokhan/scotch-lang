@@ -3,17 +3,24 @@ package scotch.compiler.syntax;
 import static java.lang.Character.isLowerCase;
 import static java.lang.Character.isUpperCase;
 import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toSet;
 import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
 import static scotch.compiler.syntax.Symbol.fromString;
 import static scotch.compiler.syntax.Unification.circular;
+import static scotch.compiler.syntax.Unification.contextMismatch;
 import static scotch.compiler.syntax.Unification.mismatch;
 import static scotch.compiler.syntax.Unification.unified;
 import static scotch.compiler.util.TextUtil.stringify;
 
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 
-public abstract class Type implements SourceAware<Type> {
+public abstract class Type {
 
     public static Type fn(Type argument, Type result) {
         return new FunctionType(NULL_SOURCE, argument, result);
@@ -36,15 +43,40 @@ public abstract class Type implements SourceAware<Type> {
     }
 
     public static VariableType var(String name) {
-        return new VariableType(NULL_SOURCE, name);
+        return var(name, emptyList());
     }
 
-    private static Unification unifyVariable(Type target, VariableType variableType, TypeScope typeScope) {
-        if (typeScope.isBound(variableType)) {
-            return typeScope.getTarget(variableType).unify(target, typeScope);
+    @SuppressWarnings("unchecked")
+    public static VariableType var(String name, List context) {
+        Set<Symbol> contextSymbols = new HashSet<>();
+        if (!context.isEmpty()) {
+            if (context.get(0) instanceof String) {
+                contextSymbols = ((List<String>) context).stream()
+                    .map(Symbol::fromString)
+                    .collect(toSet());
+            } else if (context.get(0) instanceof Symbol) {
+                contextSymbols.addAll(context);
+            } else {
+                throw new IllegalArgumentException("Got list of " + context.get(0).getClass());
+            }
+        }
+        return new VariableType(NULL_SOURCE, name, contextSymbols);
+    }
+
+    private static Unification unifyVariable(Type actual, VariableType target, TypeScope typeScope) {
+        if (typeScope.isBound(target)) {
+            return typeScope.getTarget(target).unify(actual, typeScope);
+        } else if (target.context.isEmpty()) {
+            typeScope.bind(target, actual);
+            return unified(actual);
+        } else if (typeScope.getContext(actual).containsAll(target.context)) {
+            typeScope.bind(target, actual);
+            return unified(actual);
         } else {
-            typeScope.bind(variableType, target);
-            return unified(target);
+            Set<Symbol> contextDifference = new HashSet<>();
+            contextDifference.addAll(target.context);
+            contextDifference.removeAll(typeScope.getContext(actual));
+            return contextMismatch(target, actual, contextDifference);
         }
     }
 
@@ -169,7 +201,6 @@ public abstract class Type implements SourceAware<Type> {
             return new FunctionType(sourceRange, argument, result);
         }
 
-        @Override
         public FunctionType withSourceRange(SourceRange sourceRange) {
             return new FunctionType(sourceRange, argument, result);
         }
@@ -255,7 +286,6 @@ public abstract class Type implements SourceAware<Type> {
             return type.unifyWith(this, scope);
         }
 
-        @Override
         public SumType withSourceRange(SourceRange sourceRange) {
             return new SumType(sourceRange, symbol);
         }
@@ -297,15 +327,17 @@ public abstract class Type implements SourceAware<Type> {
 
     public static class VariableType extends Type {
 
-        private final SourceRange sourceRange;
-        private final String      name;
+        private final SourceRange  sourceRange;
+        private final String       name;
+        private final Set<Symbol> context;
 
-        private VariableType(SourceRange sourceRange, String name) {
+        private VariableType(SourceRange sourceRange, String name, Collection<Symbol> context) {
             if (!isLowerCase(name.charAt(0))) {
                 throw new IllegalArgumentException("Variable type should have lower-case name: got '" + name + "'");
             }
             this.sourceRange = sourceRange;
             this.name = name;
+            this.context = ImmutableSet.copyOf(context);
         }
 
         @Override
@@ -319,15 +351,20 @@ public abstract class Type implements SourceAware<Type> {
                 return true;
             } else if (o instanceof VariableType) {
                 VariableType other = (VariableType) o;
-                return Objects.equals(name, other.name);
+                return Objects.equals(name, other.name)
+                    && Objects.equals(context, other.context);
             } else {
                 return false;
             }
         }
 
+        public Set<Symbol> getContext() {
+            return new HashSet<>(context);
+        }
+
         @Override
         public int hashCode() {
-            return Objects.hash(name);
+            return Objects.hash(name, context);
         }
 
         @Override
@@ -337,7 +374,7 @@ public abstract class Type implements SourceAware<Type> {
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + name + ")";
+            return stringify(this) + "(" + name + ", context=" + context + ")";
         }
 
         @Override
@@ -345,9 +382,12 @@ public abstract class Type implements SourceAware<Type> {
             return type.unifyWith(this, scope);
         }
 
-        @Override
+        public VariableType withContext(Collection<Symbol> context) {
+            return new VariableType(sourceRange, name, context);
+        }
+
         public VariableType withSourceRange(SourceRange sourceRange) {
-            return new VariableType(sourceRange, name);
+            return new VariableType(sourceRange, name, context);
         }
 
         private Unification bind(Type target, TypeScope typeScope) {
@@ -355,13 +395,13 @@ public abstract class Type implements SourceAware<Type> {
             return unified(target);
         }
 
-        private Unification unify_(Type target, TypeScope typeScope) {
+        private Optional<Unification> unify_(Type target, TypeScope typeScope) {
             if (typeScope.isBound(this)) {
-                return target.unify(typeScope.getTarget(this), typeScope);
+                return Optional.of(target.unify(typeScope.getTarget(this), typeScope));
             } else if (target.contains(this)) {
-                return circular(target, this);
+                return Optional.of(circular(target, this));
             } else {
-                return bind(target, typeScope);
+                return Optional.empty();
             }
         }
 
@@ -372,17 +412,24 @@ public abstract class Type implements SourceAware<Type> {
 
         @Override
         protected Unification unifyWith(SumType target, TypeScope typeScope) {
-            return unify_(target, typeScope);
+            return unify_(target, typeScope).orElseGet(() -> bind(target, typeScope));
         }
 
         @Override
         protected Unification unifyWith(VariableType target, TypeScope typeScope) {
-            return unify_(target, typeScope);
+            return unify_(target, typeScope).orElseGet(() -> {
+                Set<Symbol> additionalContext = new HashSet<>();
+                additionalContext.addAll(context);
+                additionalContext.addAll(target.context);
+                typeScope.extendContext(target, additionalContext);
+                typeScope.extendContext(this, additionalContext);
+                return bind(target, typeScope);
+            });
         }
 
         @Override
         protected Unification unifyWith(FunctionType target, TypeScope typeScope) {
-            return unify_(target, typeScope);
+            return unify_(target, typeScope).orElseGet(() -> bind(target, typeScope));
         }
     }
 }
