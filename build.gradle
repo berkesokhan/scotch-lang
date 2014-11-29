@@ -1,0 +1,25 @@
+apply plugin: 'java'
+
+group = 'org.github.lmcgrath.scotch'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'commons-lang:commons-lang:2.6'
+    compile 'com.beust:jcommander:1.35'
+    compile 'org.ow2.asm:asm-all:5.0.3'
+    compile 'com.google.guava:guava:16.0.1'
+
+    testCompile 'org.hamcrest:hamcrest-all:1.3'
+    testCompile 'org.mockito:mockito-core:1.9.5', { exclude module: 'org.hamcrest' }
+    testCompile 'junit:junit:4.11'
+}
+
+fileTree(dir: 'gradle/scripts')
+    .matching { include '*.gradle' }
+    .each { apply from: it }
