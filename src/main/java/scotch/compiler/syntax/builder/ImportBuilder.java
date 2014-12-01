@@ -29,8 +29,10 @@ public abstract class ImportBuilder<T extends Import> implements SyntaxBuilder<T
 
         @Override
         public ModuleImport build() {
-            return moduleImport(require(moduleName, "Module name"))
-                .withSourceRange(require(sourceRange, "Source range"));
+            return moduleImport(
+                require(sourceRange, "Source range"),
+                require(moduleName, "Module name")
+            );
         }
 
         public ModuleImportBuilder withModuleName(String moduleName) {

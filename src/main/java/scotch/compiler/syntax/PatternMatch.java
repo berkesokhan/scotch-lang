@@ -1,23 +1,17 @@
 package scotch.compiler.syntax;
 
-import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
-import static scotch.compiler.syntax.Symbol.fromString;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.Objects;
 
 public abstract class PatternMatch {
 
-    public static CaptureMatch capture(String name, Type type) {
-        return capture(fromString(name), type);
+    public static CaptureMatch capture(SourceRange sourceRange, Symbol symbol, Type type) {
+        return new CaptureMatch(sourceRange, symbol, type);
     }
 
-    public static CaptureMatch capture(Symbol symbol, Type type) {
-        return new CaptureMatch(NULL_SOURCE, symbol, type);
-    }
-
-    public static EqualMatch equal(Value value) {
-        return new EqualMatch(NULL_SOURCE, value);
+    public static EqualMatch equal(SourceRange sourceRange, Value value) {
+        return new EqualMatch(sourceRange, value);
     }
 
     private PatternMatch() {

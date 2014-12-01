@@ -78,10 +78,11 @@ public abstract class DefinitionBuilder<T extends Definition> implements SyntaxB
         @Override
         public ClassDefinition build() {
             return classDef(
+                require(sourceRange, "Source range"),
                 require(symbol, "Class symbol"),
                 require(arguments, "Class arguments"),
                 require(members, "Class member definitions")
-            ).withSourceRange(require(sourceRange, "Source range"));
+            );
         }
 
         public ClassDefinitionBuilder withArguments(List<Type> arguments) {
@@ -120,10 +121,11 @@ public abstract class DefinitionBuilder<T extends Definition> implements SyntaxB
         @Override
         public ModuleDefinition build() {
             return module(
+                require(sourceRange, "Source range"),
                 require(symbol, "Module symbol"),
                 require(imports, "Imports are required"),
                 require(definitions, "Member definitions")
-            ).withSourceRange(require(sourceRange, "Source range"));
+            );
         }
 
         public ModuleDefinitionBuilder withDefinitions(List<DefinitionReference> definitions) {
@@ -162,10 +164,11 @@ public abstract class DefinitionBuilder<T extends Definition> implements SyntaxB
         @Override
         public OperatorDefinition build() {
             return operatorDef(
+                require(sourceRange, "Source range"),
                 require(symbol, "Operator symbol"),
                 require(fixity, "Operator fixity"),
                 require(precedence, "Operator precedence")
-            ).withSourceRange(require(sourceRange, "Source range"));
+            );
         }
 
         public OperatorDefinitionBuilder withFixity(Fixity fixity) {
@@ -201,7 +204,7 @@ public abstract class DefinitionBuilder<T extends Definition> implements SyntaxB
 
         @Override
         public RootDefinition build() {
-            return root(definitions).withSourceRange(require(sourceRange, "Source range"));
+            return root(require(sourceRange, "Source range"), definitions);
         }
 
         public RootDefinitionBuilder withModule(DefinitionReference module) {
@@ -230,10 +233,11 @@ public abstract class DefinitionBuilder<T extends Definition> implements SyntaxB
         @Override
         public UnshuffledPattern build() {
             return unshuffled(
+                require(sourceRange, "Source range"),
                 require(symbol, "Unshuffled pattern symbol"),
                 require(matches, "Unshuffled pattern matches"),
                 require(body, "Unshuffled pattern body")
-            ).withSourceRange(require(sourceRange, "Source range"));
+            );
         }
 
         public UnshuffledPatternBuilder withBody(Value body) {
@@ -272,10 +276,11 @@ public abstract class DefinitionBuilder<T extends Definition> implements SyntaxB
         @Override
         public ValueDefinition build() {
             return value(
+                require(sourceRange, "Source range"),
                 require(symbol, "Value symbol"),
                 require(type, "Value type"),
                 require(body, "Value body")
-            ).withSourceRange(require(sourceRange, "Source range"));
+            );
         }
 
         public ValueDefinitionBuilder withBody(Value body) {
@@ -309,9 +314,10 @@ public abstract class DefinitionBuilder<T extends Definition> implements SyntaxB
         @Override
         public ValueSignature build() {
             return signature(
+                require(sourceRange, "Source range"),
                 require(symbol, "Signature symbol"),
                 require(type, "Signature type")
-            ).withSourceRange(require(sourceRange, "Source range"));
+            );
         }
 
         @Override

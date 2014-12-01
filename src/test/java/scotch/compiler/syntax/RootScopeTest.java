@@ -8,11 +8,11 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static scotch.compiler.syntax.Import.moduleImport;
 import static scotch.compiler.syntax.Scope.scope;
 import static scotch.compiler.syntax.Symbol.qualified;
 import static scotch.compiler.syntax.Symbol.unqualified;
 import static scotch.compiler.syntax.Type.t;
+import static scotch.compiler.util.TestUtil.moduleImport;
 
 import java.util.Optional;
 import org.junit.Before;

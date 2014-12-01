@@ -10,8 +10,6 @@ import static scotch.compiler.syntax.DefinitionReference.signatureRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
 import static scotch.compiler.syntax.Operator.operator;
 import static scotch.compiler.syntax.PatternMatcher.pattern;
-import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
-import static scotch.compiler.syntax.Symbol.fromString;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.List;
@@ -23,56 +21,32 @@ import scotch.compiler.syntax.Operator.Fixity;
 
 public abstract class Definition {
 
-    public static ClassDefinition classDef(String name, List<Type> arguments, List<DefinitionReference> members) {
-        return classDef(fromString(name), arguments, members);
+    public static ClassDefinition classDef(SourceRange sourceRange, Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
+        return new ClassDefinition(sourceRange, symbol, arguments, members);
     }
 
-    public static ClassDefinition classDef(Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
-        return new ClassDefinition(NULL_SOURCE, symbol, arguments, members);
+    public static ModuleDefinition module(SourceRange sourceRange, String symbol, List<Import> imports, List<DefinitionReference> definitions) {
+        return new ModuleDefinition(sourceRange, symbol, imports, definitions);
     }
 
-    public static InstanceDefinition instanceDef(ClassReference classReference, ModuleReference moduleReference, List<Type> types, List<Definition> members) {
-        return new InstanceDefinition(NULL_SOURCE, classReference, moduleReference, types, members);
+    public static OperatorDefinition operatorDef(SourceRange sourceRange, Symbol symbol, Fixity fixity, int precedence) {
+        return new OperatorDefinition(sourceRange, symbol, fixity, precedence);
     }
 
-    public static ModuleDefinition module(String symbol, List<Import> imports, List<DefinitionReference> definitions) {
-        return new ModuleDefinition(NULL_SOURCE, symbol, imports, definitions);
+    public static RootDefinition root(SourceRange sourceRange, List<DefinitionReference> definitions) {
+        return new RootDefinition(sourceRange, definitions);
     }
 
-    public static OperatorDefinition operatorDef(String name, Fixity fixity, int precedence) {
-        return operatorDef(fromString(name), fixity, precedence);
+    public static ValueSignature signature(SourceRange sourceRange, Symbol symbol, Type type) {
+        return new ValueSignature(sourceRange, symbol, type);
     }
 
-    public static OperatorDefinition operatorDef(Symbol symbol, Fixity fixity, int precedence) {
-        return new OperatorDefinition(NULL_SOURCE, symbol, fixity, precedence);
+    public static UnshuffledPattern unshuffled(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
+        return new UnshuffledPattern(sourceRange, symbol, matches, body);
     }
 
-    public static RootDefinition root(List<DefinitionReference> definitions) {
-        return new RootDefinition(NULL_SOURCE, definitions);
-    }
-
-    public static ValueSignature signature(String name, Type type) {
-        return signature(fromString(name), type);
-    }
-
-    public static ValueSignature signature(Symbol symbol, Type type) {
-        return new ValueSignature(NULL_SOURCE, symbol, type);
-    }
-
-    public static UnshuffledPattern unshuffled(String name, List<PatternMatch> matches, Value body) {
-        return unshuffled(fromString(name), matches, body);
-    }
-
-    public static UnshuffledPattern unshuffled(Symbol symbol, List<PatternMatch> matches, Value body) {
-        return new UnshuffledPattern(NULL_SOURCE, symbol, matches, body);
-    }
-
-    public static ValueDefinition value(String name, Type type, Value value) {
-        return value(fromString(name), type, value);
-    }
-
-    public static ValueDefinition value(Symbol symbol, Type type, Value value) {
-        return new ValueDefinition(NULL_SOURCE, symbol, value, type);
+    public static ValueDefinition value(SourceRange sourceRange, Symbol symbol, Type type, Value value) {
+        return new ValueDefinition(sourceRange, symbol, value, type);
     }
 
     private Definition() {
@@ -191,10 +165,6 @@ public abstract class Definition {
         public String toString() {
             return stringify(this) + "(" + symbol + ")";
         }
-
-        public ClassDefinition withSourceRange(SourceRange sourceRange) {
-            return new ClassDefinition(sourceRange, symbol, arguments, members);
-        }
     }
 
     public static class InstanceDefinition extends Definition {
@@ -253,10 +223,6 @@ public abstract class Definition {
         @Override
         public String toString() {
             return stringify(this) + "(classReference=" + classReference + ", moduleReference=" + moduleReference + ", types=" + types + ")";
-        }
-
-        public InstanceDefinition withSourceRange(SourceRange sourceRange) {
-            return new InstanceDefinition(sourceRange, classReference, moduleReference, types, members);
         }
     }
 
@@ -319,10 +285,6 @@ public abstract class Definition {
         public ModuleDefinition withDefinitions(List<DefinitionReference> definitions) {
             return new ModuleDefinition(sourceRange, symbol, imports, definitions);
         }
-
-        public ModuleDefinition withSourceRange(SourceRange sourceRange) {
-            return new ModuleDefinition(sourceRange, symbol, imports, definitions);
-        }
     }
 
     public static class OperatorDefinition extends Definition {
@@ -380,10 +342,6 @@ public abstract class Definition {
         public String toString() {
             return stringify(this) + "(" + symbol + " :: " + fixity + ", " + precedence + ")";
         }
-
-        public OperatorDefinition withSourceRange(SourceRange sourceRange) {
-            return new OperatorDefinition(sourceRange, symbol, fixity, precedence);
-        }
     }
 
     public static class RootDefinition extends Definition {
@@ -428,10 +386,6 @@ public abstract class Definition {
         public RootDefinition withDefinitions(List<DefinitionReference> definitions) {
             return new RootDefinition(sourceRange, definitions);
         }
-
-        public RootDefinition withSourceRange(SourceRange sourceRange) {
-            return new RootDefinition(sourceRange, definitions);
-        }
     }
 
     public static class UnshuffledPattern extends Definition {
@@ -454,7 +408,7 @@ public abstract class Definition {
         }
 
         public PatternMatcher asPatternMatcher(List<PatternMatch> matches) {
-            return pattern(symbol, matches, body).withSourceRange(sourceRange);
+            return pattern(sourceRange, symbol, matches, body);
         }
 
         @Override
@@ -496,10 +450,6 @@ public abstract class Definition {
         @Override
         public String toString() {
             return stringify(this) + "(" + symbol + ")";
-        }
-
-        public UnshuffledPattern withSourceRange(SourceRange sourceRange) {
-            return new UnshuffledPattern(sourceRange, symbol, matches, body);
         }
     }
 
@@ -631,10 +581,6 @@ public abstract class Definition {
         @Override
         public String toString() {
             return stringify(this) + "(" + symbol + " :: " + type + ")";
-        }
-
-        public ValueSignature withSourceRange(SourceRange sourceRange) {
-            return new ValueSignature(sourceRange, symbol, type);
         }
     }
 }

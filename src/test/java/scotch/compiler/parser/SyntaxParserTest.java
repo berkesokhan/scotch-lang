@@ -3,26 +3,25 @@ package scotch.compiler.parser;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.compiler.syntax.Definition.classDef;
-import static scotch.compiler.syntax.Definition.value;
 import static scotch.compiler.syntax.DefinitionReference.classRef;
 import static scotch.compiler.syntax.DefinitionReference.signatureRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
-import static scotch.compiler.syntax.PatternMatch.capture;
-import static scotch.compiler.syntax.PatternMatch.equal;
-import static scotch.compiler.syntax.PatternMatcher.pattern;
 import static scotch.compiler.syntax.Symbol.qualified;
-import static scotch.compiler.syntax.Symbol.unqualified;
 import static scotch.compiler.syntax.SymbolEntry.immutableEntry;
 import static scotch.compiler.syntax.Type.fn;
 import static scotch.compiler.syntax.Type.sum;
 import static scotch.compiler.syntax.Type.t;
 import static scotch.compiler.syntax.Type.var;
 import static scotch.compiler.syntax.Value.apply;
-import static scotch.compiler.syntax.Value.id;
-import static scotch.compiler.syntax.Value.literal;
-import static scotch.compiler.syntax.Value.patterns;
+import static scotch.compiler.util.TestUtil.capture;
+import static scotch.compiler.util.TestUtil.classDef;
+import static scotch.compiler.util.TestUtil.equal;
+import static scotch.compiler.util.TestUtil.id;
+import static scotch.compiler.util.TestUtil.literal;
 import static scotch.compiler.util.TestUtil.parseSyntax;
+import static scotch.compiler.util.TestUtil.pattern;
+import static scotch.compiler.util.TestUtil.patterns;
+import static scotch.compiler.util.TestUtil.value;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -52,7 +51,7 @@ public class SyntaxParserTest {
         );
         assertThat(symbols.getDefinition(valueRef("scotch.test", "==")), is(
             value("scotch.test.(==)", t(8), patterns(t(9),
-                pattern(qualified("scotch.test", "pattern#3"), asList(capture("x", t(0)), capture("y", t(2))), apply(
+                pattern("scotch.test.(pattern#3)", asList(capture("x", t(0)), capture("y", t(2))), apply(
                     id("scotch.data.bool.not", t(4)),
                     apply(
                         apply(id("scotch.test.(/=)", t(6)), id("x", t(5)), t(10)),
@@ -77,9 +76,9 @@ public class SyntaxParserTest {
         );
         assertThat(symbols.getDefinition(valueRef("scotch.test", "fib")), is(
             value("scotch.test.fib", t(20), patterns(t(21),
-                pattern(qualified("scotch.test", "pattern#2"), asList(equal(literal(0, t(1)))), literal(0, t(3))),
-                pattern(qualified("scotch.test", "pattern#6"), asList(equal(literal(1, t(5)))), literal(1, t(7))),
-                pattern(qualified("scotch.test", "pattern#10"), asList(capture(unqualified("n"), t(9))), apply(
+                pattern("scotch.test.(pattern#2)", asList(equal(literal(0, t(1)))), literal(0, t(3))),
+                pattern("scotch.test.(pattern#6)", asList(equal(literal(1, t(5)))), literal(1, t(7))),
+                pattern("scotch.test.(pattern#10)", asList(capture("n", t(9))), apply(
                     apply(
                         id("scotch.test.(+)", t(15)),
                         apply(

@@ -1,7 +1,6 @@
 package scotch.compiler.syntax;
 
 import static scotch.compiler.syntax.DefinitionReference.patternRef;
-import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
 import static scotch.compiler.syntax.Type.fn;
 import static scotch.compiler.util.TextUtil.stringify;
 
@@ -11,8 +10,8 @@ import com.google.common.collect.ImmutableList;
 
 public class PatternMatcher {
 
-    public static PatternMatcher pattern(Symbol symbol, List<PatternMatch> matches, Value body) {
-        return new PatternMatcher(NULL_SOURCE, symbol, matches, body);
+    public static PatternMatcher pattern(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
+        return new PatternMatcher(sourceRange, symbol, matches, body);
     }
 
     private final SourceRange        sourceRange;
@@ -78,10 +77,6 @@ public class PatternMatcher {
     }
 
     public PatternMatcher withMatches(List<PatternMatch> matches) {
-        return new PatternMatcher(sourceRange, symbol, matches, body);
-    }
-
-    public PatternMatcher withSourceRange(SourceRange sourceRange) {
         return new PatternMatcher(sourceRange, symbol, matches, body);
     }
 

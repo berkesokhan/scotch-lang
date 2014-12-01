@@ -35,7 +35,8 @@ public class ValueShuffler {
 
     public Either<SyntaxError, Value> shuffle(Scope scope, List<Value> message) {
         if (message.size() == 1) {
-            return right(message(asList(parser.apply(message.get(0)))));
+            Value value = parser.apply(message.get(0));
+            return right(message(value.getSourceRange(), asList(value)));
         } else {
             try {
                 return right(parser.apply(new Shuffler(scope, message).shuffleMessage()));

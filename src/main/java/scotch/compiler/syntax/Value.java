@@ -1,8 +1,7 @@
 package scotch.compiler.syntax;
 
-import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
-import static scotch.compiler.syntax.Symbol.fromString;
 import static scotch.compiler.util.TextUtil.stringify;
 
 import java.util.List;
@@ -15,32 +14,24 @@ public abstract class Value {
         return new Apply(function.getSourceRange().extend(argument.getSourceRange()), function, argument, type);
     }
 
-    public static Identifier id(String name, Type type) {
-        return id(fromString(name), type);
+    public static Identifier id(SourceRange sourceRange, Symbol symbol, Type type) {
+        return new Identifier(sourceRange, symbol, type);
     }
 
-    public static Identifier id(Symbol symbol, Type type) {
-        return new Identifier(NULL_SOURCE, symbol, type);
+    public static LiteralValue literal(SourceRange sourceRange, Object value, Type type) {
+        return new LiteralValue(sourceRange, value, type);
     }
 
-    public static LiteralValue literal(Object value, Type type) {
-        return new LiteralValue(NULL_SOURCE, value, type);
+    public static Message message(SourceRange sourceRange, List<Value> members) {
+        return new Message(sourceRange, members);
     }
 
-    public static Message message(Value... members) {
-        return message(asList(members));
+    public static PatternMatchers emptyPatterns(Type type) {
+        return patterns(NULL_SOURCE, type, emptyList());
     }
 
-    public static Message message(List<Value> members) {
-        return new Message(NULL_SOURCE, members);
-    }
-
-    public static PatternMatchers patterns(Type type, PatternMatcher... patterns) {
-        return patterns(type, asList(patterns));
-    }
-
-    public static PatternMatchers patterns(Type type, List<PatternMatcher> patterns) {
-        return new PatternMatchers(NULL_SOURCE, patterns, type);
+    public static PatternMatchers patterns(SourceRange sourceRange, Type type, List<PatternMatcher> patterns) {
+        return new PatternMatchers(sourceRange, patterns, type);
     }
 
     private Value() {

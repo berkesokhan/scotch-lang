@@ -41,9 +41,10 @@ public abstract class PatternMatchBuilder<T extends PatternMatch> implements Syn
         @Override
         public CaptureMatch build() {
             return capture(
+                require(sourceRange, "Source range"),
                 require(symbol, "Capture symbol"),
                 require(type, "Capture type")
-            ).withSourceRange(require(sourceRange, "Source range"));
+            );
         }
 
         public CaptureMatchBuilder withIdentifier(Identifier identifier) {
@@ -70,7 +71,10 @@ public abstract class PatternMatchBuilder<T extends PatternMatch> implements Syn
 
         @Override
         public EqualMatch build() {
-            return equal(require(value, "Capture value")).withSourceRange(require(sourceRange, "Source range"));
+            return equal(
+                require(sourceRange, "Source range"),
+                require(value, "Capture value")
+            );
         }
 
         @Override

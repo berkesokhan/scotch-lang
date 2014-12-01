@@ -7,8 +7,9 @@ import static scotch.compiler.syntax.DefinitionEntry.scopedEntry;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
 import static scotch.compiler.syntax.Scope.scope;
+import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
 import static scotch.compiler.syntax.SyntaxError.symbolNotFound;
-import static scotch.compiler.syntax.Value.patterns;
+import static scotch.compiler.syntax.Value.emptyPatterns;
 import static scotch.data.tuple.TupleValues.tuple2;
 
 import java.util.ArrayList;
@@ -259,7 +260,7 @@ public class SyntaxParser implements
 
     private Tuple2<Optional<Definition>, DefinitionReference> createPattern(Symbol symbol) {
         Type type = tryGetType(symbol);
-        Definition definition = collect(value(symbol, type, patterns(scope.reserveType())));
+        Definition definition = collect(value(NULL_SOURCE, symbol, type, emptyPatterns(scope.reserveType())));
         scope.defineValue(symbol, type);
         scope.addPattern(symbol);
         return tuple2(Optional.of(definition), definition.getReference());

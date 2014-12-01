@@ -43,9 +43,10 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
         @Override
         public Identifier build() {
             return id(
+                require(sourceRange, "Source range"),
                 require(symbol, "Identifier symbol"),
                 require(type, "Identifier type")
-            ).withSourceRange(require(sourceRange, "Source range"));
+            );
         }
 
         @Override
@@ -78,9 +79,10 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
         @Override
         public LiteralValue build() {
             return literal(
+                require(sourceRange, "Source range"),
                 require(value, "Literal value"),
                 require(type, "Literal type")
-            ).withSourceRange(require(sourceRange, "Source range"));
+            );
         }
 
         @Override
@@ -111,7 +113,10 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
 
         @Override
         public Message build() {
-            return message(members).withSourceRange(require(sourceRange, "Source range"));
+            return message(
+                require(sourceRange, "Source range"),
+                members
+            );
         }
 
         public MessageBuilder withMember(Value member) {

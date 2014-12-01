@@ -1,6 +1,5 @@
 package scotch.compiler.syntax;
 
-import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
 import static scotch.compiler.syntax.Symbol.qualified;
 import static scotch.compiler.util.TextUtil.stringify;
 
@@ -11,12 +10,12 @@ import com.google.common.collect.ImmutableList;
 
 public abstract class Import {
 
-    public static ModuleImport moduleImport(String moduleName) {
-        return new ModuleImport(NULL_SOURCE, moduleName);
+    public static ModuleImport moduleImport(SourceRange sourceRange, String moduleName) {
+        return new ModuleImport(sourceRange, moduleName);
     }
 
-    public static InclusionImport inclusionImport(String moduleName, List<String> includes) {
-        return new InclusionImport(NULL_SOURCE, moduleName, includes);
+    public static InclusionImport inclusionImport(SourceRange sourceRange, String moduleName, List<String> includes) {
+        return new InclusionImport(sourceRange, moduleName, includes);
     }
 
     private Import() {
