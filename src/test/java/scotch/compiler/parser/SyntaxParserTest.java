@@ -3,15 +3,15 @@ package scotch.compiler.parser;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static scotch.compiler.symbol.Symbol.qualified;
+import static scotch.compiler.symbol.SymbolEntry.immutableEntry;
+import static scotch.compiler.symbol.Type.fn;
+import static scotch.compiler.symbol.Type.sum;
+import static scotch.compiler.symbol.Type.t;
+import static scotch.compiler.symbol.Type.var;
 import static scotch.compiler.syntax.DefinitionReference.classRef;
 import static scotch.compiler.syntax.DefinitionReference.signatureRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
-import static scotch.compiler.syntax.Symbol.qualified;
-import static scotch.compiler.syntax.SymbolEntry.immutableEntry;
-import static scotch.compiler.syntax.Type.fn;
-import static scotch.compiler.syntax.Type.sum;
-import static scotch.compiler.syntax.Type.t;
-import static scotch.compiler.syntax.Type.var;
 import static scotch.compiler.syntax.Value.apply;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.classDef;
@@ -26,8 +26,8 @@ import static scotch.compiler.util.TestUtil.value;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import scotch.compiler.syntax.DefinitionGraph;
 import scotch.compiler.syntax.StubResolver;
-import scotch.compiler.syntax.SymbolTable;
 
 public class SyntaxParserTest {
 
@@ -42,14 +42,14 @@ public class SyntaxParserTest {
     @Test
     public void shouldShufflePattern() {
         resolver.define(immutableEntry(qualified("scotch.data.bool", "not")).build());
-        SymbolTable symbols = parseSyntax(
+        DefinitionGraph graph = parseSyntax(
             resolver,
             "module scotch.test",
             "import scotch.data.bool",
             "left infix 6 (==), (/=)",
             "x == y = not (x /= y)"
         );
-        assertThat(symbols.getDefinition(valueRef("scotch.test", "==")), is(
+        assertThat(graph.getDefinition(valueRef("scotch.test", "==")).get(), is(
             value("scotch.test.(==)", t(8), patterns(t(9),
                 pattern("scotch.test.(pattern#3)", asList(capture("x", t(0)), capture("y", t(2))), apply(
                     id("scotch.data.bool.not", t(4)),
@@ -66,7 +66,7 @@ public class SyntaxParserTest {
 
     @Test
     public void shouldConsolidatePatternsIntoSingleValue() {
-        SymbolTable symbols = parseSyntax(
+        DefinitionGraph graph = parseSyntax(
             resolver,
             "module scotch.test",
             "left infix 8 (+), (-)",
@@ -74,7 +74,7 @@ public class SyntaxParserTest {
             "fib 1 = 1",
             "fib n = fib (n - 1) + fib (n - 2)"
         );
-        assertThat(symbols.getDefinition(valueRef("scotch.test", "fib")), is(
+        assertThat(graph.getDefinition(valueRef("scotch.test", "fib")).get(), is(
             value("scotch.test.fib", t(20), patterns(t(21),
                 pattern("scotch.test.(pattern#2)", asList(equal(literal(0, t(1)))), literal(0, t(3))),
                 pattern("scotch.test.(pattern#6)", asList(equal(literal(1, t(5)))), literal(1, t(7))),
@@ -109,20 +109,20 @@ public class SyntaxParserTest {
 
     @Test
     public void shouldQualifyTypeNames() {
-        SymbolTable symbols = parseSyntax(
+        DefinitionGraph graph = parseSyntax(
             resolver,
             "module scotch.test",
             "import scotch.data.int",
             "fn :: Int -> Int",
             "fn n = n"
         );
-        assertThat(symbols.getValue(valueRef("scotch.test", "fn")), is(fn(sum("scotch.data.int.Int"), sum("scotch.data.int.Int"))));
+        assertThat(graph.getValue(valueRef("scotch.test", "fn")).get(), is(fn(sum("scotch.data.int.Int"), sum("scotch.data.int.Int"))));
     }
 
     @Ignore
     @Test
     public void shouldParseTypeClass() {
-        SymbolTable symbols = parseSyntax(
+        DefinitionGraph graph = parseSyntax(
             resolver,
             "module scotch.test",
             "import scotch.data.bool",
@@ -131,7 +131,7 @@ public class SyntaxParserTest {
             "    x == y = not $ x /= y",
             "    x /= y = not $ x == y"
         );
-        assertThat(symbols.getDefinition(classRef("scotch.test", "Eq")), is(
+        assertThat(graph.getDefinition(classRef("scotch.test", "Eq")), is(
             classDef("scotch.test.Eq", asList(var("a")), asList(
                 signatureRef("scotch.test", "=="),
                 signatureRef("scotch.test", "/="),
@@ -139,6 +139,6 @@ public class SyntaxParserTest {
                 valueRef("scotch.test", "/=")
             ))
         ));
-        assertThat(symbols.getDefinition(signatureRef("scotch.test", "==")), is(fn(var("a", asList("Eq")), fn(var("a", asList("Eq")), sum("Bool")))));
+        assertThat(graph.getDefinition(signatureRef("scotch.test", "==")), is(fn(var("a", asList("Eq")), fn(var("a", asList("Eq")), sum("Bool")))));
     }
 }

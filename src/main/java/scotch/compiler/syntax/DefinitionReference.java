@@ -1,10 +1,12 @@
 package scotch.compiler.syntax;
 
-import static scotch.compiler.syntax.Symbol.qualified;
-import static scotch.compiler.util.TextUtil.stringify;
+import static scotch.compiler.symbol.Symbol.qualified;
+import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
 import java.util.Objects;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Type;
 
 public abstract class DefinitionReference {
 

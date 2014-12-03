@@ -1,16 +1,19 @@
 package scotch.compiler.syntax;
 
 import static java.util.Collections.emptySet;
-import static scotch.compiler.syntax.Type.fn;
+import static scotch.compiler.symbol.Type.fn;
 
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
-import scotch.compiler.syntax.Type.FunctionType;
-import scotch.compiler.syntax.Type.SumType;
-import scotch.compiler.syntax.Type.TypeVisitor;
-import scotch.compiler.syntax.Type.VariableType;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.Type.FunctionType;
+import scotch.compiler.symbol.Type.SumType;
+import scotch.compiler.symbol.Type.TypeVisitor;
+import scotch.compiler.symbol.Type.VariableType;
+import scotch.compiler.symbol.TypeScope;
 
 public class DefaultTypeScope implements TypeScope {
 

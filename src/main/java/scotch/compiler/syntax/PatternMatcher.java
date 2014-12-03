@@ -1,12 +1,15 @@
 package scotch.compiler.syntax;
 
+import static scotch.compiler.symbol.Type.fn;
 import static scotch.compiler.syntax.DefinitionReference.patternRef;
-import static scotch.compiler.syntax.Type.fn;
-import static scotch.compiler.util.TextUtil.stringify;
+import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Type;
+import scotch.compiler.text.SourceRange;
 
 public class PatternMatcher {
 

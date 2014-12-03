@@ -9,10 +9,10 @@ import static org.junit.rules.ExpectedException.none;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static scotch.compiler.symbol.Symbol.qualified;
+import static scotch.compiler.symbol.Symbol.unqualified;
+import static scotch.compiler.symbol.Type.t;
 import static scotch.compiler.syntax.Scope.scope;
-import static scotch.compiler.syntax.Symbol.qualified;
-import static scotch.compiler.syntax.Symbol.unqualified;
-import static scotch.compiler.syntax.Type.t;
 
 import java.util.Optional;
 import org.junit.Before;
@@ -22,6 +22,8 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import scotch.compiler.symbol.Operator;
+import scotch.compiler.symbol.SymbolResolver;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ModuleScopeTest {

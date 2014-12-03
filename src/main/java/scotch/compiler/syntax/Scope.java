@@ -1,5 +1,7 @@
 package scotch.compiler.syntax;
 
+import static scotch.compiler.symbol.SymbolNotFoundException.symbolNotFound;
+
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -8,10 +10,17 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
-import scotch.compiler.syntax.Symbol.QualifiedSymbol;
-import scotch.compiler.syntax.Symbol.SymbolVisitor;
-import scotch.compiler.syntax.Symbol.UnqualifiedSymbol;
-import scotch.compiler.syntax.Type.VariableType;
+import scotch.compiler.symbol.JavaSignature;
+import scotch.compiler.symbol.Operator;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Symbol.QualifiedSymbol;
+import scotch.compiler.symbol.Symbol.SymbolVisitor;
+import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
+import scotch.compiler.symbol.SymbolEntry;
+import scotch.compiler.symbol.SymbolResolver;
+import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.Type.VariableType;
+import scotch.compiler.symbol.TypeScope;
 
 public abstract class Scope implements TypeScope {
 
@@ -25,10 +34,6 @@ public abstract class Scope implements TypeScope {
 
     public static Scope scope(Scope parent) {
         return new ChildScope(parent, new DefaultTypeScope());
-    }
-
-    public static SymbolNotFoundException symbolNotFound(Symbol symbol) {
-        return new SymbolNotFoundException("Could not find symbol " + symbol.quote());
     }
 
     private Scope() {
@@ -57,6 +62,8 @@ public abstract class Scope implements TypeScope {
     public abstract Optional<Type> getSignature(Symbol symbol);
 
     public abstract Type getValue(Symbol symbol);
+
+    public abstract JavaSignature getValueSignature(Symbol symbol);
 
     public abstract boolean isDefined(Symbol symbol);
 
@@ -164,6 +171,11 @@ public abstract class Scope implements TypeScope {
         @Override
         public Type getValue(Symbol symbol) {
             return requireEntry(symbol).getValue();
+        }
+
+        @Override
+        public JavaSignature getValueSignature(Symbol symbol) {
+            return parent.getValueSignature(symbol);
         }
 
         @Override
@@ -364,6 +376,11 @@ public abstract class Scope implements TypeScope {
             return getEntry(symbol)
                 .orElseThrow(() -> symbolNotFound(symbol))
                 .getValue();
+        }
+
+        @Override
+        public JavaSignature getValueSignature(Symbol symbol) {
+            return parent.getValueSignature(symbol);
         }
 
         @Override
@@ -571,6 +588,11 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public JavaSignature getValueSignature(Symbol symbol) {
+            return resolver.getEntry(symbol).orElseThrow(() -> symbolNotFound(symbol)).getValueSignature();
+        }
+
+        @Override
         public boolean isBound(VariableType type) {
             throw new IllegalStateException();
         }
@@ -644,16 +666,12 @@ public abstract class Scope implements TypeScope {
             return symbol.accept(new SymbolVisitor<Optional<SymbolEntry>>() {
                 @Override
                 public Optional<SymbolEntry> visit(QualifiedSymbol symbol) {
-                    if (resolver.isDefined(symbol)) {
-                        return Optional.of(resolver.getEntry(symbol));
-                    } else {
-                        return Optional.empty();
-                    }
+                    return resolver.getEntry(symbol);
                 }
 
                 @Override
                 public Optional<SymbolEntry> visit(UnqualifiedSymbol symbol) {
-                    throw symbolNotFound(symbol);
+                    return Optional.empty();
                 }
             });
         }
@@ -672,20 +690,20 @@ public abstract class Scope implements TypeScope {
             }
 
             @Override
-            public SymbolEntry getEntry(Symbol symbol) {
-                return symbol.accept(new SymbolVisitor<SymbolEntry>() {
+            public Optional<SymbolEntry> getEntry(Symbol symbol) {
+                return symbol.accept(new SymbolVisitor<Optional<SymbolEntry>>() {
                     @Override
-                    public SymbolEntry visit(QualifiedSymbol symbol) {
+                    public Optional<SymbolEntry> visit(QualifiedSymbol symbol) {
                         if (children.containsKey(symbol.getModuleName()) && children.get(symbol.getModuleName()).isDefinedLocally(symbol)) {
-                            return children.get(symbol.getModuleName()).getEntry(symbol).orElseThrow(() -> symbolNotFound(symbol));
+                            return children.get(symbol.getModuleName()).getEntry(symbol);
                         } else {
                             return resolver.getEntry(symbol);
                         }
                     }
 
                     @Override
-                    public SymbolEntry visit(UnqualifiedSymbol symbol) {
-                        throw symbolNotFound(symbol);
+                    public Optional<SymbolEntry> visit(UnqualifiedSymbol symbol) {
+                        return Optional.empty();
                     }
                 });
             }

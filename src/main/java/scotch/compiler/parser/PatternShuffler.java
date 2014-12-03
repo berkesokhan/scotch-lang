@@ -2,24 +2,24 @@ package scotch.compiler.parser;
 
 import static java.util.Collections.reverse;
 import static scotch.compiler.syntax.SyntaxError.parseError;
-import static scotch.compiler.util.TextUtil.quote;
-import static scotch.lang.Either.left;
-import static scotch.lang.Either.right;
+import static scotch.data.either.Either.left;
+import static scotch.data.either.Either.right;
+import static scotch.util.StringUtil.quote;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import scotch.compiler.symbol.Operator;
+import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.Definition.UnshuffledPattern;
-import scotch.compiler.syntax.Operator;
 import scotch.compiler.syntax.PatternMatch;
 import scotch.compiler.syntax.PatternMatch.CaptureMatch;
 import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
 import scotch.compiler.syntax.Scope;
-import scotch.compiler.syntax.Symbol;
 import scotch.compiler.syntax.SyntaxError;
-import scotch.lang.Either;
-import scotch.lang.Either.EitherVisitor;
+import scotch.data.either.Either;
+import scotch.data.either.Either.EitherVisitor;
 
 public class PatternShuffler {
 

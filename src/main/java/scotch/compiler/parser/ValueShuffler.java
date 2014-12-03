@@ -4,26 +4,26 @@ import static java.util.Arrays.asList;
 import static scotch.compiler.syntax.SyntaxError.parseError;
 import static scotch.compiler.syntax.Value.apply;
 import static scotch.compiler.syntax.Value.message;
-import static scotch.lang.Either.left;
-import static scotch.lang.Either.right;
+import static scotch.data.either.Either.left;
+import static scotch.data.either.Either.right;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.function.Function;
-import scotch.compiler.syntax.Operator;
+import scotch.compiler.symbol.Operator;
 import scotch.compiler.syntax.PatternMatch;
 import scotch.compiler.syntax.PatternMatch.CaptureMatch;
 import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
 import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.SyntaxError;
-import scotch.compiler.syntax.Type;
+import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Identifier;
 import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.syntax.Value.ValueVisitor;
-import scotch.lang.Either;
-import scotch.lang.Either.EitherVisitor;
+import scotch.data.either.Either;
+import scotch.data.either.Either.EitherVisitor;
 
 public class ValueShuffler {
 

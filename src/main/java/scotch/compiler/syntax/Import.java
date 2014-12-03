@@ -1,12 +1,15 @@
 package scotch.compiler.syntax;
 
-import static scotch.compiler.syntax.Symbol.qualified;
-import static scotch.compiler.util.TextUtil.stringify;
+import static scotch.compiler.symbol.Symbol.qualified;
+import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.SymbolResolver;
+import scotch.compiler.text.SourceRange;
 
 public abstract class Import {
 

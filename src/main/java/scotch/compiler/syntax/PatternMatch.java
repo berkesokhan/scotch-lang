@@ -1,8 +1,11 @@
 package scotch.compiler.syntax;
 
-import static scotch.compiler.util.TextUtil.stringify;
+import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Type;
+import scotch.compiler.text.SourceRange;
 
 public abstract class PatternMatch {
 

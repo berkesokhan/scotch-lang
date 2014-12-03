@@ -1,14 +1,18 @@
 package scotch.compiler.syntax;
 
-import static scotch.compiler.syntax.Operator.Fixity.LEFT_INFIX;
-import static scotch.compiler.syntax.Operator.operator;
-import static scotch.compiler.syntax.Symbol.qualified;
-import static scotch.compiler.syntax.SymbolEntry.immutableEntry;
-import static scotch.compiler.syntax.Type.fn;
-import static scotch.compiler.syntax.Type.sum;
+import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.compiler.symbol.Operator.operator;
+import static scotch.compiler.symbol.Symbol.qualified;
+import static scotch.compiler.symbol.SymbolEntry.immutableEntry;
+import static scotch.compiler.symbol.Type.fn;
+import static scotch.compiler.symbol.Type.sum;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.SymbolEntry;
+import scotch.compiler.symbol.SymbolResolver;
 
 public class StubResolver implements SymbolResolver {
 
@@ -51,7 +55,7 @@ public class StubResolver implements SymbolResolver {
     }
 
     @Override
-    public SymbolEntry getEntry(Symbol symbol) {
-        return symbols.get(symbol);
+    public Optional<SymbolEntry> getEntry(Symbol symbol) {
+        return Optional.ofNullable(symbols.get(symbol));
     }
 }

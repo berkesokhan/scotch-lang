@@ -8,13 +8,13 @@ import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import scotch.compiler.syntax.SourceRange;
-import scotch.compiler.syntax.Symbol;
-import scotch.compiler.syntax.Type;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Identifier;
 import scotch.compiler.syntax.Value.LiteralValue;
 import scotch.compiler.syntax.Value.Message;
+import scotch.compiler.text.SourceRange;
 
 public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> {
 

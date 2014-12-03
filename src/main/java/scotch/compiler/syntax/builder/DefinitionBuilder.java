@@ -13,6 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.Definition;
 import scotch.compiler.syntax.Definition.ClassDefinition;
 import scotch.compiler.syntax.Definition.ModuleDefinition;
@@ -23,12 +26,9 @@ import scotch.compiler.syntax.Definition.ValueDefinition;
 import scotch.compiler.syntax.Definition.ValueSignature;
 import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.Import;
-import scotch.compiler.syntax.Operator.Fixity;
 import scotch.compiler.syntax.PatternMatch;
-import scotch.compiler.syntax.SourceRange;
-import scotch.compiler.syntax.Symbol;
-import scotch.compiler.syntax.Type;
 import scotch.compiler.syntax.Value;
+import scotch.compiler.text.SourceRange;
 
 public abstract class DefinitionBuilder<T extends Definition> implements SyntaxBuilder<T> {
 

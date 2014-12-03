@@ -1,10 +1,10 @@
 package scotch.compiler.syntax.builder;
 
-import static scotch.compiler.syntax.SymbolTable.symbols;
+import static scotch.compiler.syntax.DefinitionGraph.createGraph;
 
 import java.util.List;
 import scotch.compiler.syntax.DefinitionEntry;
-import scotch.compiler.syntax.SymbolTable.SymbolTableBuilder;
+import scotch.compiler.syntax.DefinitionGraph.DefinitionGraphBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.ClassDefinitionBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.ModuleDefinitionBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.OperatorDefinitionBuilder;
@@ -65,8 +65,8 @@ public class SyntaxBuilderFactory {
         return DefinitionBuilder.signatureBuilder();
     }
 
-    public SymbolTableBuilder symbolTableBuilder(List<DefinitionEntry> definitions) {
-        return symbols(definitions);
+    public DefinitionGraphBuilder definitionGraphBuilder(List<DefinitionEntry> definitions) {
+        return createGraph(definitions);
     }
 
     public UnshuffledPatternBuilder unshuffledBuilder() {

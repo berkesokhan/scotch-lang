@@ -1,6 +1,6 @@
 package scotch.compiler.syntax.builder;
 
-import scotch.compiler.syntax.SourceRange;
+import scotch.compiler.text.SourceRange;
 
 public interface SyntaxBuilder<T> {
 

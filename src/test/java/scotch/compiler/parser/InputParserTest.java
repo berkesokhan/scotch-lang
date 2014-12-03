@@ -4,6 +4,12 @@ import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static scotch.compiler.symbol.Type.fn;
+import static scotch.compiler.symbol.Type.sum;
+import static scotch.compiler.symbol.Type.t;
+import static scotch.compiler.symbol.Type.var;
+import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.compiler.symbol.Value.Fixity.PREFIX;
 import static scotch.compiler.syntax.DefinitionReference.classRef;
 import static scotch.compiler.syntax.DefinitionReference.moduleRef;
 import static scotch.compiler.syntax.DefinitionReference.operatorRef;
@@ -11,12 +17,6 @@ import static scotch.compiler.syntax.DefinitionReference.patternRef;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.DefinitionReference.signatureRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
-import static scotch.compiler.syntax.Operator.Fixity.LEFT_INFIX;
-import static scotch.compiler.syntax.Operator.Fixity.PREFIX;
-import static scotch.compiler.syntax.Type.fn;
-import static scotch.compiler.syntax.Type.sum;
-import static scotch.compiler.syntax.Type.t;
-import static scotch.compiler.syntax.Type.var;
 import static scotch.compiler.util.TestUtil.bodyOf;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.classDef;
@@ -31,8 +31,7 @@ import static scotch.compiler.util.TestUtil.unshuffled;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import scotch.compiler.ParseException;
-import scotch.compiler.syntax.SymbolTable;
+import scotch.compiler.syntax.DefinitionGraph;
 
 public class InputParserTest {
 
@@ -41,7 +40,7 @@ public class InputParserTest {
 
     @Test
     public void shouldParseClassDefinition() {
-        SymbolTable symbols = parseInput(
+        DefinitionGraph graph = parseInput(
             "module scotch.data.eq",
             "prefix 4 not",
             "left infix 5 (==), (/=)",
@@ -50,7 +49,7 @@ public class InputParserTest {
             "    x == y = not x /= y",
             "    x /= y = not x == y"
         );
-        assertThat(symbols.getDefinition(classRef("scotch.data.eq", "Eq")), is(
+        assertThat(graph.getDefinition(classRef("scotch.data.eq", "Eq")).get(), is(
             classDef("scotch.data.eq.Eq", asList(var("a")), asList(
                 signatureRef("scotch.data.eq", "=="),
                 signatureRef("scotch.data.eq", "/="),
@@ -62,28 +61,28 @@ public class InputParserTest {
 
     @Test
     public void shouldParseMultiValueSignature() {
-        SymbolTable symbols = parseInput(
+        DefinitionGraph graph = parseInput(
             "module scotch.test",
             "(==), (/=) :: a -> a -> Bool"
         );
-        assertThat(symbols.getDefinition(signatureRef("scotch.test", "==")), is(
+        assertThat(graph.getDefinition(signatureRef("scotch.test", "==")).get(), is(
             signature("scotch.test.(==)", fn(var("a"), fn(var("a"), sum("Bool"))))
         ));
-        assertThat(symbols.getDefinition(signatureRef("scotch.test", "/=")), is(
+        assertThat(graph.getDefinition(signatureRef("scotch.test", "/=")).get(), is(
             signature("scotch.test.(/=)", fn(var("a"), fn(var("a"), sum("Bool"))))
         ));
     }
 
     @Test
     public void shouldParseMultipleModulesInSameSource() {
-        SymbolTable symbols = parseInput(
+        DefinitionGraph graph = parseInput(
             "module scotch.string",
             "length s = jStrlen s",
             "",
             "module scotch.math",
             "abs n = jAbs n"
         );
-        assertThat(symbols.getDefinition(rootRef()), is(root(asList(
+        assertThat(graph.getDefinition(rootRef()).get(), is(root(asList(
             moduleRef("scotch.string"),
             moduleRef("scotch.math")
         ))));
@@ -91,27 +90,27 @@ public class InputParserTest {
 
     @Test
     public void shouldParseOperatorDefinitions() {
-        SymbolTable symbols = parseInput(
+        DefinitionGraph graph = parseInput(
             "module scotch.test",
             "left infix 8 (*), (/), (%)",
             "left infix 7 (+), (-)",
             "prefix 4 not"
         );
-        assertThat(symbols.getDefinition(operatorRef("scotch.test", "*")), is(operatorDef("scotch.test.(*)", LEFT_INFIX, 8)));
-        assertThat(symbols.getDefinition(operatorRef("scotch.test", "/")), is(operatorDef("scotch.test.(/)", LEFT_INFIX, 8)));
-        assertThat(symbols.getDefinition(operatorRef("scotch.test", "%")), is(operatorDef("scotch.test.(%)", LEFT_INFIX, 8)));
-        assertThat(symbols.getDefinition(operatorRef("scotch.test", "+")), is(operatorDef("scotch.test.(+)", LEFT_INFIX, 7)));
-        assertThat(symbols.getDefinition(operatorRef("scotch.test", "-")), is(operatorDef("scotch.test.(-)", LEFT_INFIX, 7)));
-        assertThat(symbols.getDefinition(operatorRef("scotch.test", "not")), is(operatorDef("scotch.test.not", PREFIX, 4)));
+        assertThat(graph.getDefinition(operatorRef("scotch.test", "*")).get(), is(operatorDef("scotch.test.(*)", LEFT_INFIX, 8)));
+        assertThat(graph.getDefinition(operatorRef("scotch.test", "/")).get(), is(operatorDef("scotch.test.(/)", LEFT_INFIX, 8)));
+        assertThat(graph.getDefinition(operatorRef("scotch.test", "%")).get(), is(operatorDef("scotch.test.(%)", LEFT_INFIX, 8)));
+        assertThat(graph.getDefinition(operatorRef("scotch.test", "+")).get(), is(operatorDef("scotch.test.(+)", LEFT_INFIX, 7)));
+        assertThat(graph.getDefinition(operatorRef("scotch.test", "-")).get(), is(operatorDef("scotch.test.(-)", LEFT_INFIX, 7)));
+        assertThat(graph.getDefinition(operatorRef("scotch.test", "not")).get(), is(operatorDef("scotch.test.not", PREFIX, 4)));
     }
 
     @Test
     public void shouldParseParenthesesAsSeparateMessage() {
-        SymbolTable symbols = parseInput(
+        DefinitionGraph graph = parseInput(
             "module scotch.test",
             "value = fn (a b)"
         );
-        assertThat(bodyOf(symbols.getDefinition(valueRef("scotch.test", "value"))), is(
+        assertThat(bodyOf(graph.getDefinition(valueRef("scotch.test", "value"))), is(
             message(
                 id("fn", t(1)),
                 message(id("a", t(2)), id("b", t(3)))
@@ -121,23 +120,23 @@ public class InputParserTest {
 
     @Test
     public void shouldParseSignature() {
-        SymbolTable symbols = parseInput(
+        DefinitionGraph graph = parseInput(
             "module scotch.test",
             "length :: String -> Int"
         );
-        assertThat(symbols.getDefinition(signatureRef("scotch.test", "length")), is(
+        assertThat(graph.getDefinition(signatureRef("scotch.test", "length")).get(), is(
             signature("scotch.test.length", fn(sum("String"), sum("Int")))
         ));
     }
 
     @Test
     public void shouldParseValue() {
-        SymbolTable symbols = parseInput(
+        DefinitionGraph graph = parseInput(
             "module scotch.test",
             "length :: String -> Int",
             "length s = jStrlen s"
         );
-        assertThat(symbols.getDefinition(patternRef("scotch.test", "pattern#2")), is(unshuffled(
+        assertThat(graph.getDefinition(patternRef("scotch.test", "pattern#2")).get(), is(unshuffled(
             "scotch.test.(pattern#2)",
             asList(capture("length", t(0)), capture("s", t(1))),
             message(id("jStrlen", t(3)), id("s", t(4)))
@@ -203,31 +202,31 @@ public class InputParserTest {
 
     @Test
     public void shouldParseTypeConstraintInSignature() {
-        SymbolTable symbols = parseInput(
+        DefinitionGraph graph = parseInput(
             "module scotch.test",
             "fn :: (Eq a) => a -> a -> Bool"
         );
-        assertThat(symbols.getValue(signatureRef("scotch.test", "fn")),
+        assertThat(graph.getValue(signatureRef("scotch.test", "fn")).get(),
             is(fn(var("a", asList("Eq")), fn(var("a", asList("Eq")), sum("Bool")))));
     }
 
     @Test
     public void shouldParseMultipleConstraintsOnSameVariable() {
-        SymbolTable symbols = parseInput(
+        DefinitionGraph graph = parseInput(
             "module scotch.test",
             "fn :: (Eq a, Show a) => a -> a -> Bool"
         );
-        assertThat(symbols.getValue(signatureRef("scotch.test", "fn")),
+        assertThat(graph.getValue(signatureRef("scotch.test", "fn")).get(),
             is(fn(var("a", asList("Eq", "Show")), fn(var("a", asList("Eq", "Show")), sum("Bool")))));
     }
 
     @Test
     public void shouldParseCompoundConstraints() {
-        SymbolTable symbols = parseInput(
+        DefinitionGraph graph = parseInput(
             "module scotch.test",
             "fn :: (Eq a, Show b) => a -> b -> Bool"
         );
-        assertThat(symbols.getValue(signatureRef("scotch.test", "fn")),
+        assertThat(graph.getValue(signatureRef("scotch.test", "fn")).get(),
             is(fn(var("a", asList("Eq")), fn(var("b", asList("Show")), sum("Bool")))));
     }
 

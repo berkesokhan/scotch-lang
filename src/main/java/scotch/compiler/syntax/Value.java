@@ -1,12 +1,15 @@
 package scotch.compiler.syntax;
 
 import static java.util.Collections.emptyList;
-import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
-import static scotch.compiler.util.TextUtil.stringify;
+import static scotch.compiler.text.SourceRange.NULL_SOURCE;
+import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Type;
+import scotch.compiler.text.SourceRange;
 
 public abstract class Value {
 
@@ -65,8 +68,8 @@ public abstract class Value {
             return visitOtherwise(identifier);
         }
 
-        default T visit(LiteralValue value) {
-            return visitOtherwise(value);
+        default T visit(LiteralValue literal) {
+            return visitOtherwise(literal);
         }
 
         default T visit(Message message) {

@@ -6,10 +6,10 @@ import static org.junit.rules.ExpectedException.none;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static scotch.compiler.symbol.Symbol.qualified;
+import static scotch.compiler.symbol.Symbol.unqualified;
+import static scotch.compiler.symbol.Type.t;
 import static scotch.compiler.syntax.Scope.scope;
-import static scotch.compiler.syntax.Symbol.qualified;
-import static scotch.compiler.syntax.Symbol.unqualified;
-import static scotch.compiler.syntax.Type.t;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -18,6 +18,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import scotch.compiler.symbol.Operator;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ChildScopeTest {

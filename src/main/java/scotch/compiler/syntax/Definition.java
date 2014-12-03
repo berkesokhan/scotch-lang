@@ -1,5 +1,7 @@
 package scotch.compiler.syntax;
 
+import static scotch.compiler.symbol.Operator.operator;
+import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.syntax.DefinitionReference.classRef;
 import static scotch.compiler.syntax.DefinitionReference.instanceRef;
 import static scotch.compiler.syntax.DefinitionReference.moduleRef;
@@ -8,16 +10,20 @@ import static scotch.compiler.syntax.DefinitionReference.patternRef;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.DefinitionReference.signatureRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
-import static scotch.compiler.syntax.Operator.operator;
 import static scotch.compiler.syntax.PatternMatcher.pattern;
-import static scotch.compiler.util.TextUtil.stringify;
+import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
+import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.Operator;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.DefinitionReference.ClassReference;
 import scotch.compiler.syntax.DefinitionReference.ModuleReference;
-import scotch.compiler.syntax.Operator.Fixity;
+import scotch.compiler.text.SourceRange;
 
 public abstract class Definition {
 
@@ -60,8 +66,14 @@ public abstract class Definition {
 
     public abstract DefinitionReference getReference();
 
+    public abstract SourceRange getSourceRange();
+
     @Override
     public abstract int hashCode();
+
+    public void markLine(CodeBlock codeBlock) {
+        getSourceRange().markLine(codeBlock);
+    }
 
     @Override
     public abstract String toString();
@@ -143,13 +155,14 @@ public abstract class Definition {
             }
         }
 
-        public InstanceConstructor getConstructor(ModuleReference moduleReference) {
-            throw new UnsupportedOperationException(); // TODO
-        }
-
         @Override
         public DefinitionReference getReference() {
             return classRef(symbol);
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
         }
 
         public Symbol getSymbol() {
@@ -216,6 +229,11 @@ public abstract class Definition {
         }
 
         @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(sourceRange, classReference, moduleReference, types, members);
         }
@@ -259,6 +277,10 @@ public abstract class Definition {
             }
         }
 
+        public String getClassName() {
+            return fromString(symbol + ".ScotchModule").getClassName();
+        }
+
         public List<DefinitionReference> getDefinitions() {
             return definitions;
         }
@@ -270,6 +292,11 @@ public abstract class Definition {
         @Override
         public DefinitionReference getReference() {
             return moduleRef(symbol);
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
         }
 
         @Override
@@ -329,6 +356,11 @@ public abstract class Definition {
             return operatorRef(symbol);
         }
 
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
         public Symbol getSymbol() {
             return symbol;
         }
@@ -371,6 +403,11 @@ public abstract class Definition {
         @Override
         public DefinitionReference getReference() {
             return rootRef();
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
         }
 
         @Override
@@ -490,9 +527,17 @@ public abstract class Definition {
             return body;
         }
 
+        public String getMethodName() {
+            return symbol.unqualify().getMethodName();
+        }
+
         @Override
         public DefinitionReference getReference() {
             return valueRef(symbol);
+        }
+
+        public String getSignature() {
+            return type.getSignature();
         }
 
         public SourceRange getSourceRange() {
@@ -563,6 +608,11 @@ public abstract class Definition {
         @Override
         public DefinitionReference getReference() {
             return signatureRef(symbol);
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
         }
 
         public Symbol getSymbol() {

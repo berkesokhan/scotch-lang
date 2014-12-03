@@ -7,9 +7,9 @@ import static scotch.compiler.syntax.DefinitionEntry.scopedEntry;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
 import static scotch.compiler.syntax.Scope.scope;
-import static scotch.compiler.syntax.SourceRange.NULL_SOURCE;
 import static scotch.compiler.syntax.SyntaxError.symbolNotFound;
 import static scotch.compiler.syntax.Value.emptyPatterns;
+import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 import static scotch.data.tuple.TupleValues.tuple2;
 
 import java.util.ArrayList;
@@ -22,6 +22,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.parser.PatternShuffler.ResultVisitor;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.SymbolResolver;
+import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.Type.FunctionType;
+import scotch.compiler.symbol.Type.SumType;
+import scotch.compiler.symbol.Type.TypeVisitor;
 import scotch.compiler.syntax.Definition;
 import scotch.compiler.syntax.Definition.DefinitionVisitor;
 import scotch.compiler.syntax.Definition.ModuleDefinition;
@@ -33,6 +39,7 @@ import scotch.compiler.syntax.Definition.ValueSignature;
 import scotch.compiler.syntax.DefinitionEntry;
 import scotch.compiler.syntax.DefinitionEntry.DefinitionEntryVisitor;
 import scotch.compiler.syntax.DefinitionEntry.ScopedEntry;
+import scotch.compiler.syntax.DefinitionGraph;
 import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.DefinitionReference.DefinitionReferenceVisitor;
 import scotch.compiler.syntax.DefinitionReference.ModuleReference;
@@ -43,14 +50,7 @@ import scotch.compiler.syntax.PatternMatch.EqualMatch;
 import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
 import scotch.compiler.syntax.PatternMatcher;
 import scotch.compiler.syntax.Scope;
-import scotch.compiler.syntax.Symbol;
-import scotch.compiler.syntax.SymbolResolver;
-import scotch.compiler.syntax.SymbolTable;
 import scotch.compiler.syntax.SyntaxError;
-import scotch.compiler.syntax.Type;
-import scotch.compiler.syntax.Type.FunctionType;
-import scotch.compiler.syntax.Type.SumType;
-import scotch.compiler.syntax.Type.TypeVisitor;
 import scotch.compiler.syntax.TypeGenerator;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
@@ -59,8 +59,8 @@ import scotch.compiler.syntax.Value.LiteralValue;
 import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.syntax.Value.PatternMatchers;
 import scotch.compiler.syntax.Value.ValueVisitor;
+import scotch.data.either.Either.EitherVisitor;
 import scotch.data.tuple.Tuple2;
-import scotch.lang.Either.EitherVisitor;
 
 public class SyntaxParser implements
     DefinitionReferenceVisitor<Optional<DefinitionReference>>,
@@ -70,7 +70,7 @@ public class SyntaxParser implements
     PatternMatchVisitor<PatternMatch>,
     TypeVisitor<Type> {
 
-    private final SymbolTable                               symbols;
+    private final DefinitionGraph                           graph;
     private final PatternShuffler                           patternShuffler;
     private final ValueShuffler                             valueShuffler;
     private final List<SyntaxError>                         errors;
@@ -79,19 +79,20 @@ public class SyntaxParser implements
     private       Scope                                     scope;
     private       String                                    currentModule;
 
-    public SyntaxParser(SymbolTable symbols, SymbolResolver resolver) {
-        this.symbols = symbols;
+    public SyntaxParser(DefinitionGraph graph, SymbolResolver resolver) {
+        this.graph = graph;
         this.patternShuffler = new PatternShuffler();
         this.valueShuffler = new ValueShuffler(value -> value.accept(this));
         this.errors = new ArrayList<>();
-        this.typeGenerator = symbols.getTypeGenerator();
+        this.typeGenerator = graph.getTypeGenerator();
         this.scope = scope(typeGenerator, resolver);
         this.definitions = new HashMap<>();
     }
 
-    public SymbolTable analyze() {
-        symbols.getDefinition(rootRef()).accept(this);
-        return symbols
+    public DefinitionGraph analyze() {
+        // TODO: results in "empty" symbol table if root not present
+        graph.getDefinition(rootRef()).ifPresent(root -> root.accept(this));
+        return graph
             .copyWith(ImmutableList.copyOf(definitions.values()))
             .withSequence(typeGenerator)
             .withErrors(errors)
@@ -209,8 +210,8 @@ public class SyntaxParser implements
     }
 
     @Override
-    public Value visit(LiteralValue value) {
-        return value;
+    public Value visit(LiteralValue literal) {
+        return literal;
     }
 
     @Override
@@ -275,7 +276,9 @@ public class SyntaxParser implements
     }
 
     private Optional<DefinitionReference> parseDefinition(DefinitionReference reference) {
-        return symbols.getDefinition(reference).accept(this).map(Definition::getReference);
+        return graph.getDefinition(reference)
+            .flatMap(definition -> definition.accept(this))
+            .map(Definition::getReference);
     }
 
     private void replaceDefinitionValue(DefinitionReference reference, Function<ValueDefinition, ValueVisitor<ValueDefinition>> function) {
@@ -346,8 +349,8 @@ public class SyntaxParser implements
             }
 
             @Override
-            public Value visit(LiteralValue value) {
-                return value;
+            public Value visit(LiteralValue literal) {
+                return literal;
             }
 
             @Override

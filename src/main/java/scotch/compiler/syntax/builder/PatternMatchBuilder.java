@@ -5,14 +5,14 @@ import static scotch.compiler.syntax.PatternMatch.equal;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.Optional;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.PatternMatch;
 import scotch.compiler.syntax.PatternMatch.CaptureMatch;
 import scotch.compiler.syntax.PatternMatch.EqualMatch;
-import scotch.compiler.syntax.SourceRange;
-import scotch.compiler.syntax.Symbol;
-import scotch.compiler.syntax.Type;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Identifier;
+import scotch.compiler.text.SourceRange;
 
 public abstract class PatternMatchBuilder<T extends PatternMatch> implements SyntaxBuilder<T> {
 

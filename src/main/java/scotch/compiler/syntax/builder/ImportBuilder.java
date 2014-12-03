@@ -6,7 +6,7 @@ import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import java.util.Optional;
 import scotch.compiler.syntax.Import;
 import scotch.compiler.syntax.Import.ModuleImport;
-import scotch.compiler.syntax.SourceRange;
+import scotch.compiler.text.SourceRange;
 
 public abstract class ImportBuilder<T extends Import> implements SyntaxBuilder<T> {
 

@@ -5,13 +5,14 @@ import static java.util.Collections.emptyList;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static scotch.compiler.symbol.Symbol.qualified;
+import static scotch.compiler.symbol.Symbol.unqualified;
+import static scotch.compiler.symbol.Type.t;
 import static scotch.compiler.syntax.Scope.scope;
-import static scotch.compiler.syntax.Symbol.qualified;
-import static scotch.compiler.syntax.Symbol.unqualified;
-import static scotch.compiler.syntax.Type.t;
 import static scotch.compiler.util.TestUtil.moduleImport;
 
 import java.util.Optional;
@@ -20,6 +21,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.SymbolEntry;
+import scotch.compiler.symbol.SymbolNotFoundException;
+import scotch.compiler.symbol.SymbolResolver;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RootScopeTest {
@@ -27,22 +32,23 @@ public class RootScopeTest {
     @Mock
     private SymbolResolver resolver;
     @Mock
-    private TypeGenerator typeGenerator;
+    private TypeGenerator  typeGenerator;
     private Scope          rootScope;
     private Scope          module1Scope;
     private Scope          module2Scope;
+
+    @Before
+    public void setUp() {
+        when(resolver.getEntry(any(Symbol.class))).thenReturn(Optional.empty());
+        rootScope = scope(typeGenerator, resolver);
+        module1Scope = rootScope.enterScope("scotch.module1", emptyList());
+        module2Scope = rootScope.enterScope("scotch.module2", asList(moduleImport("scotch.module1")));
+    }
 
     @Test
     public void nothingShouldBeAnOperator() {
         assertThat(rootScope.isOperator_(qualified("scotch.module1", "fn")), is(false));
         assertThat(rootScope.isOperator_(unqualified("fn")), is(false));
-    }
-
-    @Before
-    public void setUp() {
-        rootScope = scope(typeGenerator, resolver);
-        module1Scope = rootScope.enterScope("scotch.module1", emptyList());
-        module2Scope = rootScope.enterScope("scotch.module2", asList(moduleImport("scotch.module1")));
     }
 
     @Test
@@ -63,7 +69,7 @@ public class RootScopeTest {
     public void shouldDelegateToResolver_whenGettingEntryForQualifiedSymbolNotFoundInModules() {
         Symbol symbol = qualified("scotch.module1", "fn");
         when(resolver.isDefined(symbol)).thenReturn(true);
-        when(resolver.getEntry(symbol)).thenReturn(mock(SymbolEntry.class));
+        when(resolver.getEntry(symbol)).thenReturn(Optional.of(mock(SymbolEntry.class)));
         rootScope.getEntry(symbol);
         verify(resolver).getEntry(symbol);
     }

@@ -1,7 +1,10 @@
 package scotch.compiler.syntax;
 
-import static scotch.compiler.syntax.Symbol.qualified;
-import static scotch.compiler.syntax.Type.t;
+import static scotch.compiler.symbol.Symbol.qualified;
+import static scotch.compiler.symbol.Type.t;
+
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Type;
 
 public class TypeGenerator {
 
