@@ -1,16 +1,21 @@
 package scotch.compiler.syntax;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.junit.rules.ExpectedException.none;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.symbol.Type.t;
 import static scotch.compiler.syntax.Scope.scope;
+import static scotch.compiler.util.TestUtil.intType;
 
+import com.google.common.collect.ImmutableSet;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -19,6 +24,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import scotch.compiler.symbol.Operator;
+import scotch.compiler.symbol.TypeGenerator;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ChildScopeTest {
@@ -29,15 +35,15 @@ public class ChildScopeTest {
     private Scope parentScope;
     private Scope childScope;
 
+    @Before
+    public void setUp() {
+        childScope = scope(parentScope, new DefaultTypeScope(new TypeGenerator()));
+    }
+
     @Test
     public void leavingScopeShouldGiveParent() {
         assertThat(childScope.leaveScope(), sameInstance(parentScope));
         assertThat(childScope.enterScope().leaveScope(), sameInstance(childScope));
-    }
-
-    @Before
-    public void setUp() {
-        childScope = scope(parentScope);
     }
 
     @Test
@@ -64,5 +70,13 @@ public class ChildScopeTest {
         childScope.defineValue(unqualified("x"), t(2));
         childScope.getValue(unqualified("x"));
         verify(parentScope, never()).getValue(unqualified("x"));
+    }
+
+    @Test
+    public void shouldGetContextFromParent() {
+        when(parentScope.getContext(intType())).thenReturn(ImmutableSet.of(fromString("scotch.data.num.Num")));
+        assertThat(childScope.getContext(intType()), contains(
+            fromString("scotch.data.num.Num")
+        ));
     }
 }

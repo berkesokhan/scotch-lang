@@ -1,14 +1,18 @@
 package scotch.compiler.syntax;
 
+import static java.util.stream.Collectors.toSet;
 import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolResolver;
+import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.text.SourceRange;
 
 public abstract class Import {
@@ -21,12 +25,21 @@ public abstract class Import {
         return new InclusionImport(sourceRange, moduleName, includes);
     }
 
+    private static Set<Symbol> getContext_(String moduleName, Type type, SymbolResolver resolver) {
+        return resolver.getTypeInstancesByModule(moduleName).stream()
+            .filter(typeInstance -> typeInstance.getParameters().get(0).equals(type))
+            .map(TypeInstanceDescriptor::getTypeClass)
+            .collect(toSet());
+    }
+
     private Import() {
         // intentionally empty
     }
 
     @Override
     public abstract boolean equals(Object o);
+
+    public abstract Set<Symbol> getContext(Type type, SymbolResolver resolver);
 
     @Override
     public abstract int hashCode();
@@ -61,6 +74,11 @@ public abstract class Import {
             } else {
                 return false;
             }
+        }
+
+        @Override
+        public Set<Symbol> getContext(Type type, SymbolResolver resolver) {
+            return getContext_(moduleName, type, resolver);
         }
 
         @Override
@@ -105,6 +123,11 @@ public abstract class Import {
         @Override
         public boolean equals(Object o) {
             return o == this || o instanceof ModuleImport && Objects.equals(moduleName, ((ModuleImport) o).moduleName);
+        }
+
+        @Override
+        public Set<Symbol> getContext(Type type, SymbolResolver resolver) {
+            return getContext_(moduleName, type, resolver);
         }
 
         @Override

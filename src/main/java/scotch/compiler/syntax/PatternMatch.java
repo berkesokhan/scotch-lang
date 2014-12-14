@@ -108,6 +108,10 @@ public abstract class PatternMatch {
         public CaptureMatch withSourceRange(SourceRange sourceRange) {
             return new CaptureMatch(sourceRange, symbol, type);
         }
+
+        public PatternMatch withType(Type type) {
+            return new CaptureMatch(sourceRange, symbol, type);
+        }
     }
 
     public static class EqualMatch extends PatternMatch {

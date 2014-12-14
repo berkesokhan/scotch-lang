@@ -4,38 +4,57 @@ import static java.lang.System.out;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.compiler.util.TestUtil.analyzeTypes;
+import static scotch.compiler.util.TestUtil.bindMethods;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
-import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import scotch.compiler.symbol.ClasspathResolver;
-import scotch.compiler.symbol.SymbolResolver;
+import scotch.compiler.syntax.DefinitionGraph;
 import scotch.runtime.Callable;
 
 public class BytecodeGeneratorTest {
 
-    private SymbolResolver resolver;
-
-    @Before
-    public void setUp() {
-        resolver = new ClasspathResolver(getClass().getClassLoader());
+    @SuppressWarnings("unchecked")
+    public static <A> A exec(String... lines) {
+        try {
+            BytecodeClassLoader classLoader = new BytecodeClassLoader();
+            DefinitionGraph graph = bindMethods(new ClasspathResolver(BytecodeGenerator.class.getClassLoader()), lines);
+            classLoader.defineAll(new BytecodeGenerator(graph).generate());
+            return ((Callable<A>) classLoader.loadClass("scotch.test.ScotchModule").getMethod("run").invoke(null)).call();
+        } catch (ReflectiveOperationException exception) {
+            throw new RuntimeException(exception);
+        }
     }
 
     @Test
     public void shouldCompile2Plus2() throws Exception {
-        BytecodeClassLoader classLoader = new BytecodeClassLoader();
-        classLoader.defineAll(new BytecodeGenerator(analyzeTypes(
-            resolver,
-            "module test",
+        int result = exec(
+            "module scotch.test",
             "import scotch.data.num",
-            "main = 2 + 2"
-        )).generate());
-        assertThat(((Callable) classLoader.loadClass("test.ScotchModule").getMethod("main").invoke(null)).call(), is(4));
+            "run = 2 + 2"
+        );
+        assertThat(result, is(4));
+    }
+
+    @Ignore
+    @Test
+    public void shouldCompileShow() throws Exception {
+        String result = exec(
+            "module scotch.test",
+            "import scotch.data.show",
+            "import scotch.java",
+
+            "instance Show Int where",
+            "    show = jIntShow",
+
+            "run = show 5"
+        );
+        assertThat(result, is("5"));
     }
 
     public static class BytecodeClassLoader extends ClassLoader {

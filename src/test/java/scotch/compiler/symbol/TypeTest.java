@@ -29,7 +29,7 @@ public class TypeTest {
 
     @Before
     public void setUp() {
-        scope = new DefaultTypeScope();
+        scope = new DefaultTypeScope(new TypeGenerator());
     }
 
     @Test(expected = IllegalArgumentException.class)

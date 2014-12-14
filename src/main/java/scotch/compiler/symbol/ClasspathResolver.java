@@ -1,12 +1,9 @@
 package scotch.compiler.symbol;
 
-import static java.util.Arrays.stream;
 import static java.util.regex.Pattern.compile;
-import static me.qmx.jitescript.util.CodegenUtils.p;
-import static me.qmx.jitescript.util.CodegenUtils.sig;
-import static scotch.compiler.symbol.Operator.operator;
-import static scotch.compiler.symbol.Symbol.qualified;
-import static scotch.compiler.symbol.Value.Fixity.NONE;
+import static scotch.compiler.symbol.Symbol.getPackageName;
+import static scotch.compiler.symbol.Symbol.getPackagePath;
+import static scotch.data.tuple.TupleValues.tuple2;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,27 +20,63 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import com.google.common.collect.ImmutableSet;
 import scotch.compiler.symbol.Symbol.QualifiedSymbol;
 import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
-import scotch.compiler.symbol.SymbolEntry.ImmutableEntryBuilder;
+import scotch.compiler.symbol.Type.FunctionType;
+import scotch.compiler.symbol.Type.SumType;
+import scotch.compiler.symbol.Type.TypeVisitor;
+import scotch.compiler.symbol.Type.VariableType;
+import scotch.data.tuple.Tuple2;
 
 public class ClasspathResolver implements SymbolResolver {
 
-    private final ClassLoader              classLoader;
-    private final Map<Symbol, SymbolEntry> entries;
-    private final Set<String>              searchedModules;
+    private final ClassLoader                                                  classLoader;
+    private final Map<Symbol, SymbolEntry>                                     namedSymbols;
+    private final Set<String>                                                  searchedModules;
+    private final Map<Tuple2<Symbol, List<Type>>, Set<TypeInstanceDescriptor>> typeInstances;
+    private final Map<Symbol, Set<TypeInstanceDescriptor>>                     typeInstancesByClass;
+    private final Map<List<Type>, Set<TypeInstanceDescriptor>>                 typeInstancesByArguments;
+    private final Map<String, Set<TypeInstanceDescriptor>>                     typeInstancesByModule;
 
     public ClasspathResolver(ClassLoader classLoader) {
         this.classLoader = classLoader;
-        this.entries = new HashMap<>();
+        this.namedSymbols = new HashMap<>();
         this.searchedModules = new HashSet<>();
+        this.typeInstances = new HashMap<>();
+        this.typeInstancesByClass = new HashMap<>();
+        this.typeInstancesByArguments = new HashMap<>();
+        this.typeInstancesByModule = new HashMap<>();
     }
 
     @Override
     public Optional<SymbolEntry> getEntry(Symbol symbol) {
         search(symbol);
-        return Optional.ofNullable(entries.get(symbol));
+        return Optional.ofNullable(namedSymbols.get(symbol));
+    }
+
+    @Override
+    public Set<TypeInstanceDescriptor> getTypeInstances(Symbol symbol, List<Type> arguments) {
+        search(symbol);
+        search(arguments);
+        return typeInstances.getOrDefault(tuple2(symbol, arguments), ImmutableSet.of());
+    }
+
+    public Set<TypeInstanceDescriptor> getTypeInstancesByArguments(List<Type> arguments) {
+        search(arguments);
+        return ImmutableSet.copyOf(typeInstancesByArguments.getOrDefault(arguments, ImmutableSet.of()));
+    }
+
+    @Override
+    public Set<TypeInstanceDescriptor> getTypeInstancesByModule(String moduleName) {
+        search(moduleName);
+        return ImmutableSet.copyOf(typeInstancesByModule.getOrDefault(moduleName, ImmutableSet.of()));
+    }
+
+    public Set<TypeInstanceDescriptor> getTypeInstancesByClass(Symbol symbol) {
+        search(symbol);
+        return ImmutableSet.copyOf(typeInstancesByClass.getOrDefault(symbol, ImmutableSet.of()));
     }
 
     private String baseName(File file) {
@@ -56,34 +89,6 @@ public class ClasspathResolver implements SymbolResolver {
         return files == null ? new File[0] : files;
     }
 
-    private void processClasses(String moduleName, List<Class<?>> classes) {
-        Map<Symbol, ImmutableEntryBuilder> builders = new HashMap<>();
-        classes.forEach(clazz -> processValues(moduleName, clazz, builders));
-        builders.forEach((symbol, builder) -> entries.put(symbol, builder.build()));
-    }
-
-    private void processValues(String moduleName, Class<?> clazz, Map<Symbol, ImmutableEntryBuilder> builders) {
-        stream(clazz.getDeclaredMethods()).forEach(method -> {
-            Optional.ofNullable(method.getAnnotation(Value.class)).ifPresent(value -> {
-                Symbol symbol = qualified(moduleName, value.memberName());
-                ImmutableEntryBuilder builder = builders.computeIfAbsent(symbol, SymbolEntry::immutableEntry);
-                builder.withValueSignature(new JavaSignature(p(clazz), method.getName(), sig(method.getReturnType())));
-                if (value.fixity() != NONE && value.precedence() != -1) {
-                    builder.withOperator(operator(value.fixity(), value.precedence()));
-                }
-            });
-            Optional.ofNullable(method.getAnnotation(ValueType.class)).ifPresent(valueType -> {
-                Symbol symbol = qualified(moduleName, valueType.forMember());
-                ImmutableEntryBuilder builder = builders.computeIfAbsent(symbol, SymbolEntry::immutableEntry);
-                try {
-                    builder.withValue((Type) method.invoke(null));
-                } catch (ReflectiveOperationException exception) {
-                    // TODO
-                }
-            });
-        });
-    }
-
     private Optional<Class<?>> resolveClass(String className) {
         try {
             return Optional.of(Class.forName(className, true, classLoader));
@@ -92,7 +97,7 @@ public class ClasspathResolver implements SymbolResolver {
         }
     }
 
-    private List<Class<?>> resolveClasses(URL resource, String moduleName) {
+    private List<Class<?>> resolveClasses(URL resource, String packagePath) {
         List<Class<?>> classes = new ArrayList<>();
         try (ZipInputStream zipStream = new ZipInputStream(resource.openStream())) {
             ZipEntry entry;
@@ -100,7 +105,7 @@ public class ClasspathResolver implements SymbolResolver {
                 try {
                     if (!entry.isDirectory()) {
                         String name = entry.getName();
-                        Pattern pattern = compile("(" + moduleName.replace('.', '/') + "/[^\\./]+)\\.class");
+                        Pattern pattern = compile("(" + packagePath + "/[^\\./]+)\\.class");
                         Matcher matcher = pattern.matcher(name);
                         if (matcher.find()) {
                             resolveClass(matcher.group(1).replace('/', '.')).ifPresent(classes::add);
@@ -111,44 +116,49 @@ public class ClasspathResolver implements SymbolResolver {
                 }
             }
         } catch (IOException exception) {
-            exception.printStackTrace(); // TODO
+            throw new SymbolResolutionError(exception);
         }
         return classes;
     }
 
-    private List<Class<?>> resolveClasses(File directory, String moduleName) {
+    private List<Class<?>> resolveClasses(File directory, String packageName) {
         List<Class<?>> classes = new ArrayList<>();
         if (directory.exists()) {
             for (File file : classFiles(directory)) {
-                resolveClass(moduleName + '.' + baseName(file)).map(classes::add);
+                resolveClass(packageName + '.' + baseName(file)).map(classes::add);
             }
         }
         return classes;
+    }
+
+    private void search(List<Type> arguments) {
+        arguments.forEach(argument -> argument.accept(new TypeVisitor<Void>() {
+            @Override
+            public Void visit(FunctionType type) {
+                type.getArgument().accept(this);
+                type.getResult().accept(this);
+                return null;
+            }
+
+            @Override
+            public Void visit(VariableType type) {
+                type.getContext().forEach(ClasspathResolver.this::search);
+                return null;
+            }
+
+            @Override
+            public Void visit(SumType type) {
+                search(type.getSymbol());
+                return null;
+            }
+        }));
     }
 
     private void search(Symbol symbol) {
         symbol.accept(new SymbolVisitor<Void>() {
             @Override
             public Void visit(QualifiedSymbol symbol) {
-                if (!searchedModules.contains(symbol.getModuleName())) {
-                    searchedModules.add(symbol.getModuleName());
-                    List<Class<?>> classes = new ArrayList<>();
-                    try {
-                        Enumeration<URL> resources = classLoader.getResources(symbol.getModuleName().replace('.', '/'));
-                        while (resources.hasMoreElements()) {
-                            URL resource = resources.nextElement();
-                            if (resource.getFile().contains("!")) {
-                                String path = new File(resource.getFile()).getPath();
-                                classes.addAll(resolveClasses(new URL(path.substring(0, path.indexOf('!'))), symbol.getModuleName()));
-                            } else {
-                                classes.addAll(resolveClasses(new File(resource.getFile()), symbol.getModuleName()));
-                            }
-                        }
-                    } catch (IOException exception) {
-                        exception.printStackTrace(); // TODO
-                    }
-                    processClasses(symbol.getModuleName(), classes);
-                }
+                search(symbol.getModuleName());
                 return null;
             }
 
@@ -157,5 +167,36 @@ public class ClasspathResolver implements SymbolResolver {
                 return null;
             }
         });
+    }
+
+    private void search(String moduleName) {
+        if (!searchedModules.contains(moduleName)) {
+            searchedModules.add(moduleName);
+            List<Class<?>> classes = new ArrayList<>();
+            try {
+                Enumeration<URL> resources = classLoader.getResources(moduleName.replace('.', '/'));
+                while (resources.hasMoreElements()) {
+                    URL resource = resources.nextElement();
+                    if (resource.getFile().contains("!")) {
+                        String path = new File(resource.getFile()).getPath();
+                        classes.addAll(resolveClasses(new URL(path.substring(0, path.indexOf('!'))), getPackagePath(moduleName)));
+                    } else {
+                        classes.addAll(resolveClasses(new File(resource.getFile()), getPackageName(moduleName)));
+                    }
+                }
+            } catch (IOException exception) {
+                throw new SymbolResolutionError(exception);
+            }
+            new ModuleScanner(moduleName, classes).scan().into((entries, instances) -> {
+                entries.forEach(entry -> namedSymbols.put(entry.getSymbol(), entry));
+                instances.forEach(instance -> {
+                    typeInstances.computeIfAbsent(tuple2(instance.getTypeClass(), instance.getParameters()), k -> new HashSet<>()).add(instance);
+                    typeInstancesByClass.computeIfAbsent(instance.getTypeClass(), k -> new HashSet<>()).add(instance);
+                    typeInstancesByArguments.computeIfAbsent(instance.getParameters(), k -> new HashSet<>()).add(instance);
+                    typeInstancesByModule.computeIfAbsent(moduleName, k -> new HashSet<>()).add(instance);
+                });
+                return null;
+            });
+        }
     }
 }

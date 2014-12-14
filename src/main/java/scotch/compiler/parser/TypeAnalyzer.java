@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.TypeGenerator;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.symbol.Unification.UnificationVisitor;
 import scotch.compiler.symbol.Unification.Unified;
@@ -34,7 +35,6 @@ import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
 import scotch.compiler.syntax.PatternMatcher;
 import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.SyntaxError;
-import scotch.compiler.syntax.TypeGenerator;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
 import scotch.compiler.syntax.Value.Identifier;
@@ -124,12 +124,12 @@ public class TypeAnalyzer implements
 
     @Override
     public PatternMatch visit(CaptureMatch match) {
-        return match;
+        return match.withType(currentScope().generate(match.getType()));
     }
 
     @Override
     public Value visit(Identifier identifier) {
-        return identifier.withType(currentScope().getValue(identifier.getSymbol()));
+        return currentScope().bind(identifier);
     }
 
     @Override
@@ -140,7 +140,13 @@ public class TypeAnalyzer implements
         return function.getType().unify(fn(argument.getType(), resultType), currentScope()).accept(new UnificationVisitor<Value>() {
             @Override
             public Value visit(Unified unified) {
-                return apply.withType(currentScope().getTarget(resultType));
+                Value typedFunction = function.withType(currentScope().generate(function.getType()));
+                Value typedArgument = argument.withType(currentScope().generate(argument.getType()));
+                Type target = currentScope().getTarget(resultType);
+                return apply
+                    .withFunction(typedFunction)
+                    .withArgument(typedArgument)
+                    .withType(target);
             }
 
             @Override
@@ -229,9 +235,15 @@ public class TypeAnalyzer implements
     }
 
     private PatternMatcher visitMatcher(PatternMatcher matcher) {
-        return scoped(matcher.getReference(), () -> matcher
-                .withMatches(matcher.getMatches().stream().map(match -> match.accept(this)).collect(toList()))
-                .withBody(matcher.getBody().accept(this))
+        return scoped(matcher.getReference(), () -> {
+                Value body = matcher.getBody().accept(this);
+                List<PatternMatch> matches = matcher.getMatches().stream()
+                    .map(match -> match.accept(this))
+                    .collect(toList());
+                return matcher
+                    .withMatches(matches)
+                    .withBody(body);
+            }
         );
     }
 }

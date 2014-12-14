@@ -1,7 +1,11 @@
 package scotch.compiler.syntax;
 
+import static java.util.stream.Collectors.toSet;
+import static scotch.compiler.symbol.SymbolEntry.mutableEntry;
 import static scotch.compiler.symbol.SymbolNotFoundException.symbolNotFound;
+import static scotch.compiler.syntax.DefinitionReference.classRef;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -10,6 +14,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import scotch.compiler.symbol.JavaSignature;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
@@ -20,7 +25,14 @@ import scotch.compiler.symbol.SymbolEntry;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Type.VariableType;
+import scotch.compiler.symbol.TypeClassDescriptor;
+import scotch.compiler.symbol.TypeGenerator;
+import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.TypeScope;
+import scotch.compiler.syntax.DefinitionReference.ClassReference;
+import scotch.compiler.syntax.DefinitionReference.ModuleReference;
+import scotch.compiler.syntax.DefinitionReference.ValueReference;
+import scotch.compiler.syntax.Value.Identifier;
 
 public abstract class Scope implements TypeScope {
 
@@ -28,12 +40,12 @@ public abstract class Scope implements TypeScope {
         return new RootScope(typeGenerator, resolver);
     }
 
-    public static Scope scope(Scope parent, SymbolResolver resolver, String moduleName, List<Import> imports) {
-        return new ModuleScope(parent, new DefaultTypeScope(), resolver, moduleName, imports);
+    public static Scope scope(Scope parent, TypeScope types, SymbolResolver resolver, String moduleName, List<Import> imports) {
+        return new ModuleScope(parent, types, resolver, moduleName, imports);
     }
 
-    public static Scope scope(Scope parent) {
-        return new ChildScope(parent, new DefaultTypeScope());
+    public static Scope scope(Scope parent, TypeScope types) {
+        return new ChildScope(parent, types);
     }
 
     private Scope() {
@@ -41,6 +53,14 @@ public abstract class Scope implements TypeScope {
     }
 
     public abstract void addPattern(Symbol symbol);
+
+    public Value bind(Identifier identifier) {
+        if (isMember(identifier.getSymbol())) {
+            return identifier.unbound(getValue(identifier.getSymbol()));
+        } else {
+            return identifier.withType(getValue(identifier.getSymbol()));
+        }
+    }
 
     public abstract void defineOperator(Symbol symbol, Operator operator);
 
@@ -57,11 +77,28 @@ public abstract class Scope implements TypeScope {
         throw new UnsupportedOperationException(); // TODO
     }
 
+    public abstract TypeClassDescriptor getMemberOf(ValueReference valueRef);
+
     public abstract Operator getOperator(Symbol symbol);
+
+    public abstract Type getRawValue(Symbol symbol);
 
     public abstract Optional<Type> getSignature(Symbol symbol);
 
-    public abstract Type getValue(Symbol symbol);
+    public abstract TypeClassDescriptor getTypeClass(ClassReference classRef);
+
+    public TypeInstanceDescriptor getTypeInstance(ClassReference classReference, ModuleReference moduleReference, List<Type> types) {
+        return getTypeInstances(classReference.getSymbol(), types).stream()
+            .filter(instance -> moduleReference.is(instance.getModuleName()))
+            .findFirst()
+            .orElseThrow(UnsupportedOperationException::new);
+    }
+
+    public abstract Set<TypeInstanceDescriptor> getTypeInstances(Symbol typeClass, List<Type> parameters);
+
+    public Type getValue(Symbol symbol) {
+        return genericCopy(getRawValue(symbol));
+    }
 
     public abstract JavaSignature getValueSignature(Symbol symbol);
 
@@ -83,9 +120,15 @@ public abstract class Scope implements TypeScope {
 
     public abstract Type reserveType();
 
+    public abstract void specialize(Type type);
+
     protected abstract Optional<SymbolEntry> getEntry(Symbol symbol);
 
     protected abstract boolean isDefinedLocally(Symbol symbol);
+
+    protected boolean isMember(Symbol symbol) {
+        return getEntry(symbol).map(SymbolEntry::isMember).orElse(false);
+    }
 
     protected abstract boolean isOperator_(Symbol symbol);
 
@@ -114,11 +157,6 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public void extendContext(Type type, Set<Symbol> additionalContext) {
-            types.extendContext(type, additionalContext);
-        }
-
-        @Override
         public void defineOperator(Symbol symbol, Operator operator) {
             throw new IllegalStateException("Can't define operator " + symbol.quote() + " in this scope"); // TODO
         }
@@ -135,7 +173,7 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public Scope enterScope() {
-            return scope(this);
+            return scope(this, types.enterScope());
         }
 
         @Override
@@ -144,13 +182,31 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public void extendContext(Type type, Set<Symbol> additionalContext) {
+            types.extendContext(type, additionalContext);
+        }
+
+        @Override
         public Type generate(Type type) {
-            throw new UnsupportedOperationException(); // TODO
+            return types.generate(type);
+        }
+
+        @Override
+        public Type genericCopy(Type type) {
+            return types.genericCopy(type);
         }
 
         @Override
         public Set<Symbol> getContext(Type type) {
-            throw new UnsupportedOperationException(); // TODO
+            return ImmutableSet.<Symbol>builder()
+                .addAll(types.getContext(type))
+                .addAll(parent.getContext(type))
+                .build();
+        }
+
+        @Override
+        public TypeClassDescriptor getMemberOf(ValueReference valueRef) {
+            return parent.getMemberOf(valueRef);
         }
 
         @Override
@@ -159,8 +215,13 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public Type getRawValue(Symbol symbol) {
+            return requireEntry(symbol).getValue();
+        }
+
+        @Override
         public Optional<Type> getSignature(Symbol symbol) {
-            return requireEntry(symbol).getSignature();
+            return requireEntry(symbol).getSignature().map(this::genericCopy);
         }
 
         @Override
@@ -169,8 +230,13 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public Type getValue(Symbol symbol) {
-            return requireEntry(symbol).getValue();
+        public TypeClassDescriptor getTypeClass(ClassReference classRef) {
+            return parent.getTypeClass(classRef);
+        }
+
+        @Override
+        public Set<TypeInstanceDescriptor> getTypeInstances(Symbol typeClass, List<Type> parameters) {
+            return parent.getTypeInstances(typeClass, parameters);
         }
 
         @Override
@@ -252,6 +318,11 @@ public abstract class Scope implements TypeScope {
             return parent.reserveType();
         }
 
+        @Override
+        public void specialize(Type type) {
+            types.specialize(type);
+        }
+
         private SymbolEntry define(Symbol symbol) {
             return symbol.accept(new SymbolVisitor<SymbolEntry>() {
                 @Override
@@ -261,7 +332,7 @@ public abstract class Scope implements TypeScope {
 
                 @Override
                 public SymbolEntry visit(UnqualifiedSymbol symbol) {
-                    return entries.computeIfAbsent(symbol, SymbolEntry::mutableEntry);
+                    return entries.computeIfAbsent(symbol, k -> mutableEntry(symbol));
                 }
             });
         }
@@ -333,7 +404,7 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public Scope enterScope() {
-            return scope(this);
+            return scope(this, types.enterScope());
         }
 
         @Override
@@ -352,8 +423,27 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public Type genericCopy(Type type) {
+            return types.genericCopy(type);
+        }
+
+        @Override
         public Set<Symbol> getContext(Type type) {
-            throw new UnsupportedOperationException(); // TODO
+            return ImmutableSet.<Symbol>builder()
+                .addAll(types.getContext(type))
+                .addAll(imports.stream()
+                    .map(import_ -> import_.getContext(type, resolver))
+                    .flatMap(Collection::stream)
+                    .collect(toSet()))
+                .build();
+        }
+
+        @Override
+        public TypeClassDescriptor getMemberOf(ValueReference valueRef) {
+            return resolver.getEntry(valueRef.getSymbol())
+                .map(SymbolEntry::getMemberOf)
+                .map(symbol -> getTypeClass(classRef(symbol)))
+                .orElseThrow(() -> symbolNotFound(valueRef.getSymbol()));
         }
 
         @Override
@@ -362,8 +452,15 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public Type getRawValue(Symbol symbol) {
+            return getEntry(symbol)
+                .map(SymbolEntry::getValue)
+                .orElseThrow(() -> symbolNotFound(symbol));
+        }
+
+        @Override
         public Optional<Type> getSignature(Symbol symbol) {
-            return getEntry(symbol).flatMap(SymbolEntry::getSignature);
+            return getEntry(symbol).flatMap(SymbolEntry::getSignature).map(this::genericCopy);
         }
 
         @Override
@@ -372,10 +469,13 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public Type getValue(Symbol symbol) {
-            return getEntry(symbol)
-                .orElseThrow(() -> symbolNotFound(symbol))
-                .getValue();
+        public TypeClassDescriptor getTypeClass(ClassReference classRef) {
+            return resolver.getEntry(classRef.getSymbol()).map(SymbolEntry::getTypeClass).orElseThrow(() -> symbolNotFound(classRef.getSymbol()));
+        }
+
+        @Override
+        public Set<TypeInstanceDescriptor> getTypeInstances(Symbol typeClass, List<Type> parameters) {
+            return resolver.getTypeInstances(typeClass, parameters);
         }
 
         @Override
@@ -459,12 +559,17 @@ public abstract class Scope implements TypeScope {
             return parent.reserveType();
         }
 
+        @Override
+        public void specialize(Type type) {
+            types.specialize(type);
+        }
+
         private SymbolEntry define(Symbol symbol) {
             return symbol.accept(new SymbolVisitor<SymbolEntry>() {
                 @Override
                 public SymbolEntry visit(QualifiedSymbol symbol) {
                     if (Objects.equals(moduleName, symbol.getModuleName())) {
-                        return entries.computeIfAbsent(symbol, SymbolEntry::mutableEntry);
+                        return entries.computeIfAbsent(symbol, k -> mutableEntry(symbol));
                     } else {
                         throw new UnsupportedOperationException(); // TODO
                     }
@@ -547,7 +652,7 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public Scope enterScope(String moduleName, List<Import> imports) {
-            Scope scope = scope(this, resolver, moduleName, imports);
+            Scope scope = scope(this, new DefaultTypeScope(typeGenerator), resolver, moduleName, imports);
             children.put(moduleName, scope);
             return scope;
         }
@@ -563,12 +668,27 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public Type genericCopy(Type type) {
+            throw new IllegalStateException();
+        }
+
+        @Override
         public Set<Symbol> getContext(Type type) {
             throw new UnsupportedOperationException(); // TODO
         }
 
         @Override
+        public TypeClassDescriptor getMemberOf(ValueReference valueRef) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
         public Operator getOperator(Symbol symbol) {
+            throw new IllegalStateException();
+        }
+
+        @Override
+        public Type getRawValue(Symbol symbol) {
             throw new IllegalStateException();
         }
 
@@ -583,8 +703,13 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public Type getValue(Symbol symbol) {
-            throw new IllegalStateException();
+        public TypeClassDescriptor getTypeClass(ClassReference classRef) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        public Set<TypeInstanceDescriptor> getTypeInstances(Symbol typeClass, List<Type> parameters) {
+            throw new UnsupportedOperationException(); // TODO
         }
 
         @Override
@@ -662,6 +787,11 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public void specialize(Type type) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
         protected Optional<SymbolEntry> getEntry(Symbol symbol) {
             return symbol.accept(new SymbolVisitor<Optional<SymbolEntry>>() {
                 @Override
@@ -706,6 +836,16 @@ public abstract class Scope implements TypeScope {
                         return Optional.empty();
                     }
                 });
+            }
+
+            @Override
+            public Set<TypeInstanceDescriptor> getTypeInstances(Symbol symbol, List<Type> types) {
+                return resolver.getTypeInstances(symbol, types);
+            }
+
+            @Override
+            public Set<TypeInstanceDescriptor> getTypeInstancesByModule(String moduleName) {
+                return resolver.getTypeInstancesByModule(moduleName);
             }
 
             @Override

@@ -6,12 +6,15 @@ import static me.qmx.jitescript.util.CodegenUtils.p;
 import static scotch.data.tuple.TupleValues.tuple2;
 import static scotch.util.StringUtil.stringify;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import scotch.data.tuple.Tuple2;
 import scotch.util.StringUtil;
 
@@ -22,8 +25,30 @@ public abstract class Symbol {
     private static final String                 memberSubPattern       = "(\\[\\]|\\((?:[^\\)]+)\\)|(?:[^\\.]+)|\\(,*\\))";
     private static final Pattern                qualifiedPattern       = compile("^(\\$?" + moduleSubPattern + ")\\." + memberSubPattern + "$");
     private static final Pattern                containsSymbolsPattern = compile("\\W");
-    private static final Map<String, String>    javaTypeMap            = ImmutableMap.<String, String>builder()
-        .put("scotch/data/int/Int", p(Integer.class))
+    private static final Set<String>            javaWords              = ImmutableSet.of(
+        "abstract", "assert",
+        "boolean", "break", "byte",
+        "case", "catch", "char", "class", "const", "continue",
+        "default", "do", "double",
+        "else", "enum", "extends",
+        "false", "final", "finally", "float", "for",
+        "goto",
+        "if", "implements", "import", "instanceof", "int", "interface",
+        "long",
+        "native", "new", "null",
+        "package", "private", "protected", "public",
+        "return",
+        "short", "static", "strictfp", "super", "switch", "synchronized",
+        "this", "throw", "throws", "transient", "true", "try",
+        "void", "volatile",
+        "while"
+    );
+    private static final Map<Symbol, String>    javaTypeMap            = ImmutableMap.<Symbol, String>builder()
+        .put(qualified("scotch.data.int", "Int"), p(Integer.class))
+        .put(qualified("scotch.data.string", "String"), p(String.class))
+        .put(qualified("scotch.data.char.Char", "Char"), p(Character.class))
+        .put(qualified("scotch.data.bool", "Bool"), p(Boolean.class))
+        .put(qualified("scotch.data.double", "Double"), p(Double.class))
         .build();
     private static final Map<Character, String> javaSymbolMap          = ImmutableMap.<Character, String>builder()
         .put('~', "$twiddle")
@@ -54,12 +79,12 @@ public abstract class Symbol {
         );
     }
 
-    public static String normalizeQualified(String qualifiedName) {
-        return splitQualified(qualifiedName).into(
-            (optionalModuleName, memberName) -> optionalModuleName
-                .map(moduleName -> normalizeQualified(moduleName, memberName))
-                .orElse(memberName)
-        );
+    public static String getPackageName(String moduleName) {
+        return getPackageFor(moduleName, ".");
+    }
+
+    public static String getPackagePath(String moduleName) {
+        return getPackageFor(moduleName, "/");
     }
 
     public static String normalizeQualified(String moduleName, String memberName) {
@@ -68,12 +93,6 @@ public abstract class Symbol {
         } else {
             return moduleName + '.' + memberName;
         }
-    }
-
-    public static String normalizeQualified(Optional<String> optionalModuleName, String memberName) {
-        return optionalModuleName
-            .map(moduleName -> normalizeQualified(moduleName, memberName))
-            .orElse(memberName);
     }
 
     public static Symbol qualified(String moduleName, String memberName) {
@@ -95,6 +114,12 @@ public abstract class Symbol {
 
     public static Symbol unqualified(String memberName) {
         return new UnqualifiedSymbol(memberName);
+    }
+
+    private static String getPackageFor(String moduleName, String delimiter) {
+        return Arrays.stream(moduleName.split("\\."))
+            .map(section -> javaWords.contains(section) ? section + "_" : section)
+            .collect(joining(delimiter));
     }
 
     private Symbol() {
@@ -178,8 +203,8 @@ public abstract class Symbol {
 
         @Override
         public String getClassName() {
-            String className = moduleName.replace(".", "/") + "/" + toJavaName_(memberName);
-            return javaTypeMap.getOrDefault(className, className);
+            return Optional.ofNullable(javaTypeMap.get(this))
+                .orElseGet(() -> getPackagePath() + "/" + toJavaName_(memberName));
         }
 
         @Override
@@ -194,6 +219,10 @@ public abstract class Symbol {
 
         public String getModuleName() {
             return moduleName;
+        }
+
+        private String getPackagePath() {
+            return getPackagePath(moduleName);
         }
 
         @Override

@@ -1,7 +1,5 @@
 package scotch.compiler.syntax;
 
-import static java.util.Collections.emptyList;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +7,7 @@ import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.TypeGenerator;
 import scotch.compiler.syntax.Definition.DefinitionVisitor;
 import scotch.compiler.syntax.Definition.ValueDefinition;
 import scotch.compiler.syntax.Definition.ValueSignature;
@@ -104,7 +103,7 @@ public class DefinitionGraph {
         }
 
         public DefinitionGraph build() {
-            return new DefinitionGraph(definitions, optionalSequence.orElseGet(TypeGenerator::new), optionalErrors.orElse(emptyList()));
+            return new DefinitionGraph(definitions, optionalSequence.orElseGet(TypeGenerator::new), optionalErrors.orElse(ImmutableList.of()));
         }
 
         public DefinitionGraphBuilder withErrors(List<SyntaxError> errors) {

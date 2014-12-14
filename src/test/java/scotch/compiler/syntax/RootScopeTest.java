@@ -25,6 +25,7 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolEntry;
 import scotch.compiler.symbol.SymbolNotFoundException;
 import scotch.compiler.symbol.SymbolResolver;
+import scotch.compiler.symbol.TypeGenerator;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RootScopeTest {

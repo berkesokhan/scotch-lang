@@ -1,9 +1,21 @@
 package scotch.compiler.symbol;
 
+import static me.qmx.jitescript.util.CodegenUtils.p;
+import static me.qmx.jitescript.util.CodegenUtils.sig;
+
+import java.lang.reflect.Method;
 import java.util.Objects;
 import me.qmx.jitescript.CodeBlock;
 
 public class JavaSignature {
+
+    public static JavaSignature fromMethod(Method method) {
+        return new JavaSignature(
+            p(method.getDeclaringClass()),
+            method.getName(),
+            sig(method.getReturnType(), method.getParameterTypes())
+        );
+    }
 
     private final String javaClass;
     private final String methodName;

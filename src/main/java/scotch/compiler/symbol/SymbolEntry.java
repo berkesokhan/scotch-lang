@@ -14,11 +14,17 @@ public abstract class SymbolEntry {
         return new MutableEntry(symbol);
     }
 
+    private SymbolEntry() {
+        // intentionally empty
+    }
+
     public abstract void defineOperator(Operator operator);
 
     public abstract void defineSignature(Type type);
 
     public abstract void defineValue(Type type);
+
+    public abstract Symbol getMemberOf();
 
     public abstract Operator getOperator();
 
@@ -26,11 +32,15 @@ public abstract class SymbolEntry {
 
     public abstract Symbol getSymbol();
 
+    public abstract Type getType();
+
+    public abstract TypeClassDescriptor getTypeClass();
+
     public abstract Type getValue();
 
     public abstract JavaSignature getValueSignature();
 
-    public abstract Type getType();
+    public abstract boolean isMember();
 
     public abstract boolean isOperator();
 
@@ -38,18 +48,22 @@ public abstract class SymbolEntry {
 
     public static final class ImmutableEntry extends SymbolEntry {
 
-        private final Symbol                  symbol;
-        private final Optional<Type>          optionalValue;
-        private final Optional<Operator>      optionalOperator;
-        private final Optional<Type>          optionalType;
-        private final Optional<JavaSignature> optionalValueSignature;
+        private final Symbol                        symbol;
+        private final Optional<Type>                optionalValue;
+        private final Optional<Operator>            optionalOperator;
+        private final Optional<Type>                optionalType;
+        private final Optional<JavaSignature>       optionalValueSignature;
+        private final Optional<TypeClassDescriptor> optionalTypeClass;
+        private final Optional<Symbol>      optionalMemberOf;
 
-        public ImmutableEntry(Symbol symbol, Optional<Type> optionalValue, Optional<Operator> optionalOperator, Optional<Type> optionalType, Optional<JavaSignature> optionalValueSignature) {
-            this.symbol = symbol;
-            this.optionalValue = optionalValue;
-            this.optionalOperator = optionalOperator;
-            this.optionalType = optionalType;
-            this.optionalValueSignature = optionalValueSignature;
+        private ImmutableEntry(ImmutableEntryBuilder builder) {
+            this.symbol = builder.symbol;
+            this.optionalValue = builder.optionalValue;
+            this.optionalOperator = builder.optionalOperator;
+            this.optionalType = builder.optionalType;
+            this.optionalValueSignature = builder.optionalValueSignature;
+            this.optionalTypeClass = builder.optionalTypeClass;
+            this.optionalMemberOf = builder.optionalMemberOf;
         }
 
         @Override
@@ -68,18 +82,33 @@ public abstract class SymbolEntry {
         }
 
         @Override
+        public Symbol getMemberOf() {
+            return optionalMemberOf.orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not a class member"));
+        }
+
+        @Override
         public Operator getOperator() {
             return optionalOperator.orElseThrow(() -> symbolNotFound(symbol));
         }
 
         @Override
         public Optional<Type> getSignature() {
-            throw new IllegalStateException(); // TODO
+            return optionalValue;
         }
 
         @Override
         public Symbol getSymbol() {
             return symbol;
+        }
+
+        @Override
+        public Type getType() {
+            return optionalType.orElseThrow(() -> symbolNotFound(symbol));
+        }
+
+        @Override
+        public TypeClassDescriptor getTypeClass() {
+            return optionalTypeClass.orElseThrow(() -> symbolNotFound(symbol));
         }
 
         @Override
@@ -93,8 +122,8 @@ public abstract class SymbolEntry {
         }
 
         @Override
-        public Type getType() {
-            return optionalType.orElseThrow(() -> symbolNotFound(symbol));
+        public boolean isMember() {
+            return optionalMemberOf.isPresent();
         }
 
         @Override
@@ -110,22 +139,31 @@ public abstract class SymbolEntry {
 
     public static final class ImmutableEntryBuilder {
 
-        private final Symbol                  symbol;
-        private       Optional<Type>          optionalValue;
-        private       Optional<Operator>      optionalOperator;
-        private       Optional<Type>          optionalType;
-        private       Optional<JavaSignature> optionalValueSignature;
+        private final Symbol                        symbol;
+        private       Optional<Type>                optionalValue;
+        private       Optional<Operator>            optionalOperator;
+        private       Optional<Type>                optionalType;
+        private       Optional<JavaSignature>       optionalValueSignature;
+        private       Optional<TypeClassDescriptor> optionalTypeClass;
+        private       Optional<Symbol>      optionalMemberOf;
 
-        public ImmutableEntryBuilder(Symbol symbol) {
+        private ImmutableEntryBuilder(Symbol symbol) {
             this.symbol = symbol;
             this.optionalValue = Optional.empty();
             this.optionalOperator = Optional.empty();
             this.optionalType = Optional.empty();
             this.optionalValueSignature = Optional.empty();
+            this.optionalTypeClass = Optional.empty();
+            this.optionalMemberOf = Optional.empty();
         }
 
         public ImmutableEntry build() {
-            return new ImmutableEntry(symbol, optionalValue, optionalOperator, optionalType, optionalValueSignature);
+            return new ImmutableEntry(this);
+        }
+
+        public ImmutableEntryBuilder withMemberOf(Symbol memberOf) {
+            optionalMemberOf = Optional.of(memberOf);
+            return this;
         }
 
         public ImmutableEntryBuilder withOperator(Operator operator) {
@@ -135,6 +173,11 @@ public abstract class SymbolEntry {
 
         public ImmutableEntryBuilder withType(Type type) {
             optionalType = Optional.of(type);
+            return this;
+        }
+
+        public ImmutableEntryBuilder withTypeClass(TypeClassDescriptor typeClass) {
+            optionalTypeClass = Optional.of(typeClass);
             return this;
         }
 
@@ -193,6 +236,11 @@ public abstract class SymbolEntry {
         }
 
         @Override
+        public Symbol getMemberOf() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
         public Operator getOperator() {
             return optionalOperator.orElseThrow(() -> symbolNotFound(symbol));
         }
@@ -208,6 +256,16 @@ public abstract class SymbolEntry {
         }
 
         @Override
+        public Type getType() {
+            throw symbolNotFound(symbol); // TODO
+        }
+
+        @Override
+        public TypeClassDescriptor getTypeClass() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
         public Type getValue() {
             return optionalValue.orElseThrow(() -> symbolNotFound(symbol));
         }
@@ -218,8 +276,8 @@ public abstract class SymbolEntry {
         }
 
         @Override
-        public Type getType() {
-            throw symbolNotFound(symbol); // TODO
+        public boolean isMember() {
+            return false; // TODO
         }
 
         @Override

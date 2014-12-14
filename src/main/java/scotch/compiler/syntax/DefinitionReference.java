@@ -5,6 +5,7 @@ import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
 import java.util.Objects;
+import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 
@@ -136,6 +137,10 @@ public abstract class DefinitionReference {
             return o == this || o instanceof ClassReference && Objects.equals(symbol, ((ClassReference) o).symbol);
         }
 
+        public Symbol getSymbol() {
+            return symbol;
+        }
+
         @Override
         public int hashCode() {
             return Objects.hash(symbol);
@@ -183,6 +188,10 @@ public abstract class DefinitionReference {
             return Objects.hash(classReference, moduleReference, types);
         }
 
+        public CodeBlock reference(Scope scope) {
+            return scope.getTypeInstance(classReference, moduleReference, types).reference();
+        }
+
         @Override
         public String toString() {
             return stringify(this) + "(classReference=" + classReference + ", moduleReference=" + moduleReference + ", types=" + types + ")";
@@ -214,6 +223,10 @@ public abstract class DefinitionReference {
         @Override
         public int hashCode() {
             return Objects.hash(name);
+        }
+
+        public boolean is(String otherName) {
+            return Objects.equals(name, otherName);
         }
 
         @Override
@@ -364,6 +377,10 @@ public abstract class DefinitionReference {
 
         public String getName() {
             return symbol.getMemberName();
+        }
+
+        public Symbol getSymbol() {
+            return symbol;
         }
 
         @Override

@@ -30,7 +30,7 @@ import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
-import scotch.compiler.syntax.Value.Identifier;
+import scotch.compiler.syntax.Value.BoundMethod;
 import scotch.compiler.syntax.Value.LiteralValue;
 import scotch.compiler.syntax.Value.ValueVisitor;
 import scotch.compiler.text.SourceRange;
@@ -79,8 +79,8 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
     }
 
     @Override
-    public CodeBlock visit(Identifier identifier) {
-        return currentScope().getValueSignature(identifier.getSymbol()).reference();
+    public CodeBlock visit(BoundMethod boundMethod) {
+        return boundMethod.reference(currentScope());
     }
 
     @Override

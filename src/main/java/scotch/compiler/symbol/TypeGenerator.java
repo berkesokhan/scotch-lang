@@ -1,10 +1,9 @@
-package scotch.compiler.syntax;
+package scotch.compiler.symbol;
 
 import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.compiler.symbol.Type.t;
 
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.Type.VariableType;
 
 public class TypeGenerator {
 
@@ -14,7 +13,7 @@ public class TypeGenerator {
         return qualified(moduleName, "pattern#" + nextId++);
     }
 
-    public Type reserveType() {
+    public VariableType reserveType() {
         return t(nextId++);
     }
 }

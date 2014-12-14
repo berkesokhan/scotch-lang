@@ -28,6 +28,7 @@ import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Type.FunctionType;
 import scotch.compiler.symbol.Type.SumType;
 import scotch.compiler.symbol.Type.TypeVisitor;
+import scotch.compiler.symbol.TypeGenerator;
 import scotch.compiler.syntax.Definition;
 import scotch.compiler.syntax.Definition.DefinitionVisitor;
 import scotch.compiler.syntax.Definition.ModuleDefinition;
@@ -51,7 +52,6 @@ import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
 import scotch.compiler.syntax.PatternMatcher;
 import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.SyntaxError;
-import scotch.compiler.syntax.TypeGenerator;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
 import scotch.compiler.syntax.Value.Identifier;
@@ -177,12 +177,14 @@ public class SyntaxParser implements
     @Override
     public PatternMatch visit(CaptureMatch match) {
         scope.defineValue(match.getSymbol(), match.getType());
+        scope.specialize(match.getType());
         return match;
     }
 
     @Override
     public Optional<Definition> visit(ValueDefinition definition) {
         scope.defineValue(definition.getSymbol(), definition.getType());
+        scope.specialize(definition.getType());
         return scoped(() -> Optional.of(collect(definition.withBody(unwrap(definition.getBody().accept(this))))));
     }
 

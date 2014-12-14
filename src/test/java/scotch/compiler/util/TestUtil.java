@@ -1,21 +1,28 @@
 package scotch.compiler.util;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
 import static scotch.compiler.scanner.Scanner.forString;
 import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.symbol.Type.sum;
+import static scotch.compiler.syntax.DefinitionReference.moduleRef;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 
 import java.util.List;
 import java.util.Optional;
 import scotch.compiler.parser.InputParser;
+import scotch.compiler.parser.MethodBinder;
 import scotch.compiler.parser.SyntaxParser;
 import scotch.compiler.parser.TypeAnalyzer;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
+import scotch.compiler.symbol.JavaSignature;
+import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.TypeClassDescriptor;
+import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.Definition;
 import scotch.compiler.syntax.Definition.ClassDefinition;
@@ -27,6 +34,10 @@ import scotch.compiler.syntax.Definition.ValueDefinition;
 import scotch.compiler.syntax.Definition.ValueSignature;
 import scotch.compiler.syntax.DefinitionGraph;
 import scotch.compiler.syntax.DefinitionReference;
+import scotch.compiler.syntax.DefinitionReference.ClassReference;
+import scotch.compiler.syntax.DefinitionReference.InstanceReference;
+import scotch.compiler.syntax.DefinitionReference.PatternReference;
+import scotch.compiler.syntax.DefinitionReference.ValueReference;
 import scotch.compiler.syntax.Import;
 import scotch.compiler.syntax.Import.ModuleImport;
 import scotch.compiler.syntax.PatternMatch;
@@ -38,12 +49,17 @@ import scotch.compiler.syntax.Value.Identifier;
 import scotch.compiler.syntax.Value.LiteralValue;
 import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.syntax.Value.PatternMatchers;
+import scotch.compiler.syntax.Value.UnboundMethod;
 import scotch.compiler.syntax.builder.SyntaxBuilderFactory;
 
 public class TestUtil {
 
     public static DefinitionGraph analyzeTypes(SymbolResolver resolver, String... data) {
         return new TypeAnalyzer(parseSyntax(resolver, data)).analyze();
+    }
+
+    public static DefinitionGraph bindMethods(SymbolResolver resolver, String... data) {
+        return new MethodBinder(analyzeTypes(resolver, data)).bindMethods();
     }
 
     public static Value bodyOf(Optional<Definition> definition) {
@@ -60,6 +76,10 @@ public class TestUtil {
         });
     }
 
+    public static Value boundMethod(String name, InstanceReference instance, Type type) {
+        return Value.boundMethod(NULL_SOURCE, valueRef(name), instance, type);
+    }
+
     public static CaptureMatch capture(String name, Type type) {
         return PatternMatch.capture(NULL_SOURCE, fromString(name), type);
     }
@@ -68,12 +88,24 @@ public class TestUtil {
         return Definition.classDef(NULL_SOURCE, fromString(name), arguments, members);
     }
 
+    public static Type doubleType() {
+        return sum("scotch.data.double.Double");
+    }
+
     public static EqualMatch equal(Value value) {
         return PatternMatch.equal(NULL_SOURCE, value);
     }
 
     public static Identifier id(String name, Type type) {
         return Value.id(NULL_SOURCE, fromString(name), type);
+    }
+
+    public static ClassReference classRef(String className) {
+        return DefinitionReference.classRef(fromString(className));
+    }
+
+    public static InstanceReference instanceRef(String moduleName, String className, List<Type> parameters) {
+        return DefinitionReference.instanceRef(classRef(className), moduleRef(moduleName), parameters);
     }
 
     public static Type intType() {
@@ -94,6 +126,10 @@ public class TestUtil {
 
     public static OperatorDefinition operatorDef(String name, Fixity fixity, int precedence) {
         return Definition.operatorDef(NULL_SOURCE, fromString(name), fixity, precedence);
+    }
+
+    public static PatternReference patternRef(String name) {
+        return DefinitionReference.patternRef(fromString(name));
     }
 
     public static DefinitionGraph parseInput(String... data) {
@@ -132,12 +168,30 @@ public class TestUtil {
         return token;
     }
 
+    public static TypeClassDescriptor typeClass(String name, List<Type> parameters, List<String> members) {
+        return TypeClassDescriptor.typeClass(fromString(name), parameters, members.stream()
+            .map(Symbol::fromString)
+            .collect(toList()));
+    }
+
+    public static TypeInstanceDescriptor typeInstance(String moduleName, String typeClass, List<Type> parameters, JavaSignature instanceGetter) {
+        return TypeInstanceDescriptor.typeInstance(moduleName, fromString(typeClass), parameters, instanceGetter);
+    }
+
+    public static UnboundMethod unboundMethod(String valueName, Type type) {
+        return Value.unboundMethod(NULL_SOURCE, valueRef(valueName), type);
+    }
+
     public static UnshuffledPattern unshuffled(String name, List<PatternMatch> matches, Value body) {
         return Definition.unshuffled(NULL_SOURCE, fromString(name), matches, body);
     }
 
     public static ValueDefinition value(String name, Type type, Value value) {
         return Definition.value(NULL_SOURCE, fromString(name), type, value);
+    }
+
+    public static ValueReference valueRef(String name) {
+        return DefinitionReference.valueRef(fromString(name));
     }
 
     private TestUtil() {

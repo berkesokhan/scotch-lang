@@ -17,6 +17,7 @@ import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.classDef;
 import static scotch.compiler.util.TestUtil.equal;
 import static scotch.compiler.util.TestUtil.id;
+import static scotch.compiler.util.TestUtil.intType;
 import static scotch.compiler.util.TestUtil.literal;
 import static scotch.compiler.util.TestUtil.parseSyntax;
 import static scotch.compiler.util.TestUtil.pattern;
@@ -36,7 +37,7 @@ public class SyntaxParserTest {
     @Before
     public void setUp() {
         resolver = new StubResolver()
-            .define(immutableEntry(qualified("scotch.data.int", "Int")).withType(sum("scotch.data.int.Int")).build());
+            .define(immutableEntry(qualified("scotch.data.int", "Int")).withType(intType()).build());
     }
 
     @Test
@@ -116,7 +117,7 @@ public class SyntaxParserTest {
             "fn :: Int -> Int",
             "fn n = n"
         );
-        assertThat(graph.getValue(valueRef("scotch.test", "fn")).get(), is(fn(sum("scotch.data.int.Int"), sum("scotch.data.int.Int"))));
+        assertThat(graph.getValue(valueRef("scotch.test", "fn")).get(), is(fn(intType(), intType())));
     }
 
     @Ignore

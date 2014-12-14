@@ -1,52 +1,116 @@
 package scotch.compiler.syntax;
 
-import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
+import static java.util.Arrays.asList;
 import static scotch.compiler.symbol.Operator.operator;
+import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.compiler.symbol.SymbolEntry.immutableEntry;
 import static scotch.compiler.symbol.Type.fn;
 import static scotch.compiler.symbol.Type.sum;
+import static scotch.compiler.symbol.Type.var;
+import static scotch.compiler.symbol.TypeClassDescriptor.typeClass;
+import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.compiler.util.TestUtil.intType;
+import static scotch.compiler.util.TestUtil.typeInstance;
+import static scotch.data.tuple.TupleValues.tuple2;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import com.google.common.collect.ImmutableSet;
+import scotch.compiler.symbol.JavaSignature;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolEntry;
+import scotch.compiler.symbol.SymbolEntry.ImmutableEntry;
 import scotch.compiler.symbol.SymbolResolver;
+import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.TypeInstanceDescriptor;
+import scotch.data.tuple.Tuple2;
 
 public class StubResolver implements SymbolResolver {
 
-    public static SymbolEntry defaultInt() {
+    public static ImmutableEntry defaultInt() {
         return immutableEntry(qualified("scotch.data.int", "Int"))
-            .withType(sum("scotch.data.int.Int"))
+            .withType(intType())
             .build();
     }
 
-    public static SymbolEntry defaultMinus() {
+    public static ImmutableEntry defaultMinus() {
+        Type a = var("a", asList("scotch.data.num.Num"));
         return immutableEntry(qualified("scotch.data.num", "-"))
             .withOperator(operator(LEFT_INFIX, 6))
-            .withValue(fn(sum("scotch.data.int.Int"), fn(sum("scotch.data.int.Int"), sum("scotch.data.int.Int"))))
+            .withValue(fn(a, fn(a, a)))
+            .withMemberOf(fromString("scotch.data.num.Num"))
             .build();
     }
 
-    public static SymbolEntry defaultPlus() {
+    public static ImmutableEntry defaultPlus() {
+        Type a = var("a", asList("scotch.data.num.Num"));
         return immutableEntry(qualified("scotch.data.num", "+"))
             .withOperator(operator(LEFT_INFIX, 6))
-            .withValue(fn(sum("scotch.data.int.Int"), fn(sum("scotch.data.int.Int"), sum("scotch.data.int.Int"))))
+            .withValue(fn(a, fn(a, a)))
+            .withMemberOf(fromString("scotch.data.num.Num"))
             .build();
     }
 
-    public static SymbolEntry defaultString() {
+    public static ImmutableEntry defaultString() {
         return immutableEntry(qualified("scotch.data.string", "String"))
             .withType(sum("scotch.data.string.String"))
             .build();
     }
 
-    private final Map<Symbol, SymbolEntry> symbols = new HashMap<>();
+    public static ImmutableEntry defaultNum() {
+        Symbol symbol = fromString("scotch.data.num.Num");
+        return immutableEntry(symbol)
+            .withTypeClass(typeClass(fromString("scotch.data.num.Num"), asList(var("a", asList("scotch.data.num.Num"))), asList(
+                fromString("scotch.data.num.(+)"),
+                fromString("scotch.data.num.(-)")
+            )))
+            .build();
+    }
+
+    public static TypeInstanceDescriptor defaultNumOf(Type type) {
+        return typeInstance(
+            "scotch.data.num",
+            "scotch.data.num.Num",
+            asList(type),
+            new JavaSignature("scotch/data/num/NumInt", "instance", "()Lscotch/data/num/NumInt;")
+        );
+    }
+
+    private final Map<Symbol, SymbolEntry>                                     symbols;
+    private final Map<Tuple2<Symbol, List<Type>>, Set<TypeInstanceDescriptor>> typeInstances;
+    private final Map<Symbol, Set<TypeInstanceDescriptor>>                     typeInstancesByClass;
+    private final Map<List<Type>, Set<TypeInstanceDescriptor>>                 typeInstancesByArguments;
+    private final Map<String, Set<TypeInstanceDescriptor>>                     typeInstancesByModule;
+
+    public StubResolver() {
+        this.symbols = new HashMap<>();
+        this.typeInstances = new HashMap<>();
+        this.typeInstancesByClass = new HashMap<>();
+        this.typeInstancesByArguments = new HashMap<>();
+        this.typeInstancesByModule = new HashMap<>();
+    }
 
     public StubResolver define(SymbolEntry entry) {
         symbols.put(entry.getSymbol(), entry);
         return this;
+    }
+
+    public StubResolver define(TypeInstanceDescriptor typeInstance) {
+        typeInstances.computeIfAbsent(tuple2(typeInstance.getTypeClass(), typeInstance.getParameters()), k -> new HashSet<>()).add(typeInstance);
+        typeInstancesByClass.computeIfAbsent(typeInstance.getTypeClass(), k -> new HashSet<>()).add(typeInstance);
+        typeInstancesByArguments.computeIfAbsent(typeInstance.getParameters(), k -> new HashSet<>()).add(typeInstance);
+        typeInstancesByModule.computeIfAbsent(typeInstance.getModuleName(), k -> new HashSet<>()).add(typeInstance);
+        return this;
+    }
+
+    @Override
+    public Set<TypeInstanceDescriptor> getTypeInstancesByModule(String moduleName) {
+        return typeInstancesByModule.getOrDefault(moduleName, ImmutableSet.of());
     }
 
     @Override
@@ -57,5 +121,10 @@ public class StubResolver implements SymbolResolver {
     @Override
     public Optional<SymbolEntry> getEntry(Symbol symbol) {
         return Optional.ofNullable(symbols.get(symbol));
+    }
+
+    @Override
+    public Set<TypeInstanceDescriptor> getTypeInstances(Symbol symbol, List<Type> types) {
+        return ImmutableSet.copyOf(typeInstances.getOrDefault(tuple2(symbol, types), ImmutableSet.of()));
     }
 }
