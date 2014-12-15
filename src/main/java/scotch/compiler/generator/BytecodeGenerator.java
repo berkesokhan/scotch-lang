@@ -31,7 +31,7 @@ import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
 import scotch.compiler.syntax.Value.BoundMethod;
-import scotch.compiler.syntax.Value.LiteralValue;
+import scotch.compiler.syntax.Value.IntLiteral;
 import scotch.compiler.syntax.Value.ValueVisitor;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Applicable;
@@ -84,15 +84,10 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
     }
 
     @Override
-    public CodeBlock visit(LiteralValue literal) {
+    public CodeBlock visit(IntLiteral literal) {
         return new CodeBlock() {{
-            Object value = literal.getValue();
-            if (value instanceof Integer) {
-                ldc(value);
-                invokestatic(p(Callable.class), "box", sig(Callable.class, int.class));
-            } else {
-                throw new UnsupportedOperationException(); // TODO
-            }
+            ldc(literal.getValue());
+            invokestatic(p(Callable.class), "box", sig(Callable.class, int.class));
         }};
     }
 

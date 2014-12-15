@@ -66,10 +66,10 @@ public class MethodBinderTest {
                         instanceRef("scotch.data.num", "scotch.data.num.Num", asList(intType)),
                         fn(intType, fn(intType, intType))
                     ),
-                    literal(2, intType),
+                    literal(2),
                     fn(intType, intType)
                 ),
-                literal(2, intType),
+                literal(2),
                 intType
             )
         ));

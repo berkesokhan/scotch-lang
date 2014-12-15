@@ -2,7 +2,6 @@ package scotch.compiler.parser;
 
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.symbol.Type.fn;
-import static scotch.compiler.symbol.Type.sum;
 import static scotch.compiler.syntax.DefinitionEntry.scopedEntry;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.SyntaxError.typeError;
@@ -37,9 +36,13 @@ import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.SyntaxError;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
+import scotch.compiler.syntax.Value.BoolLiteral;
+import scotch.compiler.syntax.Value.CharLiteral;
+import scotch.compiler.syntax.Value.DoubleLiteral;
 import scotch.compiler.syntax.Value.Identifier;
-import scotch.compiler.syntax.Value.LiteralValue;
+import scotch.compiler.syntax.Value.IntLiteral;
 import scotch.compiler.syntax.Value.PatternMatchers;
+import scotch.compiler.syntax.Value.StringLiteral;
 import scotch.compiler.syntax.Value.ValueVisitor;
 
 public class TypeAnalyzer implements
@@ -69,6 +72,31 @@ public class TypeAnalyzer implements
             .withSequence(typeGenerator)
             .withErrors(errors)
             .build();
+    }
+
+    @Override
+    public Value visit(BoolLiteral literal) {
+        return literal;
+    }
+
+    @Override
+    public Value visit(CharLiteral literal) {
+        return literal;
+    }
+
+    @Override
+    public Value visit(IntLiteral literal) {
+        return literal;
+    }
+
+    @Override
+    public Value visit(DoubleLiteral literal) {
+        return literal;
+    }
+
+    @Override
+    public Value visit(StringLiteral literal) {
+        return literal;
     }
 
     @Override
@@ -155,26 +183,6 @@ public class TypeAnalyzer implements
                 return apply.withType(resultType);
             }
         });
-    }
-
-    @Override
-    public Value visit(LiteralValue literal) {
-        Object value = literal.getValue();
-        Type type;
-        if (value instanceof Double) {
-            type = sum("scotch.data.double.Double");
-        } else if (value instanceof Integer) {
-            type = sum("scotch.data.int.Int");
-        } else if (value instanceof String) {
-            type = sum("scotch.data.string.String");
-        } else if (value instanceof Boolean) {
-            type = sum("scotch.data.bool.Bool");
-        } else if (value instanceof Character) {
-            type = sum("scotch.data.char.Char");
-        } else {
-            throw new UnsupportedOperationException(); // TODO
-        }
-        return literal.withType(type);
     }
 
     @Override

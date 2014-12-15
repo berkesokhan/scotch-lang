@@ -291,7 +291,6 @@ public class InputParser {
             } else {
                 throw unexpected(literals);
             }
-            builder.withType(reserveType());
         });
     }
 

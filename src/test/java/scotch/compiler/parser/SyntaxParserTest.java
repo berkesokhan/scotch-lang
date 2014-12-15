@@ -76,33 +76,33 @@ public class SyntaxParserTest {
             "fib n = fib (n - 1) + fib (n - 2)"
         );
         assertThat(graph.getDefinition(valueRef("scotch.test", "fib")).get(), is(
-            value("scotch.test.fib", t(20), patterns(t(21),
-                pattern("scotch.test.(pattern#2)", asList(equal(literal(0, t(1)))), literal(0, t(3))),
-                pattern("scotch.test.(pattern#6)", asList(equal(literal(1, t(5)))), literal(1, t(7))),
-                pattern("scotch.test.(pattern#10)", asList(capture("n", t(9))), apply(
+            value("scotch.test.fib", t(14), patterns(t(15),
+                pattern("scotch.test.(pattern#1)", asList(equal(literal(0))), literal(0)),
+                pattern("scotch.test.(pattern#3)", asList(equal(literal(1))), literal(1)),
+                pattern("scotch.test.(pattern#6)", asList(capture("n", t(5))), apply(
                     apply(
-                        id("scotch.test.(+)", t(15)),
+                        id("scotch.test.(+)", t(10)),
                         apply(
-                            id("scotch.test.fib", t(11)),
+                            id("scotch.test.fib", t(7)),
                             apply(
-                                apply(id("scotch.test.(-)", t(13)), id("n", t(12)), t(22)),
-                                literal(1, t(14)),
-                                t(23)
+                                apply(id("scotch.test.(-)", t(9)), id("n", t(8)), t(16)),
+                                literal(1),
+                                t(17)
                             ),
-                            t(24)
+                            t(18)
                         ),
-                        t(28)
+                        t(22)
                     ),
                     apply(
-                        id("scotch.test.fib", t(16)),
+                        id("scotch.test.fib", t(11)),
                         apply(
-                            apply(id("scotch.test.(-)", t(18)), id("n", t(17)), t(25)),
-                            literal(2, t(19)),
-                            t(26)
+                            apply(id("scotch.test.(-)", t(13)), id("n", t(12)), t(19)),
+                            literal(2),
+                            t(20)
                         ),
-                        t(27)
+                        t(21)
                     ),
-                    t(29)
+                    t(23)
                 ))
             ))
         ));

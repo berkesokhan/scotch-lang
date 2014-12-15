@@ -1,10 +1,12 @@
 package scotch.compiler.syntax;
 
+import static scotch.compiler.symbol.Type.sum;
 import static scotch.compiler.syntax.DefinitionReference.classRef;
 import static scotch.compiler.syntax.DefinitionReference.instanceRef;
 import static scotch.compiler.syntax.DefinitionReference.moduleRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
+import static scotch.util.StringUtil.quote;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
@@ -36,8 +38,24 @@ public abstract class Value {
         return new Identifier(sourceRange, symbol, type);
     }
 
-    public static LiteralValue literal(SourceRange sourceRange, Object value, Type type) {
-        return new LiteralValue(sourceRange, value, type);
+    public static BoolLiteral literal(SourceRange sourceRange, boolean value) {
+        return new BoolLiteral(sourceRange, value);
+    }
+
+    public static CharLiteral literal(SourceRange sourceRange, char value) {
+        return new CharLiteral(sourceRange, value);
+    }
+
+    public static DoubleLiteral literal(SourceRange sourceRange, double value) {
+        return new DoubleLiteral(sourceRange, value);
+    }
+
+    public static IntLiteral literal(SourceRange sourceRange, int value) {
+        return new IntLiteral(sourceRange, value);
+    }
+
+    public static StringLiteral literal(SourceRange sourceRange, String value) {
+        return new StringLiteral(sourceRange, value);
     }
 
     public static Message message(SourceRange sourceRange, List<Value> members) {
@@ -79,15 +97,27 @@ public abstract class Value {
             return visitOtherwise(apply);
         }
 
+        default T visit(BoolLiteral literal) {
+            return visitOtherwise(literal);
+        }
+
         default T visit(BoundMethod boundMethod) {
             return visitOtherwise(boundMethod);
+        }
+
+        default T visit(CharLiteral literal) {
+            return visitOtherwise(literal);
+        }
+
+        default T visit(DoubleLiteral literal) {
+            return visitOtherwise(literal);
         }
 
         default T visit(Identifier identifier) {
             return visitOtherwise(identifier);
         }
 
-        default T visit(LiteralValue literal) {
+        default T visit(IntLiteral literal) {
             return visitOtherwise(literal);
         }
 
@@ -97,6 +127,10 @@ public abstract class Value {
 
         default T visit(PatternMatchers matchers) {
             return visitOtherwise(matchers);
+        }
+
+        default T visit(StringLiteral literal) {
+            return visitOtherwise(literal);
         }
 
         default T visit(UnboundMethod unboundMethod) {
@@ -187,6 +221,60 @@ public abstract class Value {
         }
     }
 
+    public static class BoolLiteral extends Value {
+
+        private final SourceRange sourceRange;
+        private final boolean value;
+
+        public BoolLiteral(SourceRange sourceRange, boolean value) {
+            this.sourceRange = sourceRange;
+            this.value = value;
+        }
+
+        @Override
+        public <T> T accept(ValueVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof BoolLiteral) {
+                BoolLiteral other = (BoolLiteral) o;
+                return Objects.equals(sourceRange, other.sourceRange)
+                    && value == other.value;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        @Override
+        public Type getType() {
+            return sum("scotch.data.bool.Bool");
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(" + quote(value) + ")";
+        }
+
+        @Override
+        public Value withType(Type type) {
+            return this;
+        }
+    }
+
     public static class BoundMethod extends Value {
 
         private final SourceRange       sourceRange;
@@ -256,6 +344,114 @@ public abstract class Value {
         }
     }
 
+    public static class CharLiteral extends Value {
+
+        private final SourceRange sourceRange;
+        private final char value;
+
+        public CharLiteral(SourceRange sourceRange, char value) {
+            this.sourceRange = sourceRange;
+            this.value = value;
+        }
+
+        @Override
+        public <T> T accept(ValueVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof CharLiteral) {
+                CharLiteral other = (CharLiteral) o;
+                return Objects.equals(sourceRange, other.sourceRange)
+                    && value == other.value;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        @Override
+        public Type getType() {
+            return sum("scotch.data.char.Char");
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(" + quote(value) + ")";
+        }
+
+        @Override
+        public Value withType(Type type) {
+            return this;
+        }
+    }
+
+    public static class DoubleLiteral extends Value {
+
+        private final SourceRange sourceRange;
+        private final double value;
+
+        public DoubleLiteral(SourceRange sourceRange, double value) {
+            this.sourceRange = sourceRange;
+            this.value = value;
+        }
+
+        @Override
+        public <T> T accept(ValueVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof DoubleLiteral) {
+                DoubleLiteral other = (DoubleLiteral) o;
+                return Objects.equals(sourceRange, other.sourceRange)
+                    && value == other.value;
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        @Override
+        public Type getType() {
+            return sum("scotch.data.double.Double");
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(" + quote(value) + ")";
+        }
+
+        @Override
+        public Value withType(Type type) {
+            return this;
+        }
+    }
+
     public static class Identifier extends Value {
 
         private final SourceRange sourceRange;
@@ -271,10 +467,6 @@ public abstract class Value {
         @Override
         public <T> T accept(ValueVisitor<T> visitor) {
             return visitor.visit(this);
-        }
-
-        public BoundMethod bind(InstanceReference instance) {
-            return boundMethod(sourceRange, valueRef(symbol), instance, type);
         }
 
         @Override
@@ -330,16 +522,14 @@ public abstract class Value {
         }
     }
 
-    public static class LiteralValue extends Value {
+    public static class IntLiteral extends Value {
 
         private final SourceRange sourceRange;
-        private final Object      value;
-        private final Type        type;
+        private final int value;
 
-        private LiteralValue(SourceRange sourceRange, Object value, Type type) {
+        public IntLiteral(SourceRange sourceRange, int value) {
             this.sourceRange = sourceRange;
             this.value = value;
-            this.type = type;
         }
 
         @Override
@@ -351,10 +541,10 @@ public abstract class Value {
         public boolean equals(Object o) {
             if (o == this) {
                 return true;
-            } else if (o instanceof LiteralValue) {
-                LiteralValue other = (LiteralValue) o;
-                return Objects.equals(value, other.value)
-                    && Objects.equals(type, other.type);
+            } else if (o instanceof IntLiteral) {
+                IntLiteral other = (IntLiteral) o;
+                return Objects.equals(sourceRange, other.sourceRange)
+                    && value == other.value;
             } else {
                 return false;
             }
@@ -367,29 +557,26 @@ public abstract class Value {
 
         @Override
         public Type getType() {
-            return type;
+            return sum("scotch.data.int.Int");
         }
 
-        public Object getValue() {
+        public int getValue() {
             return value;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(value, type);
+            return Objects.hash(value);
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + value + ")";
+            return stringify(this) + "(" + quote(value) + ")";
         }
 
-        public LiteralValue withSourceRange(SourceRange sourceRange) {
-            return new LiteralValue(sourceRange, value, type);
-        }
-
-        public LiteralValue withType(Type type) {
-            return new LiteralValue(sourceRange, value, type);
+        @Override
+        public Value withType(Type type) {
+            return this;
         }
     }
 
@@ -513,6 +700,60 @@ public abstract class Value {
         @Override
         public PatternMatchers withType(Type type) {
             return new PatternMatchers(sourceRange, matchers, type);
+        }
+    }
+
+    public static class StringLiteral extends Value {
+
+        private final SourceRange sourceRange;
+        private final String value;
+
+        public StringLiteral(SourceRange sourceRange, String value) {
+            this.sourceRange = sourceRange;
+            this.value = value;
+        }
+
+        @Override
+        public <T> T accept(ValueVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof StringLiteral) {
+                StringLiteral other = (StringLiteral) o;
+                return Objects.equals(sourceRange, other.sourceRange)
+                    && Objects.equals(value, other.value);
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        @Override
+        public Type getType() {
+            return sum("scotch.data.string.String");
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(" + quote(value) + ")";
+        }
+
+        @Override
+        public Value withType(Type type) {
+            return this;
         }
     }
 

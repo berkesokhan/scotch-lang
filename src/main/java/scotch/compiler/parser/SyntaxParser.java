@@ -54,10 +54,14 @@ import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.SyntaxError;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
+import scotch.compiler.syntax.Value.BoolLiteral;
+import scotch.compiler.syntax.Value.CharLiteral;
+import scotch.compiler.syntax.Value.DoubleLiteral;
 import scotch.compiler.syntax.Value.Identifier;
-import scotch.compiler.syntax.Value.LiteralValue;
+import scotch.compiler.syntax.Value.IntLiteral;
 import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.syntax.Value.PatternMatchers;
+import scotch.compiler.syntax.Value.StringLiteral;
 import scotch.compiler.syntax.Value.ValueVisitor;
 import scotch.data.either.Either.EitherVisitor;
 import scotch.data.tuple.Tuple2;
@@ -196,6 +200,31 @@ public class SyntaxParser implements
     }
 
     @Override
+    public Value visit(BoolLiteral literal) {
+        return literal;
+    }
+
+    @Override
+    public Value visit(CharLiteral literal) {
+        return literal;
+    }
+
+    @Override
+    public Value visit(DoubleLiteral literal) {
+        return literal;
+    }
+
+    @Override
+    public Value visit(IntLiteral literal) {
+        return literal;
+    }
+
+    @Override
+    public Value visit(StringLiteral literal) {
+        return literal;
+    }
+
+    @Override
     public Value visit(Message message) {
         return valueShuffler.shuffle(scope, message.getMembers()).accept(new EitherVisitor<SyntaxError, Value, Value>() {
             @Override
@@ -209,11 +238,6 @@ public class SyntaxParser implements
                 return right;
             }
         });
-    }
-
-    @Override
-    public Value visit(LiteralValue literal) {
-        return literal;
     }
 
     @Override
@@ -337,6 +361,31 @@ public class SyntaxParser implements
             }
 
             @Override
+            public Value visit(CharLiteral literal) {
+                return literal;
+            }
+
+            @Override
+            public Value visit(BoolLiteral literal) {
+                return literal;
+            }
+
+            @Override
+            public Value visit(DoubleLiteral literal) {
+                return literal;
+            }
+
+            @Override
+            public Value visit(IntLiteral literal) {
+                return literal;
+            }
+
+            @Override
+            public Value visit(StringLiteral literal) {
+                return literal;
+            }
+
+            @Override
             public Value visit(PatternMatchers matchers) {
                 return matchers.withMatchers(
                     matchers.getMatchers().stream()
@@ -348,11 +397,6 @@ public class SyntaxParser implements
             @Override
             public Value visit(Identifier identifier) {
                 return identifier;
-            }
-
-            @Override
-            public Value visit(LiteralValue literal) {
-                return literal;
             }
 
             @Override

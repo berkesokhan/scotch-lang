@@ -104,7 +104,9 @@ public class PatternShuffler {
             return match.accept(new PatternMatchVisitor<OperatorPair<CaptureMatch>>() {
                 @Override
                 public OperatorPair<CaptureMatch> visit(CaptureMatch match) {
-                    Operator operator = scope.qualify(match.getSymbol()).map(scope::getOperator).get(); // TODO
+                    Operator operator = scope.qualify(match.getSymbol())
+                        .map(scope::getOperator)
+                        .orElseThrow(() -> new ShuffleException(parseError("Symbol " + match.getSymbol().quote() + " is not an operator", match.getSourceRange())));
                     if (expectsPrefix && !operator.isPrefix()) {
                         throw new ShuffleException(parseError("Unexpected binary operator " + quote(match.getSymbol()), match.getSourceRange()));
                     }

@@ -8,11 +8,11 @@ import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Identifier;
-import scotch.compiler.syntax.Value.LiteralValue;
 import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.text.SourceRange;
 
@@ -66,38 +66,48 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
         }
     }
 
-    public static class LiteralBuilder extends ValueBuilder<LiteralValue> {
+    public static class LiteralBuilder extends ValueBuilder<Value> {
 
-        private Optional<Object>      value       = Optional.empty();
-        private Optional<Type>        type        = Optional.empty();
-        private Optional<SourceRange> sourceRange = Optional.empty();
+        private Optional<Function<SourceRange, Value>> constructor;
+        private Optional<SourceRange>                  sourceRange;
 
         private LiteralBuilder() {
-            // intentionally empty
+            constructor = Optional.empty();
         }
 
         @Override
-        public LiteralValue build() {
-            return literal(
-                require(sourceRange, "Source range"),
-                require(value, "Literal value"),
-                require(type, "Literal type")
-            );
+        public Value build() {
+            return require(constructor, "Literal value").apply(require(sourceRange, "Source range"));
+        }
+
+        public LiteralBuilder withValue(boolean value) {
+            constructor = Optional.of(sourceRange -> literal(sourceRange, value));
+            return this;
+        }
+
+        public LiteralBuilder withValue(char value) {
+            constructor = Optional.of(sourceRange -> literal(sourceRange, value));
+            return this;
+        }
+
+        public LiteralBuilder withValue(double value) {
+            constructor = Optional.of(sourceRange -> literal(sourceRange, value));
+            return this;
+        }
+
+        public LiteralBuilder withValue(int value) {
+            constructor = Optional.of(sourceRange -> literal(sourceRange, value));
+            return this;
+        }
+
+        public LiteralBuilder withValue(String value) {
+            constructor = Optional.of(sourceRange -> literal(sourceRange, value));
+            return this;
         }
 
         @Override
-        public LiteralBuilder withSourceRange(SourceRange sourceRange) {
+        public SyntaxBuilder<Value> withSourceRange(SourceRange sourceRange) {
             this.sourceRange = Optional.of(sourceRange);
-            return this;
-        }
-
-        public LiteralBuilder withType(Type type) {
-            this.type = Optional.of(type);
-            return this;
-        }
-
-        public LiteralBuilder withValue(Object value) {
-            this.value = Optional.of(value);
             return this;
         }
     }

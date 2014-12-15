@@ -36,7 +36,6 @@ import scotch.compiler.syntax.DefinitionGraph;
 import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.DefinitionReference.ClassReference;
 import scotch.compiler.syntax.DefinitionReference.InstanceReference;
-import scotch.compiler.syntax.DefinitionReference.PatternReference;
 import scotch.compiler.syntax.DefinitionReference.ValueReference;
 import scotch.compiler.syntax.Import;
 import scotch.compiler.syntax.Import.ModuleImport;
@@ -45,10 +44,14 @@ import scotch.compiler.syntax.PatternMatch.CaptureMatch;
 import scotch.compiler.syntax.PatternMatch.EqualMatch;
 import scotch.compiler.syntax.PatternMatcher;
 import scotch.compiler.syntax.Value;
+import scotch.compiler.syntax.Value.BoolLiteral;
+import scotch.compiler.syntax.Value.CharLiteral;
+import scotch.compiler.syntax.Value.DoubleLiteral;
 import scotch.compiler.syntax.Value.Identifier;
-import scotch.compiler.syntax.Value.LiteralValue;
+import scotch.compiler.syntax.Value.IntLiteral;
 import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.syntax.Value.PatternMatchers;
+import scotch.compiler.syntax.Value.StringLiteral;
 import scotch.compiler.syntax.Value.UnboundMethod;
 import scotch.compiler.syntax.builder.SyntaxBuilderFactory;
 
@@ -112,8 +115,24 @@ public class TestUtil {
         return sum("scotch.data.int.Int");
     }
 
-    public static LiteralValue literal(Object value, Type type) {
-        return Value.literal(NULL_SOURCE, value, type);
+    public static BoolLiteral literal(boolean value) {
+        return Value.literal(NULL_SOURCE, value);
+    }
+
+    public static CharLiteral literal(char value) {
+        return Value.literal(NULL_SOURCE, value);
+    }
+
+    public static DoubleLiteral literal(double value) {
+        return Value.literal(NULL_SOURCE, value);
+    }
+
+    public static IntLiteral literal(int value) {
+        return Value.literal(NULL_SOURCE, value);
+    }
+
+    public static StringLiteral literal(String value) {
+        return Value.literal(NULL_SOURCE, value);
     }
 
     public static Message message(Value... members) {
@@ -126,10 +145,6 @@ public class TestUtil {
 
     public static OperatorDefinition operatorDef(String name, Fixity fixity, int precedence) {
         return Definition.operatorDef(NULL_SOURCE, fromString(name), fixity, precedence);
-    }
-
-    public static PatternReference patternRef(String name) {
-        return DefinitionReference.patternRef(fromString(name));
     }
 
     public static DefinitionGraph parseInput(String... data) {
