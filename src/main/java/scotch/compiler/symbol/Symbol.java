@@ -137,7 +137,9 @@ public abstract class Symbol {
 
     public abstract String getMemberName();
 
-    public abstract String getMethodName();
+    public String getMethodName() {
+        return toJavaName_(getMemberName());
+    }
 
     @Override
     public abstract int hashCode();
@@ -212,11 +214,6 @@ public abstract class Symbol {
             return memberName;
         }
 
-        @Override
-        public String getMethodName() {
-            throw new UnsupportedOperationException(); // TODO
-        }
-
         public String getModuleName() {
             return moduleName;
         }
@@ -266,17 +263,12 @@ public abstract class Symbol {
 
         @Override
         public String getClassName() {
-            return toJavaName_(memberName);
+            throw new IllegalStateException("Can't get unqualified class name from symbol " + quote());
         }
 
         @Override
         public String getMemberName() {
             return memberName;
-        }
-
-        @Override
-        public String getMethodName() {
-            return toJavaName_(memberName);
         }
 
         @Override

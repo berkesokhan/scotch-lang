@@ -96,7 +96,7 @@ public abstract class SyntaxError {
 
         @Override
         public String toString() {
-            throw new UnsupportedOperationException(); // TODO
+            return stringify(this) + "(typeClass=" + typeClass + ", instances=" + typeInstances + ")";
         }
     }
 

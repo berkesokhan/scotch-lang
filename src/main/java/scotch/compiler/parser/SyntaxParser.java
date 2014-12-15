@@ -94,12 +94,11 @@ public class SyntaxParser implements
     }
 
     public DefinitionGraph analyze() {
-        // TODO: results in "empty" symbol table if root not present
         graph.getDefinition(rootRef()).ifPresent(root -> root.accept(this));
         return graph
             .copyWith(ImmutableList.copyOf(definitions.values()))
             .withSequence(typeGenerator)
-            .withErrors(errors)
+            .appendErrors(errors)
             .build();
     }
 
@@ -349,7 +348,7 @@ public class SyntaxParser implements
                 if (message.getMembers().size() == 1) {
                     return unwrap(message.getMembers().get(0));
                 } else {
-                    throw new UnsupportedOperationException(); // TODO
+                    throw new IllegalArgumentException("Can't unwrap message with more than 1 member " + message.getSourceRange().prettyPrint());
                 }
             }
 
@@ -397,11 +396,6 @@ public class SyntaxParser implements
             @Override
             public Value visit(Identifier identifier) {
                 return identifier;
-            }
-
-            @Override
-            public Value visitOtherwise(Value value) {
-                throw new UnsupportedOperationException(); // TODO
             }
         });
     }

@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableSet;
-import scotch.compiler.symbol.JavaSignature;
+import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolEntry;
 import scotch.compiler.symbol.SymbolEntry.ImmutableEntry;
@@ -77,7 +77,7 @@ public class StubResolver implements SymbolResolver {
             "scotch.data.num",
             "scotch.data.num.Num",
             asList(type),
-            new JavaSignature("scotch/data/num/NumInt", "instance", "()Lscotch/data/num/NumInt;")
+            MethodSignature.fromString("scotch/data/num/NumInt:instance:()Lscotch/data/num/NumInt;")
         );
     }
 

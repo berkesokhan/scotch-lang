@@ -70,7 +70,7 @@ public class TypeAnalyzer implements
         return graph
             .copyWith(definitions.values())
             .withSequence(typeGenerator)
-            .withErrors(errors)
+            .appendErrors(errors)
             .build();
     }
 
@@ -191,21 +191,6 @@ public class TypeAnalyzer implements
     }
 
     @Override
-    public Definition visitOtherwise(Definition definition) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
-    public Value visitOtherwise(Value value) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
-    public PatternMatch visitOtherwise(PatternMatch match) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
     public DefinitionReference visitOtherwise(DefinitionReference reference) {
         return scoped(reference, () -> graph.getDefinition(reference).get().accept(this).getReference());
     }
@@ -244,14 +229,13 @@ public class TypeAnalyzer implements
 
     private PatternMatcher visitMatcher(PatternMatcher matcher) {
         return scoped(matcher.getReference(), () -> {
-                Value body = matcher.getBody().accept(this);
-                List<PatternMatch> matches = matcher.getMatches().stream()
-                    .map(match -> match.accept(this))
-                    .collect(toList());
-                return matcher
-                    .withMatches(matches)
-                    .withBody(body);
-            }
-        );
+            Value body = matcher.getBody().accept(this);
+            List<PatternMatch> matches = matcher.getMatches().stream()
+                .map(match -> match.accept(this))
+                .collect(toList());
+            return matcher
+                .withMatches(matches)
+                .withBody(body);
+        });
     }
 }

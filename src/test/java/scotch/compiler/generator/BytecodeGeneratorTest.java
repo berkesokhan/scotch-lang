@@ -32,7 +32,7 @@ public class BytecodeGeneratorTest {
     }
 
     @Test
-    public void shouldCompile2Plus2() throws Exception {
+    public void shouldCompile2Plus2() {
         int result = exec(
             "module scotch.test",
             "import scotch.data.num",
@@ -43,7 +43,7 @@ public class BytecodeGeneratorTest {
 
     @Ignore
     @Test
-    public void shouldCompileShow() throws Exception {
+    public void shouldCompileShow() {
         String result = exec(
             "module scotch.test",
             "import scotch.data.show",

@@ -1,8 +1,7 @@
 package scotch.compiler.symbol;
 
-import static scotch.compiler.symbol.SymbolNotFoundException.symbolNotFound;
-
 import java.util.Optional;
+import scotch.compiler.symbol.exception.SymbolNotFoundException;
 
 public abstract class SymbolEntry {
 
@@ -38,7 +37,7 @@ public abstract class SymbolEntry {
 
     public abstract Type getValue();
 
-    public abstract JavaSignature getValueSignature();
+    public abstract MethodSignature getValueSignature();
 
     public abstract boolean isMember();
 
@@ -52,9 +51,9 @@ public abstract class SymbolEntry {
         private final Optional<Type>                optionalValue;
         private final Optional<Operator>            optionalOperator;
         private final Optional<Type>                optionalType;
-        private final Optional<JavaSignature>       optionalValueSignature;
+        private final Optional<MethodSignature>     optionalValueSignature;
         private final Optional<TypeClassDescriptor> optionalTypeClass;
-        private final Optional<Symbol>      optionalMemberOf;
+        private final Optional<Symbol>              optionalMemberOf;
 
         private ImmutableEntry(ImmutableEntryBuilder builder) {
             this.symbol = builder.symbol;
@@ -68,17 +67,17 @@ public abstract class SymbolEntry {
 
         @Override
         public void defineOperator(Operator operator) {
-            throw new IllegalStateException();
+            throw new IllegalStateException("Can't define operator for existing symbol " + symbol.quote());
         }
 
         @Override
         public void defineSignature(Type type) {
-            throw new IllegalStateException(); // TODO
+            throw new IllegalStateException("Can't define signature for existing symbol " + symbol.quote());
         }
 
         @Override
         public void defineValue(Type type) {
-            throw new IllegalStateException();
+            throw new IllegalStateException("Can't define value for existing symbol " + symbol.quote());
         }
 
         @Override
@@ -88,7 +87,7 @@ public abstract class SymbolEntry {
 
         @Override
         public Operator getOperator() {
-            return optionalOperator.orElseThrow(() -> symbolNotFound(symbol));
+            return optionalOperator.orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not an operator"));
         }
 
         @Override
@@ -103,22 +102,22 @@ public abstract class SymbolEntry {
 
         @Override
         public Type getType() {
-            return optionalType.orElseThrow(() -> symbolNotFound(symbol));
+            return optionalType.orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not a type"));
         }
 
         @Override
         public TypeClassDescriptor getTypeClass() {
-            return optionalTypeClass.orElseThrow(() -> symbolNotFound(symbol));
+            return optionalTypeClass.orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not a type class"));
         }
 
         @Override
         public Type getValue() {
-            return optionalValue.orElseThrow(() -> symbolNotFound(symbol));
+            return optionalValue.orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not a value"));
         }
 
         @Override
-        public JavaSignature getValueSignature() {
-            return optionalValueSignature.orElseThrow(() -> symbolNotFound(symbol));
+        public MethodSignature getValueSignature() {
+            return optionalValueSignature.orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " has no value signature"));
         }
 
         @Override
@@ -143,9 +142,9 @@ public abstract class SymbolEntry {
         private       Optional<Type>                optionalValue;
         private       Optional<Operator>            optionalOperator;
         private       Optional<Type>                optionalType;
-        private       Optional<JavaSignature>       optionalValueSignature;
+        private       Optional<MethodSignature>     optionalValueSignature;
         private       Optional<TypeClassDescriptor> optionalTypeClass;
-        private       Optional<Symbol>      optionalMemberOf;
+        private       Optional<Symbol>              optionalMemberOf;
 
         private ImmutableEntryBuilder(Symbol symbol) {
             this.symbol = symbol;
@@ -186,7 +185,7 @@ public abstract class SymbolEntry {
             return this;
         }
 
-        public ImmutableEntryBuilder withValueSignature(JavaSignature valueSignature) {
+        public ImmutableEntryBuilder withValueSignature(MethodSignature valueSignature) {
             optionalValueSignature = Optional.of(valueSignature);
             return this;
         }
@@ -209,7 +208,7 @@ public abstract class SymbolEntry {
         @Override
         public void defineOperator(Operator operator) {
             if (optionalOperator.isPresent()) {
-                throw new UnsupportedOperationException(); // TODO
+                throw new IllegalStateException("Operator has already been defined for " + symbol.quote());
             } else {
                 optionalOperator = Optional.of(operator);
             }
@@ -218,9 +217,9 @@ public abstract class SymbolEntry {
         @Override
         public void defineSignature(Type type) {
             if (optionalValue.isPresent()) {
-                throw new UnsupportedOperationException(); // TODO
+                throw new IllegalStateException("Value has already been defined for " + symbol.quote());
             } else if (optionalSignature.isPresent()) {
-                throw new UnsupportedOperationException(); // TODO
+                throw new IllegalStateException("Signature has already been defined for " + symbol.quote());
             } else {
                 optionalSignature = Optional.of(type);
             }
@@ -229,7 +228,7 @@ public abstract class SymbolEntry {
         @Override
         public void defineValue(Type type) {
             if (optionalValue.isPresent()) {
-                throw new UnsupportedOperationException(); // TODO
+                throw new IllegalStateException("Value has already been defined for " + symbol.quote());
             } else {
                 optionalValue = Optional.of(type);
             }
@@ -242,7 +241,7 @@ public abstract class SymbolEntry {
 
         @Override
         public Operator getOperator() {
-            return optionalOperator.orElseThrow(() -> symbolNotFound(symbol));
+            return optionalOperator.orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not an operator"));
         }
 
         @Override
@@ -257,7 +256,7 @@ public abstract class SymbolEntry {
 
         @Override
         public Type getType() {
-            throw symbolNotFound(symbol); // TODO
+            throw new UnsupportedOperationException(); // TODO
         }
 
         @Override
@@ -267,11 +266,11 @@ public abstract class SymbolEntry {
 
         @Override
         public Type getValue() {
-            return optionalValue.orElseThrow(() -> symbolNotFound(symbol));
+            return optionalValue.orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not a value"));
         }
 
         @Override
-        public JavaSignature getValueSignature() {
+        public MethodSignature getValueSignature() {
             throw new UnsupportedOperationException(); // TODO
         }
 
@@ -290,7 +289,7 @@ public abstract class SymbolEntry {
             if (optionalValue.isPresent()) {
                 optionalValue = Optional.of(type);
             } else {
-                throw symbolNotFound(symbol);
+                throw new SymbolNotFoundException("Can't redefine non-existent value " + symbol.quote());
             }
         }
     }

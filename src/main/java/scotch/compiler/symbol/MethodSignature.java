@@ -7,21 +7,26 @@ import java.lang.reflect.Method;
 import java.util.Objects;
 import me.qmx.jitescript.CodeBlock;
 
-public class JavaSignature {
+public class MethodSignature {
 
-    public static JavaSignature fromMethod(Method method) {
-        return new JavaSignature(
+    public static MethodSignature fromMethod(Method method) {
+        return new MethodSignature(
             p(method.getDeclaringClass()),
             method.getName(),
             sig(method.getReturnType(), method.getParameterTypes())
         );
     }
 
+    public static MethodSignature fromString(String string) {
+        String[] parts = string.split(":");
+        return new MethodSignature(parts[0], parts[1], parts[2]);
+    }
+
     private final String javaClass;
     private final String methodName;
     private final String signature;
 
-    public JavaSignature(String javaClass, String methodName, String signature) {
+    private MethodSignature(String javaClass, String methodName, String signature) {
         this.javaClass = javaClass;
         this.methodName = methodName;
         this.signature = signature;
@@ -31,8 +36,8 @@ public class JavaSignature {
     public boolean equals(Object o) {
         if (o == this) {
             return true;
-        } else if (o instanceof JavaSignature) {
-            JavaSignature other = (JavaSignature) o;
+        } else if (o instanceof MethodSignature) {
+            MethodSignature other = (MethodSignature) o;
             return Objects.equals(javaClass, other.javaClass)
                 && Objects.equals(methodName, other.methodName)
                 && Objects.equals(signature, other.signature);
@@ -47,9 +52,7 @@ public class JavaSignature {
     }
 
     public CodeBlock reference() {
-        return new CodeBlock() {{
-            invokestatic(javaClass, methodName, signature);
-        }};
+        return new CodeBlock().invokestatic(javaClass, methodName, signature);
     }
 
     @Override

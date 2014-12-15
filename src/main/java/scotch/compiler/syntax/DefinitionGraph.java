@@ -102,6 +102,12 @@ public class DefinitionGraph {
             this.optionalErrors = Optional.empty();
         }
 
+        public DefinitionGraphBuilder appendErrors(List<SyntaxError> errors) {
+            optionalErrors = optionalErrors.map(e -> ImmutableList.<SyntaxError>builder().addAll(e).addAll(errors).build());
+            optionalErrors = Optional.of(optionalErrors.orElseGet(() -> ImmutableList.copyOf(errors)));
+            return this;
+        }
+
         public DefinitionGraph build() {
             return new DefinitionGraph(definitions, optionalSequence.orElseGet(TypeGenerator::new), optionalErrors.orElse(ImmutableList.of()));
         }

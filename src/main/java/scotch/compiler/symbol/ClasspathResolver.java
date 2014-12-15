@@ -28,6 +28,7 @@ import scotch.compiler.symbol.Type.FunctionType;
 import scotch.compiler.symbol.Type.SumType;
 import scotch.compiler.symbol.Type.TypeVisitor;
 import scotch.compiler.symbol.Type.VariableType;
+import scotch.compiler.symbol.exception.SymbolResolutionError;
 import scotch.data.tuple.Tuple2;
 
 public class ClasspathResolver implements SymbolResolver {

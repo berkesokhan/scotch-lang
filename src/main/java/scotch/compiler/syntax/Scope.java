@@ -2,8 +2,8 @@ package scotch.compiler.syntax;
 
 import static java.util.stream.Collectors.toSet;
 import static scotch.compiler.symbol.SymbolEntry.mutableEntry;
-import static scotch.compiler.symbol.SymbolNotFoundException.symbolNotFound;
 import static scotch.compiler.syntax.DefinitionReference.classRef;
+import static scotch.util.StringUtil.quote;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -15,7 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import scotch.compiler.symbol.JavaSignature;
+import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Symbol.QualifiedSymbol;
@@ -29,6 +29,7 @@ import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeGenerator;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.TypeScope;
+import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.syntax.DefinitionReference.ClassReference;
 import scotch.compiler.syntax.DefinitionReference.ModuleReference;
 import scotch.compiler.syntax.DefinitionReference.ValueReference;
@@ -72,11 +73,6 @@ public abstract class Scope implements TypeScope {
 
     public abstract Scope enterScope(String moduleName, List<Import> imports);
 
-    @Override
-    public Set<Symbol> getContext(Type type) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
     public abstract TypeClassDescriptor getMemberOf(ValueReference valueRef);
 
     public abstract Operator getOperator(Symbol symbol);
@@ -100,7 +96,7 @@ public abstract class Scope implements TypeScope {
         return genericCopy(getRawValue(symbol));
     }
 
-    public abstract JavaSignature getValueSignature(Symbol symbol);
+    public abstract MethodSignature getValueSignature(Symbol symbol);
 
     public abstract boolean isDefined(Symbol symbol);
 
@@ -158,7 +154,7 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public void defineOperator(Symbol symbol, Operator operator) {
-            throw new IllegalStateException("Can't define operator " + symbol.quote() + " in this scope"); // TODO
+            throw new IllegalStateException("Can't define operator " + symbol.quote() + " in this scope");
         }
 
         @Override
@@ -240,7 +236,7 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public JavaSignature getValueSignature(Symbol symbol) {
+        public MethodSignature getValueSignature(Symbol symbol) {
             return parent.getValueSignature(symbol);
         }
 
@@ -309,7 +305,7 @@ public abstract class Scope implements TypeScope {
             if (optionalEntry.isPresent()) {
                 optionalEntry.get().redefineValue(type);
             } else {
-                throw symbolNotFound(symbol);
+                throw new SymbolNotFoundException("Can't redefine non-existent value " + symbol.quote());
             }
         }
 
@@ -338,7 +334,7 @@ public abstract class Scope implements TypeScope {
         }
 
         private SymbolEntry requireEntry(Symbol symbol) {
-            return getEntry(symbol).orElseThrow(() -> symbolNotFound(symbol));
+            return getEntry(symbol).orElseThrow(() -> new SymbolNotFoundException("Could not find symbol " + symbol.quote()));
         }
 
         @Override
@@ -443,19 +439,21 @@ public abstract class Scope implements TypeScope {
             return resolver.getEntry(valueRef.getSymbol())
                 .map(SymbolEntry::getMemberOf)
                 .map(symbol -> getTypeClass(classRef(symbol)))
-                .orElseThrow(() -> symbolNotFound(valueRef.getSymbol()));
+                .orElseThrow(() -> new SymbolNotFoundException("Could not get parent class of symbol " + valueRef.getSymbol().quote()));
         }
 
         @Override
         public Operator getOperator(Symbol symbol) {
-            return getEntry(symbol).map(SymbolEntry::getOperator).orElseThrow(() -> symbolNotFound(symbol));
+            return getEntry(symbol)
+                .map(SymbolEntry::getOperator)
+                .orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not an operator"));
         }
 
         @Override
         public Type getRawValue(Symbol symbol) {
             return getEntry(symbol)
                 .map(SymbolEntry::getValue)
-                .orElseThrow(() -> symbolNotFound(symbol));
+                .orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not a value"));
         }
 
         @Override
@@ -470,7 +468,9 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public TypeClassDescriptor getTypeClass(ClassReference classRef) {
-            return resolver.getEntry(classRef.getSymbol()).map(SymbolEntry::getTypeClass).orElseThrow(() -> symbolNotFound(classRef.getSymbol()));
+            return resolver.getEntry(classRef.getSymbol())
+                .map(SymbolEntry::getTypeClass)
+                .orElseThrow(() -> new SymbolNotFoundException("Symbol " + classRef.getSymbol().quote() + " is not a type class"));
         }
 
         @Override
@@ -479,7 +479,7 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public JavaSignature getValueSignature(Symbol symbol) {
+        public MethodSignature getValueSignature(Symbol symbol) {
             return parent.getValueSignature(symbol);
         }
 
@@ -550,7 +550,7 @@ public abstract class Scope implements TypeScope {
             if (optionalEntry.isPresent()) {
                 optionalEntry.get().redefineValue(type);
             } else {
-                throw symbolNotFound(symbol);
+                throw new SymbolNotFoundException("Can't redefine non-existent value " + symbol.quote());
             }
         }
 
@@ -571,7 +571,7 @@ public abstract class Scope implements TypeScope {
                     if (Objects.equals(moduleName, symbol.getModuleName())) {
                         return entries.computeIfAbsent(symbol, k -> mutableEntry(symbol));
                     } else {
-                        throw new UnsupportedOperationException(); // TODO
+                        throw new IllegalArgumentException("Can't define symbol " + symbol.quote() + " within different module " + quote(moduleName));
                     }
                 }
 
@@ -627,7 +627,7 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public void bind(VariableType variableType, Type target) {
-            throw new UnsupportedOperationException(); // TODO
+            throw new IllegalStateException();
         }
 
         @Override
@@ -674,12 +674,12 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public Set<Symbol> getContext(Type type) {
-            throw new UnsupportedOperationException(); // TODO
+            throw new IllegalStateException();
         }
 
         @Override
         public TypeClassDescriptor getMemberOf(ValueReference valueRef) {
-            throw new UnsupportedOperationException(); // TODO
+            throw new IllegalStateException();
         }
 
         @Override
@@ -704,17 +704,19 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public TypeClassDescriptor getTypeClass(ClassReference classRef) {
-            throw new UnsupportedOperationException(); // TODO
+            throw new IllegalStateException();
         }
 
         @Override
         public Set<TypeInstanceDescriptor> getTypeInstances(Symbol typeClass, List<Type> parameters) {
-            throw new UnsupportedOperationException(); // TODO
+            throw new IllegalStateException();
         }
 
         @Override
-        public JavaSignature getValueSignature(Symbol symbol) {
-            return resolver.getEntry(symbol).orElseThrow(() -> symbolNotFound(symbol)).getValueSignature();
+        public MethodSignature getValueSignature(Symbol symbol) {
+            return resolver.getEntry(symbol)
+                .orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " has no value signature"))
+                .getValueSignature();
         }
 
         @Override
@@ -760,13 +762,13 @@ public abstract class Scope implements TypeScope {
                     if (resolver.isDefined(symbol)) {
                         return Optional.of(symbol);
                     } else {
-                        throw symbolNotFound(symbol);
+                        throw new SymbolNotFoundException("Could not qualify undefined symbol " + symbol.quote());
                     }
                 }
 
                 @Override
                 public Optional<Symbol> visit(UnqualifiedSymbol symbol) {
-                    throw symbolNotFound(symbol);
+                    throw new SymbolNotFoundException("Could not qualify undefined symbol " + symbol.quote());
                 }
             });
         }
@@ -788,7 +790,7 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public void specialize(Type type) {
-            throw new UnsupportedOperationException(); // TODO
+            throw new IllegalStateException();
         }
 
         @Override

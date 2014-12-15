@@ -9,16 +9,16 @@ import me.qmx.jitescript.CodeBlock;
 
 public class TypeInstanceDescriptor {
 
-    public static TypeInstanceDescriptor typeInstance(String moduleName, Symbol typeClass, List<Type> arguments, JavaSignature instanceGetter) {
+    public static TypeInstanceDescriptor typeInstance(String moduleName, Symbol typeClass, List<Type> arguments, MethodSignature instanceGetter) {
         return new TypeInstanceDescriptor(moduleName, typeClass, arguments, instanceGetter);
     }
 
-    private final String        moduleName;
-    private final Symbol        typeClass;
-    private final List<Type>    parameters;
-    private final JavaSignature instanceGetter;
+    private final String          moduleName;
+    private final Symbol          typeClass;
+    private final List<Type>      parameters;
+    private final MethodSignature instanceGetter;
 
-    private TypeInstanceDescriptor(String moduleName, Symbol typeClass, List<Type> parameters, JavaSignature instanceGetter) {
+    private TypeInstanceDescriptor(String moduleName, Symbol typeClass, List<Type> parameters, MethodSignature instanceGetter) {
         this.moduleName = moduleName;
         this.typeClass = typeClass;
         this.parameters = parameters;

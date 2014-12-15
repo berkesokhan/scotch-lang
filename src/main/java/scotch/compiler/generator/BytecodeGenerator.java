@@ -63,14 +63,13 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
         return new CodeBlock() {{
             String className = beginClass(Thunk.class, apply.getSourceRange());
             currentClass().defineDefaultConstructor();
-            method("evaluate", ACC_PROTECTED, sig(Object.class), new CodeBlock() {{
-                append(generate(apply.getFunction()));
-                invokeinterface(p(Callable.class), "call", sig(Object.class));
-                checkcast(p(Applicable.class));
-                append(generate(apply.getArgument()));
-                invokeinterface(p(Applicable.class), "apply", sig(Callable.class, Callable.class));
-                areturn();
-            }});
+            method("evaluate", ACC_PROTECTED, sig(Object.class), new CodeBlock()
+                .append(generate(apply.getFunction()))
+                .invokeinterface(p(Callable.class), "call", sig(Object.class))
+                .checkcast(p(Applicable.class))
+                .append(generate(apply.getArgument()))
+                .invokeinterface(p(Applicable.class), "apply", sig(Callable.class, Callable.class))
+                .areturn());
             endClass();
             newobj(className);
             dup();
@@ -85,10 +84,9 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
 
     @Override
     public CodeBlock visit(IntLiteral literal) {
-        return new CodeBlock() {{
-            ldc(literal.getValue());
-            invokestatic(p(Callable.class), "box", sig(Callable.class, int.class));
-        }};
+        return new CodeBlock()
+            .ldc(literal.getValue())
+            .invokestatic(p(Callable.class), "box", sig(Callable.class, int.class));
     }
 
     @Override

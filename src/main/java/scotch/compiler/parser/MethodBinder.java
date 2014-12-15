@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
-import com.google.common.collect.ImmutableList;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
@@ -56,10 +55,7 @@ public class MethodBinder implements
         graph.getDefinition(rootRef()).map(definition -> definition.accept(this));
         return graph
             .copyWith(definitions.values())
-            .withErrors(ImmutableList.<SyntaxError>builder()
-                .addAll(graph.getErrors())
-                .addAll(errors)
-                .build())
+            .appendErrors(errors)
             .build();
     }
 

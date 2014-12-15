@@ -1,4 +1,4 @@
-package scotch.compiler.symbol;
+package scotch.compiler.symbol.exception;
 
 public class IncompleteTypeInstanceError extends Error {
 

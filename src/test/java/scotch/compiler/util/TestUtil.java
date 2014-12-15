@@ -17,7 +17,7 @@ import scotch.compiler.parser.TypeAnalyzer;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
-import scotch.compiler.symbol.JavaSignature;
+import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.Type;
@@ -189,7 +189,7 @@ public class TestUtil {
             .collect(toList()));
     }
 
-    public static TypeInstanceDescriptor typeInstance(String moduleName, String typeClass, List<Type> parameters, JavaSignature instanceGetter) {
+    public static TypeInstanceDescriptor typeInstance(String moduleName, String typeClass, List<Type> parameters, MethodSignature instanceGetter) {
         return TypeInstanceDescriptor.typeInstance(moduleName, fromString(typeClass), parameters, instanceGetter);
     }
 
