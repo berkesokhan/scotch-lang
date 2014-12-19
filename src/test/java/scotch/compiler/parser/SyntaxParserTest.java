@@ -9,20 +9,22 @@ import static scotch.compiler.symbol.Type.fn;
 import static scotch.compiler.symbol.Type.sum;
 import static scotch.compiler.symbol.Type.t;
 import static scotch.compiler.symbol.Type.var;
-import static scotch.compiler.syntax.DefinitionReference.classRef;
-import static scotch.compiler.syntax.DefinitionReference.signatureRef;
-import static scotch.compiler.syntax.DefinitionReference.valueRef;
 import static scotch.compiler.syntax.Value.apply;
+import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.classDef;
+import static scotch.compiler.util.TestUtil.classRef;
 import static scotch.compiler.util.TestUtil.equal;
+import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
 import static scotch.compiler.util.TestUtil.intType;
 import static scotch.compiler.util.TestUtil.literal;
 import static scotch.compiler.util.TestUtil.parseSyntax;
 import static scotch.compiler.util.TestUtil.pattern;
 import static scotch.compiler.util.TestUtil.patterns;
+import static scotch.compiler.util.TestUtil.signatureRef;
 import static scotch.compiler.util.TestUtil.value;
+import static scotch.compiler.util.TestUtil.valueRef;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -50,18 +52,18 @@ public class SyntaxParserTest {
             "left infix 6 (==), (/=)",
             "x == y = not (x /= y)"
         );
-        assertThat(graph.getDefinition(valueRef("scotch.test", "==")).get(), is(
-            value("scotch.test.(==)", t(8), patterns(t(9),
-                pattern("scotch.test.(pattern#3)", asList(capture("x", t(0)), capture("y", t(2))), apply(
-                    id("scotch.data.bool.not", t(4)),
+        assertThat(graph.getDefinition(valueRef("scotch.test.(==)")).get(), is(
+            value("scotch.test.(==)", t(9), fn("scotch.test.($1)", asList(arg("$0", t(7)), arg("$1", t(8))), patterns(t(10),
+                pattern("scotch.test.($0)", asList(capture("$0", "x", t(0)), capture("$1", "y", t(2))), apply(
+                    id("scotch.data.bool.not", t(3)),
                     apply(
-                        apply(id("scotch.test.(/=)", t(6)), id("x", t(5)), t(10)),
-                        id("y", t(7)),
-                        t(11)
+                        apply(id("scotch.test.(/=)", t(5)), id("x", t(4)), t(11)),
+                        id("y", t(6)),
+                        t(12)
                     ),
-                    t(12)
+                    t(13)
                 ))
-            ))
+            )))
         ));
     }
 
@@ -75,36 +77,36 @@ public class SyntaxParserTest {
             "fib 1 = 1",
             "fib n = fib (n - 1) + fib (n - 2)"
         );
-        assertThat(graph.getDefinition(valueRef("scotch.test", "fib")).get(), is(
-            value("scotch.test.fib", t(14), patterns(t(15),
-                pattern("scotch.test.(pattern#1)", asList(equal(literal(0))), literal(0)),
-                pattern("scotch.test.(pattern#3)", asList(equal(literal(1))), literal(1)),
-                pattern("scotch.test.(pattern#6)", asList(capture("n", t(5))), apply(
+        assertThat(graph.getDefinition(valueRef("scotch.test.fib")).get(), is(
+            value("scotch.test.fib", t(12), fn("scotch.test.($3)", asList(arg("$0", t(11))), patterns(t(13),
+                pattern("scotch.test.($0)", asList(equal("$0", literal(0))), literal(0)),
+                pattern("scotch.test.($1)", asList(equal("$0", literal(1))), literal(1)),
+                pattern("scotch.test.($2)", asList(capture("$0", "n", t(3))), apply(
                     apply(
-                        id("scotch.test.(+)", t(10)),
+                        id("scotch.test.(+)", t(7)),
                         apply(
-                            id("scotch.test.fib", t(7)),
+                            id("scotch.test.fib", t(4)),
                             apply(
-                                apply(id("scotch.test.(-)", t(9)), id("n", t(8)), t(16)),
+                                apply(id("scotch.test.(-)", t(6)), id("n", t(5)), t(14)),
                                 literal(1),
-                                t(17)
+                                t(15)
                             ),
+                            t(16)
+                        ),
+                        t(20)
+                    ),
+                    apply(
+                        id("scotch.test.fib", t(8)),
+                        apply(
+                            apply(id("scotch.test.(-)", t(10)), id("n", t(9)), t(17)),
+                            literal(2),
                             t(18)
                         ),
-                        t(22)
+                        t(19)
                     ),
-                    apply(
-                        id("scotch.test.fib", t(11)),
-                        apply(
-                            apply(id("scotch.test.(-)", t(13)), id("n", t(12)), t(19)),
-                            literal(2),
-                            t(20)
-                        ),
-                        t(21)
-                    ),
-                    t(23)
+                    t(21)
                 ))
-            ))
+            )))
         ));
     }
 
@@ -117,7 +119,7 @@ public class SyntaxParserTest {
             "fn :: Int -> Int",
             "fn n = n"
         );
-        assertThat(graph.getValue(valueRef("scotch.test", "fn")).get(), is(fn(intType(), intType())));
+        assertThat(graph.getSignature(valueRef("scotch.test.fn")).get(), is(fn(intType(), intType())));
     }
 
     @Ignore
@@ -132,14 +134,14 @@ public class SyntaxParserTest {
             "    x == y = not $ x /= y",
             "    x /= y = not $ x == y"
         );
-        assertThat(graph.getDefinition(classRef("scotch.test", "Eq")), is(
+        assertThat(graph.getDefinition(classRef("scotch.test.Eq")), is(
             classDef("scotch.test.Eq", asList(var("a")), asList(
-                signatureRef("scotch.test", "=="),
-                signatureRef("scotch.test", "/="),
-                valueRef("scotch.test", "=="),
-                valueRef("scotch.test", "/=")
+                signatureRef("scotch.test.(==)"),
+                signatureRef("scotch.test.(/=)"),
+                valueRef("scotch.test.(==)"),
+                valueRef("scotch.test.(/=)")
             ))
         ));
-        assertThat(graph.getDefinition(signatureRef("scotch.test", "==")), is(fn(var("a", asList("Eq")), fn(var("a", asList("Eq")), sum("Bool")))));
+        assertThat(graph.getDefinition(signatureRef("scotch.test.(==)")), is(fn(var("a", asList("Eq")), fn(var("a", asList("Eq")), sum("Bool")))));
     }
 }

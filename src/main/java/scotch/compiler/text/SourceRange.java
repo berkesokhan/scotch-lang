@@ -64,6 +64,10 @@ public class SourceRange {
         return start.withSourceName(sourceName);
     }
 
+    public SourceRange getStartRange() {
+        return new SourceRange(sourceName, start, start);
+    }
+
     public void markLine(CodeBlock codeBlock) {
         LabelNode label = new LabelNode();
         codeBlock.label(label);

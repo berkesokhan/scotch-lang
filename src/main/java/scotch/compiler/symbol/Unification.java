@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.toList;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import com.google.common.collect.ImmutableSet;
@@ -15,8 +16,8 @@ public abstract class Unification {
         return new CircularReference(expected, reference);
     }
 
-    public static Unification contextMismatch(Type expected, Type actual, Collection<Symbol> contextDifference) {
-        return new ContextMismatch(expected, actual, contextDifference);
+    public static Unification contextMismatch(Type expected, Type actual, Collection<Symbol> expectedContext, Collection<Symbol> actualContext) {
+        return new ContextMismatch(expected, actual, expectedContext, actualContext);
     }
 
     public static Unification mismatch(Type expected, Type actual) {
@@ -37,6 +38,8 @@ public abstract class Unification {
 
     @Override
     public abstract boolean equals(Object o);
+
+    public abstract Unification flip();
 
     @Override
     public abstract int hashCode();
@@ -111,6 +114,11 @@ public abstract class Unification {
         }
 
         @Override
+        public Unification flip() {
+            return this;
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(expected, reference);
         }
@@ -136,12 +144,14 @@ public abstract class Unification {
 
         private final Type        expected;
         private final Type        actual;
-        private final Set<Symbol> contextDifference;
+        private final Set<Symbol> expectedContext;
+        private final Set<Symbol> actualContext;
 
-        public ContextMismatch(Type expected, Type actual, Collection<Symbol> contextDifference) {
+        public ContextMismatch(Type expected, Type actual, Collection<Symbol> expectedContext, Collection<Symbol> actualContext) {
             this.expected = expected;
             this.actual = actual;
-            this.contextDifference = ImmutableSet.copyOf(contextDifference);
+            this.actualContext = ImmutableSet.copyOf(actualContext);
+            this.expectedContext = ImmutableSet.copyOf(expectedContext);
         }
 
         @Override
@@ -162,15 +172,21 @@ public abstract class Unification {
                 ContextMismatch other = (ContextMismatch) o;
                 return Objects.equals(expected, other.expected)
                     && Objects.equals(actual, other.actual)
-                    && Objects.equals(contextDifference, other.contextDifference);
+                    && Objects.equals(expectedContext, other.expectedContext)
+                    && Objects.equals(actualContext, other.actualContext);
             } else {
                 return false;
             }
         }
 
         @Override
+        public Unification flip() {
+            return new ContextMismatch(actual, expected, expectedContext, actualContext);
+        }
+
+        @Override
         public int hashCode() {
-            return Objects.hash(expected, actual, contextDifference);
+            return Objects.hash(expected, actual, expectedContext, actualContext);
         }
 
         @Override
@@ -180,6 +196,9 @@ public abstract class Unification {
 
         @Override
         public String prettyPrint() {
+            Set<Symbol> contextDifference = new HashSet<>();
+            contextDifference.addAll(expectedContext);
+            contextDifference.removeAll(actualContext);
             return "Type mismatch: " + actual.prettyPrint()
                 + " does not implement entire context of " + expected.prettyPrint() + ":"
                 + " difference is [" + join(", ", contextDifference.stream().map(Symbol::getCanonicalName).collect(toList())) + "]";
@@ -187,7 +206,7 @@ public abstract class Unification {
 
         @Override
         public String toString() {
-            return stringify(this) + "(expected=" + expected + ", actual=" + actual + ", contextDifference=" + contextDifference + ")";
+            return stringify(this) + "(expected=" + expected + ", actual=" + actual + ", expectedContext=" + expectedContext + ", actualContext=" + actualContext + ")";
         }
     }
 
@@ -222,6 +241,11 @@ public abstract class Unification {
             } else {
                 return false;
             }
+        }
+
+        @Override
+        public Unification flip() {
+            return new TypeMismatch(actual, expected);
         }
 
         @Override
@@ -266,6 +290,11 @@ public abstract class Unification {
         @Override
         public boolean equals(Object o) {
             return o == this || o instanceof Unified && Objects.equals(unifiedType, ((Unified) o).unifiedType);
+        }
+
+        @Override
+        public Unification flip() {
+            return this;
         }
 
         public Type getUnifiedType() {

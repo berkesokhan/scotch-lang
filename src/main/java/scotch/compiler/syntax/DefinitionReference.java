@@ -1,6 +1,5 @@
 package scotch.compiler.syntax;
 
-import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
@@ -11,9 +10,7 @@ import scotch.compiler.symbol.Type;
 
 public abstract class DefinitionReference {
 
-    public static ClassReference classRef(String moduleName, String name) {
-        return classRef(qualified(moduleName, name));
-    }
+    private static final RootReference rootRef = new RootReference();
 
     public static ClassReference classRef(Symbol symbol) {
         return new ClassReference(symbol);
@@ -27,43 +24,29 @@ public abstract class DefinitionReference {
         return new ModuleReference(name);
     }
 
-    public static OperatorReference operatorRef(String moduleName, String name) {
-        return operatorRef(qualified(moduleName, name));
-    }
-
     public static OperatorReference operatorRef(Symbol symbol) {
         return new OperatorReference(symbol);
-    }
-
-    public static PatternReference patternRef(String moduleName, String name) {
-        return patternRef(qualified(moduleName, name));
     }
 
     public static PatternReference patternRef(Symbol symbol) {
         return new PatternReference(symbol);
     }
 
-    public static DefinitionReference rootRef() {
+    public static RootReference rootRef() {
         return rootRef;
     }
 
-    public static SignatureReference signatureRef(String moduleName, String name) {
-        return signatureRef(qualified(moduleName, name));
+    public static ScopeReference scopeRef(Symbol symbol) {
+        return new ScopeReference(symbol);
     }
 
     public static SignatureReference signatureRef(Symbol symbol) {
         return new SignatureReference(symbol);
     }
 
-    public static DefinitionReference valueRef(String moduleName, String name) {
-        return valueRef(qualified(moduleName, name));
-    }
-
     public static ValueReference valueRef(Symbol symbol) {
         return new ValueReference(symbol);
     }
-
-    private static final DefinitionReference rootRef = new RootReference();
 
     private DefinitionReference() {
         // intentionally empty
@@ -103,6 +86,10 @@ public abstract class DefinitionReference {
         }
 
         default T visit(RootReference reference) {
+            return visitOtherwise(reference);
+        }
+
+        default T visit(ScopeReference reference) {
             return visitOtherwise(reference);
         }
 
@@ -321,6 +308,35 @@ public abstract class DefinitionReference {
         @Override
         public String toString() {
             return stringify(this);
+        }
+    }
+
+    public static class ScopeReference extends DefinitionReference {
+
+        private final Symbol symbol;
+
+        public ScopeReference(Symbol symbol) {
+            this.symbol = symbol;
+        }
+
+        @Override
+        public <T> T accept(DefinitionReferenceVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o == this || o instanceof ScopeReference && Objects.equals(symbol, ((ScopeReference) o).symbol);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(symbol);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(" + symbol.getCanonicalName() + ")";
         }
     }
 

@@ -3,6 +3,7 @@ package scotch.compiler.symbol;
 import static java.lang.Character.isLowerCase;
 import static java.lang.Character.isUpperCase;
 import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.joining;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.symbol.Symbol.fromString;
@@ -79,10 +80,7 @@ public abstract class Type {
             scope.bind(target, actual);
             return unified(actual);
         } else {
-            Set<Symbol> contextDifference = new HashSet<>();
-            contextDifference.addAll(target.context);
-            contextDifference.removeAll(scope.getContext(actual));
-            return contextMismatch(target, actual, contextDifference);
+            return contextMismatch(target, actual, target.context, scope.getContext(actual));
         }
     }
 
@@ -103,6 +101,10 @@ public abstract class Type {
     public abstract int hashCode();
 
     public abstract String prettyPrint();
+
+    public Type simplify() {
+        return this;
+    }
 
     @Override
     public abstract String toString();
@@ -457,9 +459,14 @@ public abstract class Type {
 
         @Override
         public String prettyPrint() {
-            return name;
+            if (context.isEmpty()) {
+                return name;
+            } else {
+                return "(" + name + " <= " + context.stream().map(Symbol::getMemberName).collect(joining(", ")) + ")";
+            }
         }
 
+        @Override
         public VariableType simplify() {
             return var(name);
         }

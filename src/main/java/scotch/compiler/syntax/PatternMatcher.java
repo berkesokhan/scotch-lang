@@ -1,6 +1,5 @@
 package scotch.compiler.syntax;
 
-import static scotch.compiler.symbol.Type.fn;
 import static scotch.compiler.syntax.DefinitionReference.patternRef;
 import static scotch.util.StringUtil.stringify;
 
@@ -43,6 +42,10 @@ public class PatternMatcher {
         }
     }
 
+    public int getArity() {
+        return matches.size();
+    }
+
     public Value getBody() {
         return body;
     }
@@ -60,9 +63,7 @@ public class PatternMatcher {
     }
 
     public Type getType() {
-        return matches.stream()
-            .map(PatternMatch::getType)
-            .reduce(body.getType(), (result, argument) -> fn(argument, result));
+        return body.getType();
     }
 
     @Override

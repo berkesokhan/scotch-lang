@@ -6,14 +6,15 @@ import java.util.Map;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.Type;
-import scotch.compiler.symbol.TypeGenerator;
 import scotch.compiler.syntax.Definition.DefinitionVisitor;
 import scotch.compiler.syntax.Definition.ValueDefinition;
 import scotch.compiler.syntax.Definition.ValueSignature;
 import scotch.compiler.syntax.DefinitionEntry.DefinitionEntryVisitor;
 import scotch.compiler.syntax.DefinitionEntry.ScopedEntry;
 import scotch.compiler.syntax.DefinitionEntry.UnscopedEntry;
+import scotch.compiler.syntax.DefinitionReference.ValueReference;
 
 public class DefinitionGraph {
 
@@ -22,11 +23,11 @@ public class DefinitionGraph {
     }
 
     private final Map<DefinitionReference, DefinitionEntry> definitions;
-    private final TypeGenerator                             typeGenerator;
+    private final SymbolGenerator                           symbolGenerator;
     private final List<SyntaxError>                         errors;
 
-    private DefinitionGraph(Collection<DefinitionEntry> entries, TypeGenerator typeGenerator, List<SyntaxError> errors) {
-        this.typeGenerator = typeGenerator;
+    private DefinitionGraph(Collection<DefinitionEntry> entries, SymbolGenerator symbolGenerator, List<SyntaxError> errors) {
+        this.symbolGenerator = symbolGenerator;
         this.errors = ImmutableList.copyOf(errors);
         ImmutableMap.Builder<DefinitionReference, DefinitionEntry> builder = ImmutableMap.builder();
         entries.forEach(entry -> builder.put(entry.getReference(), entry));
@@ -36,7 +37,7 @@ public class DefinitionGraph {
     public DefinitionGraphBuilder copyWith(Collection<DefinitionEntry> entries) {
         return createGraph(entries)
             .withErrors(errors)
-            .withSequence(typeGenerator);
+            .withSequence(symbolGenerator);
     }
 
     public Optional<Definition> getDefinition(DefinitionReference reference) {
@@ -63,8 +64,12 @@ public class DefinitionGraph {
         return definitions.get(reference).getScope();
     }
 
-    public TypeGenerator getTypeGenerator() {
-        return typeGenerator;
+    public Optional<Type> getSignature(ValueReference reference) {
+        return getScope(reference).getParent().getSignature(reference.getSymbol());
+    }
+
+    public SymbolGenerator getSymbolGenerator() {
+        return symbolGenerator;
     }
 
     public Optional<Type> getValue(DefinitionReference reference) {
@@ -93,7 +98,7 @@ public class DefinitionGraph {
     public static class DefinitionGraphBuilder {
 
         private final Collection<DefinitionEntry> definitions;
-        private       Optional<TypeGenerator>     optionalSequence;
+        private       Optional<SymbolGenerator>   optionalSequence;
         private       Optional<List<SyntaxError>> optionalErrors;
 
         private DefinitionGraphBuilder(Collection<DefinitionEntry> definitions) {
@@ -109,7 +114,7 @@ public class DefinitionGraph {
         }
 
         public DefinitionGraph build() {
-            return new DefinitionGraph(definitions, optionalSequence.orElseGet(TypeGenerator::new), optionalErrors.orElse(ImmutableList.of()));
+            return new DefinitionGraph(definitions, optionalSequence.orElseGet(SymbolGenerator::new), optionalErrors.orElse(ImmutableList.of()));
         }
 
         public DefinitionGraphBuilder withErrors(List<SyntaxError> errors) {
@@ -117,8 +122,8 @@ public class DefinitionGraph {
             return this;
         }
 
-        public DefinitionGraphBuilder withSequence(TypeGenerator typeGenerator) {
-            optionalSequence = Optional.of(typeGenerator);
+        public DefinitionGraphBuilder withSequence(SymbolGenerator symbolGenerator) {
+            optionalSequence = Optional.of(symbolGenerator);
             return this;
         }
     }

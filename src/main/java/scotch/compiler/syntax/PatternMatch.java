@@ -3,18 +3,19 @@ package scotch.compiler.syntax;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
+import java.util.Optional;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.text.SourceRange;
 
 public abstract class PatternMatch {
 
-    public static CaptureMatch capture(SourceRange sourceRange, Symbol symbol, Type type) {
-        return new CaptureMatch(sourceRange, symbol, type);
+    public static CaptureMatch capture(SourceRange sourceRange, Optional<String> argument, Symbol symbol, Type type) {
+        return new CaptureMatch(sourceRange, argument, symbol, type);
     }
 
-    public static EqualMatch equal(SourceRange sourceRange, Value value) {
-        return new EqualMatch(sourceRange, value);
+    public static EqualMatch equal(SourceRange sourceRange, Optional<String> argument, Value value) {
+        return new EqualMatch(sourceRange, argument, value);
     }
 
     private PatternMatch() {
@@ -22,6 +23,8 @@ public abstract class PatternMatch {
     }
 
     public abstract <T> T accept(PatternMatchVisitor<T> visitor);
+
+    public abstract PatternMatch bind(String argument);
 
     @Override
     public abstract boolean equals(Object o);
@@ -53,12 +56,14 @@ public abstract class PatternMatch {
 
     public static class CaptureMatch extends PatternMatch {
 
-        private final SourceRange sourceRange;
-        private final Symbol      symbol;
-        private final Type        type;
+        private final SourceRange      sourceRange;
+        private final Optional<String> argument;
+        private final Symbol           symbol;
+        private final Type             type;
 
-        private CaptureMatch(SourceRange sourceRange, Symbol symbol, Type type) {
+        private CaptureMatch(SourceRange sourceRange, Optional<String> argument, Symbol symbol, Type type) {
             this.sourceRange = sourceRange;
+            this.argument = argument;
             this.symbol = symbol;
             this.type = type;
         }
@@ -69,16 +74,30 @@ public abstract class PatternMatch {
         }
 
         @Override
+        public PatternMatch bind(String argument) {
+            if (this.argument.isPresent()) {
+                throw new IllegalStateException();
+            } else {
+                return capture(sourceRange, Optional.of(argument), symbol, type);
+            }
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (o == this) {
                 return true;
             } else if (o instanceof CaptureMatch) {
                 CaptureMatch other = (CaptureMatch) o;
-                return Objects.equals(symbol, other.symbol)
+                return Objects.equals(argument, other.argument)
+                    && Objects.equals(symbol, other.symbol)
                     && Objects.equals(type, other.type);
             } else {
                 return false;
             }
+        }
+
+        public String getArgument() {
+            return argument.orElseThrow(IllegalStateException::new);
         }
 
         @Override
@@ -97,7 +116,7 @@ public abstract class PatternMatch {
 
         @Override
         public int hashCode() {
-            return Objects.hash(symbol, type);
+            return Objects.hash(argument, symbol, type);
         }
 
         @Override
@@ -106,21 +125,23 @@ public abstract class PatternMatch {
         }
 
         public CaptureMatch withSourceRange(SourceRange sourceRange) {
-            return new CaptureMatch(sourceRange, symbol, type);
+            return new CaptureMatch(sourceRange, argument, symbol, type);
         }
 
         public PatternMatch withType(Type type) {
-            return new CaptureMatch(sourceRange, symbol, type);
+            return new CaptureMatch(sourceRange, argument, symbol, type);
         }
     }
 
     public static class EqualMatch extends PatternMatch {
 
         private final SourceRange sourceRange;
+        private final Optional<String> argument;
         private final Value       value;
 
-        public EqualMatch(SourceRange sourceRange, Value value) {
+        public EqualMatch(SourceRange sourceRange, Optional<String> argument, Value value) {
             this.sourceRange = sourceRange;
+            this.argument = argument;
             this.value = value;
         }
 
@@ -130,8 +151,26 @@ public abstract class PatternMatch {
         }
 
         @Override
+        public PatternMatch bind(String argument) {
+            if (this.argument.isPresent()) {
+                throw new IllegalStateException();
+            } else {
+                return new EqualMatch(sourceRange, Optional.of(argument), value);
+            }
+        }
+
+        @Override
         public boolean equals(Object o) {
-            return o == this || o instanceof EqualMatch && Objects.equals(value, ((EqualMatch) o).value);
+            if (o == this) {
+                return true;
+            } else if (o instanceof EqualMatch) {
+                EqualMatch other = (EqualMatch) o;
+                return Objects.equals(sourceRange, other.sourceRange)
+                    && Objects.equals(argument, other.argument)
+                    && Objects.equals(value, other.value);
+            } else {
+                return false;
+            }
         }
 
         @Override
@@ -150,7 +189,7 @@ public abstract class PatternMatch {
 
         @Override
         public int hashCode() {
-            return Objects.hash(value);
+            return Objects.hash(argument, value);
         }
 
         @Override
@@ -159,11 +198,11 @@ public abstract class PatternMatch {
         }
 
         public EqualMatch withSourceRange(SourceRange sourceRange) {
-            return new EqualMatch(sourceRange, value);
+            return new EqualMatch(sourceRange, argument, value);
         }
 
         public EqualMatch withValue(Value value) {
-            return new EqualMatch(sourceRange, value);
+            return new EqualMatch(sourceRange, argument, value);
         }
     }
 }

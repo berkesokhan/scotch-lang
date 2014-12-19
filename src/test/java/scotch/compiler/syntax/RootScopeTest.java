@@ -23,25 +23,25 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolEntry;
+import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.TypeGenerator;
 import scotch.compiler.symbol.exception.SymbolNotFoundException;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RootScopeTest {
 
     @Mock
-    private SymbolResolver resolver;
+    private SymbolResolver  resolver;
     @Mock
-    private TypeGenerator  typeGenerator;
-    private Scope          rootScope;
-    private Scope          module1Scope;
-    private Scope          module2Scope;
+    private SymbolGenerator symbolGenerator;
+    private Scope           rootScope;
+    private Scope           module1Scope;
+    private Scope           module2Scope;
 
     @Before
     public void setUp() {
         when(resolver.getEntry(any(Symbol.class))).thenReturn(Optional.empty());
-        rootScope = scope(typeGenerator, resolver);
+        rootScope = scope(symbolGenerator, resolver);
         module1Scope = rootScope.enterScope("scotch.module1", emptyList());
         module2Scope = rootScope.enterScope("scotch.module2", asList(moduleImport("scotch.module1")));
     }

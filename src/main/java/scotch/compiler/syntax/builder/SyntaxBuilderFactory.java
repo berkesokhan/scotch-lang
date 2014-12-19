@@ -9,17 +9,24 @@ import scotch.compiler.syntax.builder.DefinitionBuilder.ClassDefinitionBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.ModuleDefinitionBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.OperatorDefinitionBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.RootDefinitionBuilder;
+import scotch.compiler.syntax.builder.DefinitionBuilder.ScopeDefinitionBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.UnshuffledPatternBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.ValueDefinitionBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.ValueSignatureBuilder;
 import scotch.compiler.syntax.builder.ImportBuilder.ModuleImportBuilder;
 import scotch.compiler.syntax.builder.PatternMatchBuilder.CaptureMatchBuilder;
 import scotch.compiler.syntax.builder.PatternMatchBuilder.EqualMatchBuilder;
+import scotch.compiler.syntax.builder.ValueBuilder.ArgumentBuilder;
+import scotch.compiler.syntax.builder.ValueBuilder.FunctionBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.IdentifierBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.LiteralBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.MessageBuilder;
 
 public class SyntaxBuilderFactory {
+
+    public ArgumentBuilder argumentBuilder() {
+        return ValueBuilder.argumentBuilder();
+    }
 
     public CaptureMatchBuilder captureMatchBuilder() {
         return PatternMatchBuilder.captureMatchBuilder();
@@ -35,6 +42,10 @@ public class SyntaxBuilderFactory {
 
     public IdentifierBuilder idBuilder() {
         return ValueBuilder.idBuilder();
+    }
+
+    public FunctionBuilder functionBuilder() {
+        return ValueBuilder.functionBuilder();
     }
 
     public LiteralBuilder literalBuilder() {
@@ -59,6 +70,10 @@ public class SyntaxBuilderFactory {
 
     public RootDefinitionBuilder rootBuilder() {
         return DefinitionBuilder.rootBuilder();
+    }
+
+    public ScopeDefinitionBuilder scopeBuilder() {
+        return DefinitionBuilder.scopeBuilder();
     }
 
     public ValueSignatureBuilder signatureBuilder() {

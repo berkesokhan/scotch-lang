@@ -13,10 +13,12 @@ import static scotch.compiler.syntax.StubResolver.defaultNumOf;
 import static scotch.compiler.syntax.StubResolver.defaultPlus;
 import static scotch.compiler.syntax.StubResolver.defaultString;
 import static scotch.compiler.syntax.Value.apply;
+import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.bindMethods;
 import static scotch.compiler.util.TestUtil.bodyOf;
 import static scotch.compiler.util.TestUtil.boundMethod;
 import static scotch.compiler.util.TestUtil.capture;
+import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
 import static scotch.compiler.util.TestUtil.instanceRef;
 import static scotch.compiler.util.TestUtil.intType;
@@ -83,18 +85,23 @@ public class MethodBinderTest {
             "import scotch.data.num",
             "fn a b = a + b"
         );
-        Type t11 = t(11, asList("scotch.data.num.Num"));
+        Type t12 = t(12, asList("scotch.data.num.Num"));
         assertThat(graph.getErrors(), empty());
-        assertThat(bodyOf(graph.getDefinition(valueRef("scotch.test.fn"))), is(patterns(
-            fn(t11, fn(t11, t11)), pattern("scotch.test.(pattern#3)", asList(capture("a", t11), capture("b", t11)), apply(
-                apply(
-                    unboundMethod("scotch.data.num.(+)", fn(t11, fn(t11, t11))),
-                    id("a", t11),
-                    fn(t11, t11)
-                ),
-                id("b", t11),
-                t11
-            ))
+        assertThat(bodyOf(graph.getDefinition(valueRef("scotch.test.fn"))), is(fn(
+            "scotch.test.($1)",
+            asList(arg("$0", t12), arg("$1", t12)),
+            patterns(
+                t12,
+                pattern("scotch.test.($0)", asList(capture("$0", "a", t12), capture("$1", "b", t12)), apply(
+                    apply(
+                        unboundMethod("scotch.data.num.(+)", fn(t12, fn(t12, t12))),
+                        id("a", t12),
+                        fn(t12, t12)
+                    ),
+                    id("b", t12),
+                    t12
+                ))
+            )
         )));
     }
 }

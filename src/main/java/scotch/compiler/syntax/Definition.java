@@ -8,6 +8,7 @@ import static scotch.compiler.syntax.DefinitionReference.moduleRef;
 import static scotch.compiler.syntax.DefinitionReference.operatorRef;
 import static scotch.compiler.syntax.DefinitionReference.patternRef;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
+import static scotch.compiler.syntax.DefinitionReference.scopeRef;
 import static scotch.compiler.syntax.DefinitionReference.signatureRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
 import static scotch.compiler.syntax.PatternMatcher.pattern;
@@ -41,6 +42,10 @@ public abstract class Definition {
 
     public static RootDefinition root(SourceRange sourceRange, List<DefinitionReference> definitions) {
         return new RootDefinition(sourceRange, definitions);
+    }
+
+    public static ScopeDefinition scopeDef(SourceRange sourceRange, Symbol symbol) {
+        return new ScopeDefinition(sourceRange, symbol);
     }
 
     public static ValueSignature signature(SourceRange sourceRange, Symbol symbol, Type type) {
@@ -97,6 +102,10 @@ public abstract class Definition {
         }
 
         default T visit(RootDefinition definition) {
+            return visitOtherwise(definition);
+        }
+
+        default T visit(ScopeDefinition definition) {
             return visitOtherwise(definition);
         }
 
@@ -188,7 +197,7 @@ public abstract class Definition {
         private final List<Type>       types;
         private final List<Definition> members;
 
-        public InstanceDefinition(
+        private InstanceDefinition(
             SourceRange sourceRange,
             ClassReference classReference,
             ModuleReference moduleReference,
@@ -422,6 +431,55 @@ public abstract class Definition {
 
         public RootDefinition withDefinitions(List<DefinitionReference> definitions) {
             return new RootDefinition(sourceRange, definitions);
+        }
+    }
+
+    public static class ScopeDefinition extends Definition {
+
+        private final SourceRange sourceRange;
+        private final Symbol symbol;
+
+        private ScopeDefinition(SourceRange sourceRange, Symbol symbol) {
+            this.sourceRange = sourceRange;
+            this.symbol = symbol;
+        }
+
+        @Override
+        public <T> T accept(DefinitionVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof ScopeDefinition) {
+                ScopeDefinition other = (ScopeDefinition) o;
+                return Objects.equals(sourceRange, other.sourceRange)
+                    && Objects.equals(symbol, other.symbol);
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public DefinitionReference getReference() {
+            return scopeRef(symbol);
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(symbol);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(" + symbol.getCanonicalName() + ")";
         }
     }
 

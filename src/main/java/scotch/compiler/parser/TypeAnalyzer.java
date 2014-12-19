@@ -1,9 +1,11 @@
 package scotch.compiler.parser;
 
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.symbol.Type.fn;
 import static scotch.compiler.syntax.DefinitionEntry.scopedEntry;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
+import static scotch.compiler.syntax.DefinitionReference.scopeRef;
 import static scotch.compiler.syntax.SyntaxError.typeError;
 
 import java.util.ArrayDeque;
@@ -12,9 +14,10 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.Type;
-import scotch.compiler.symbol.TypeGenerator;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.symbol.Unification.UnificationVisitor;
 import scotch.compiler.symbol.Unification.Unified;
@@ -36,9 +39,11 @@ import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.SyntaxError;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
+import scotch.compiler.syntax.Value.Argument;
 import scotch.compiler.syntax.Value.BoolLiteral;
 import scotch.compiler.syntax.Value.CharLiteral;
 import scotch.compiler.syntax.Value.DoubleLiteral;
+import scotch.compiler.syntax.Value.FunctionValue;
 import scotch.compiler.syntax.Value.Identifier;
 import scotch.compiler.syntax.Value.IntLiteral;
 import scotch.compiler.syntax.Value.PatternMatchers;
@@ -55,21 +60,21 @@ public class TypeAnalyzer implements
     private final Map<DefinitionReference, DefinitionEntry> definitions;
     private final Deque<Scope>                              scopes;
     private final List<SyntaxError>                         errors;
-    private       TypeGenerator                             typeGenerator;
+    private       SymbolGenerator                           symbolGenerator;
 
     public TypeAnalyzer(DefinitionGraph graph) {
         this.graph = graph;
         this.definitions = new HashMap<>();
         this.scopes = new ArrayDeque<>();
         this.errors = new ArrayList<>();
-        this.typeGenerator = graph.getTypeGenerator();
+        this.symbolGenerator = graph.getSymbolGenerator();
     }
 
     public DefinitionGraph analyze() {
         graph.getDefinition(rootRef()).map(definition -> definition.accept(this));
         return graph
             .copyWith(definitions.values())
-            .withSequence(typeGenerator)
+            .withSequence(symbolGenerator)
             .appendErrors(errors)
             .build();
     }
@@ -85,12 +90,31 @@ public class TypeAnalyzer implements
     }
 
     @Override
-    public Value visit(IntLiteral literal) {
+    public Value visit(DoubleLiteral literal) {
         return literal;
     }
 
     @Override
-    public Value visit(DoubleLiteral literal) {
+    public Value visit(FunctionValue function) {
+        return scoped(scopeRef(function.getSymbol()), () -> {
+            List<Type> argumentTypes = function.getArguments().stream()
+                .map(Argument::getType)
+                .collect(toList());
+            argumentTypes.forEach(currentScope()::specialize);
+            try {
+                return function
+                    .withBody(function.getBody().accept(this))
+                    .withArguments(function.getArguments().stream()
+                        .map(arg -> arg.withType(currentScope().generate(arg.getType())))
+                        .collect(toList()));
+            } finally {
+                argumentTypes.forEach(currentScope()::generalize);
+            }
+        });
+    }
+
+    @Override
+    public Value visit(IntLiteral literal) {
         return literal;
     }
 
@@ -131,28 +155,43 @@ public class TypeAnalyzer implements
     @Override
     public Value visit(PatternMatchers matchers) {
         List<PatternMatcher> patterns = matchers.getMatchers().stream().map(this::visitMatcher).collect(toList());
-        Type type = matchers.getType();
-        for (PatternMatcher pattern : patterns) {
-            pattern.withType(type.unify(pattern.getType(), currentScope()).accept(new UnificationVisitor<Type>() {
+        AtomicReference<Type> type = new AtomicReference<>(reserveType());
+        patterns = patterns.stream()
+            .map(pattern -> pattern.getType().unify(type.get(), currentScope()).accept(new UnificationVisitor<PatternMatcher>() {
                 @Override
-                public Type visit(Unified unified) {
-                    return unified.getUnifiedType();
+                public PatternMatcher visit(Unified unified) {
+                    Type result = currentScope().generate(unified.getUnifiedType());
+                    type.set(result);
+                    return pattern.withType(result);
                 }
 
                 @Override
-                public Type visitOtherwise(Unification unification) {
-                    errors.add(typeError(unification, pattern.getSourceRange()));
-                    return matchers.getType();
+                public PatternMatcher visitOtherwise(Unification unification) {
+                    errors.add(typeError(unification.flip(), pattern.getSourceRange()));
+                    return pattern;
                 }
-            }));
-            type = currentScope().generate(type);
-        }
-        return matchers.withMatchers(patterns).withType(type);
+            }))
+            .collect(toList());
+        return matchers.withMatchers(patterns).withType(type.get());
     }
 
     @Override
     public PatternMatch visit(CaptureMatch match) {
-        return match.withType(currentScope().generate(match.getType()));
+        Scope scope = currentScope();
+        return scope.generate(match.getType())
+            .unify(scope.getValue(unqualified(match.getArgument())), scope)
+            .accept(new UnificationVisitor<PatternMatch>() {
+                @Override
+                public PatternMatch visit(Unified unified) {
+                    return match.withType(unified.getUnifiedType());
+                }
+
+                @Override
+                public PatternMatch visitOtherwise(Unification unification) {
+                    errors.add(typeError(unification, match.getSourceRange()));
+                    return match;
+                }
+            });
     }
 
     @Override
@@ -170,11 +209,10 @@ public class TypeAnalyzer implements
             public Value visit(Unified unified) {
                 Value typedFunction = function.withType(currentScope().generate(function.getType()));
                 Value typedArgument = argument.withType(currentScope().generate(argument.getType()));
-                Type target = currentScope().getTarget(resultType);
                 return apply
                     .withFunction(typedFunction)
                     .withArgument(typedArgument)
-                    .withType(target);
+                    .withType(currentScope().generate(resultType));
             }
 
             @Override
@@ -215,7 +253,7 @@ public class TypeAnalyzer implements
     }
 
     private Type reserveType() {
-        return typeGenerator.reserveType();
+        return symbolGenerator.reserveType();
     }
 
     private <T> T scoped(DefinitionReference reference, Supplier<T> supplier) {

@@ -10,23 +10,26 @@ import static scotch.compiler.symbol.Type.t;
 import static scotch.compiler.symbol.Type.var;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
 import static scotch.compiler.symbol.Value.Fixity.PREFIX;
-import static scotch.compiler.syntax.DefinitionReference.classRef;
 import static scotch.compiler.syntax.DefinitionReference.moduleRef;
-import static scotch.compiler.syntax.DefinitionReference.operatorRef;
-import static scotch.compiler.syntax.DefinitionReference.patternRef;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
-import static scotch.compiler.syntax.DefinitionReference.signatureRef;
-import static scotch.compiler.syntax.DefinitionReference.valueRef;
+import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.bodyOf;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.classDef;
+import static scotch.compiler.util.TestUtil.classRef;
+import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
 import static scotch.compiler.util.TestUtil.message;
 import static scotch.compiler.util.TestUtil.operatorDef;
+import static scotch.compiler.util.TestUtil.operatorRef;
 import static scotch.compiler.util.TestUtil.parseInput;
+import static scotch.compiler.util.TestUtil.patternRef;
 import static scotch.compiler.util.TestUtil.root;
 import static scotch.compiler.util.TestUtil.signature;
+import static scotch.compiler.util.TestUtil.signatureRef;
 import static scotch.compiler.util.TestUtil.unshuffled;
+import static scotch.compiler.util.TestUtil.value;
+import static scotch.compiler.util.TestUtil.valueRef;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,12 +52,12 @@ public class InputParserTest {
             "    x == y = not x /= y",
             "    x /= y = not x == y"
         );
-        assertThat(graph.getDefinition(classRef("scotch.data.eq", "Eq")).get(), is(
+        assertThat(graph.getDefinition(classRef("scotch.data.eq.Eq")).get(), is(
             classDef("scotch.data.eq.Eq", asList(var("a")), asList(
-                signatureRef("scotch.data.eq", "=="),
-                signatureRef("scotch.data.eq", "/="),
-                patternRef("scotch.data.eq", "pattern#3"),
-                patternRef("scotch.data.eq", "pattern#11")
+                signatureRef("scotch.data.eq.(==)"),
+                signatureRef("scotch.data.eq.(/=)"),
+                patternRef("scotch.data.eq.($0)"),
+                patternRef("scotch.data.eq.($1)")
             ))
         ));
     }
@@ -65,10 +68,10 @@ public class InputParserTest {
             "module scotch.test",
             "(==), (/=) :: a -> a -> Bool"
         );
-        assertThat(graph.getDefinition(signatureRef("scotch.test", "==")).get(), is(
+        assertThat(graph.getDefinition(signatureRef("scotch.test.(==)")).get(), is(
             signature("scotch.test.(==)", fn(var("a"), fn(var("a"), sum("Bool"))))
         ));
-        assertThat(graph.getDefinition(signatureRef("scotch.test", "/=")).get(), is(
+        assertThat(graph.getDefinition(signatureRef("scotch.test.(/=)")).get(), is(
             signature("scotch.test.(/=)", fn(var("a"), fn(var("a"), sum("Bool"))))
         ));
     }
@@ -96,12 +99,12 @@ public class InputParserTest {
             "left infix 7 (+), (-)",
             "prefix 4 not"
         );
-        assertThat(graph.getDefinition(operatorRef("scotch.test", "*")).get(), is(operatorDef("scotch.test.(*)", LEFT_INFIX, 8)));
-        assertThat(graph.getDefinition(operatorRef("scotch.test", "/")).get(), is(operatorDef("scotch.test.(/)", LEFT_INFIX, 8)));
-        assertThat(graph.getDefinition(operatorRef("scotch.test", "%")).get(), is(operatorDef("scotch.test.(%)", LEFT_INFIX, 8)));
-        assertThat(graph.getDefinition(operatorRef("scotch.test", "+")).get(), is(operatorDef("scotch.test.(+)", LEFT_INFIX, 7)));
-        assertThat(graph.getDefinition(operatorRef("scotch.test", "-")).get(), is(operatorDef("scotch.test.(-)", LEFT_INFIX, 7)));
-        assertThat(graph.getDefinition(operatorRef("scotch.test", "not")).get(), is(operatorDef("scotch.test.not", PREFIX, 4)));
+        assertThat(graph.getDefinition(operatorRef("scotch.test.(*)")).get(), is(operatorDef("scotch.test.(*)", LEFT_INFIX, 8)));
+        assertThat(graph.getDefinition(operatorRef("scotch.test.(/)")).get(), is(operatorDef("scotch.test.(/)", LEFT_INFIX, 8)));
+        assertThat(graph.getDefinition(operatorRef("scotch.test.(%)")).get(), is(operatorDef("scotch.test.(%)", LEFT_INFIX, 8)));
+        assertThat(graph.getDefinition(operatorRef("scotch.test.(+)")).get(), is(operatorDef("scotch.test.(+)", LEFT_INFIX, 7)));
+        assertThat(graph.getDefinition(operatorRef("scotch.test.(-)")).get(), is(operatorDef("scotch.test.(-)", LEFT_INFIX, 7)));
+        assertThat(graph.getDefinition(operatorRef("scotch.test.not")).get(), is(operatorDef("scotch.test.not", PREFIX, 4)));
     }
 
     @Test
@@ -110,7 +113,7 @@ public class InputParserTest {
             "module scotch.test",
             "value = fn (a b)"
         );
-        assertThat(bodyOf(graph.getDefinition(valueRef("scotch.test", "value"))), is(
+        assertThat(bodyOf(graph.getDefinition(valueRef("scotch.test.value"))), is(
             message(
                 id("fn", t(1)),
                 message(id("a", t(2)), id("b", t(3)))
@@ -124,7 +127,7 @@ public class InputParserTest {
             "module scotch.test",
             "length :: String -> Int"
         );
-        assertThat(graph.getDefinition(signatureRef("scotch.test", "length")).get(), is(
+        assertThat(graph.getDefinition(signatureRef("scotch.test.length")).get(), is(
             signature("scotch.test.length", fn(sum("String"), sum("Int")))
         ));
     }
@@ -136,10 +139,10 @@ public class InputParserTest {
             "length :: String -> Int",
             "length s = jStrlen s"
         );
-        assertThat(graph.getDefinition(patternRef("scotch.test", "pattern#2")).get(), is(unshuffled(
-            "scotch.test.(pattern#2)",
+        assertThat(graph.getDefinition(patternRef("scotch.test.($0)")).get(), is(unshuffled(
+            "scotch.test.($0)",
             asList(capture("length", t(0)), capture("s", t(1))),
-            message(id("jStrlen", t(3)), id("s", t(4)))
+            message(id("jStrlen", t(2)), id("s", t(3)))
         )));
     }
 
@@ -206,7 +209,7 @@ public class InputParserTest {
             "module scotch.test",
             "fn :: (Eq a) => a -> a -> Bool"
         );
-        assertThat(graph.getValue(signatureRef("scotch.test", "fn")).get(),
+        assertThat(graph.getValue(signatureRef("scotch.test.fn")).get(),
             is(fn(var("a", asList("Eq")), fn(var("a", asList("Eq")), sum("Bool")))));
     }
 
@@ -216,7 +219,7 @@ public class InputParserTest {
             "module scotch.test",
             "fn :: (Eq a, Show a) => a -> a -> Bool"
         );
-        assertThat(graph.getValue(signatureRef("scotch.test", "fn")).get(),
+        assertThat(graph.getValue(signatureRef("scotch.test.fn")).get(),
             is(fn(var("a", asList("Eq", "Show")), fn(var("a", asList("Eq", "Show")), sum("Bool")))));
     }
 
@@ -226,8 +229,32 @@ public class InputParserTest {
             "module scotch.test",
             "fn :: (Eq a, Show b) => a -> b -> Bool"
         );
-        assertThat(graph.getValue(signatureRef("scotch.test", "fn")).get(),
+        assertThat(graph.getValue(signatureRef("scotch.test.fn")).get(),
             is(fn(var("a", asList("Eq")), fn(var("b", asList("Show")), sum("Bool")))));
+    }
+
+    @Test
+    public void shouldParseFunction1() {
+        DefinitionGraph graph = parseInput(
+            "module scotch.test",
+            "id = \\x -> x"
+        );
+        assertThat(graph.getDefinition(valueRef("scotch.test.id")).get(),
+            is(value("scotch.test.id", t(0), fn("scotch.test.($0)", arg("x", t(1)), id("x", t(2))))));
+    }
+
+    @Test
+    public void shouldParseFunction2() {
+        DefinitionGraph graph = parseInput(
+            "module scotch.test",
+            "apply2 = \\x y z -> x y z"
+        );
+        assertThat(graph.getDefinition(valueRef("scotch.test.apply2")).get(),
+            is(value("scotch.test.apply2", t(0), fn(
+                "scotch.test.($0)",
+                asList(arg("x", t(1)), arg("y", t(2)), arg("z", t(3))),
+                message(id("x", t(4)), id("y", t(5)), id("z", t(6)))
+            ))));
     }
 
     private void expectParseException(String message) {

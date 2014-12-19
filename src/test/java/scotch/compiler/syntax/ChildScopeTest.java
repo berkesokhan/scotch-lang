@@ -24,7 +24,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import scotch.compiler.symbol.Operator;
-import scotch.compiler.symbol.TypeGenerator;
+import scotch.compiler.symbol.SymbolGenerator;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ChildScopeTest {
@@ -37,7 +37,7 @@ public class ChildScopeTest {
 
     @Before
     public void setUp() {
-        childScope = scope(parentScope, new DefaultTypeScope(new TypeGenerator()));
+        childScope = scope(parentScope, new DefaultTypeScope(new SymbolGenerator()));
     }
 
     @Test

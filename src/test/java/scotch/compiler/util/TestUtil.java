@@ -36,6 +36,9 @@ import scotch.compiler.syntax.DefinitionGraph;
 import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.DefinitionReference.ClassReference;
 import scotch.compiler.syntax.DefinitionReference.InstanceReference;
+import scotch.compiler.syntax.DefinitionReference.OperatorReference;
+import scotch.compiler.syntax.DefinitionReference.PatternReference;
+import scotch.compiler.syntax.DefinitionReference.SignatureReference;
 import scotch.compiler.syntax.DefinitionReference.ValueReference;
 import scotch.compiler.syntax.Import;
 import scotch.compiler.syntax.Import.ModuleImport;
@@ -44,9 +47,11 @@ import scotch.compiler.syntax.PatternMatch.CaptureMatch;
 import scotch.compiler.syntax.PatternMatch.EqualMatch;
 import scotch.compiler.syntax.PatternMatcher;
 import scotch.compiler.syntax.Value;
+import scotch.compiler.syntax.Value.Argument;
 import scotch.compiler.syntax.Value.BoolLiteral;
 import scotch.compiler.syntax.Value.CharLiteral;
 import scotch.compiler.syntax.Value.DoubleLiteral;
+import scotch.compiler.syntax.Value.FunctionValue;
 import scotch.compiler.syntax.Value.Identifier;
 import scotch.compiler.syntax.Value.IntLiteral;
 import scotch.compiler.syntax.Value.Message;
@@ -59,6 +64,10 @@ public class TestUtil {
 
     public static DefinitionGraph analyzeTypes(SymbolResolver resolver, String... data) {
         return new TypeAnalyzer(parseSyntax(resolver, data)).analyze();
+    }
+
+    public static Argument arg(String name, Type type) {
+        return Value.arg(NULL_SOURCE, name, type);
     }
 
     public static DefinitionGraph bindMethods(SymbolResolver resolver, String... data) {
@@ -84,11 +93,19 @@ public class TestUtil {
     }
 
     public static CaptureMatch capture(String name, Type type) {
-        return PatternMatch.capture(NULL_SOURCE, fromString(name), type);
+        return PatternMatch.capture(NULL_SOURCE, Optional.empty(), fromString(name), type);
+    }
+
+    public static CaptureMatch capture(String argument, String name, Type type) {
+        return PatternMatch.capture(NULL_SOURCE, Optional.of(argument), fromString(name), type);
     }
 
     public static ClassDefinition classDef(String name, List<Type> arguments, List<DefinitionReference> members) {
         return Definition.classDef(NULL_SOURCE, fromString(name), arguments, members);
+    }
+
+    public static ClassReference classRef(String className) {
+        return DefinitionReference.classRef(fromString(className));
     }
 
     public static Type doubleType() {
@@ -96,15 +113,15 @@ public class TestUtil {
     }
 
     public static EqualMatch equal(Value value) {
-        return PatternMatch.equal(NULL_SOURCE, value);
+        return PatternMatch.equal(NULL_SOURCE, Optional.empty(), value);
+    }
+
+    public static EqualMatch equal(String argument, Value value) {
+        return PatternMatch.equal(NULL_SOURCE, Optional.of(argument), value);
     }
 
     public static Identifier id(String name, Type type) {
         return Value.id(NULL_SOURCE, fromString(name), type);
-    }
-
-    public static ClassReference classRef(String className) {
-        return DefinitionReference.classRef(fromString(className));
     }
 
     public static InstanceReference instanceRef(String moduleName, String className, List<Type> parameters) {
@@ -113,6 +130,14 @@ public class TestUtil {
 
     public static Type intType() {
         return sum("scotch.data.int.Int");
+    }
+
+    public static FunctionValue fn(String name, Argument argument, Value body) {
+        return fn(name, asList(argument), body);
+    }
+
+    public static FunctionValue fn(String name, List<Argument> arguments, Value body) {
+        return Value.fn(NULL_SOURCE, fromString(name), arguments, body);
     }
 
     public static BoolLiteral literal(boolean value) {
@@ -147,6 +172,10 @@ public class TestUtil {
         return Definition.operatorDef(NULL_SOURCE, fromString(name), fixity, precedence);
     }
 
+    public static OperatorReference operatorRef(String name) {
+        return DefinitionReference.operatorRef(fromString(name));
+    }
+
     public static DefinitionGraph parseInput(String... data) {
         return new InputParser(forString("$test", data), new SyntaxBuilderFactory()).parse();
     }
@@ -159,6 +188,10 @@ public class TestUtil {
         return PatternMatcher.pattern(NULL_SOURCE, fromString(name), matches, body);
     }
 
+    public static PatternReference patternRef(String name) {
+        return DefinitionReference.patternRef(fromString(name));
+    }
+
     public static PatternMatchers patterns(Type type, PatternMatcher... matchers) {
         return Value.patterns(NULL_SOURCE, type, asList(matchers));
     }
@@ -169,6 +202,10 @@ public class TestUtil {
 
     public static ValueSignature signature(String name, Type type) {
         return Definition.signature(NULL_SOURCE, fromString(name), type);
+    }
+
+    public static SignatureReference signatureRef(String name) {
+        return DefinitionReference.signatureRef(fromString(name));
     }
 
     public static Token token(TokenKind kind, Object value) {

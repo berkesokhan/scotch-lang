@@ -7,9 +7,9 @@ public interface TypeScope {
 
     void bind(VariableType variableType, Type targetType);
 
-    TypeScope enterScope();
-
     void extendContext(Type type, Set<Symbol> additionalContext);
+
+    void generalize(Type type);
 
     Type generate(Type type);
 

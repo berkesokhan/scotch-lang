@@ -42,6 +42,7 @@ public abstract class PatternMatchBuilder<T extends PatternMatch> implements Syn
         public CaptureMatch build() {
             return capture(
                 require(sourceRange, "Source range"),
+                Optional.empty(),
                 require(symbol, "Capture symbol"),
                 require(type, "Capture type")
             );
@@ -73,6 +74,7 @@ public abstract class PatternMatchBuilder<T extends PatternMatch> implements Syn
         public EqualMatch build() {
             return equal(
                 require(sourceRange, "Source range"),
+                Optional.empty(),
                 require(value, "Capture value")
             );
         }

@@ -61,6 +61,7 @@ public class TypeAnalyzerTest {
             "id x = x",
             "test = id 5"
         );
+        assertThat(graph.getValue(valueRef("scotch.test.id")).get(), is(fn(t(1), t(1))));
         assertThat(graph.getValue(valueRef("scotch.test.test")).get(), is(intType));
     }
 
@@ -177,7 +178,19 @@ public class TypeAnalyzerTest {
             "add a b = a + b"
         );
         assertThat(graph.getErrors(), empty());
-        VariableType a = t(11, asList("scotch.data.num.Num"));
+        VariableType a = t(12, asList("scotch.data.num.Num"));
         assertThat(graph.getValue(valueRef("scotch.test.add")).get(), is(fn(a, fn(a, a))));
+    }
+
+    @Test
+    public void shouldAnalyzeFunction() {
+        DefinitionGraph graph = analyzeTypes(
+            resolver,
+            "module scotch.test",
+            "import scotch.data.num",
+            "apply = \\x y -> x y"
+        );
+        System.out.println(graph.getValue(valueRef("scotch.test.apply")).get().prettyPrint());
+        assertThat(graph.getValue(valueRef("scotch.test.apply")).get(), is(fn(fn(t(2), t(6)), fn(t(2), t(6)))));
     }
 }

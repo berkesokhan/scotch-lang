@@ -32,11 +32,32 @@ public class BytecodeGeneratorTest {
     }
 
     @Test
+    public void shouldCompileId() {
+        String result = exec(
+            "module scotch.test",
+            "id = \\x -> x",
+            "run = id \"Bananas!\""
+        );
+        assertThat(result, is("Bananas!"));
+    }
+
+    @Test
     public void shouldCompile2Plus2() {
         int result = exec(
             "module scotch.test",
             "import scotch.data.num",
             "run = 2 + 2"
+        );
+        assertThat(result, is(4));
+    }
+
+    @Test
+    public void shouldCompileDelegated2Plus2() {
+        int result = exec(
+            "module scotch.test",
+            "import scotch.data.num",
+            "add x y = x + y",
+            "run = add 2 2"
         );
         assertThat(result, is(4));
     }

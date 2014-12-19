@@ -28,8 +28,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import scotch.compiler.symbol.Operator;
+import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.TypeGenerator;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ModuleScopeTest {
@@ -44,7 +44,7 @@ public class ModuleScopeTest {
     @Before
     public void setUp() {
         moduleName = "scotch.test";
-        moduleScope = scope(rootScope, new DefaultTypeScope(new TypeGenerator()), resolver, moduleName, asList(import_));
+        moduleScope = scope(rootScope, new DefaultTypeScope(new SymbolGenerator()), resolver, moduleName, asList(import_));
         when(rootScope.enterScope(any(String.class), anyList())).thenReturn(moduleScope);
         when(import_.qualify(any(String.class), any(SymbolResolver.class))).thenReturn(Optional.empty());
     }

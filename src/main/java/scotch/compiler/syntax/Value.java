@@ -1,5 +1,8 @@
 package scotch.compiler.syntax;
 
+import static java.util.Collections.reverse;
+import static java.util.stream.Collectors.toList;
+import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.symbol.Type.sum;
 import static scotch.compiler.syntax.DefinitionReference.classRef;
 import static scotch.compiler.syntax.DefinitionReference.instanceRef;
@@ -9,6 +12,7 @@ import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 import static scotch.util.StringUtil.quote;
 import static scotch.util.StringUtil.stringify;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
@@ -26,12 +30,20 @@ public abstract class Value {
         return new Apply(function.getSourceRange().extend(argument.getSourceRange()), function, argument, type);
     }
 
+    public static Argument arg(SourceRange sourceRange, String name, Type type) {
+        return new Argument(sourceRange, name, type);
+    }
+
     public static BoundMethod boundMethod(SourceRange sourceRange, ValueReference reference, InstanceReference instance, Type type) {
         return new BoundMethod(sourceRange, reference, instance, type);
     }
 
     public static PatternMatchers emptyPatterns(Type type) {
         return patterns(NULL_SOURCE, type, ImmutableList.of());
+    }
+
+    public static FunctionValue fn(SourceRange sourceRange, Symbol symbol, List<Argument> arguments, Value body) {
+        return new FunctionValue(sourceRange, symbol, arguments, body);
     }
 
     public static Identifier id(SourceRange sourceRange, Symbol symbol, Type type) {
@@ -89,12 +101,20 @@ public abstract class Value {
     @Override
     public abstract String toString();
 
+    public Value unwrap() {
+        return this;
+    }
+
     public abstract Value withType(Type type);
 
     public interface ValueVisitor<T> {
 
         default T visit(Apply apply) {
             return visitOtherwise(apply);
+        }
+
+        default T visit(Argument argument) {
+            return visitOtherwise(argument);
         }
 
         default T visit(BoolLiteral literal) {
@@ -119,6 +139,10 @@ public abstract class Value {
 
         default T visit(IntLiteral literal) {
             return visitOtherwise(literal);
+        }
+
+        default T visit(FunctionValue function) {
+            return visitOtherwise(function);
         }
 
         default T visit(Message message) {
@@ -221,10 +245,71 @@ public abstract class Value {
         }
     }
 
+    public static class Argument extends Value {
+
+        private final SourceRange sourceRange;
+        private final String      name;
+        private final Type        type;
+
+        public Argument(SourceRange sourceRange, String name, Type type) {
+            this.sourceRange = sourceRange;
+            this.name = name;
+            this.type = type;
+        }
+
+        @Override
+        public <T> T accept(ValueVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof Argument) {
+                Argument other = (Argument) o;
+                return Objects.equals(sourceRange, other.sourceRange)
+                    && Objects.equals(name, other.name)
+                    && Objects.equals(type, other.type);
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        public Symbol getSymbol() {
+            return unqualified(name);
+        }
+
+        @Override
+        public Type getType() {
+            return type;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(sourceRange, name, type);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(" + name + " :: " + type + ")";
+        }
+
+        @Override
+        public Argument withType(Type type) {
+            return arg(sourceRange, name, type);
+        }
+    }
+
     public static class BoolLiteral extends Value {
 
         private final SourceRange sourceRange;
-        private final boolean value;
+        private final boolean     value;
 
         public BoolLiteral(SourceRange sourceRange, boolean value) {
             this.sourceRange = sourceRange;
@@ -347,7 +432,7 @@ public abstract class Value {
     public static class CharLiteral extends Value {
 
         private final SourceRange sourceRange;
-        private final char value;
+        private final char        value;
 
         public CharLiteral(SourceRange sourceRange, char value) {
             this.sourceRange = sourceRange;
@@ -401,7 +486,7 @@ public abstract class Value {
     public static class DoubleLiteral extends Value {
 
         private final SourceRange sourceRange;
-        private final double value;
+        private final double      value;
 
         public DoubleLiteral(SourceRange sourceRange, double value) {
             this.sourceRange = sourceRange;
@@ -449,6 +534,90 @@ public abstract class Value {
         @Override
         public Value withType(Type type) {
             return this;
+        }
+    }
+
+    public static class FunctionValue extends Value {
+
+        private final SourceRange    sourceRange;
+        private final Symbol         symbol;
+        private final List<Argument> arguments;
+        private final Value          body;
+
+        public FunctionValue(SourceRange sourceRange, Symbol symbol, List<Argument> arguments, Value body) {
+            this.sourceRange = sourceRange;
+            this.symbol = symbol;
+            this.arguments = ImmutableList.copyOf(arguments);
+            this.body = body;
+        }
+
+        @Override
+        public <T> T accept(ValueVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof FunctionValue) {
+                FunctionValue other = (FunctionValue) o;
+                return Objects.equals(sourceRange, other.sourceRange)
+                    && Objects.equals(symbol, other.symbol)
+                    && Objects.equals(arguments, other.arguments)
+                    && Objects.equals(body, other.body);
+            } else {
+                return false;
+            }
+        }
+
+        public List<Argument> getArguments() {
+            return arguments;
+        }
+
+        public Value getBody() {
+            return body;
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        public Symbol getSymbol() {
+            return symbol;
+        }
+
+        @Override
+        public Type getType() {
+            List<Argument> args = new ArrayList<>(arguments);
+            reverse(args);
+            return args.stream()
+                .map(Argument::getType)
+                .reduce(body.getType(), (result, arg) -> Type.fn(arg, result));
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(symbol, arguments, body);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(" + arguments + " -> " + body + ")";
+        }
+
+        public FunctionValue withArguments(List<Argument> arguments) {
+            return fn(sourceRange, symbol, arguments, body);
+        }
+
+        public FunctionValue withBody(Value body) {
+            return fn(sourceRange, symbol, arguments, body);
+        }
+
+        @Override
+        public Value withType(Type type) {
+            throw new UnsupportedOperationException();
         }
     }
 
@@ -525,7 +694,7 @@ public abstract class Value {
     public static class IntLiteral extends Value {
 
         private final SourceRange sourceRange;
-        private final int value;
+        private final int         value;
 
         public IntLiteral(SourceRange sourceRange, int value) {
             this.sourceRange = sourceRange;
@@ -595,6 +764,14 @@ public abstract class Value {
             return visitor.visit(this);
         }
 
+        public Value collapse() {
+            if (members.size() == 1) {
+                return members.get(0);
+            } else {
+                return this;
+            }
+        }
+
         @Override
         public boolean equals(Object o) {
             return o == this || o instanceof Message && Objects.equals(members, ((Message) o).members);
@@ -622,6 +799,11 @@ public abstract class Value {
         @Override
         public String toString() {
             return stringify(this) + "(" + members + ")";
+        }
+
+        @Override
+        public Value unwrap() {
+            return collapse().unwrap();
         }
 
         public Message withSourceRange(SourceRange sourceRange) {
@@ -689,6 +871,15 @@ public abstract class Value {
             return stringify(this) + "(" + matchers + ")";
         }
 
+        @Override
+        public Value unwrap() {
+            return withMatchers(
+                matchers.stream()
+                    .map(matcher -> matcher.withBody(matcher.getBody().unwrap()))
+                    .collect(toList())
+            );
+        }
+
         public PatternMatchers withMatchers(List<PatternMatcher> matchers) {
             return new PatternMatchers(sourceRange, matchers, type);
         }
@@ -706,7 +897,7 @@ public abstract class Value {
     public static class StringLiteral extends Value {
 
         private final SourceRange sourceRange;
-        private final String value;
+        private final String      value;
 
         public StringLiteral(SourceRange sourceRange, String value) {
             this.sourceRange = sourceRange;

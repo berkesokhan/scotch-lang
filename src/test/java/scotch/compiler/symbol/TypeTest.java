@@ -29,7 +29,7 @@ public class TypeTest {
 
     @Before
     public void setUp() {
-        scope = new DefaultTypeScope(new TypeGenerator());
+        scope = new DefaultTypeScope(new SymbolGenerator());
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -139,23 +139,27 @@ public class TypeTest {
         VariableType target = var("a", asList("Eq", "Show"));
         Type sum = sum("DbCursor");
         addContext(sum, "Show");
-        shouldBeContextMismatch(unify(target, sum), target, sum, asList("Eq"));
+        shouldBeContextMismatch(unify(target, sum), target, sum, asList("Eq", "Show"), asList("Show"));
     }
 
     @Test
     public void shouldNotUnifyFunctionToTargetVariable_whenVariableHasContext() {
         VariableType target = var("a", asList("Eq"));
         Type function = fn(var("b"), var("c"));
-        shouldBeContextMismatch(unify(target, function), target, function, asList("Eq"));
+        shouldBeContextMismatch(unify(target, function), target, function, asList("Eq"), asList());
     }
 
     private void addContext(Type type, String... context) {
         scope.extendContext(type, asList(context).stream().map(Symbol::fromString).collect(toSet()));
     }
 
-    private void shouldBeContextMismatch(Unification unification, Type expected, Type actual, List<String> contextDifference) {
+    private void shouldBeContextMismatch(Unification unification, Type expected, Type actual, List<String> expectedContext, List<String> actualContext) {
         assertFalse(unification.isUnified());
-        assertThat(unification, is(contextMismatch(expected, actual, contextDifference.stream().map(Symbol::fromString).collect(toList()))));
+        assertThat(unification, is(contextMismatch(expected, actual, symbolize(expectedContext), symbolize(actualContext))));
+    }
+
+    private List<Symbol> symbolize(List<String> list) {
+        return list.stream().map(Symbol::fromString).collect(toList());
     }
 
     private Type argumentOf(Type type) {
@@ -173,7 +177,7 @@ public class TypeTest {
     }
 
     private void shouldBeBound(Type variable, Type target) {
-        assertThat(scope.getTarget(variable), is(target));
+        assertThat(scope.generate(variable), is(target));
     }
 
     private void shouldBeCircular(Unification result, Type target, Type variable) {
