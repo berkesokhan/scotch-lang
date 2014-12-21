@@ -1,11 +1,16 @@
 package scotch.compiler.generator;
 
+import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
+import static me.qmx.jitescript.LambdaBlock.METAFACTORY;
 import static me.qmx.jitescript.util.CodegenUtils.c;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_STATIC;
+import static org.objectweb.asm.Opcodes.H_INVOKESTATIC;
+import static org.objectweb.asm.Type.getMethodType;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
 
 import java.util.ArrayDeque;
@@ -13,10 +18,15 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
 import me.qmx.jitescript.MethodDefinition;
+import org.objectweb.asm.Handle;
+import scotch.compiler.symbol.Symbol.QualifiedSymbol;
+import scotch.compiler.symbol.Symbol.SymbolVisitor;
+import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Type.FunctionType;
 import scotch.compiler.symbol.Type.TypeVisitor;
@@ -30,13 +40,17 @@ import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
+import scotch.compiler.syntax.Value.Argument;
 import scotch.compiler.syntax.Value.BoundMethod;
+import scotch.compiler.syntax.Value.FunctionValue;
+import scotch.compiler.syntax.Value.Identifier;
 import scotch.compiler.syntax.Value.IntLiteral;
+import scotch.compiler.syntax.Value.StringLiteral;
 import scotch.compiler.syntax.Value.ValueVisitor;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
-import scotch.runtime.Thunk;
+import scotch.runtime.SuppliedThunk;
 
 public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<CodeBlock> {
 
@@ -44,6 +58,7 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
     private final Deque<JiteClass>     jiteClasses;
     private final List<GeneratedClass> generatedClasses;
     private final Deque<Scope>         scopes;
+    private final Deque<List<String>>  arguments;
     private       int                  sequence;
 
     public BytecodeGenerator(DefinitionGraph graph) {
@@ -51,6 +66,7 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
         this.jiteClasses = new ArrayDeque<>();
         this.generatedClasses = new ArrayList<>();
         this.scopes = new ArrayDeque<>();
+        this.arguments = new ArrayDeque<>(asList(ImmutableList.of()));
     }
 
     public List<GeneratedClass> generate() {
@@ -60,26 +76,84 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
 
     @Override
     public CodeBlock visit(Apply apply) {
+        Class<?>[] args = new Class<?>[arguments.peek().size()];
+        for (int i = 0; i < args.length; i++) {
+            args[i] = Callable.class;
+        }
+        String methodName = "thunk$" + sequence++;
+        String signature = sig(Callable.class, args);
+        method(methodName, ACC_STATIC | ACC_PRIVATE, signature, new CodeBlock()
+            .append(generate(apply.getFunction()))
+            .invokeinterface(p(Callable.class), "call", sig(Object.class))
+            .checkcast(p(Applicable.class))
+            .append(generate(apply.getArgument()))
+            .invokeinterface(p(Applicable.class), "apply", sig(Callable.class, Callable.class))
+            .areturn());
         return new CodeBlock() {{
-            String className = beginClass(Thunk.class, apply.getSourceRange());
-            currentClass().defineDefaultConstructor();
-            method("evaluate", ACC_PROTECTED, sig(Object.class), new CodeBlock()
-                .append(generate(apply.getFunction()))
-                .invokeinterface(p(Callable.class), "call", sig(Object.class))
-                .checkcast(p(Applicable.class))
-                .append(generate(apply.getArgument()))
-                .invokeinterface(p(Applicable.class), "apply", sig(Callable.class, Callable.class))
-                .areturn());
-            endClass();
-            newobj(className);
+            newobj(p(SuppliedThunk.class));
             dup();
-            invokespecial(className, "<init>", sig(void.class));
+            for (int i = 0; i < args.length; i++) {
+                aload(i);
+            }
+            invokedynamic("get", sig(Supplier.class), METAFACTORY,
+                getMethodType(sig(Object.class)),
+                new Handle(H_INVOKESTATIC, currentClass().getClassName(), methodName, signature),
+                getMethodType(signature)
+            );
+            invokespecial(p(SuppliedThunk.class), "<init>", sig(void.class, Supplier.class));
         }};
     }
 
     @Override
     public CodeBlock visit(BoundMethod boundMethod) {
         return boundMethod.reference(currentScope());
+    }
+
+    @Override
+    public CodeBlock visit(FunctionValue function) {
+        arguments.push(ImmutableList.<String>builder()
+            .addAll(arguments.peek())
+            .addAll(function.getArguments().stream().map(Argument::getName).collect(toList()))
+            .build()
+        );
+        String methodName = "function$" + sequence++;
+        String signature = sig(
+            function.getBody().getType() instanceof FunctionType ? Applicable.class : Callable.class,
+            function.getArguments().get(0).getType() instanceof FunctionType ? Applicable.class : Callable.class
+        );
+        try {
+            method(methodName, ACC_STATIC | ACC_PRIVATE, signature, generate(function.getBody()).areturn());
+        } finally {
+            arguments.pop();
+        }
+        return new CodeBlock().invokedynamic("apply", sig(Applicable.class), METAFACTORY,
+            getMethodType(sig(Callable.class, Callable.class)),
+            new Handle(H_INVOKESTATIC, currentClass().getClassName(), methodName, signature),
+            getMethodType(signature)
+        );
+    }
+
+    @Override
+    public CodeBlock visit(Identifier identifier) {
+        return identifier.getSymbol().accept(new SymbolVisitor<CodeBlock>() {
+            @Override
+            public CodeBlock visit(QualifiedSymbol symbol) {
+                return new CodeBlock().invokestatic(
+                    "scotch/test/ScotchModule", // TODO
+                    symbol.getMethodName(),
+                    sig(identifier.getType() instanceof FunctionType ? Applicable.class : Callable.class)
+                );
+            }
+
+            @Override
+            public CodeBlock visit(UnqualifiedSymbol symbol) {
+                if (arguments.peek().contains(symbol.getMemberName())) {
+                    return new CodeBlock().aload(arguments.peek().indexOf(symbol.getMemberName()));
+                } else {
+                    throw new UnsupportedOperationException(); // TODO
+                }
+            }
+        });
     }
 
     @Override
@@ -93,6 +167,11 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
     public Void visit(RootDefinition definition) {
         scoped(definition, () -> generateAll(definition.getDefinitions()));
         return null;
+    }
+
+    @Override
+    public CodeBlock visit(StringLiteral literal) {
+        return new CodeBlock().ldc(literal.getValue());
     }
 
     @Override
@@ -113,9 +192,7 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
                 annotate(Value.class).value("memberName", definition.getSymbol().getMemberName());
                 definition.markLine(this);
                 append(generate(definition.getBody()));
-                if (!returns()) {
-                    areturn();
-                }
+                areturn();
             }});
         });
         return null;
@@ -135,17 +212,6 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
     private void beginClass(String className, SourceRange sourceRange) {
         jiteClasses.push(new JiteClass(className));
         currentClass().setSourceFile(sourceRange.getSourceName());
-    }
-
-    private String beginClass(Class<?> parentClass, SourceRange sourceRange) {
-        String className = currentClass().getClassName() + "$" + sequence++;
-        if (parentClass.isInterface()) {
-            jiteClasses.push(new JiteClass(className, p(Object.class), new String[] { p(parentClass) }));
-        } else {
-            jiteClasses.push(new JiteClass(className, p(parentClass), new String[0]));
-        }
-        currentClass().setSourceFile(sourceRange.getSourceName());
-        return className;
     }
 
     private JiteClass currentClass() {

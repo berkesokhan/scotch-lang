@@ -276,6 +276,10 @@ public abstract class Value {
             }
         }
 
+        public String getName() {
+            return name;
+        }
+
         @Override
         public SourceRange getSourceRange() {
             return sourceRange;
@@ -930,6 +934,10 @@ public abstract class Value {
         @Override
         public Type getType() {
             return sum("scotch.data.string.String");
+        }
+
+        public String getValue() {
+            return value;
         }
 
         @Override

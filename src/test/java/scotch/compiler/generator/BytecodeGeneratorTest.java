@@ -51,6 +51,7 @@ public class BytecodeGeneratorTest {
         assertThat(result, is(4));
     }
 
+    @Ignore
     @Test
     public void shouldCompileDelegated2Plus2() {
         int result = exec(
