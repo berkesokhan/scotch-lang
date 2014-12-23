@@ -58,11 +58,21 @@ public abstract class Scope implements TypeScope {
     public abstract void beginPattern(Symbol symbol);
 
     public Value bind(Identifier identifier) {
-        if (isMember(identifier.getSymbol())) {
-            return identifier.unbound(getValue(identifier.getSymbol()));
-        } else {
-            return identifier.withType(getValue(identifier.getSymbol()));
-        }
+        return identifier.getSymbol().accept(new SymbolVisitor<Value>() {
+            @Override
+            public Value visit(QualifiedSymbol symbol) {
+                if (isMember(symbol)) {
+                    return identifier.unboundMethod(getValue(symbol));
+                } else {
+                    return identifier.boundValue(getValueSignature(symbol).get(), getValue(symbol));
+                }
+            }
+
+            @Override
+            public Value visit(UnqualifiedSymbol symbol) {
+                return identifier.boundArg(getValue(symbol));
+            }
+        });
     }
 
     public abstract void defineOperator(Symbol symbol, Operator operator);
@@ -104,7 +114,7 @@ public abstract class Scope implements TypeScope {
         return genericCopy(getRawValue(symbol));
     }
 
-    public abstract MethodSignature getValueSignature(Symbol symbol);
+    public abstract Optional<MethodSignature> getValueSignature(Symbol symbol);
 
     public abstract boolean isDefined(Symbol symbol);
 
@@ -262,7 +272,7 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public MethodSignature getValueSignature(Symbol symbol) {
+        public Optional<MethodSignature> getValueSignature(Symbol symbol) {
             return parent.getValueSignature(symbol);
         }
 
@@ -525,7 +535,7 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public MethodSignature getValueSignature(Symbol symbol) {
+        public Optional<MethodSignature> getValueSignature(Symbol symbol) {
             return parent.getValueSignature(symbol);
         }
 
@@ -779,10 +789,8 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public MethodSignature getValueSignature(Symbol symbol) {
-            return resolver.getEntry(symbol)
-                .orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " has no value signature"))
-                .getValueSignature();
+        public Optional<MethodSignature> getValueSignature(Symbol symbol) {
+            return resolver.getEntry(symbol).map(SymbolEntry::getValueSignature);
         }
 
         @Override

@@ -10,7 +10,7 @@ import me.qmx.jitescript.CodeBlock;
 public class MethodSignature {
 
     public static MethodSignature fromMethod(Method method) {
-        return new MethodSignature(
+        return fromString(
             p(method.getDeclaringClass()),
             method.getName(),
             sig(method.getReturnType(), method.getParameterTypes())
@@ -19,7 +19,11 @@ public class MethodSignature {
 
     public static MethodSignature fromString(String string) {
         String[] parts = string.split(":");
-        return new MethodSignature(parts[0], parts[1], parts[2]);
+        return fromString(parts[0], parts[1], parts[2]);
+    }
+
+    public static MethodSignature fromString(String javaClass, String methodName, String signature) {
+        return new MethodSignature(javaClass, methodName, signature);
     }
 
     private final String javaClass;

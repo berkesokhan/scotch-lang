@@ -239,7 +239,7 @@ public abstract class DefinitionBuilder<T extends Definition> implements SyntaxB
 
     public static class ScopeDefinitionBuilder extends DefinitionBuilder<ScopeDefinition> {
 
-        private Optional<Symbol> symbol;
+        private Optional<Symbol>      symbol;
         private Optional<SourceRange> sourceRange;
 
         private ScopeDefinitionBuilder() {
@@ -269,7 +269,7 @@ public abstract class DefinitionBuilder<T extends Definition> implements SyntaxB
 
     public static class UnshuffledPatternBuilder extends DefinitionBuilder<UnshuffledPattern> {
 
-        private Optional<Symbol> symbol;
+        private Optional<Symbol>             symbol;
         private Optional<List<PatternMatch>> matches;
         private Optional<Value>              body;
         private Optional<SourceRange>        sourceRange;

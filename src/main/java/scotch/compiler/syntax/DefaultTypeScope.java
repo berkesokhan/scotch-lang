@@ -38,15 +38,6 @@ public class DefaultTypeScope implements TypeScope {
         bind_(variableType.simplify(), targetType);
     }
 
-    private void bind_(VariableType variableType, Type targetType) {
-        if (isBound(variableType) && !getTarget(variableType).equals(targetType)) {
-            throw new UnsupportedOperationException("Can't re-bind type " + variableType.prettyPrint() + " to new target "
-                + targetType.prettyPrint() + "; current binding is incompatible: " + getTarget(variableType).prettyPrint());
-        } else {
-            bindings.put(variableType, targetType);
-        }
-    }
-
     @Override
     public void extendContext(Type type, Set<Symbol> additionalContext) {
         contexts.computeIfAbsent(type, k -> new LinkedHashSet<>()).addAll(additionalContext);
@@ -151,5 +142,14 @@ public class DefaultTypeScope implements TypeScope {
     @Override
     public void specialize(Type type) {
         specializedTypes.add(type.simplify());
+    }
+
+    private void bind_(VariableType variableType, Type targetType) {
+        if (isBound(variableType) && !getTarget(variableType).equals(targetType)) {
+            throw new UnsupportedOperationException("Can't re-bind type " + variableType.prettyPrint() + " to new target "
+                + targetType.prettyPrint() + "; current binding is incompatible: " + getTarget(variableType).prettyPrint());
+        } else {
+            bindings.put(variableType, targetType);
+        }
     }
 }

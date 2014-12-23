@@ -437,7 +437,7 @@ public abstract class Definition {
     public static class ScopeDefinition extends Definition {
 
         private final SourceRange sourceRange;
-        private final Symbol symbol;
+        private final Symbol      symbol;
 
         private ScopeDefinition(SourceRange sourceRange, Symbol symbol) {
             this.sourceRange = sourceRange;

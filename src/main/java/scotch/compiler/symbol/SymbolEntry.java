@@ -1,6 +1,9 @@
 package scotch.compiler.symbol;
 
 import java.util.Optional;
+import scotch.compiler.symbol.Symbol.QualifiedSymbol;
+import scotch.compiler.symbol.Symbol.SymbolVisitor;
+import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
 import scotch.compiler.symbol.exception.SymbolNotFoundException;
 
 public abstract class SymbolEntry {
@@ -193,16 +196,22 @@ public abstract class SymbolEntry {
 
     public static final class MutableEntry extends SymbolEntry {
 
-        private final Symbol             symbol;
-        private       Optional<Type>     optionalValue;
-        private       Optional<Operator> optionalOperator;
-        private       Optional<Type>     optionalSignature;
+        private final Symbol                        symbol;
+        private       Optional<Type>                optionalValue;
+        private       Optional<Operator>            optionalOperator;
+        private       Optional<Type>                optionalType;
+        private       Optional<Type>                optionalSignature;
+        private       Optional<TypeClassDescriptor> optionalTypeClass;
+        private       Optional<Symbol>              optionalMemberOf;
 
         private MutableEntry(Symbol symbol) {
             this.symbol = symbol;
             this.optionalValue = Optional.empty();
             this.optionalOperator = Optional.empty();
+            this.optionalType = Optional.empty();
             this.optionalSignature = Optional.empty();
+            this.optionalTypeClass = Optional.empty();
+            this.optionalMemberOf = Optional.empty();
         }
 
         @Override
@@ -236,7 +245,7 @@ public abstract class SymbolEntry {
 
         @Override
         public Symbol getMemberOf() {
-            throw new UnsupportedOperationException(); // TODO
+            return optionalMemberOf.orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not a class member"));
         }
 
         @Override
@@ -256,12 +265,12 @@ public abstract class SymbolEntry {
 
         @Override
         public Type getType() {
-            throw new UnsupportedOperationException(); // TODO
+            return optionalType.orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not a type"));
         }
 
         @Override
         public TypeClassDescriptor getTypeClass() {
-            throw new UnsupportedOperationException(); // TODO
+            return optionalTypeClass.orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not a type class"));
         }
 
         @Override
@@ -271,12 +280,22 @@ public abstract class SymbolEntry {
 
         @Override
         public MethodSignature getValueSignature() {
-            throw new UnsupportedOperationException(); // TODO
+            return symbol.accept(new SymbolVisitor<MethodSignature>() {
+                @Override
+                public MethodSignature visit(QualifiedSymbol symbol) {
+                    return optionalValue.map(symbol::getMethodSignature).orElseThrow(UnsupportedOperationException::new); // TODO
+                }
+
+                @Override
+                public MethodSignature visit(UnqualifiedSymbol symbol) {
+                    throw new UnsupportedOperationException(); // TODO
+                }
+            });
         }
 
         @Override
         public boolean isMember() {
-            return false; // TODO
+            return optionalMemberOf.isPresent();
         }
 
         @Override

@@ -69,15 +69,15 @@ public class ClasspathResolver implements SymbolResolver {
         return ImmutableSet.copyOf(typeInstancesByArguments.getOrDefault(arguments, ImmutableSet.of()));
     }
 
+    public Set<TypeInstanceDescriptor> getTypeInstancesByClass(Symbol symbol) {
+        search(symbol);
+        return ImmutableSet.copyOf(typeInstancesByClass.getOrDefault(symbol, ImmutableSet.of()));
+    }
+
     @Override
     public Set<TypeInstanceDescriptor> getTypeInstancesByModule(String moduleName) {
         search(moduleName);
         return ImmutableSet.copyOf(typeInstancesByModule.getOrDefault(moduleName, ImmutableSet.of()));
-    }
-
-    public Set<TypeInstanceDescriptor> getTypeInstancesByClass(Symbol symbol) {
-        search(symbol);
-        return ImmutableSet.copyOf(typeInstancesByClass.getOrDefault(symbol, ImmutableSet.of()));
     }
 
     private String baseName(File file) {

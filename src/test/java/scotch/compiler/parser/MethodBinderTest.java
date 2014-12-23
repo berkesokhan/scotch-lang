@@ -19,7 +19,6 @@ import static scotch.compiler.util.TestUtil.bodyOf;
 import static scotch.compiler.util.TestUtil.boundMethod;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.fn;
-import static scotch.compiler.util.TestUtil.id;
 import static scotch.compiler.util.TestUtil.instanceRef;
 import static scotch.compiler.util.TestUtil.intType;
 import static scotch.compiler.util.TestUtil.literal;
@@ -95,10 +94,10 @@ public class MethodBinderTest {
                 pattern("scotch.test.($0)", asList(capture("$0", "a", t12), capture("$1", "b", t12)), apply(
                     apply(
                         unboundMethod("scotch.data.num.(+)", fn(t12, fn(t12, t12))),
-                        id("a", t12),
+                        arg("a", t12),
                         fn(t12, t12)
                     ),
-                    id("b", t12),
+                    arg("b", t12),
                     t12
                 ))
             )

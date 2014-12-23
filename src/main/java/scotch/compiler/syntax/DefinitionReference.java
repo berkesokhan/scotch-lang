@@ -143,7 +143,7 @@ public abstract class DefinitionReference {
 
         private final ClassReference  classReference;
         private final ModuleReference moduleReference;
-        private final List<Type> types;
+        private final List<Type>      types;
 
         public InstanceReference(ClassReference classReference, ModuleReference moduleReference, List<Type> types) {
             this.classReference = classReference;

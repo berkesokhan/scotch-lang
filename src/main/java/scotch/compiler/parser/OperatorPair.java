@@ -16,13 +16,13 @@ class OperatorPair<T> {
         return value;
     }
 
+    public boolean isLeftAssociative() {
+        return operator.isLeftAssociative();
+    }
+
     public boolean isLessPrecedentThan(OperatorPair<T> other) {
         return isLeftAssociative() && operator.hasSamePrecedenceAs(other.operator)
             || operator.hasLessPrecedenceThan(other.operator);
-    }
-
-    public boolean isLeftAssociative() {
-        return operator.isLeftAssociative();
     }
 
     public boolean isPrefix() {

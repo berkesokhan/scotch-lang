@@ -36,16 +36,20 @@ public class SyntaxBuilderFactory {
         return DefinitionBuilder.classBuilder();
     }
 
+    public DefinitionGraphBuilder definitionGraphBuilder(List<DefinitionEntry> definitions) {
+        return createGraph(definitions);
+    }
+
     public EqualMatchBuilder equalMatchBuilder() {
         return PatternMatchBuilder.equalMatchBuilder();
     }
 
-    public IdentifierBuilder idBuilder() {
-        return ValueBuilder.idBuilder();
-    }
-
     public FunctionBuilder functionBuilder() {
         return ValueBuilder.functionBuilder();
+    }
+
+    public IdentifierBuilder idBuilder() {
+        return ValueBuilder.idBuilder();
     }
 
     public LiteralBuilder literalBuilder() {
@@ -78,10 +82,6 @@ public class SyntaxBuilderFactory {
 
     public ValueSignatureBuilder signatureBuilder() {
         return DefinitionBuilder.signatureBuilder();
-    }
-
-    public DefinitionGraphBuilder definitionGraphBuilder(List<DefinitionEntry> definitions) {
-        return createGraph(definitions);
     }
 
     public UnshuffledPatternBuilder unshuffledBuilder() {

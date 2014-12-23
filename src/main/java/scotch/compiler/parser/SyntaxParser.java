@@ -76,14 +76,14 @@ public class SyntaxParser implements
     PatternMatchVisitor<PatternMatch>,
     TypeVisitor<Type> {
 
-    private final DefinitionGraph                                graph;
-    private final PatternShuffler                                patternShuffler;
-    private final ValueShuffler                                  valueShuffler;
-    private final List<SyntaxError>                              errors;
-    private final SymbolGenerator                                symbolGenerator;
-    private final Map<DefinitionReference, DefinitionEntry>      definitions;
-    private       Scope                                          scope;
-    private       String                                         currentModule;
+    private final DefinitionGraph                           graph;
+    private final PatternShuffler                           patternShuffler;
+    private final ValueShuffler                             valueShuffler;
+    private final List<SyntaxError>                         errors;
+    private final SymbolGenerator                           symbolGenerator;
+    private final Map<DefinitionReference, DefinitionEntry> definitions;
+    private       Scope                                     scope;
+    private       String                                    currentModule;
 
     public SyntaxParser(DefinitionGraph graph, SymbolResolver resolver) {
         this.graph = graph;
@@ -302,28 +302,6 @@ public class SyntaxParser implements
         return pattern;
     }
 
-    private List<DefinitionReference> mapDefinitions(List<DefinitionReference> definitions) {
-        return definitions.stream()
-            .map(reference -> reference.accept(this))
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .collect(toList());
-    }
-
-    private Optional<DefinitionReference> parseDefinition(DefinitionReference reference) {
-        return graph.getDefinition(reference).flatMap(definition -> definition.accept(this));
-    }
-
-    private <T> T scoped(Optional<List<Import>> imports, Supplier<T> supplier) {
-        scope = imports.map(i -> scope.enterScope(currentModule, i)).orElseGet(scope::enterScope);
-        try {
-            return supplier.get();
-        } finally {
-            consolidatePatterns();
-            scope = scope.leaveScope();
-        }
-    }
-
     private void consolidatePatterns() {
         scope.getPatterns().forEach((symbol, patterns) -> {
             SourceRange sourceRange = patterns.stream()
@@ -344,6 +322,28 @@ public class SyntaxParser implements
                 patterns(sourceRange, scope.reserveType(), patterns)
             )).accept(this);
         });
+    }
+
+    private List<DefinitionReference> mapDefinitions(List<DefinitionReference> definitions) {
+        return definitions.stream()
+            .map(reference -> reference.accept(this))
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .collect(toList());
+    }
+
+    private Optional<DefinitionReference> parseDefinition(DefinitionReference reference) {
+        return graph.getDefinition(reference).flatMap(definition -> definition.accept(this));
+    }
+
+    private <T> T scoped(Optional<List<Import>> imports, Supplier<T> supplier) {
+        scope = imports.map(i -> scope.enterScope(currentModule, i)).orElseGet(scope::enterScope);
+        try {
+            return supplier.get();
+        } finally {
+            consolidatePatterns();
+            scope = scope.leaveScope();
+        }
     }
 
     private <T> T scoped(List<Import> imports, Supplier<T> supplier) {

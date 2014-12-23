@@ -24,9 +24,6 @@ import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
 import me.qmx.jitescript.MethodDefinition;
 import org.objectweb.asm.Handle;
-import scotch.compiler.symbol.Symbol.QualifiedSymbol;
-import scotch.compiler.symbol.Symbol.SymbolVisitor;
-import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Type.FunctionType;
 import scotch.compiler.symbol.Type.TypeVisitor;
@@ -42,8 +39,8 @@ import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
 import scotch.compiler.syntax.Value.Argument;
 import scotch.compiler.syntax.Value.BoundMethod;
+import scotch.compiler.syntax.Value.BoundValue;
 import scotch.compiler.syntax.Value.FunctionValue;
-import scotch.compiler.syntax.Value.Identifier;
 import scotch.compiler.syntax.Value.IntLiteral;
 import scotch.compiler.syntax.Value.StringLiteral;
 import scotch.compiler.syntax.Value.ValueVisitor;
@@ -105,16 +102,30 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
     }
 
     @Override
+    public CodeBlock visit(Argument argument) {
+        if (arguments.peek().contains(argument.getName())) {
+            return new CodeBlock().aload(arguments.peek().indexOf(argument.getName()));
+        } else {
+            throw new UnsupportedOperationException(); // TODO
+        }
+    }
+
+    @Override
     public CodeBlock visit(BoundMethod boundMethod) {
         return boundMethod.reference(currentScope());
     }
 
     @Override
+    public CodeBlock visit(BoundValue boundValue) {
+        return boundValue.reference();
+    }
+
+    @Override
     public CodeBlock visit(FunctionValue function) {
         arguments.push(ImmutableList.<String>builder()
-            .addAll(arguments.peek())
-            .addAll(function.getArguments().stream().map(Argument::getName).collect(toList()))
-            .build()
+                .addAll(arguments.peek())
+                .addAll(function.getArguments().stream().map(Argument::getName).collect(toList()))
+                .build()
         );
         String methodName = "function$" + sequence++;
         String signature = sig(
@@ -131,29 +142,6 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
             new Handle(H_INVOKESTATIC, currentClass().getClassName(), methodName, signature),
             getMethodType(signature)
         );
-    }
-
-    @Override
-    public CodeBlock visit(Identifier identifier) {
-        return identifier.getSymbol().accept(new SymbolVisitor<CodeBlock>() {
-            @Override
-            public CodeBlock visit(QualifiedSymbol symbol) {
-                return new CodeBlock().invokestatic(
-                    "scotch/test/ScotchModule", // TODO
-                    symbol.getMethodName(),
-                    sig(identifier.getType() instanceof FunctionType ? Applicable.class : Callable.class)
-                );
-            }
-
-            @Override
-            public CodeBlock visit(UnqualifiedSymbol symbol) {
-                if (arguments.peek().contains(symbol.getMemberName())) {
-                    return new CodeBlock().aload(arguments.peek().indexOf(symbol.getMemberName()));
-                } else {
-                    throw new UnsupportedOperationException(); // TODO
-                }
-            }
-        });
     }
 
     @Override

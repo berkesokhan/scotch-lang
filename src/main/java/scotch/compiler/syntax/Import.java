@@ -17,12 +17,12 @@ import scotch.compiler.text.SourceRange;
 
 public abstract class Import {
 
-    public static ModuleImport moduleImport(SourceRange sourceRange, String moduleName) {
-        return new ModuleImport(sourceRange, moduleName);
-    }
-
     public static InclusionImport inclusionImport(SourceRange sourceRange, String moduleName, List<String> includes) {
         return new InclusionImport(sourceRange, moduleName, includes);
+    }
+
+    public static ModuleImport moduleImport(SourceRange sourceRange, String moduleName) {
+        return new ModuleImport(sourceRange, moduleName);
     }
 
     private static Set<Symbol> getContext_(String moduleName, Type type, SymbolResolver resolver) {

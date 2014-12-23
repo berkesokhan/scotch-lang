@@ -135,9 +135,9 @@ public abstract class PatternMatch {
 
     public static class EqualMatch extends PatternMatch {
 
-        private final SourceRange sourceRange;
+        private final SourceRange      sourceRange;
         private final Optional<String> argument;
-        private final Value       value;
+        private final Value            value;
 
         public EqualMatch(SourceRange sourceRange, Optional<String> argument, Value value) {
             this.sourceRange = sourceRange;

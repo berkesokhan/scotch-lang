@@ -8,7 +8,6 @@ import static scotch.compiler.syntax.DefinitionReference.classRef;
 import static scotch.compiler.syntax.DefinitionReference.instanceRef;
 import static scotch.compiler.syntax.DefinitionReference.moduleRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
-import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 import static scotch.util.StringUtil.quote;
 import static scotch.util.StringUtil.stringify;
 
@@ -17,6 +16,7 @@ import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
@@ -36,10 +36,6 @@ public abstract class Value {
 
     public static BoundMethod boundMethod(SourceRange sourceRange, ValueReference reference, InstanceReference instance, Type type) {
         return new BoundMethod(sourceRange, reference, instance, type);
-    }
-
-    public static PatternMatchers emptyPatterns(Type type) {
-        return patterns(NULL_SOURCE, type, ImmutableList.of());
     }
 
     public static FunctionValue fn(SourceRange sourceRange, Symbol symbol, List<Argument> arguments, Value body) {
@@ -123,6 +119,10 @@ public abstract class Value {
 
         default T visit(BoundMethod boundMethod) {
             return visitOtherwise(boundMethod);
+        }
+
+        default T visit(BoundValue boundValue) {
+            return visitOtherwise(boundValue);
         }
 
         default T visit(CharLiteral literal) {
@@ -371,7 +371,7 @@ public abstract class Value {
         private final InstanceReference instance;
         private final Type              type;
 
-        public BoundMethod(SourceRange sourceRange, ValueReference value, InstanceReference instance, Type type) {
+        private BoundMethod(SourceRange sourceRange, ValueReference value, InstanceReference instance, Type type) {
             this.sourceRange = sourceRange;
             this.value = value;
             this.instance = instance;
@@ -419,7 +419,7 @@ public abstract class Value {
         public CodeBlock reference(Scope scope) {
             return new CodeBlock()
                 .append(getInstance().reference(scope))
-                .append(scope.getValueSignature(value.getSymbol()).reference());
+                .append(scope.getValueSignature(value.getSymbol()).get().reference());
         }
 
         @Override
@@ -430,6 +430,70 @@ public abstract class Value {
         @Override
         public Value withType(Type type) {
             return new BoundMethod(sourceRange, value, instance, type);
+        }
+    }
+
+    public static class BoundValue extends Value {
+
+        private final SourceRange     sourceRange;
+        private final Symbol          symbol;
+        private final MethodSignature methodSignature;
+        private final Type            type;
+
+        private BoundValue(SourceRange sourceRange, Symbol symbol, MethodSignature methodSignature, Type type) {
+            this.sourceRange = sourceRange;
+            this.symbol = symbol;
+            this.methodSignature = methodSignature;
+            this.type = type;
+        }
+
+        @Override
+        public <T> T accept(ValueVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof BoundValue) {
+                BoundValue other = (BoundValue) o;
+                return Objects.equals(sourceRange, other.sourceRange)
+                    && Objects.equals(symbol, other.symbol)
+                    && Objects.equals(methodSignature, other.methodSignature)
+                    && Objects.equals(type, other.type);
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        @Override
+        public Type getType() {
+            return type;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(methodSignature, type);
+        }
+
+        public CodeBlock reference() {
+            return methodSignature.reference();
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(symbol=" + symbol.getCanonicalName() + ", signature=" + methodSignature + ")";
+        }
+
+        @Override
+        public Value withType(Type type) {
+            return new BoundValue(sourceRange, symbol, methodSignature, type);
         }
     }
 
@@ -642,6 +706,14 @@ public abstract class Value {
             return visitor.visit(this);
         }
 
+        public Value boundArg(Type type) {
+            return new Argument(sourceRange, symbol.getMemberName(), type);
+        }
+
+        public Value boundValue(MethodSignature signature, Type type) {
+            return new BoundValue(sourceRange, symbol, signature, type);
+        }
+
         @Override
         public boolean equals(Object o) {
             if (o == this) {
@@ -678,7 +750,7 @@ public abstract class Value {
             return stringify(this) + "(" + symbol + ")";
         }
 
-        public UnboundMethod unbound(Type type) {
+        public UnboundMethod unboundMethod(Type type) {
             return unboundMethod(sourceRange, valueRef(symbol), type);
         }
 

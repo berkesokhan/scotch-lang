@@ -10,11 +10,11 @@ public class GeneratedClass {
         this.bytes = bytes;
     }
 
-    public String getClassName() {
-        return className;
-    }
-
     public byte[] getBytes() {
         return bytes;
+    }
+
+    public String getClassName() {
+        return className;
     }
 }

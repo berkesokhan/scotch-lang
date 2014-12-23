@@ -3,6 +3,7 @@ package scotch.compiler.symbol;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.joining;
 import static me.qmx.jitescript.util.CodegenUtils.p;
+import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.data.tuple.TupleValues.tuple2;
 import static scotch.util.StringUtil.stringify;
 
@@ -15,7 +16,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import scotch.compiler.symbol.Type.FunctionType;
 import scotch.data.tuple.Tuple2;
+import scotch.runtime.Applicable;
+import scotch.runtime.Callable;
 import scotch.util.StringUtil;
 
 public abstract class Symbol {
@@ -214,12 +218,16 @@ public abstract class Symbol {
             return memberName;
         }
 
-        public String getModuleName() {
-            return moduleName;
+        public MethodSignature getMethodSignature(Type type) {
+            return MethodSignature.fromString(
+                getPackagePath() + "/ScotchModule",
+                getMethodName(),
+                sig(type instanceof FunctionType ? Applicable.class : Callable.class)
+            );
         }
 
-        private String getPackagePath() {
-            return getPackagePath(moduleName);
+        public String getModuleName() {
+            return moduleName;
         }
 
         @Override
@@ -235,6 +243,10 @@ public abstract class Symbol {
         @Override
         public Symbol unqualify() {
             return unqualified(memberName);
+        }
+
+        private String getPackagePath() {
+            return getPackagePath(moduleName);
         }
     }
 

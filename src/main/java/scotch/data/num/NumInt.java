@@ -42,11 +42,6 @@ public class NumInt implements Num<Integer> {
     }
 
     @Override
-    public Callable<Integer> sub(Callable<Integer> left, Callable<Integer> right) {
-        return callable(() -> left.call() - right.call());
-    }
-
-    @Override
     public Callable<Integer> fromInteger(Callable<Integer> integer) {
         return integer;
     }
@@ -68,5 +63,10 @@ public class NumInt implements Num<Integer> {
                 return 0;
             }
         });
+    }
+
+    @Override
+    public Callable<Integer> sub(Callable<Integer> left, Callable<Integer> right) {
+        return callable(() -> left.call() - right.call());
     }
 }

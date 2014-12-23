@@ -27,12 +27,12 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
         return new ArgumentBuilder();
     }
 
-    public static IdentifierBuilder idBuilder() {
-        return new IdentifierBuilder();
-    }
-
     public static FunctionBuilder functionBuilder() {
         return new FunctionBuilder();
+    }
+
+    public static IdentifierBuilder idBuilder() {
+        return new IdentifierBuilder();
     }
 
     public static LiteralBuilder literalBuilder() {
@@ -78,42 +78,6 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
         }
 
         public ArgumentBuilder withType(Type type) {
-            this.type = Optional.of(type);
-            return this;
-        }
-    }
-
-    public static class IdentifierBuilder extends ValueBuilder<Identifier> {
-
-        private Optional<Symbol>      symbol      = Optional.empty();
-        private Optional<Type>        type        = Optional.empty();
-        private Optional<SourceRange> sourceRange = Optional.empty();
-
-        private IdentifierBuilder() {
-            // intentionally empty
-        }
-
-        @Override
-        public Identifier build() {
-            return id(
-                require(sourceRange, "Source range"),
-                require(symbol, "Identifier symbol"),
-                require(type, "Identifier type")
-            );
-        }
-
-        @Override
-        public IdentifierBuilder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
-            return this;
-        }
-
-        public IdentifierBuilder withSymbol(Symbol symbol) {
-            this.symbol = Optional.of(symbol);
-            return this;
-        }
-
-        public IdentifierBuilder withType(Type type) {
             this.type = Optional.of(type);
             return this;
         }
@@ -171,6 +135,42 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
 
         public void withSymbol(Symbol symbol) {
             this.symbol = Optional.of(symbol);
+        }
+    }
+
+    public static class IdentifierBuilder extends ValueBuilder<Identifier> {
+
+        private Optional<Symbol>      symbol      = Optional.empty();
+        private Optional<Type>        type        = Optional.empty();
+        private Optional<SourceRange> sourceRange = Optional.empty();
+
+        private IdentifierBuilder() {
+            // intentionally empty
+        }
+
+        @Override
+        public Identifier build() {
+            return id(
+                require(sourceRange, "Source range"),
+                require(symbol, "Identifier symbol"),
+                require(type, "Identifier type")
+            );
+        }
+
+        @Override
+        public IdentifierBuilder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public IdentifierBuilder withSymbol(Symbol symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
+        }
+
+        public IdentifierBuilder withType(Type type) {
+            this.type = Optional.of(type);
+            return this;
         }
     }
 
