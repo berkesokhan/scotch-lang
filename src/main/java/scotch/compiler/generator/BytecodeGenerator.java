@@ -9,7 +9,6 @@ import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_STATIC;
-import static org.objectweb.asm.Opcodes.H_INVOKESTATIC;
 import static org.objectweb.asm.Type.getMethodType;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
 
@@ -79,13 +78,14 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
         }
         String methodName = "thunk$" + sequence++;
         String signature = sig(Callable.class, args);
-        method(methodName, ACC_STATIC | ACC_PRIVATE, signature, new CodeBlock()
-            .append(generate(apply.getFunction()))
-            .invokeinterface(p(Callable.class), "call", sig(Object.class))
-            .checkcast(p(Applicable.class))
-            .append(generate(apply.getArgument()))
-            .invokeinterface(p(Applicable.class), "apply", sig(Callable.class, Callable.class))
-            .areturn());
+        method(methodName, ACC_STATIC | ACC_PRIVATE, signature, new CodeBlock() {{
+            append(generate(apply.getFunction()));
+            invokeinterface(p(Callable.class), "call", sig(Object.class));
+            checkcast(p(Applicable.class));
+            append(generate(apply.getArgument()));
+            invokeinterface(p(Applicable.class), "apply", sig(Callable.class, Callable.class));
+            areturn();
+        }});
         return new CodeBlock() {{
             newobj(p(SuppliedThunk.class));
             dup();
@@ -103,11 +103,9 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
 
     @Override
     public CodeBlock visit(Argument argument) {
-        if (arguments.peek().contains(argument.getName())) {
-            return new CodeBlock().aload(arguments.peek().indexOf(argument.getName()));
-        } else {
-            throw new UnsupportedOperationException(); // TODO
-        }
+        return new CodeBlock() {{
+            aload(arguments.peek().indexOf(argument.getName()));
+        }};
     }
 
     @Override
@@ -123,10 +121,9 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
     @Override
     public CodeBlock visit(FunctionValue function) {
         arguments.push(ImmutableList.<String>builder()
-                .addAll(arguments.peek())
-                .addAll(function.getArguments().stream().map(Argument::getName).collect(toList()))
-                .build()
-        );
+            .addAll(arguments.peek())
+            .addAll(function.getArguments().stream().map(Argument::getName).collect(toList()))
+            .build());
         String methodName = "function$" + sequence++;
         String signature = sig(
             function.getBody().getType() instanceof FunctionType ? Applicable.class : Callable.class,
@@ -137,18 +134,21 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
         } finally {
             arguments.pop();
         }
-        return new CodeBlock().invokedynamic("apply", sig(Applicable.class), METAFACTORY,
-            getMethodType(sig(Callable.class, Callable.class)),
-            new Handle(H_INVOKESTATIC, currentClass().getClassName(), methodName, signature),
-            getMethodType(signature)
-        );
+        return new CodeBlock() {{
+            invokedynamic("apply", sig(Applicable.class), METAFACTORY,
+                getMethodType(sig(Callable.class, Callable.class)),
+                new Handle(H_INVOKESTATIC, currentClass().getClassName(), methodName, signature),
+                getMethodType(signature)
+            );
+        }};
     }
 
     @Override
     public CodeBlock visit(IntLiteral literal) {
-        return new CodeBlock()
-            .ldc(literal.getValue())
-            .invokestatic(p(Callable.class), "box", sig(Callable.class, int.class));
+        return new CodeBlock() {{
+            ldc(literal.getValue());
+            invokestatic(p(Callable.class), "box", sig(Callable.class, int.class));
+        }};
     }
 
     @Override
@@ -159,7 +159,9 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
 
     @Override
     public CodeBlock visit(StringLiteral literal) {
-        return new CodeBlock().ldc(literal.getValue());
+        return new CodeBlock() {{
+            ldc(literal.getValue());
+        }};
     }
 
     @Override

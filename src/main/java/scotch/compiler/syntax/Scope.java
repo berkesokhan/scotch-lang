@@ -33,6 +33,7 @@ import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.syntax.DefinitionReference.ClassReference;
 import scotch.compiler.syntax.DefinitionReference.ModuleReference;
 import scotch.compiler.syntax.DefinitionReference.ValueReference;
+import scotch.compiler.syntax.Value.Argument;
 import scotch.compiler.syntax.Value.Identifier;
 
 public abstract class Scope implements TypeScope {
@@ -63,8 +64,10 @@ public abstract class Scope implements TypeScope {
             public Value visit(QualifiedSymbol symbol) {
                 if (isMember(symbol)) {
                     return identifier.unboundMethod(getValue(symbol));
+                } else if (getValue(symbol).hasContext()) {
+                    return identifier.unboundValue(getValueSignature(symbol).get(), getValue(symbol));
                 } else {
-                    return identifier.boundValue(getValueSignature(symbol).get(), getValue(symbol));
+                    return identifier.boundValue(getValue(symbol));
                 }
             }
 
@@ -87,6 +90,8 @@ public abstract class Scope implements TypeScope {
 
     public abstract void generalize(Type type);
 
+    public abstract List<Argument> getInstanceArguments();
+
     public abstract TypeClassDescriptor getMemberOf(ValueReference valueRef);
 
     public abstract Operator getOperator(Symbol symbol);
@@ -94,6 +99,10 @@ public abstract class Scope implements TypeScope {
     public abstract Scope getParent();
 
     public abstract Map<Symbol, List<PatternMatcher>> getPatterns();
+
+    public Type getRawValue(ValueReference reference) {
+        return getRawValue(reference.getSymbol());
+    }
 
     public abstract Type getRawValue(Symbol symbol);
 
@@ -132,7 +141,11 @@ public abstract class Scope implements TypeScope {
 
     public abstract void redefineValue(Symbol symbol, Type type);
 
+    public abstract Symbol reserveSymbol();
+
     public abstract Type reserveType();
+
+    public abstract void setInstanceArguments(List<Argument> instanceArguments);
 
     public abstract void specialize(Type type);
 
@@ -152,12 +165,14 @@ public abstract class Scope implements TypeScope {
         private final TypeScope                         types;
         private final Map<Symbol, SymbolEntry>          entries;
         private final Map<Symbol, List<PatternMatcher>> patterns;
+        private final List<Argument>                    instanceArguments;
 
         private ChildScope(Scope parent, TypeScope types) {
             this.parent = parent;
             this.types = types;
             this.entries = new HashMap<>();
             this.patterns = new HashMap<>();
+            this.instanceArguments = new ArrayList<>();
         }
 
         public void addPattern(Symbol symbol, PatternMatcher pattern) {
@@ -207,6 +222,11 @@ public abstract class Scope implements TypeScope {
         @Override
         public void generalize(Type type) {
             types.generalize(type);
+        }
+
+        @Override
+        public List<Argument> getInstanceArguments() {
+            return ImmutableList.copyOf(instanceArguments);
         }
 
         @Override
@@ -346,8 +366,19 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public Symbol reserveSymbol() {
+            return parent.reserveSymbol();
+        }
+
+        @Override
         public Type reserveType() {
             return parent.reserveType();
+        }
+
+        @Override
+        public void setInstanceArguments(List<Argument> instanceArguments) {
+            this.instanceArguments.clear();
+            this.instanceArguments.addAll(instanceArguments);
         }
 
         @Override
@@ -457,6 +488,11 @@ public abstract class Scope implements TypeScope {
         @Override
         public void generalize(Type type) {
             types.generalize(type);
+        }
+
+        @Override
+        public List<Argument> getInstanceArguments() {
+            throw new IllegalStateException();
         }
 
         @Override
@@ -611,8 +647,18 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public Symbol reserveSymbol() {
+            return parent.reserveSymbol().qualifyWith(moduleName);
+        }
+
+        @Override
         public Type reserveType() {
             return parent.reserveType();
+        }
+
+        @Override
+        public void setInstanceArguments(List<Argument> instanceArguments) {
+            throw new IllegalStateException();
         }
 
         @Override
@@ -725,6 +771,11 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public void generalize(Type type) {
+            throw new IllegalStateException();
+        }
+
+        @Override
+        public List<Argument> getInstanceArguments() {
             throw new IllegalStateException();
         }
 
@@ -858,8 +909,18 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public Symbol reserveSymbol() {
+            return symbolGenerator.reserveSymbol();
+        }
+
+        @Override
         public Type reserveType() {
             return symbolGenerator.reserveType();
+        }
+
+        @Override
+        public void setInstanceArguments(List<Argument> instanceArguments) {
+            throw new IllegalStateException();
         }
 
         @Override

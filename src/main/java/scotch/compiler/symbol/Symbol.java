@@ -3,9 +3,7 @@ package scotch.compiler.symbol;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.joining;
 import static me.qmx.jitescript.util.CodegenUtils.p;
-import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.data.tuple.TupleValues.tuple2;
-import static scotch.util.StringUtil.stringify;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -14,6 +12,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import scotch.compiler.symbol.Type.FunctionType;
@@ -22,7 +21,7 @@ import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 import scotch.util.StringUtil;
 
-public abstract class Symbol {
+public abstract class Symbol implements Comparable<Symbol> {
 
     private static final Pattern                tuplePattern           = compile("\\(,*\\)");
     private static final String                 moduleSubPattern       = "[A-Za-z_]\\w*(?:\\.[A-Za-z_]\\w*)*";
@@ -133,6 +132,9 @@ public abstract class Symbol {
     public abstract <T> T accept(SymbolVisitor<T> visitor);
 
     @Override
+    public abstract int compareTo(Symbol other);
+
+    @Override
     public abstract boolean equals(Object o);
 
     public abstract String getCanonicalName();
@@ -156,7 +158,7 @@ public abstract class Symbol {
 
     @Override
     public String toString() {
-        return stringify(this) + "(" + getCanonicalName() + ")";
+        return getCanonicalName();
     }
 
     public abstract Symbol unqualify();
@@ -190,6 +192,25 @@ public abstract class Symbol {
         }
 
         @Override
+        public int compareTo(Symbol other) {
+            return other.accept(new SymbolVisitor<Integer>() {
+                @Override
+                public Integer visit(QualifiedSymbol symbol) {
+                    int result = moduleName.compareTo(symbol.moduleName);
+                    if (result != 0) {
+                        return result;
+                    }
+                    return memberName.compareTo(symbol.memberName);
+                }
+
+                @Override
+                public Integer visit(UnqualifiedSymbol symbol) {
+                    throw new IllegalArgumentException();
+                }
+            });
+        }
+
+        @Override
         public boolean equals(Object o) {
             if (o == this) {
                 return true;
@@ -219,10 +240,10 @@ public abstract class Symbol {
         }
 
         public MethodSignature getMethodSignature(Type type) {
-            return MethodSignature.fromString(
-                getPackagePath() + "/ScotchModule",
-                getMethodName(),
-                sig(type instanceof FunctionType ? Applicable.class : Callable.class)
+            return MethodSignature.staticFromSymbol(
+                this,
+                ImmutableList.of(),
+                ClassSignature.fromClass(type instanceof FunctionType ? Applicable.class : Callable.class)
             );
         }
 
@@ -261,6 +282,21 @@ public abstract class Symbol {
         @Override
         public <T> T accept(SymbolVisitor<T> visitor) {
             return visitor.visit(this);
+        }
+
+        @Override
+        public int compareTo(Symbol other) {
+            return other.accept(new SymbolVisitor<Integer>() {
+                @Override
+                public Integer visit(QualifiedSymbol symbol) {
+                    throw new IllegalArgumentException();
+                }
+
+                @Override
+                public Integer visit(UnqualifiedSymbol symbol) {
+                    return memberName.compareTo(symbol.memberName);
+                }
+            });
         }
 
         @Override

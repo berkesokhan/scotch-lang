@@ -15,6 +15,7 @@ import static scotch.compiler.util.TestUtil.typeInstance;
 
 import org.junit.Before;
 import org.junit.Test;
+import scotch.data.num.NumInt;
 
 public class ClasspathResolverTest {
 
@@ -32,26 +33,22 @@ public class ClasspathResolverTest {
 
         assertThat(entry.getValue(), is(fn(a, fn(a, a))));
         assertThat(entry.getOperator(), is(operator(LEFT_INFIX, 7)));
-        assertThat(entry.getValueSignature(), is(MethodSignature.fromString("scotch/data/num/Num:add:(Lscotch/data/num/Num;)Lscotch/runtime/Applicable;")));
+        assertThat(entry.getValueSignature().toString(), is("scotch/data/num/Num:add:(Lscotch/data/num/Num;)Lscotch/runtime/Applicable;"));
         assertThat(entry.getMemberOf(), is(fromString("scotch.data.num.Num")));
     }
 
     @Test
     public void shouldResolveJavaTypeClass() {
         SymbolEntry entry = resolver.getEntry(fromString("scotch.data.num.Num")).get();
-        assertThat(entry.getTypeClass(), is(typeClass(
-            "scotch.data.num.Num",
-            asList(var("a", asList("scotch.data.eq.Eq", "scotch.data.show.Show"))),
-            asList(
-                "scotch.data.num.(+)",
-                "scotch.data.num.(-)",
-                "scotch.data.num.(*)",
-                "scotch.data.num.fromInteger",
-                "scotch.data.num.signum",
-                "scotch.data.num.negate",
-                "scotch.data.num.abs"
-            )
-        )));
+        assertThat(entry.getTypeClass(), is(typeClass("scotch.data.num.Num", asList(var("a")), asList(
+            "scotch.data.num.(+)",
+            "scotch.data.num.(-)",
+            "scotch.data.num.(*)",
+            "scotch.data.num.fromInteger",
+            "scotch.data.num.signum",
+            "scotch.data.num.negate",
+            "scotch.data.num.abs"
+        ))));
     }
 
     @Test
@@ -60,7 +57,7 @@ public class ClasspathResolverTest {
             "scotch.data.num",
             "scotch.data.num.Num",
             asList(intType()),
-            MethodSignature.fromString("scotch/data/num/NumInt:instance:()Lscotch/data/num/NumInt;")
+            MethodSignature.fromMethod(NumInt.class, "instance")
         )));
     }
 
@@ -71,7 +68,7 @@ public class ClasspathResolverTest {
             "scotch.data.num",
             "scotch.data.num.Num",
             asList(intType()),
-            MethodSignature.fromString("scotch/data/num/NumInt:instance:()Lscotch/data/num/NumInt;")
+            MethodSignature.fromMethod(NumInt.class, "instance")
         )));
     }
 
@@ -81,7 +78,7 @@ public class ClasspathResolverTest {
             "scotch.data.num",
             "scotch.data.num.Num",
             asList(intType()),
-            MethodSignature.fromString("scotch/data/num/NumInt:instance:()Lscotch/data/num/NumInt;")
+            MethodSignature.fromMethod(NumInt.class, "instance")
         )));
     }
 
@@ -96,7 +93,7 @@ public class ClasspathResolverTest {
             "scotch.data.num",
             "scotch.data.num.Num",
             asList(intType()),
-            MethodSignature.fromString("scotch/data/num/NumInt:instance:()Lscotch/data/num/NumInt;")
+            MethodSignature.fromMethod(NumInt.class, "instance")
         )));
     }
 }

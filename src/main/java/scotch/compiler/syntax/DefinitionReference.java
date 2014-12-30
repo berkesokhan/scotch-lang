@@ -40,10 +40,6 @@ public abstract class DefinitionReference {
         return new ScopeReference(symbol);
     }
 
-    public static SignatureReference signatureRef(Symbol symbol) {
-        return new SignatureReference(symbol);
-    }
-
     public static ValueReference valueRef(Symbol symbol) {
         return new ValueReference(symbol);
     }
@@ -90,10 +86,6 @@ public abstract class DefinitionReference {
         }
 
         default T visit(ScopeReference reference) {
-            return visitOtherwise(reference);
-        }
-
-        default T visit(SignatureReference reference) {
             return visitOtherwise(reference);
         }
 
@@ -340,39 +332,6 @@ public abstract class DefinitionReference {
         }
     }
 
-    public static class SignatureReference extends DefinitionReference {
-
-        private final Symbol symbol;
-
-        private SignatureReference(Symbol symbol) {
-            this.symbol = symbol;
-        }
-
-        @Override
-        public <T> T accept(DefinitionReferenceVisitor<T> visitor) {
-            return visitor.visit(this);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return o == this || o instanceof SignatureReference && Objects.equals(symbol, ((SignatureReference) o).symbol);
-        }
-
-        public String getName() {
-            return symbol.getMemberName();
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(symbol);
-        }
-
-        @Override
-        public String toString() {
-            return stringify(this) + "(" + symbol + ")";
-        }
-    }
-
     public static class ValueReference extends DefinitionReference {
 
         private final Symbol symbol;
@@ -389,6 +348,10 @@ public abstract class DefinitionReference {
         @Override
         public boolean equals(Object o) {
             return o == this || o instanceof ValueReference && Objects.equals(symbol, ((ValueReference) o).symbol);
+        }
+
+        public String getMemberName() {
+            return symbol.getMemberName();
         }
 
         public String getName() {

@@ -1,6 +1,8 @@
 package scotch.compiler.parser;
 
 import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.toList;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -10,40 +12,40 @@ import static scotch.compiler.symbol.Type.t;
 import static scotch.compiler.symbol.Type.var;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
 import static scotch.compiler.symbol.Value.Fixity.PREFIX;
-import static scotch.compiler.syntax.DefinitionReference.moduleRef;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
 import static scotch.compiler.util.TestUtil.arg;
-import static scotch.compiler.util.TestUtil.bodyOf;
 import static scotch.compiler.util.TestUtil.capture;
-import static scotch.compiler.util.TestUtil.classDef;
-import static scotch.compiler.util.TestUtil.classRef;
 import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
 import static scotch.compiler.util.TestUtil.message;
 import static scotch.compiler.util.TestUtil.operatorDef;
 import static scotch.compiler.util.TestUtil.operatorRef;
-import static scotch.compiler.util.TestUtil.parseInput;
 import static scotch.compiler.util.TestUtil.patternRef;
 import static scotch.compiler.util.TestUtil.root;
-import static scotch.compiler.util.TestUtil.signature;
-import static scotch.compiler.util.TestUtil.signatureRef;
 import static scotch.compiler.util.TestUtil.unshuffled;
-import static scotch.compiler.util.TestUtil.value;
 import static scotch.compiler.util.TestUtil.valueRef;
 
+import java.util.List;
+import java.util.function.Function;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import scotch.compiler.Compiler;
+import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.DefinitionGraph;
+import scotch.compiler.syntax.DefinitionReference;
+import scotch.compiler.syntax.PatternMatch;
+import scotch.compiler.syntax.StubResolver;
+import scotch.compiler.syntax.Value;
 
-public class InputParserTest {
+public class InputParserTest extends ParserTest {
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
 
     @Test
     public void shouldParseClassDefinition() {
-        DefinitionGraph graph = parseInput(
+        parse(
             "module scotch.data.eq",
             "prefix 4 not",
             "left infix 5 (==), (/=)",
@@ -52,116 +54,106 @@ public class InputParserTest {
             "    x == y = not x /= y",
             "    x /= y = not x == y"
         );
-        assertThat(graph.getDefinition(classRef("scotch.data.eq.Eq")).get(), is(
-            classDef("scotch.data.eq.Eq", asList(var("a")), asList(
-                signatureRef("scotch.data.eq.(==)"),
-                signatureRef("scotch.data.eq.(/=)"),
-                patternRef("scotch.data.eq.($0)"),
-                patternRef("scotch.data.eq.($1)")
-            ))
+        shouldHaveClass("scotch.data.eq.Eq", asList(var("a")), asList(
+            valueRef("scotch.data.eq.(==)"),
+            valueRef("scotch.data.eq.(/=)"),
+            patternRef("scotch.data.eq.($0)"),
+            patternRef("scotch.data.eq.($1)")
         ));
     }
 
     @Test
     public void shouldParseMultiValueSignature() {
-        DefinitionGraph graph = parseInput(
+        parse(
             "module scotch.test",
             "(==), (/=) :: a -> a -> Bool"
         );
-        assertThat(graph.getDefinition(signatureRef("scotch.test.(==)")).get(), is(
-            signature("scotch.test.(==)", fn(var("a"), fn(var("a"), sum("Bool"))))
-        ));
-        assertThat(graph.getDefinition(signatureRef("scotch.test.(/=)")).get(), is(
-            signature("scotch.test.(/=)", fn(var("a"), fn(var("a"), sum("Bool"))))
-        ));
+        shouldHaveValue("scotch.test.(==)", fn(var("a"), fn(var("a"), sum("Bool"))));
+        shouldHaveValue("scotch.test.(/=)", fn(var("a"), fn(var("a"), sum("Bool"))));
     }
 
     @Test
     public void shouldParseMultipleModulesInSameSource() {
-        DefinitionGraph graph = parseInput(
+        parse(
             "module scotch.string",
             "length s = jStrlen s",
             "",
             "module scotch.math",
             "abs n = jAbs n"
         );
-        assertThat(graph.getDefinition(rootRef()).get(), is(root(asList(
-            moduleRef("scotch.string"),
-            moduleRef("scotch.math")
-        ))));
+        shouldHaveModules(
+            "scotch.string",
+            "scotch.math"
+        );
     }
 
     @Test
     public void shouldParseOperatorDefinitions() {
-        DefinitionGraph graph = parseInput(
+        parse(
             "module scotch.test",
             "left infix 8 (*), (/), (%)",
             "left infix 7 (+), (-)",
             "prefix 4 not"
         );
-        assertThat(graph.getDefinition(operatorRef("scotch.test.(*)")).get(), is(operatorDef("scotch.test.(*)", LEFT_INFIX, 8)));
-        assertThat(graph.getDefinition(operatorRef("scotch.test.(/)")).get(), is(operatorDef("scotch.test.(/)", LEFT_INFIX, 8)));
-        assertThat(graph.getDefinition(operatorRef("scotch.test.(%)")).get(), is(operatorDef("scotch.test.(%)", LEFT_INFIX, 8)));
-        assertThat(graph.getDefinition(operatorRef("scotch.test.(+)")).get(), is(operatorDef("scotch.test.(+)", LEFT_INFIX, 7)));
-        assertThat(graph.getDefinition(operatorRef("scotch.test.(-)")).get(), is(operatorDef("scotch.test.(-)", LEFT_INFIX, 7)));
-        assertThat(graph.getDefinition(operatorRef("scotch.test.not")).get(), is(operatorDef("scotch.test.not", PREFIX, 4)));
+        shouldHaveOperator("scotch.test.(*)", LEFT_INFIX, 8);
+        shouldHaveOperator("scotch.test.(/)", LEFT_INFIX, 8);
+        shouldHaveOperator("scotch.test.(%)", LEFT_INFIX, 8);
+        shouldHaveOperator("scotch.test.(+)", LEFT_INFIX, 7);
+        shouldHaveOperator("scotch.test.(-)", LEFT_INFIX, 7);
+        shouldHaveOperator("scotch.test.not", PREFIX, 4);
     }
 
     @Test
     public void shouldParseParenthesesAsSeparateMessage() {
-        DefinitionGraph graph = parseInput(
+        parse(
             "module scotch.test",
             "value = fn (a b)"
         );
-        assertThat(bodyOf(graph.getDefinition(valueRef("scotch.test.value"))), is(
-            message(
-                id("fn", t(1)),
-                message(id("a", t(2)), id("b", t(3)))
-            )
+        shouldHaveValue("scotch.test.value", message(
+            id("fn", t(1)),
+            message(id("a", t(2)), id("b", t(3)))
         ));
     }
 
     @Test
     public void shouldParseSignature() {
-        DefinitionGraph graph = parseInput(
+        parse(
             "module scotch.test",
             "length :: String -> Int"
         );
-        assertThat(graph.getDefinition(signatureRef("scotch.test.length")).get(), is(
-            signature("scotch.test.length", fn(sum("String"), sum("Int")))
-        ));
+        shouldHaveValue("scotch.test.length", fn(sum("String"), sum("Int")));
     }
 
     @Test
     public void shouldParseValue() {
-        DefinitionGraph graph = parseInput(
+        parse(
             "module scotch.test",
             "length :: String -> Int",
             "length s = jStrlen s"
         );
-        assertThat(graph.getDefinition(patternRef("scotch.test.($0)")).get(), is(unshuffled(
+        shouldHavePattern(
             "scotch.test.($0)",
             asList(capture("length", t(0)), capture("s", t(1))),
             message(id("jStrlen", t(2)), id("s", t(3)))
-        )));
+        );
     }
 
     @Test
     public void shouldThrowException_whenModuleNameNotTerminatedWithSemicolonOrNewline() {
         expectParseException("Unexpected token COMMA; wanted SEMICOLON");
-        parseInput("module scotch.test,");
+        parse("module scotch.test,");
     }
 
     @Test
     public void shouldThrowException_whenNotBeginningWithModule() {
         expectParseException("Unexpected token WORD with value 'length'; wanted WORD with value 'module'");
-        parseInput("length s = jStrlen s");
+        parse("length s = jStrlen s");
     }
 
     @Test
     public void shouldThrowException_whenOperatorIsMissingPrecedence() {
         expectParseException("Unexpected token WORD; wanted INT");
-        parseInput(
+        parse(
             "module scotch.test",
             "left infix =="
         );
@@ -170,7 +162,7 @@ public class InputParserTest {
     @Test
     public void shouldThrowException_whenOperatorSymbolEnclosedByParensDoesNotContainWord() {
         expectParseException("Unexpected token INT; wanted WORD");
-        parseInput(
+        parse(
             "module scotch.test",
             "left infix 7 (42)"
         );
@@ -179,7 +171,7 @@ public class InputParserTest {
     @Test
     public void shouldThrowException_whenOperatorSymbolIsNotWord() {
         expectParseException("Unexpected token BOOL; wanted one of [WORD, LPAREN]");
-        parseInput(
+        parse(
             "module scotch.test",
             "left infix 7 True"
         );
@@ -188,7 +180,7 @@ public class InputParserTest {
     @Test
     public void shouldThrowException_whenOperatorSymbolsNotSeparatedByCommas() {
         expectParseException("Unexpected token WORD; wanted SEMICOLON");
-        parseInput(
+        parse(
             "module scotch.test",
             "left infix 7 + -"
         );
@@ -197,7 +189,7 @@ public class InputParserTest {
     @Test
     public void shouldThrowException_whenSignatureHasStuffBetweenNameAndDoubleColon() {
         expectParseException("Unexpected token SEMICOLON; wanted ASSIGN");
-        parseInput(
+        parse(
             "module scotch.test",
             "length ; :: String -> Int"
         );
@@ -205,60 +197,86 @@ public class InputParserTest {
 
     @Test
     public void shouldParseTypeConstraintInSignature() {
-        DefinitionGraph graph = parseInput(
+        parse(
             "module scotch.test",
             "fn :: (Eq a) => a -> a -> Bool"
         );
-        assertThat(graph.getValue(signatureRef("scotch.test.fn")).get(),
-            is(fn(var("a", asList("Eq")), fn(var("a", asList("Eq")), sum("Bool")))));
+        shouldHaveValue("scotch.test.fn", fn(var("a", asList("Eq")), fn(var("a", asList("Eq")), sum("Bool"))));
     }
 
     @Test
     public void shouldParseMultipleConstraintsOnSameVariable() {
-        DefinitionGraph graph = parseInput(
+        parse(
             "module scotch.test",
             "fn :: (Eq a, Show a) => a -> a -> Bool"
         );
-        assertThat(graph.getValue(signatureRef("scotch.test.fn")).get(),
-            is(fn(var("a", asList("Eq", "Show")), fn(var("a", asList("Eq", "Show")), sum("Bool")))));
+        shouldHaveValue("scotch.test.fn", fn(var("a", asList("Eq", "Show")), fn(var("a", asList("Eq", "Show")), sum("Bool"))));
     }
 
     @Test
     public void shouldParseCompoundConstraints() {
-        DefinitionGraph graph = parseInput(
+        parse(
             "module scotch.test",
             "fn :: (Eq a, Show b) => a -> b -> Bool"
         );
-        assertThat(graph.getValue(signatureRef("scotch.test.fn")).get(),
-            is(fn(var("a", asList("Eq")), fn(var("b", asList("Show")), sum("Bool")))));
+        shouldHaveValue("scotch.test.fn", fn(var("a", asList("Eq")), fn(var("b", asList("Show")), sum("Bool"))));
     }
 
     @Test
     public void shouldParseFunction1() {
-        DefinitionGraph graph = parseInput(
+        parse(
             "module scotch.test",
             "id = \\x -> x"
         );
-        assertThat(graph.getDefinition(valueRef("scotch.test.id")).get(),
-            is(value("scotch.test.id", t(0), fn("scotch.test.($0)", arg("x", t(1)), id("x", t(2))))));
+        shouldHaveValue("scotch.test.id", t(0), fn("scotch.test.($0)", arg("x", t(1)), id("x", t(2))));
     }
 
     @Test
     public void shouldParseFunction2() {
-        DefinitionGraph graph = parseInput(
+        parse(
             "module scotch.test",
             "apply2 = \\x y z -> x y z"
         );
-        assertThat(graph.getDefinition(valueRef("scotch.test.apply2")).get(),
-            is(value("scotch.test.apply2", t(0), fn(
-                "scotch.test.($0)",
-                asList(arg("x", t(1)), arg("y", t(2)), arg("z", t(3))),
-                message(id("x", t(4)), id("y", t(5)), id("z", t(6)))
-            ))));
+        shouldHaveValue("scotch.test.apply2", t(0), fn(
+            "scotch.test.($0)",
+            asList(arg("x", t(1)), arg("y", t(2)), arg("z", t(3))),
+            message(id("x", t(4)), id("y", t(5)), id("z", t(6)))
+        ));
     }
 
     private void expectParseException(String message) {
         exception.expect(ParseException.class);
         exception.expectMessage(containsString(message));
+    }
+
+    private void shouldHaveModules(String... moduleNames) {
+        assertThat(graph.getDefinition(rootRef()).get(), is(root(
+            stream(moduleNames, 0, moduleNames.length)
+                .map(DefinitionReference::moduleRef)
+                .collect(toList())
+        )));
+    }
+
+    private void shouldHaveOperator(String name, Fixity fixity, int precedence) {
+        assertThat(graph.getDefinition(operatorRef(name)).get(), is(operatorDef(name, fixity, precedence)));
+    }
+
+    private void shouldHavePattern(String name, List<PatternMatch> matches, Value body) {
+        assertThat(graph.getDefinition(patternRef(name)).get(), is(unshuffled(name, matches, body)));
+    }
+
+    @Override
+    protected void initResolver(StubResolver resolver) {
+        // intentionally empty
+    }
+
+    @Override
+    protected Function<Compiler, DefinitionGraph> parse() {
+        return Compiler::parseInput;
+    }
+
+    @Override
+    protected void setUp() {
+        // intentionally empty
     }
 }

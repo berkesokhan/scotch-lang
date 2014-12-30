@@ -1,9 +1,13 @@
 package scotch.compiler.syntax;
 
+import static java.lang.Thread.currentThread;
+import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.joining;
 import static scotch.util.StringUtil.quote;
 import static scotch.util.StringUtil.stringify;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -37,12 +41,32 @@ public abstract class SyntaxError {
         return new TypeInstanceNotFoundError(typeClass, parameters, location);
     }
 
+    private static List<StackTraceElement> formatStackTrace() {
+        List<StackTraceElement> stackTrace = new ArrayList<>(asList(currentThread().getStackTrace()));
+        Iterator<StackTraceElement> iterator = stackTrace.iterator();
+        while (iterator.hasNext()) {
+            StackTraceElement element = iterator.next();
+            if (element.getClassName().contains("Thread") || element.getClassName().contains("SyntaxError")) {
+                iterator.remove();
+            } else {
+                break;
+            }
+        }
+        return ImmutableList.copyOf(stackTrace);
+    }
+
+    private final List<StackTraceElement> stackTrace;
+
     private SyntaxError() {
-        // intentionally empty
+        this.stackTrace = formatStackTrace();
     }
 
     @Override
     public abstract boolean equals(Object o);
+
+    public List<StackTraceElement> getStackTrace() {
+        return stackTrace;
+    }
 
     @Override
     public abstract int hashCode();
@@ -89,7 +113,7 @@ public abstract class SyntaxError {
         @Override
         public String prettyPrint() {
             return "Ambiguous instance of " + quote(typeClass.getSymbol().getCanonicalName())
-                + " for parameters [" + parameters.stream().map(Type::prettyPrint).collect(joining(", ")) + "];"
+                + " for parameters [" + parameters.stream().map(Type::toString).collect(joining(", ")) + "];"
                 + " instances found in modules [" + typeInstances.stream().map(TypeInstanceDescriptor::getModuleName).collect(joining(", ")) + "]"
                 + " " + location.prettyPrint();
         }
@@ -251,7 +275,7 @@ public abstract class SyntaxError {
         @Override
         public String prettyPrint() {
             return "Instance of type class " + quote(typeClass.getSymbol().getCanonicalName())
-                + " not found for parameters [" + parameters.stream().map(Type::prettyPrint).collect(joining(", ")) + "]"
+                + " not found for parameters [" + parameters.stream().map(Type::toString).collect(joining(", ")) + "]"
                 + " " + location.prettyPrint();
         }
 

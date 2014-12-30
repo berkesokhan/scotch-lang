@@ -130,8 +130,8 @@ public abstract class Unification {
 
         @Override
         public String prettyPrint() {
-            return "Circular type reference: type " + reference.prettyPrint()
-                + " is referenced by target type " + expected.prettyPrint();
+            return "Circular type reference: type " + reference
+                + " is referenced by target type " + expected;
         }
 
         @Override
@@ -199,8 +199,8 @@ public abstract class Unification {
             Set<Symbol> contextDifference = new HashSet<>();
             contextDifference.addAll(expectedContext);
             contextDifference.removeAll(actualContext);
-            return "Type mismatch: " + actual.prettyPrint()
-                + " does not implement entire context of " + expected.prettyPrint() + ":"
+            return "Type mismatch: " + actual
+                + " does not implement entire context of " + expected + ":"
                 + " difference is [" + join(", ", contextDifference.stream().map(Symbol::getCanonicalName).collect(toList())) + "]";
         }
 
@@ -260,7 +260,7 @@ public abstract class Unification {
 
         @Override
         public String prettyPrint() {
-            return "Type mismatch: expected type " + expected.prettyPrint() + " but got " + actual.prettyPrint();
+            return "Type mismatch: expected type " + expected + " but got " + actual;
         }
 
         @Override
@@ -313,7 +313,7 @@ public abstract class Unification {
 
         @Override
         public String prettyPrint() {
-            return "Successful unification to target type: " + unifiedType.prettyPrint();
+            return "Successful unification to target type: " + unifiedType;
         }
 
         @Override

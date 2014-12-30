@@ -9,7 +9,6 @@ import static scotch.compiler.syntax.DefinitionReference.operatorRef;
 import static scotch.compiler.syntax.DefinitionReference.patternRef;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.DefinitionReference.scopeRef;
-import static scotch.compiler.syntax.DefinitionReference.signatureRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
 import static scotch.compiler.syntax.PatternMatcher.pattern;
 import static scotch.util.StringUtil.stringify;
@@ -24,6 +23,7 @@ import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.DefinitionReference.ClassReference;
 import scotch.compiler.syntax.DefinitionReference.ModuleReference;
+import scotch.compiler.syntax.DefinitionReference.ValueReference;
 import scotch.compiler.text.SourceRange;
 
 public abstract class Definition {
@@ -56,8 +56,8 @@ public abstract class Definition {
         return new UnshuffledPattern(sourceRange, symbol, matches, body);
     }
 
-    public static ValueDefinition value(SourceRange sourceRange, Symbol symbol, Type type, Value value) {
-        return new ValueDefinition(sourceRange, symbol, value, type);
+    public static ValueDefinition value(SourceRange sourceRange, Symbol symbol, Type type, Value value, InstanceMap requiredInstances) {
+        return new ValueDefinition(sourceRange, symbol, value, type, requiredInstances);
     }
 
     private Definition() {
@@ -551,15 +551,17 @@ public abstract class Definition {
     public static class ValueDefinition extends Definition {
 
         private final SourceRange sourceRange;
-        private final Symbol      symbol;
-        private final Value       body;
-        private final Type        type;
+        private       Symbol      symbol;
+        private       Value       body;
+        private       Type        type;
+        private       InstanceMap instances;
 
-        private ValueDefinition(SourceRange sourceRange, Symbol symbol, Value body, Type type) {
+        private ValueDefinition(SourceRange sourceRange, Symbol symbol, Value body, Type type, InstanceMap instances) {
             this.sourceRange = sourceRange;
             this.symbol = symbol;
             this.body = body;
             this.type = type;
+            this.instances = instances;
         }
 
         @Override
@@ -575,7 +577,8 @@ public abstract class Definition {
                 ValueDefinition other = (ValueDefinition) o;
                 return Objects.equals(symbol, other.symbol)
                     && Objects.equals(body, other.body)
-                    && Objects.equals(type, other.type);
+                    && Objects.equals(type, other.type)
+                    && Objects.equals(instances, other.instances);
             } else {
                 return false;
             }
@@ -585,12 +588,16 @@ public abstract class Definition {
             return body;
         }
 
+        public InstanceMap getInstances() {
+            return instances;
+        }
+
         public String getMethodName() {
             return symbol.unqualify().getMethodName();
         }
 
         @Override
-        public DefinitionReference getReference() {
+        public ValueReference getReference() {
             return valueRef(symbol);
         }
 
@@ -621,15 +628,19 @@ public abstract class Definition {
         }
 
         public ValueDefinition withBody(Value body) {
-            return new ValueDefinition(sourceRange, symbol, body, type);
+            return new ValueDefinition(sourceRange, symbol, body, type, instances);
+        }
+
+        public ValueDefinition withRequiredInstances(InstanceMap requiredInstances) {
+            return new ValueDefinition(sourceRange, symbol, body, type, requiredInstances);
         }
 
         public ValueDefinition withSourceRange(SourceRange sourceRange) {
-            return new ValueDefinition(sourceRange, symbol, body, type);
+            return new ValueDefinition(sourceRange, symbol, body, type, instances);
         }
 
         public ValueDefinition withType(Type type) {
-            return new ValueDefinition(sourceRange, symbol, body, type);
+            return new ValueDefinition(sourceRange, symbol, body, type, instances);
         }
     }
 
@@ -665,7 +676,7 @@ public abstract class Definition {
 
         @Override
         public DefinitionReference getReference() {
-            return signatureRef(symbol);
+            return valueRef(symbol);
         }
 
         @Override

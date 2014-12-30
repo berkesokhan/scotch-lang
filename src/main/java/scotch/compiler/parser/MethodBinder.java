@@ -1,10 +1,16 @@
 package scotch.compiler.parser;
 
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.symbol.Type.instance;
 import static scotch.compiler.syntax.DefinitionEntry.scopedEntry;
+import static scotch.compiler.syntax.DefinitionReference.classRef;
+import static scotch.compiler.syntax.DefinitionReference.moduleRef;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.SyntaxError.ambiguousTypeInstance;
 import static scotch.compiler.syntax.SyntaxError.typeInstanceNotFound;
+import static scotch.compiler.syntax.Value.apply;
+import static scotch.compiler.syntax.Value.arg;
+import static scotch.compiler.syntax.Value.fn;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -13,8 +19,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import com.google.common.collect.ImmutableList;
 import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.Type.FunctionType;
+import scotch.compiler.symbol.Type.InstanceType;
+import scotch.compiler.symbol.Type.TypeVisitor;
+import scotch.compiler.symbol.Type.VariableType;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.syntax.Definition;
@@ -26,12 +38,15 @@ import scotch.compiler.syntax.DefinitionEntry;
 import scotch.compiler.syntax.DefinitionGraph;
 import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.DefinitionReference.DefinitionReferenceVisitor;
+import scotch.compiler.syntax.InstanceMap;
 import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.SyntaxError;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
+import scotch.compiler.syntax.Value.Argument;
+import scotch.compiler.syntax.Value.FunctionValue;
+import scotch.compiler.syntax.Value.Method;
 import scotch.compiler.syntax.Value.PatternMatchers;
-import scotch.compiler.syntax.Value.UnboundMethod;
 import scotch.compiler.syntax.Value.ValueVisitor;
 
 public class MethodBinder implements
@@ -67,25 +82,16 @@ public class MethodBinder implements
     }
 
     @Override
-    public Value visit(UnboundMethod unboundMethod) {
-        Scope scope = currentScope().enterScope();
-        TypeClassDescriptor typeClass = scope.getMemberOf(unboundMethod.getValueRef());
-        Type memberType = scope.getRawValue(unboundMethod.getValueRef().getSymbol());
-        Map<String, Type> contexts = memberType.getContexts(unboundMethod.getType(), scope);
-        List<Type> parameters = typeClass.renderParameters(contexts);
-        if (typeClass.getParameters().equals(parameters)) {
-            return unboundMethod;
+    public Value visit(FunctionValue function) {
+        return function.withBody(function.getBody().accept(this));
+    }
+
+    @Override
+    public Value visit(Method method) {
+        if (method.getType().hasContext()) {
+            return bindClass(method);
         } else {
-            Set<TypeInstanceDescriptor> typeInstances = scope.getTypeInstances(typeClass.getSymbol(), parameters);
-            if (typeInstances.isEmpty()) {
-                errors.add(typeInstanceNotFound(typeClass, parameters, unboundMethod.getSourceRange()));
-                return unboundMethod;
-            } else if (typeInstances.size() > 1) {
-                errors.add(ambiguousTypeInstance(typeClass, parameters, typeInstances, unboundMethod.getSourceRange()));
-                return unboundMethod;
-            } else {
-                return unboundMethod.bind(typeInstances.iterator().next());
-            }
+            return bindInstances(method);
         }
     }
 
@@ -101,7 +107,66 @@ public class MethodBinder implements
 
     @Override
     public Definition visit(ValueDefinition definition) {
-        return collect(definition.withBody(definition.getBody().accept(this)));
+        InstanceMap instances = buildInstanceMap(definition);
+        if (instances.isEmpty()) {
+            return collect(definition.withBody(definition.getBody().accept(this)));
+        } else {
+            List<Argument> additionalArguments = getAdditionalArguments(definition, instances);
+            return collect(definition
+                .withRequiredInstances(instances)
+                .withBody(definition.getBody().accept(new ValueVisitor<Value>() {
+                    @Override
+                    public Value visit(FunctionValue function) {
+                        return function.withArguments(ImmutableList.<Argument>builder()
+                            .addAll(additionalArguments)
+                            .addAll(function.getArguments())
+                            .build());
+                    }
+
+                    @Override
+                    public Value visitOtherwise(Value value) {
+                        return fn(value.getSourceRange(), currentScope().reserveSymbol(), additionalArguments, value);
+                    }
+                }).accept(this)));
+        }
+    }
+
+    private List<Argument> getAdditionalArguments(ValueDefinition definition, InstanceMap instances) {
+        AtomicInteger counter = new AtomicInteger();
+        List<Argument> additionalArguments = instances.stream()
+            .flatMap(tuple -> tuple.into((type, classRefs) -> classRefs.stream()
+                .map(classRef -> arg(
+                    definition.getSourceRange().getStartRange(),
+                    "$i" + counter.getAndIncrement(),
+                    instance(classRef.getSymbol(), type.simplify())
+                ))))
+            .collect(toList());
+        currentScope().setInstanceArguments(additionalArguments);
+        return additionalArguments;
+    }
+
+    private InstanceMap buildInstanceMap(ValueDefinition definition) {
+        InstanceMap.Builder builder = InstanceMap.builder();
+        definition.getType().accept(new TypeVisitor<Void>() {
+            @Override
+            public Void visit(FunctionType type) {
+                type.getArgument().accept(this);
+                type.getResult().accept(this);
+                return null;
+            }
+
+            @Override
+            public Void visit(VariableType type) {
+                type.getContext().forEach(className -> builder.addInstance(type, classRef(className)));
+                return null;
+            }
+
+            @Override
+            public Void visitOtherwise(Type type) {
+                return null;
+            }
+        });
+        return builder.build();
     }
 
     @Override
@@ -120,6 +185,61 @@ public class MethodBinder implements
     @Override
     public DefinitionReference visitOtherwise(DefinitionReference reference) {
         return scoped(reference, () -> graph.getDefinition(reference).get().accept(this).getReference());
+    }
+
+    private Value bindClass(Method method) {
+        List<InstanceType> types = method.getType().getContexts().stream()
+            .map(tuple -> tuple.into((var, sym) -> instance(sym, var.simplify())))
+            .collect(toList());
+        List<Argument> arguments = currentScope().getInstanceArguments().stream()
+            .filter(argument -> types.contains((InstanceType) argument.getType()))
+            .collect(toList());
+        if (arguments.size() == types.size()) {
+            return arguments.stream()
+                .map(arg -> (Value) arg)
+                .reduce(method, (left, right) -> apply(left, right, left.getType().accept(new TypeVisitor<Type>() {
+                    @Override
+                    public Type visit(FunctionType type) {
+                        return type.getResult();
+                    }
+                })));
+        } else {
+            throw new UnsupportedOperationException(); // TODO
+        }
+    }
+
+    private Value bindInstances(Method method) {
+        Scope scope = currentScope();
+        TypeClassDescriptor typeClass = scope.getMemberOf(method.getValueRef());
+        Type memberType = scope.getRawValue(method.getValueRef().getSymbol());
+        Map<String, Type> contexts = memberType.getContexts(method.getTargetType(), scope);
+        List<Type> parameters = typeClass.renderParameters(contexts);
+        if (typeClass.getParameters().equals(parameters)) {
+            return method;
+        } else {
+            Set<TypeInstanceDescriptor> typeInstances = scope.getTypeInstances(typeClass.getSymbol(), parameters);
+            if (typeInstances.isEmpty()) {
+                errors.add(typeInstanceNotFound(typeClass, parameters, method.getSourceRange()));
+                return method;
+            } else if (typeInstances.size() > 1) {
+                errors.add(ambiguousTypeInstance(typeClass, parameters, typeInstances, method.getSourceRange()));
+                return method;
+            } else {
+                TypeInstanceDescriptor descriptor = typeInstances.iterator().next();
+                return method.bind(
+                    classRef(descriptor.getTypeClass()),
+                    moduleRef(descriptor.getModuleName()),
+                    descriptor.getParameters(),
+                    method.getInstances().stream()
+                        .reduce(method.getType(), (left, right) -> left.accept(new TypeVisitor<Type>() {
+                            @Override
+                            public Type visit(FunctionType type) {
+                                return type.getResult();
+                            }
+                        }))
+                );
+            }
+        }
     }
 
     private Definition collect(Definition definition) {

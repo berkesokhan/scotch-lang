@@ -20,7 +20,7 @@ import scotch.runtime.Callable;
 
 @SuppressWarnings("unused")
 @TypeClass(memberName = "Num", parameters = {
-    @TypeParameter(name = "a", constraints = { "scotch.data.eq.Eq", "scotch.data.show.Show" })
+    @TypeParameter(name = "a"),
 })
 public interface Num<A> {
 

@@ -28,9 +28,32 @@ import scotch.compiler.symbol.SymbolEntry.ImmutableEntry;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
+import scotch.data.eq.Eq;
+import scotch.data.num.NumInt;
 import scotch.data.tuple.Tuple2;
 
 public class StubResolver implements SymbolResolver {
+
+    public static ImmutableEntry defaultEq() {
+        Symbol symbol = fromString("scotch.data.eq.(==)");
+        Type a = var("a", asList("scotch.data.eq.Eq"));
+        return immutableEntry(symbol)
+            .withValue(fn(a, fn(a, sum("scotch.data.bool.Bool"))))
+            .withValueSignature(MethodSignature.fromMethod(Eq.class, "eq"))
+            .withMemberOf(fromString("scotch.data.eq.Eq"))
+            .withOperator(operator(LEFT_INFIX, 5))
+            .build();
+    }
+
+    public static ImmutableEntry defaultEqClass() {
+        Symbol symbol = fromString("scotch.data.eq.Eq");
+        return immutableEntry(symbol)
+            .withTypeClass(typeClass(symbol, asList(var("a")), asList(
+                fromString("scotch.data.eq.(==)"),
+                fromString("scotch.data.eq.(/=)")
+            )))
+            .build();
+    }
 
     public static ImmutableEntry defaultInt() {
         return immutableEntry(qualified("scotch.data.int", "Int"))
@@ -65,7 +88,7 @@ public class StubResolver implements SymbolResolver {
     public static ImmutableEntry defaultNum() {
         Symbol symbol = fromString("scotch.data.num.Num");
         return immutableEntry(symbol)
-            .withTypeClass(typeClass(fromString("scotch.data.num.Num"), asList(var("a", asList("scotch.data.num.Num"))), asList(
+            .withTypeClass(typeClass(symbol, asList(var("a")), asList(
                 fromString("scotch.data.num.(+)"),
                 fromString("scotch.data.num.(-)")
             )))
@@ -77,7 +100,7 @@ public class StubResolver implements SymbolResolver {
             "scotch.data.num",
             "scotch.data.num.Num",
             asList(type),
-            MethodSignature.fromString("scotch/data/num/NumInt:instance:()Lscotch/data/num/NumInt;")
+            MethodSignature.fromMethod(NumInt.class, "instance")
         );
     }
 

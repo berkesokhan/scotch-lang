@@ -5,6 +5,7 @@ import static scotch.compiler.syntax.Value.fn;
 import static scotch.compiler.syntax.Value.id;
 import static scotch.compiler.syntax.Value.literal;
 import static scotch.compiler.syntax.Value.message;
+import static scotch.compiler.syntax.Value.patterns;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.ArrayList;
@@ -13,11 +14,13 @@ import java.util.Optional;
 import java.util.function.Function;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
+import scotch.compiler.syntax.PatternMatcher;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Argument;
 import scotch.compiler.syntax.Value.FunctionValue;
 import scotch.compiler.syntax.Value.Identifier;
 import scotch.compiler.syntax.Value.Message;
+import scotch.compiler.syntax.Value.PatternMatchers;
 import scotch.compiler.syntax.Value.ValueVisitor;
 import scotch.compiler.text.SourceRange;
 
@@ -41,6 +44,10 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
 
     public static MessageBuilder messageBuilder() {
         return new MessageBuilder();
+    }
+
+    public static PatternsBuilder patternsBuilder() {
+        return new PatternsBuilder();
     }
 
     private ValueBuilder() {
@@ -133,8 +140,9 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
             return this;
         }
 
-        public void withSymbol(Symbol symbol) {
+        public FunctionBuilder withSymbol(Symbol symbol) {
             this.symbol = Optional.of(symbol);
+            return this;
         }
     }
 
@@ -245,6 +253,42 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
         @Override
         public MessageBuilder withSourceRange(SourceRange sourceRange) {
             this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+    }
+
+    public static class PatternsBuilder extends ValueBuilder<PatternMatchers> {
+
+        private Optional<SourceRange>          sourceRange = Optional.empty();
+        private Optional<List<PatternMatcher>> patterns    = Optional.empty();
+        private Optional<Type>                 type        = Optional.empty();
+
+        private PatternsBuilder() {
+            // intentionally empty
+        }
+
+        @Override
+        public PatternMatchers build() {
+            return patterns(
+                require(sourceRange, "Source range"),
+                require(type, "Pattern type"),
+                require(patterns, "Patterns")
+            );
+        }
+
+        public PatternsBuilder withPatterns(List<PatternMatcher> patterns) {
+            this.patterns = Optional.of(patterns);
+            return this;
+        }
+
+        @Override
+        public PatternsBuilder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public PatternsBuilder withType(Type type) {
+            this.type = Optional.of(type);
             return this;
         }
     }

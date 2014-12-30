@@ -21,6 +21,7 @@ import scotch.compiler.syntax.builder.ValueBuilder.FunctionBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.IdentifierBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.LiteralBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.MessageBuilder;
+import scotch.compiler.syntax.builder.ValueBuilder.PatternsBuilder;
 
 public class SyntaxBuilderFactory {
 
@@ -70,6 +71,10 @@ public class SyntaxBuilderFactory {
 
     public OperatorDefinitionBuilder operatorBuilder() {
         return DefinitionBuilder.operatorBuilder();
+    }
+
+    public PatternsBuilder patternsBuilder() {
+        return ValueBuilder.patternsBuilder();
     }
 
     public RootDefinitionBuilder rootBuilder() {

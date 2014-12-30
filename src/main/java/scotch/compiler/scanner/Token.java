@@ -1,7 +1,6 @@
 package scotch.compiler.scanner;
 
 import static scotch.util.StringUtil.quote;
-import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -79,11 +78,7 @@ public class Token {
 
     @Override
     public String toString() {
-        String valueString = getValue().toString();
-        if (value instanceof String || value instanceof Character) {
-            valueString = quote(valueString);
-        }
-        return stringify(this) + "(kind=" + kind + ", value=" + valueString + ", range=" + sourceRange + ")";
+        return kind + "(" + quote(value) + ")";
     }
 
     public enum TokenKind {

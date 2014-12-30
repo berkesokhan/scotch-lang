@@ -12,6 +12,7 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Type.FunctionType;
+import scotch.compiler.symbol.Type.InstanceType;
 import scotch.compiler.symbol.Type.SumType;
 import scotch.compiler.symbol.Type.TypeVisitor;
 import scotch.compiler.symbol.Type.VariableType;
@@ -57,8 +58,8 @@ public class DefaultTypeScope implements TypeScope {
             }
 
             @Override
-            public Type visit(VariableType type) {
-                return getTarget(type);
+            public Type visit(InstanceType type) {
+                return type;
             }
 
             @Override
@@ -67,8 +68,8 @@ public class DefaultTypeScope implements TypeScope {
             }
 
             @Override
-            public Type visitOtherwise(Type type) {
-                throw new UnsupportedOperationException("Can't generate " + type.getClass());
+            public Type visit(VariableType type) {
+                return getTarget(type);
             }
         });
     }
@@ -145,10 +146,10 @@ public class DefaultTypeScope implements TypeScope {
     }
 
     private void bind_(VariableType variableType, Type targetType) {
-        if (isBound(variableType) && !getTarget(variableType).equals(targetType)) {
-            throw new UnsupportedOperationException("Can't re-bind type " + variableType.prettyPrint() + " to new target "
-                + targetType.prettyPrint() + "; current binding is incompatible: " + getTarget(variableType).prettyPrint());
-        } else {
+        if (isBound(variableType) && !getTarget(variableType).simplify().equals(targetType)) {
+            throw new UnsupportedOperationException("Can't re-bind type " + variableType + " to new target "
+                + targetType + "; current binding is incompatible: " + getTarget(variableType));
+        } else if (!getTarget(targetType).simplify().equals(variableType)) {
             bindings.put(variableType, targetType);
         }
     }

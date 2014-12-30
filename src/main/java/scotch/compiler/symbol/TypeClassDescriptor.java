@@ -1,7 +1,6 @@
 package scotch.compiler.symbol;
 
 import static java.util.stream.Collectors.toList;
-import static scotch.util.StringUtil.stringify;
 
 import java.util.Collection;
 import java.util.List;
@@ -66,7 +65,7 @@ public class TypeClassDescriptor {
 
     @Override
     public String toString() {
-        return stringify(this) + "(" + symbol.getCanonicalName() + ")";
+        return symbol.getMemberName();
     }
 
     private String nameOf(Type parameter) {

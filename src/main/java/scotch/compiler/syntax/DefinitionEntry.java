@@ -24,8 +24,6 @@ public abstract class DefinitionEntry {
 
     public abstract Scope getScope();
 
-    public abstract DefinitionEntry withDefinition(Definition definition);
-
     public interface DefinitionEntryVisitor<T> {
 
         default T visit(UnscopedEntry entry) {
@@ -73,11 +71,6 @@ public abstract class DefinitionEntry {
         public Scope getScope() {
             return scope;
         }
-
-        @Override
-        public DefinitionEntry withDefinition(Definition definition) {
-            throw new IllegalStateException();
-        }
     }
 
     public static class ScopedEntry extends DefinitionEntry {
@@ -108,11 +101,6 @@ public abstract class DefinitionEntry {
         public Scope getScope() {
             return scope;
         }
-
-        @Override
-        public DefinitionEntry withDefinition(Definition definition) {
-            return new ScopedEntry(definition, scope);
-        }
     }
 
     public static class UnscopedEntry extends DefinitionEntry {
@@ -140,11 +128,6 @@ public abstract class DefinitionEntry {
         @Override
         public Scope getScope() {
             throw new IllegalStateException();
-        }
-
-        @Override
-        public DefinitionEntry withDefinition(Definition definition) {
-            return new UnscopedEntry(definition);
         }
     }
 }

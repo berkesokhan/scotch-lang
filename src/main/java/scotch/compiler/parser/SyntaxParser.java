@@ -1,17 +1,12 @@
 package scotch.compiler.parser;
 
 import static java.util.stream.Collectors.toList;
-import static scotch.compiler.syntax.Definition.scopeDef;
-import static scotch.compiler.syntax.Definition.value;
 import static scotch.compiler.syntax.DefinitionEntry.patternEntry;
 import static scotch.compiler.syntax.DefinitionEntry.scopedEntry;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
 import static scotch.compiler.syntax.Scope.scope;
 import static scotch.compiler.syntax.SyntaxError.symbolNotFound;
-import static scotch.compiler.syntax.Value.arg;
-import static scotch.compiler.syntax.Value.fn;
-import static scotch.compiler.syntax.Value.patterns;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 
 import java.util.ArrayList;
@@ -65,6 +60,7 @@ import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.syntax.Value.PatternMatchers;
 import scotch.compiler.syntax.Value.StringLiteral;
 import scotch.compiler.syntax.Value.ValueVisitor;
+import scotch.compiler.syntax.builder.SyntaxBuilderFactory;
 import scotch.compiler.text.SourceRange;
 import scotch.data.either.Either.EitherVisitor;
 
@@ -77,6 +73,7 @@ public class SyntaxParser implements
     TypeVisitor<Type> {
 
     private final DefinitionGraph                           graph;
+    private final SyntaxBuilderFactory                      builderFactory;
     private final PatternShuffler                           patternShuffler;
     private final ValueShuffler                             valueShuffler;
     private final List<SyntaxError>                         errors;
@@ -85,8 +82,9 @@ public class SyntaxParser implements
     private       Scope                                     scope;
     private       String                                    currentModule;
 
-    public SyntaxParser(DefinitionGraph graph, SymbolResolver resolver) {
+    public SyntaxParser(DefinitionGraph graph, SymbolResolver resolver, SyntaxBuilderFactory builderFactory) {
         this.graph = graph;
+        this.builderFactory = builderFactory;
         this.patternShuffler = new PatternShuffler();
         this.valueShuffler = new ValueShuffler(value -> value.accept(this));
         this.errors = new ArrayList<>();
@@ -95,7 +93,7 @@ public class SyntaxParser implements
         this.definitions = new HashMap<>();
     }
 
-    public DefinitionGraph analyze() {
+    public DefinitionGraph parse() {
         graph.getDefinition(rootRef()).ifPresent(root -> root.accept(this));
         return graph
             .copyWith(ImmutableList.copyOf(definitions.values()))
@@ -170,7 +168,10 @@ public class SyntaxParser implements
                 function.getArguments().forEach(arg -> arg.accept(this));
                 return function.withBody(function.getBody().accept(this));
             } finally {
-                collect(scopeDef(function.getSourceRange(), function.getSymbol()));
+                collect(builderFactory.scopeBuilder()
+                    .withSourceRange(function.getSourceRange())
+                    .withSymbol(function.getSymbol())
+                    .build());
             }
         });
     }
@@ -179,10 +180,7 @@ public class SyntaxParser implements
     public Value visit(Identifier identifier) {
         return scope.qualify(identifier.getSymbol())
             .map(identifier::withSymbol)
-            .orElseGet(() -> {
-                errors.add(symbolNotFound(identifier.getSymbol(), identifier.getSourceRange()));
-                return identifier;
-            });
+            .orElse(identifier);
     }
 
     @Override
@@ -311,16 +309,33 @@ public class SyntaxParser implements
             int arity = patterns.get(0).getArity();
             List<Argument> arguments = new ArrayList<>();
             for (int i = 0; i < arity; i++) {
-                arguments.add(arg(startRange, "$" + i, scope.reserveType()));
+                arguments.add(builderFactory.argumentBuilder()
+                    .withSourceRange(startRange)
+                    .withName("$" + i)
+                    .withType(scope.reserveType())
+                    .build());
             }
             Symbol function = symbolGenerator.reserveSymbol(currentModule);
-            collect(scopeDef(sourceRange, function));
-            value(sourceRange, symbol, scope.reserveType(), fn(
-                startRange,
-                function,
-                arguments,
-                patterns(sourceRange, scope.reserveType(), patterns)
-            )).accept(this);
+            collect(builderFactory.scopeBuilder()
+                .withSourceRange(sourceRange)
+                .withSymbol(function)
+                .build());
+            builderFactory.valueDefBuilder()
+                .withSourceRange(sourceRange)
+                .withSymbol(symbol)
+                .withType(scope.reserveType())
+                .withBody(builderFactory.functionBuilder()
+                    .withSourceRange(startRange)
+                    .withSymbol(function)
+                    .withArguments(arguments)
+                    .withBody(builderFactory.patternsBuilder()
+                        .withSourceRange(sourceRange)
+                        .withType(scope.reserveType())
+                        .withPatterns(patterns)
+                        .build())
+                    .build())
+                .build()
+                .accept(this);
         });
     }
 

@@ -4,6 +4,7 @@ import static java.lang.Character.isLowerCase;
 import static java.lang.Character.isUpperCase;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.symbol.Symbol.fromString;
@@ -12,7 +13,7 @@ import static scotch.compiler.symbol.Unification.contextMismatch;
 import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.symbol.Unification.unified;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
-import static scotch.util.StringUtil.stringify;
+import static scotch.data.tuple.TupleValues.tuple2;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -27,12 +28,22 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
 import scotch.compiler.text.SourceRange;
+import scotch.data.tuple.Tuple2;
 
 public abstract class Type {
 
     public static FunctionType fn(Type argument, Type result) {
         return new FunctionType(NULL_SOURCE, argument, result);
+    }
+
+    public static InstanceType instance(Symbol symbol, VariableType binding) {
+        return new InstanceType(symbol, binding);
+    }
+
+    public static InstanceType instance(String name, VariableType binding) {
+        return instance(fromString(name), binding);
     }
 
     public static SumType sum(String name) {
@@ -61,6 +72,16 @@ public abstract class Type {
 
     public static VariableType var(String name, Collection<?> context) {
         return new VariableType(NULL_SOURCE, name, toSymbols(context));
+    }
+
+    private static int sort(Tuple2<VariableType, Symbol> left, Tuple2<VariableType, Symbol> right) {
+        return left.into((t1, s1) -> right.into((t2, s2) -> {
+            int result = t1.getName().compareTo(t2.getName());
+            if (result != 0) {
+                return result;
+            }
+            return s1.compareTo(s2);
+        }));
     }
 
     @SuppressWarnings("unchecked")
@@ -93,14 +114,20 @@ public abstract class Type {
     @Override
     public abstract boolean equals(Object o);
 
+    public Set<Tuple2<VariableType, Symbol>> getContexts() {
+        return gatherContext_();
+    }
+
     public abstract Map<String, Type> getContexts(Type type, TypeScope scope);
 
     public abstract String getSignature();
 
+    public boolean hasContext() {
+        return !getContexts().isEmpty();
+    }
+
     @Override
     public abstract int hashCode();
-
-    public abstract String prettyPrint();
 
     public Type simplify() {
         return this;
@@ -113,7 +140,24 @@ public abstract class Type {
 
     protected abstract boolean contains(VariableType type);
 
+    protected String gatherContext() {
+        Set<Tuple2<VariableType, Symbol>> context = gatherContext_();
+        if (context.isEmpty()) {
+            return "";
+        } else {
+            return "(" + context.stream()
+                .map(tuple -> tuple.into((type, symbol) -> symbol.getMemberName() + " " + type.name))
+                .collect(joining(", ")) + ") => ";
+        }
+    }
+
+    protected abstract Set<Tuple2<VariableType, Symbol>> gatherContext_();
+
     protected abstract String getSignature_();
+
+    protected abstract String toParenthesizedString();
+
+    protected abstract String toString_();
 
     protected abstract Unification unifyWith(FunctionType target, TypeScope scope);
 
@@ -124,6 +168,10 @@ public abstract class Type {
     public interface TypeVisitor<T> {
 
         default T visit(FunctionType type) {
+            return visitOtherwise(type);
+        }
+
+        default T visit(InstanceType type) {
             return visitOtherwise(type);
         }
 
@@ -207,23 +255,8 @@ public abstract class Type {
         }
 
         @Override
-        public String prettyPrint() {
-            return argument.accept(new TypeVisitor<String>() {
-                @Override
-                public String visit(FunctionType type) {
-                    return "(" + type.prettyPrint() + ")";
-                }
-
-                @Override
-                public String visitOtherwise(Type type) {
-                    return type.prettyPrint();
-                }
-            }) + " -> " + result.prettyPrint();
-        }
-
-        @Override
         public String toString() {
-            return stringify(this) + "(" + argument + " -> " + result + ")";
+            return gatherContext() + toString_();
         }
 
         @Override
@@ -249,8 +282,31 @@ public abstract class Type {
         }
 
         @Override
+        protected Set<Tuple2<VariableType, Symbol>> gatherContext_() {
+            Set<Tuple2<VariableType, Symbol>> context = new HashSet<>();
+            context.addAll(argument.gatherContext_());
+            context.addAll(result.gatherContext_());
+            return ImmutableSortedSet.copyOf(Type::sort, context);
+        }
+
+        @Override
         protected String getSignature_() {
             return p(Function.class);
+        }
+
+        @Override
+        protected String toParenthesizedString() {
+            return "(" + argument.toParenthesizedString() + " -> " + result.toString_() + ")";
+        }
+
+        @Override
+        protected String toString_() {
+            return argument.toParenthesizedString() + " -> " + result.toString_();
+        }
+
+        @Override
+        protected Unification unifyWith(SumType target, TypeScope scope) {
+            return mismatch(target, this);
         }
 
         @Override
@@ -266,10 +322,91 @@ public abstract class Type {
         protected Unification unifyWith(VariableType target, TypeScope scope) {
             return unifyVariable(this, target, scope);
         }
+    }
+
+    public static class InstanceType extends Type {
+
+        private final Symbol symbol;
+        private final VariableType binding;
+
+        private InstanceType(Symbol symbol, VariableType binding) {
+            this.symbol = symbol;
+            this.binding = binding;
+        }
+
+        @Override
+        public <T> T accept(TypeVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o == this || o instanceof InstanceType && Objects.equals(symbol, ((InstanceType) o).symbol);
+        }
+
+        @Override
+        public Map<String, Type> getContexts(Type type, TypeScope scope) {
+            return ImmutableMap.of();
+        }
+
+        @Override
+        public String getSignature() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(symbol);
+        }
+
+        @Override
+        public String toString() {
+            return toString_();
+        }
+
+        @Override
+        public Unification unify(Type type, TypeScope scope) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        protected boolean contains(VariableType type) {
+            return false;
+        }
+
+        @Override
+        protected Set<Tuple2<VariableType, Symbol>> gatherContext_() {
+            return ImmutableSet.of();
+        }
+
+        @Override
+        protected String getSignature_() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected String toParenthesizedString() {
+            return toString_();
+        }
+
+        @Override
+        protected String toString_() {
+            return symbol.getMemberName();
+        }
+
+        @Override
+        protected Unification unifyWith(FunctionType target, TypeScope scope) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        protected Unification unifyWith(VariableType target, TypeScope scope) {
+            throw new UnsupportedOperationException();
+        }
 
         @Override
         protected Unification unifyWith(SumType target, TypeScope scope) {
-            return mismatch(target, this);
+            throw new UnsupportedOperationException();
         }
     }
 
@@ -325,13 +462,8 @@ public abstract class Type {
         }
 
         @Override
-        public String prettyPrint() {
-            return symbol.getCanonicalName();
-        }
-
-        @Override
         public String toString() {
-            return stringify(this) + "(" + symbol + ")";
+            return toString_();
         }
 
         @Override
@@ -359,8 +491,32 @@ public abstract class Type {
         }
 
         @Override
+        protected Set<Tuple2<VariableType, Symbol>> gatherContext_() {
+            return ImmutableSet.of();
+        }
+
+        @Override
         protected String getSignature_() {
             return symbol.getClassName();
+        }
+
+        @Override
+        protected String toParenthesizedString() {
+            return toString_();
+        }
+
+        @Override
+        protected String toString_() {
+            return symbol.getMemberName();
+        }
+
+        @Override
+        protected Unification unifyWith(SumType target, TypeScope scope) {
+            if (equals(target)) {
+                return unified(this);
+            } else {
+                return mismatch(target, this);
+            }
         }
 
         @Override
@@ -371,15 +527,6 @@ public abstract class Type {
         @Override
         protected Unification unifyWith(VariableType target, TypeScope scope) {
             return unifyVariable(this, target, scope);
-        }
-
-        @Override
-        protected Unification unifyWith(SumType target, TypeScope scope) {
-            if (equals(target)) {
-                return unified(this);
-            } else {
-                return mismatch(target, this);
-            }
         }
     }
 
@@ -458,22 +605,17 @@ public abstract class Type {
         }
 
         @Override
-        public String prettyPrint() {
+        public VariableType simplify() {
             if (context.isEmpty()) {
-                return name;
+                return this;
             } else {
-                return "(" + name + " <= " + context.stream().map(Symbol::getMemberName).collect(joining(", ")) + ")";
+                return var(name);
             }
         }
 
         @Override
-        public VariableType simplify() {
-            return var(name);
-        }
-
-        @Override
         public String toString() {
-            return stringify(this) + "(" + name + ", context=" + context + ")";
+            return gatherContext() + toString_();
         }
 
         @Override
@@ -510,8 +652,28 @@ public abstract class Type {
         }
 
         @Override
+        protected Set<Tuple2<VariableType, Symbol>> gatherContext_() {
+            return ImmutableSortedSet.copyOf(Type::sort, context.stream().map(s -> tuple2(this, s)).collect(toList()));
+        }
+
+        @Override
         protected String getSignature_() {
             return p(Object.class);
+        }
+
+        @Override
+        protected String toParenthesizedString() {
+            return toString_();
+        }
+
+        @Override
+        protected String toString_() {
+            return name;
+        }
+
+        @Override
+        protected Unification unifyWith(SumType target, TypeScope scope) {
+            return unify_(target, scope).orElseGet(() -> bind(target, scope));
         }
 
         @Override
@@ -529,11 +691,6 @@ public abstract class Type {
                 scope.extendContext(this, additionalContext);
                 return bind(target, scope);
             });
-        }
-
-        @Override
-        protected Unification unifyWith(SumType target, TypeScope scope) {
-            return unify_(target, scope).orElseGet(() -> bind(target, scope));
         }
     }
 }

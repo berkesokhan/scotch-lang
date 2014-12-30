@@ -28,6 +28,7 @@ import scotch.compiler.syntax.Definition.ValueDefinition;
 import scotch.compiler.syntax.Definition.ValueSignature;
 import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.Import;
+import scotch.compiler.syntax.InstanceMap;
 import scotch.compiler.syntax.PatternMatch;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Message;
@@ -343,7 +344,8 @@ public abstract class DefinitionBuilder<T extends Definition> implements SyntaxB
                     public Value visitOtherwise(Value value) {
                         return value;
                     }
-                })
+                }),
+                InstanceMap.empty()
             );
         }
 

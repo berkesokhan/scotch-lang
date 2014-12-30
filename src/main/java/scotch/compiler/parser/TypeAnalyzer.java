@@ -5,7 +5,6 @@ import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.symbol.Type.fn;
 import static scotch.compiler.syntax.DefinitionEntry.scopedEntry;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
-import static scotch.compiler.syntax.DefinitionReference.scopeRef;
 import static scotch.compiler.syntax.SyntaxError.typeError;
 
 import java.util.ArrayDeque;
@@ -96,7 +95,7 @@ public class TypeAnalyzer implements
 
     @Override
     public Value visit(FunctionValue function) {
-        return scoped(scopeRef(function.getSymbol()), () -> {
+        return scoped(function.getReference(), () -> {
             List<Type> argumentTypes = function.getArguments().stream()
                 .map(Argument::getType)
                 .collect(toList());
@@ -141,7 +140,7 @@ public class TypeAnalyzer implements
             @Override
             public Definition visit(Unified unified) {
                 currentScope().redefineValue(definition.getSymbol(), unified.getUnifiedType());
-                return collect(definition.withBody(body).withType(unified.getUnifiedType()));
+                return collect(bind(definition.withBody(body).withType(unified.getUnifiedType())));
             }
 
             @Override
@@ -150,6 +149,10 @@ public class TypeAnalyzer implements
                 return collect(definition.withBody(body).withType(type));
             }
         });
+    }
+
+    private ValueDefinition bind(ValueDefinition valueDefinition) {
+        return new TypeBinder(graph, valueDefinition).bind();
     }
 
     @Override

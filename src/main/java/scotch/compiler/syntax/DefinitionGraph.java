@@ -40,6 +40,10 @@ public class DefinitionGraph {
             .withSequence(symbolGenerator);
     }
 
+    public Optional<ValueDefinition> getDefinition(ValueReference reference) {
+        return getDefinition((DefinitionReference) reference).map(definition -> (ValueDefinition) definition);
+    }
+
     public Optional<Definition> getDefinition(DefinitionReference reference) {
         return Optional.ofNullable(definitions.get(reference)).map(entry -> entry.accept(
             new DefinitionEntryVisitor<Definition>() {
