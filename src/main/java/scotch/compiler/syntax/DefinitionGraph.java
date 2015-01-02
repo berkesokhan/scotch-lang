@@ -1,19 +1,21 @@
 package scotch.compiler.syntax;
 
+import static java.util.Spliterators.spliterator;
+import static java.util.stream.Collectors.toList;
+
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.Definition.DefinitionVisitor;
 import scotch.compiler.syntax.Definition.ValueDefinition;
 import scotch.compiler.syntax.Definition.ValueSignature;
-import scotch.compiler.syntax.DefinitionEntry.DefinitionEntryVisitor;
-import scotch.compiler.syntax.DefinitionEntry.ScopedEntry;
-import scotch.compiler.syntax.DefinitionEntry.UnscopedEntry;
 import scotch.compiler.syntax.DefinitionReference.ValueReference;
 
 public class DefinitionGraph {
@@ -29,9 +31,8 @@ public class DefinitionGraph {
     private DefinitionGraph(Collection<DefinitionEntry> entries, SymbolGenerator symbolGenerator, List<SyntaxError> errors) {
         this.symbolGenerator = symbolGenerator;
         this.errors = ImmutableList.copyOf(errors);
-        ImmutableMap.Builder<DefinitionReference, DefinitionEntry> builder = ImmutableMap.builder();
-        entries.forEach(entry -> builder.put(entry.getReference(), entry));
-        this.definitions = builder.build();
+        this.definitions = new LinkedHashMap<>();
+        entries.forEach(entry -> definitions.put(entry.getReference(), entry));
     }
 
     public DefinitionGraphBuilder copyWith(Collection<DefinitionEntry> entries) {
@@ -45,19 +46,7 @@ public class DefinitionGraph {
     }
 
     public Optional<Definition> getDefinition(DefinitionReference reference) {
-        return Optional.ofNullable(definitions.get(reference)).map(entry -> entry.accept(
-            new DefinitionEntryVisitor<Definition>() {
-                @Override
-                public Definition visit(ScopedEntry entry) {
-                    return entry.getDefinition();
-                }
-
-                @Override
-                public Definition visit(UnscopedEntry entry) {
-                    return entry.getDefinition();
-                }
-            }
-        ));
+        return Optional.ofNullable(definitions.get(reference)).map(DefinitionEntry::getDefinition);
     }
 
     public List<SyntaxError> getErrors() {
@@ -65,11 +54,18 @@ public class DefinitionGraph {
     }
 
     public Scope getScope(DefinitionReference reference) {
-        return definitions.get(reference).getScope();
+        return tryGetScope(reference).orElseThrow(() -> new IllegalArgumentException("No scope found for reference: " + reference));
     }
 
-    public Optional<Type> getSignature(ValueReference reference) {
-        return getScope(reference).getParent().getSignature(reference.getSymbol());
+    public List<DefinitionReference> getSortedReferences() {
+        List<DefinitionReference> references = definitions.keySet().stream()
+            .filter(reference -> !(reference instanceof ValueReference))
+            .collect(toList());
+        List<DefinitionReference> values = definitions.keySet().stream()
+            .filter(reference -> reference instanceof ValueReference)
+            .collect(toList());
+        references.addAll(values);
+        return references;
     }
 
     public SymbolGenerator getSymbolGenerator() {
@@ -95,8 +91,23 @@ public class DefinitionGraph {
         }));
     }
 
+    public List<ValueReference> getValues() {
+        return definitions.keySet().stream()
+            .filter(reference -> reference instanceof ValueReference)
+            .map(reference -> (ValueReference) reference)
+            .collect(toList());
+    }
+
     public boolean hasErrors() {
         return !errors.isEmpty();
+    }
+
+    public Stream<DefinitionEntry> stream() {
+        return StreamSupport.stream(spliterator(definitions.values(), definitions.size()), false);
+    }
+
+    public Optional<Scope> tryGetScope(DefinitionReference reference) {
+        return Optional.ofNullable(definitions.get(reference)).map(DefinitionEntry::getScope);
     }
 
     public static class DefinitionGraphBuilder {

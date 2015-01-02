@@ -1,15 +1,10 @@
 package scotch.compiler.symbol;
 
-import static java.util.stream.Collectors.toList;
-
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableSet;
-import scotch.compiler.symbol.Type.VariableType;
 
 public class TypeClassDescriptor {
 
@@ -54,21 +49,8 @@ public class TypeClassDescriptor {
         return Objects.hash(symbol, parameters, members);
     }
 
-    public List<Type> renderParameters(Map<String, Type> contexts) {
-        return parameters.stream()
-            .map(this::nameOf)
-            .map(parameter -> Optional.ofNullable(contexts.get(parameter)))
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .collect(toList());
-    }
-
     @Override
     public String toString() {
         return symbol.getMemberName();
-    }
-
-    private String nameOf(Type parameter) {
-        return ((VariableType) parameter).getName();
     }
 }

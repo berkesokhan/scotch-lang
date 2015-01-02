@@ -12,6 +12,7 @@ import static scotch.compiler.symbol.Unification.circular;
 import static scotch.compiler.symbol.Unification.contextMismatch;
 import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.symbol.Unification.unified;
+import static scotch.compiler.syntax.DefinitionReference.classRef;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 import static scotch.data.tuple.TupleValues.tuple2;
 
@@ -29,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
+import scotch.compiler.syntax.DefinitionReference.ClassReference;
 import scotch.compiler.text.SourceRange;
 import scotch.data.tuple.Tuple2;
 
@@ -38,11 +40,11 @@ public abstract class Type {
         return new FunctionType(NULL_SOURCE, argument, result);
     }
 
-    public static InstanceType instance(Symbol symbol, VariableType binding) {
+    public static InstanceType instance(Symbol symbol, Type binding) {
         return new InstanceType(symbol, binding);
     }
 
-    public static InstanceType instance(String name, VariableType binding) {
+    public static InstanceType instance(String name, Type binding) {
         return instance(fromString(name), binding);
     }
 
@@ -95,11 +97,9 @@ public abstract class Type {
         if (scope.isBound(target)) {
             return scope.getTarget(target).unify(actual, scope);
         } else if (target.context.isEmpty()) {
-            scope.bind(target, actual);
-            return unified(actual);
+            return scope.bind(target, actual);
         } else if (scope.getContext(actual).containsAll(target.context)) {
-            scope.bind(target, actual);
-            return unified(actual);
+            return scope.bind(target, actual);
         } else {
             return contextMismatch(target, actual, target.context, scope.getContext(actual));
         }
@@ -121,6 +121,8 @@ public abstract class Type {
     public abstract Map<String, Type> getContexts(Type type, TypeScope scope);
 
     public abstract String getSignature();
+
+    public abstract SourceRange getSourceRange();
 
     public boolean hasContext() {
         return !getContexts().isEmpty();
@@ -250,6 +252,11 @@ public abstract class Type {
         }
 
         @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(argument, result);
         }
@@ -327,9 +334,9 @@ public abstract class Type {
     public static class InstanceType extends Type {
 
         private final Symbol symbol;
-        private final VariableType binding;
+        private final Type binding;
 
-        private InstanceType(Symbol symbol, VariableType binding) {
+        private InstanceType(Symbol symbol, Type binding) {
             this.symbol = symbol;
             this.binding = binding;
         }
@@ -344,6 +351,14 @@ public abstract class Type {
             return o == this || o instanceof InstanceType && Objects.equals(symbol, ((InstanceType) o).symbol);
         }
 
+        public Type getBinding() {
+            return binding;
+        }
+
+        public ClassReference getClassRef() {
+            return classRef(symbol);
+        }
+
         @Override
         public Map<String, Type> getContexts(Type type, TypeScope scope) {
             return ImmutableMap.of();
@@ -355,8 +370,30 @@ public abstract class Type {
         }
 
         @Override
+        public SourceRange getSourceRange() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        public boolean hasContext() {
+            return binding instanceof VariableType;
+        }
+
+        public boolean isBound() {
+            return !(binding instanceof VariableType);
+        }
+
+        public Symbol getSymbol() {
+            return symbol;
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(symbol);
+        }
+
+        public boolean is(Type type) {
+            return binding.simplify().equals(type.simplify());
         }
 
         @Override
@@ -367,6 +404,10 @@ public abstract class Type {
         @Override
         public Unification unify(Type type, TypeScope scope) {
             throw new UnsupportedOperationException();
+        }
+
+        public InstanceType withBinding(Type binding) {
+            return new InstanceType(symbol, binding);
         }
 
         @Override
@@ -448,6 +489,7 @@ public abstract class Type {
             return "()L" + getSignature_() + ";";
         }
 
+        @Override
         public SourceRange getSourceRange() {
             return sourceRange;
         }
@@ -596,6 +638,11 @@ public abstract class Type {
         }
 
         @Override
+        public SourceRange getSourceRange() {
+            return sourceRange;
+        }
+
+        @Override
         public int hashCode() {
             return Objects.hash(name, context);
         }
@@ -632,8 +679,7 @@ public abstract class Type {
         }
 
         private Unification bind(Type target, TypeScope scope) {
-            scope.bind(this, target);
-            return unified(target);
+            return scope.bind(this, target);
         }
 
         private Optional<Unification> unify_(Type target, TypeScope scope) {

@@ -13,60 +13,56 @@ import scotch.runtime.Callable;
 
 @SuppressWarnings("unused")
 @TypeInstance(typeClass = "scotch.data.num.Num")
-public class NumInt implements Num<Integer> {
+public class NumDouble implements Num<Double> {
 
-    private static final Callable<NumInt> INSTANCE = callable(NumInt::new);
+    private static final Callable<NumDouble> INSTANCE = callable(NumDouble::new);
 
     @InstanceGetter
-    public static Callable<NumInt> instance() {
+    public static Callable<NumDouble> instance() {
         return INSTANCE;
     }
 
     @TypeParameters
     public static List<Type> parameters() {
-        return asList(sum("scotch.data.int.Int"));
-    }
-
-    private NumInt() {
-        // intentionally empty
+        return asList(sum("scotch.data.double.Double"));
     }
 
     @Override
-    public Callable<Integer> abs(Callable<Integer> operand) {
+    public Callable<Double> abs(Callable<Double> operand) {
         return callable(() -> Math.abs(operand.call()));
     }
 
     @Override
-    public Callable<Integer> add(Callable<Integer> left, Callable<Integer> right) {
+    public Callable<Double> add(Callable<Double> left, Callable<Double> right) {
         return callable(() -> left.call() + right.call());
     }
 
     @Override
-    public Callable<Integer> fromInteger(Callable<Integer> integer) {
-        return integer;
+    public Callable<Double> fromInteger(Callable<Integer> integer) {
+        return callable(() -> integer.call().doubleValue());
     }
 
     @Override
-    public Callable<Integer> multiply(Callable<Integer> left, Callable<Integer> right) {
+    public Callable<Double> multiply(Callable<Double> left, Callable<Double> right) {
         return callable(() -> left.call() * right.call());
     }
 
     @Override
-    public Callable<Integer> signum(Callable<Integer> operand) {
+    public Callable<Double> signum(Callable<Double> operand) {
         return callable(() -> {
-            int value = operand.call();
+            double value = operand.call();
             if (value > 0) {
-                return 1;
+                return 1d;
             } else if (value < 0) {
-                return -1;
+                return -1d;
             } else {
-                return 0;
+                return 0d;
             }
         });
     }
 
     @Override
-    public Callable<Integer> sub(Callable<Integer> left, Callable<Integer> right) {
+    public Callable<Double> sub(Callable<Double> left, Callable<Double> right) {
         return callable(() -> left.call() - right.call());
     }
 }

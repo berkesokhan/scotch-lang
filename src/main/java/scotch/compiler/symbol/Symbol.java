@@ -231,7 +231,7 @@ public abstract class Symbol implements Comparable<Symbol> {
         @Override
         public String getClassName() {
             return Optional.ofNullable(javaTypeMap.get(this))
-                .orElseGet(() -> getPackagePath() + "/" + toJavaName_(memberName));
+                .orElseGet(() -> getPackagePath() + "/ScotchModule");
         }
 
         @Override

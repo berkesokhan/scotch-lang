@@ -5,7 +5,7 @@ import scotch.compiler.symbol.Type.VariableType;
 
 public interface TypeScope {
 
-    void bind(VariableType variableType, Type targetType);
+    Unification bind(VariableType variableType, Type targetType);
 
     void extendContext(Type type, Set<Symbol> additionalContext);
 

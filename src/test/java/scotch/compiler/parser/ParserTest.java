@@ -1,11 +1,11 @@
 package scotch.compiler.parser;
 
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.compiler.Compiler.compiler;
+import static scotch.compiler.syntax.DefinitionReference.signatureRef;
 import static scotch.compiler.util.TestUtil.classDef;
 import static scotch.compiler.util.TestUtil.classRef;
 import static scotch.compiler.util.TestUtil.value;
@@ -20,10 +20,11 @@ import org.junit.rules.TestName;
 import scotch.compiler.Compiler;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
-import scotch.compiler.symbol.Type.VariableType;
 import scotch.compiler.syntax.Definition.ValueDefinition;
+import scotch.compiler.syntax.Definition.ValueSignature;
 import scotch.compiler.syntax.DefinitionGraph;
 import scotch.compiler.syntax.DefinitionReference;
+import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.SyntaxError;
 import scotch.compiler.syntax.Value;
@@ -43,6 +44,10 @@ public abstract class ParserTest {
         compiler = lines -> compiler(resolver, testName.getMethodName(), lines);
     }
 
+    protected Scope getScope(DefinitionReference reference) {
+        return graph.getScope(reference);
+    }
+
     protected ValueDefinition getValueDefinition(String name) {
         return graph.getDefinition(valueRef(name)).get();
     }
@@ -57,15 +62,27 @@ public abstract class ParserTest {
 
     protected abstract void setUp();
 
+    protected void shouldBeDefined(DefinitionReference reference, String name) {
+        assertThat(
+            "Symbol " + quote(name) + " is not defined in scope " + reference,
+            getScope(reference).isDefined(Symbol.fromString(name)),
+            is(true)
+        );
+    }
+
     protected void shouldHaveClass(String className, List<Type> arguments, List<DefinitionReference> members) {
         assertThat(graph.getDefinition(classRef(className)).get(), is(
             classDef(className, arguments, members)
         ));
     }
 
-    protected void shouldHaveErrors(DefinitionGraph graph, SyntaxError... errors) {
+    protected void shouldHaveErrors(SyntaxError... errors) {
         assertThat(graph.hasErrors(), is(true));
         assertThat(graph.getErrors(), contains(errors));
+    }
+
+    protected void shouldHaveSignature(String name, Type type) {
+        assertThat(((ValueSignature) graph.getDefinition(signatureRef(Symbol.fromString(name))).get()).getType(), is(type));
     }
 
     protected void shouldHaveValue(String name, Type type) {
@@ -97,15 +114,5 @@ public abstract class ParserTest {
             graph.hasErrors(),
             is(false)
         );
-    }
-
-    protected void shouldRequireInstances(String name, VariableType type, List<String> references) {
-        assertThat(getValueDefinition(name).getInstances().getInstances(type), contains(
-            references.stream()
-                .map(Symbol::fromString)
-                .map(DefinitionReference::classRef)
-                .collect(toList())
-                .toArray()
-        ));
     }
 }

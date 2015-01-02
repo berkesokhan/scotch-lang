@@ -1,6 +1,6 @@
 package scotch.compiler.syntax;
 
-import static scotch.compiler.syntax.DefinitionReference.patternRef;
+import static scotch.compiler.syntax.DefinitionReference.scopeRef;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
@@ -55,11 +55,15 @@ public class PatternMatcher {
     }
 
     public DefinitionReference getReference() {
-        return patternRef(symbol);
+        return scopeRef(symbol);
     }
 
     public SourceRange getSourceRange() {
         return sourceRange;
+    }
+
+    public Symbol getSymbol() {
+        return symbol;
     }
 
     public Type getType() {

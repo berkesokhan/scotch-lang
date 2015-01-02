@@ -46,6 +46,8 @@ public abstract class SymbolEntry {
 
     public abstract boolean isOperator();
 
+    public abstract void redefineSignature(Type type);
+
     public abstract void redefineValue(Type type);
 
     public static final class ImmutableEntry extends SymbolEntry {
@@ -131,6 +133,11 @@ public abstract class SymbolEntry {
         @Override
         public boolean isOperator() {
             return optionalOperator.isPresent();
+        }
+
+        @Override
+        public void redefineSignature(Type type) {
+            throw new IllegalStateException();
         }
 
         @Override
@@ -301,6 +308,15 @@ public abstract class SymbolEntry {
         @Override
         public boolean isOperator() {
             return optionalOperator.isPresent();
+        }
+
+        @Override
+        public void redefineSignature(Type type) {
+            if (optionalSignature.isPresent()) {
+                optionalSignature = Optional.of(type);
+            } else {
+                throw new SymbolNotFoundException("Can't redefine non-existent signature " + symbol.quote());
+            }
         }
 
         @Override

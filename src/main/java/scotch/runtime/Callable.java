@@ -4,22 +4,35 @@ package scotch.runtime;
 public interface Callable<A> {
 
     static Callable<Integer> box(int value) {
-        return new IntCallable(value);
+        return new BoxedCallable<>(value);
+    }
+
+    static Callable<Double> box(double value) {
+        return new BoxedCallable<>(value);
+    }
+
+    static <A> Callable<A> box(A value) {
+        return new BoxedCallable<>(value);
     }
 
     A call();
 
-    static final class IntCallable implements Callable<Integer> {
+    static final class BoxedCallable<A> implements Callable<A> {
 
-        private final Integer value;
+        private final A value;
 
-        public IntCallable(int value) {
+        public BoxedCallable(A value) {
             this.value = value;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
-        public Integer call() {
-            return value;
+        public A call() {
+            if (value instanceof Callable) {
+                return (A) ((Callable) value).call();
+            } else {
+                return value;
+            }
         }
     }
 }

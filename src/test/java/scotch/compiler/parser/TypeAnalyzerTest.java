@@ -5,6 +5,7 @@ import static scotch.compiler.symbol.Type.fn;
 import static scotch.compiler.symbol.Type.instance;
 import static scotch.compiler.symbol.Type.sum;
 import static scotch.compiler.symbol.Type.t;
+import static scotch.compiler.symbol.Type.var;
 import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.syntax.StubResolver.defaultEq;
 import static scotch.compiler.syntax.StubResolver.defaultEqClass;
@@ -22,7 +23,10 @@ import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.doubleType;
 import static scotch.compiler.util.TestUtil.fn;
+import static scotch.compiler.util.TestUtil.instance;
+import static scotch.compiler.util.TestUtil.instanceRef;
 import static scotch.compiler.util.TestUtil.intType;
+import static scotch.compiler.util.TestUtil.literal;
 import static scotch.compiler.util.TestUtil.method;
 import static scotch.compiler.util.TestUtil.pattern;
 import static scotch.compiler.util.TestUtil.patterns;
@@ -74,7 +78,7 @@ public class TypeAnalyzerTest extends ParserTest {
             "fn :: Int -> Int",
             "fn n = \"Hello, World! I'm a type error\""
         );
-        shouldHaveErrors(graph, typeError(
+        shouldHaveErrors(typeError(
             mismatch(intType, stringType),
             source("mismatchedSignatureAndValueShouldReportTypeError", point(59, 4, 1), point(98, 4, 40))
         ));
@@ -89,7 +93,7 @@ public class TypeAnalyzerTest extends ParserTest {
             "fn 0 = 0",
             "fn 1 = \"Oops, I broke it :)\""
         );
-        shouldHaveErrors(graph, typeError(
+        shouldHaveErrors(typeError(
             mismatch(intType, stringType),
             source("mismatchedPatternCaseShouldReportTypeError", point(68, 5, 1), point(96, 5, 29))
         ));
@@ -106,9 +110,9 @@ public class TypeAnalyzerTest extends ParserTest {
             "fn1 n = \"Oops!\"",
             "fn2 n = 9"
         );
-        shouldHaveErrors(graph,
-            typeError(mismatch(intType, stringType), source("shouldReportAllTypeErrors", point(110, 6, 1), point(125, 6, 16))),
-            typeError(mismatch(stringType, intType), source("shouldReportAllTypeErrors", point(126, 7, 1), point(135, 7, 10)))
+        shouldHaveErrors(
+            typeError(mismatch(stringType, intType), source("shouldReportAllTypeErrors", point(126, 7, 1), point(135, 7, 10))),
+            typeError(mismatch(intType, stringType), source("shouldReportAllTypeErrors", point(110, 6, 1), point(125, 6, 16)))
         );
     }
 
@@ -122,7 +126,7 @@ public class TypeAnalyzerTest extends ParserTest {
             "fn n = 2",
             "val = fn 3"
         );
-        shouldHaveErrors(graph, typeError(
+        shouldHaveErrors(typeError(
             mismatch(stringType, intType),
             source("shouldReportMismatchedFunctionAndArgumentTypes", point(103, 6, 7), point(107, 6, 11))
         ));
@@ -172,6 +176,30 @@ public class TypeAnalyzerTest extends ParserTest {
     }
 
     @Test
+    public void shouldAnalyzeBoundMethod() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.eq",
+            "import scotch.data.num",
+            "four = 2 + 2"
+        );
+        InstanceType numType = instance("scotch.data.num.Num", t(32));
+        shouldHaveValue("scotch.test.four", apply(
+            apply(
+                apply(
+                    method("scotch.data.num.(+)", asList(numType), fn(numType, fn(intType, fn(intType, intType)))),
+                    instance(instanceRef("scotch.data.num", "scotch.data.num.Num", asList(intType)), numType),
+                    fn(intType, fn(intType, intType))
+                ),
+                literal(2),
+                fn(intType, intType)
+            ),
+            literal(2),
+            intType
+        ));
+    }
+
+    @Test
     public void shouldAnalyzeMultiTypeClassExpression() {
         parse(
             "module scotch.test",
@@ -186,24 +214,201 @@ public class TypeAnalyzerTest extends ParserTest {
         InstanceType eqType = instance("scotch.data.eq.Eq", t(20));
         shouldHaveValue("scotch.test.fn", fn(
             "scotch.test.($1)",
-            asList(arg("$0", t), arg("$1", t)),
+            asList(arg("$i0", eqType), arg("$i1", numType), arg("$0", t), arg("$1", t)),
             patterns(bool, pattern("scotch.test.($0)", asList(capture("$0", "a", t), capture("$1", "b", t)), apply(
                 apply(
-                    method("scotch.data.eq.(==)", asList(eqType), fn(eqType, fn(t, fn(t, bool)))),
                     apply(
-                        apply(method("scotch.data.num.(+)", asList(numType), fn(numType, fn(t, fn(t, t)))), arg("a", t), fn(t, t)),
+                        method("scotch.data.eq.(==)", asList(eqType), fn(eqType, fn(t, fn(t, bool)))),
+                        arg("$i0", eqType),
+                        fn(t, fn(t, bool))
+                    ),
+                    apply(
+                        apply(
+                            apply(
+                                method("scotch.data.num.(+)", asList(numType), fn(numType, fn(t, fn(t, t)))),
+                                arg("$i1", numType),
+                                fn(t, fn(t, t))
+                            ),
+                            arg("a", t),
+                            fn(t, t)
+                        ),
                         arg("b", t),
                         t
                     ),
                     fn(t, bool)
                 ),
                 apply(
-                    apply(method("scotch.data.num.(+)", asList(numType), fn(numType, fn(t, fn(t, t)))), arg("b", t), fn(t, t)),
+                    apply(
+                        apply(
+                            method("scotch.data.num.(+)", asList(numType), fn(numType, fn(t, fn(t, t)))),
+                            arg("$i1", numType),
+                            fn(t, fn(t, t))
+                        ),
+                        arg("b", t),
+                        fn(t, t)
+                    ),
                     arg("a", t),
                     t
                 ),
                 bool
             )))
+        ));
+    }
+
+    @Test
+    public void shouldAnalyzeUnboundValue() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.eq",
+            "import scotch.data.num",
+            "fn a b = a + b == b + a",
+            "commutative? a b = fn a b"
+        );
+        Type t = t(41, asList("scotch.data.eq.Eq", "scotch.data.num.Num"));
+        Type bool = sum("scotch.data.bool.Bool");
+        InstanceType numType = instance("scotch.data.num.Num", t(32));
+        InstanceType eqType = instance("scotch.data.eq.Eq", t(32));
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.(commutative?)", fn(
+            "scotch.test.($3)",
+            asList(arg("$i0", eqType), arg("$i1", numType), arg("$0", t), arg("$1", t)),
+            patterns(bool, pattern(
+                "scotch.test.($1)",
+                asList(capture("$0", "a", t), capture("$1", "b", t)),
+                apply(
+                    apply(
+                        apply(
+                            apply(
+                                method("scotch.test.fn", asList(eqType, numType), fn(eqType, fn(numType, fn(t, fn(t, bool))))),
+                                arg("$i0", eqType),
+                                fn(numType, fn(t, fn(t, bool)))
+                            ),
+                            arg("$i1", numType),
+                            fn(t, fn(t, bool))
+                        ),
+                        arg("a", t),
+                        fn(t, bool)
+                    ),
+                    arg("b", t),
+                    bool
+                )
+            ))
+        ));
+    }
+
+    @Test
+    public void shouldBindInstanceOfPlus() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.num",
+            "val = 2 + 2"
+        );
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.val", apply(
+            apply(
+                apply(
+                    method(
+                        "scotch.data.num.(+)",
+                        asList(instance("scotch.data.num.Num", var("a"))),
+                        fn(instance("scotch.data.num.Num", intType), fn(intType, fn(intType, intType)))
+                    ),
+                    instance(
+                        instanceRef("scotch.data.num", "scotch.data.num.Num", asList(intType)),
+                        instance("scotch.data.num.Num", intType)
+                    ),
+                    fn(intType, fn(intType, intType))
+                ),
+                literal(2),
+                fn(intType, intType)
+            ),
+            literal(2),
+            intType
+        ));
+    }
+
+    @Test
+    public void shouldBubbleUpMethodBindingWithPattern() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.num",
+            "fn a b = a + b"
+        );
+        String num = "scotch.data.num.Num";
+        Type t = t(12, asList(num));
+        InstanceType instance = instance(num, t(12));
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.fn", fn(
+            "scotch.test.($1)",
+            asList(arg("$i0", instance), arg("$0", t), arg("$1", t)),
+            patterns(t, pattern("scotch.test.($0)", asList(capture("$0", "a", t), capture("$1", "b", t)), apply(
+                apply(
+                    apply(
+                        method("scotch.data.num.(+)", asList(instance), fn(instance, fn(t, fn(t, t)))),
+                        arg("$i0", instance),
+                        fn(t, fn(t, t))
+                    ),
+                    arg("a", t),
+                    fn(t, t)
+                ),
+                arg("b", t),
+                t
+            )))
+        ));
+    }
+
+    @Test
+    public void shouldBubbleUpMethodBindingWithFunction() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.num",
+            "fn = \\x y -> x + y"
+        );
+        String num = "scotch.data.num.Num";
+        Type t = t(8, asList(num));
+        InstanceType instance = instance(num, t(8));
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.fn", fn(
+            "scotch.test.($0)",
+            asList(arg("$i0", instance), arg("x", t), arg("y", t)),
+            apply(
+                apply(
+                    apply(
+                        method("scotch.data.num.(+)", asList(instance), fn(instance, fn(t, fn(t, t)))),
+                        arg("$i0", instance),
+                        fn(t, fn(t, t))
+                    ),
+                    arg("x", t),
+                    fn(t, t)
+                ),
+                arg("y", t),
+                t
+            )
+        ));
+    }
+
+    @Test
+    public void shouldBindInstanceToBubbledUpMethodBinding() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.num",
+            "fn = \\x y -> x + y",
+            "result = fn 3 2"
+        );
+        String num = "scotch.data.num.Num";
+        InstanceType instance = instance(num, t(16));
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.result", apply(
+            apply(
+                apply(
+                    method("scotch.test.fn", asList(instance), fn(instance, fn(intType, fn(intType, intType)))),
+                    instance(instanceRef("scotch.data.num", "scotch.data.num.Num", asList(intType)), instance),
+                    fn(intType, fn(intType, intType))
+                ),
+                literal(3),
+                fn(intType, intType)
+            ),
+            literal(2),
+            intType
         ));
     }
 

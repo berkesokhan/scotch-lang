@@ -1,13 +1,14 @@
 package scotch.compiler;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
 import scotch.compiler.generator.BytecodeGenerator;
 import scotch.compiler.generator.GeneratedClass;
+import scotch.compiler.parser.DependencyParser;
 import scotch.compiler.parser.InputParser;
-import scotch.compiler.parser.MethodBinder;
-import scotch.compiler.parser.SyntaxParser;
+import scotch.compiler.parser.NameAccumulator;
+import scotch.compiler.parser.NameQualifier;
+import scotch.compiler.parser.OperatorParser;
+import scotch.compiler.parser.PrecedenceParser;
 import scotch.compiler.parser.TypeAnalyzer;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.symbol.SymbolResolver;
@@ -16,89 +17,47 @@ import scotch.compiler.syntax.builder.SyntaxBuilderFactory;
 
 public class Compiler {
 
-    public static Compiler compiler() {
-        return new Compiler();
+    public static Compiler compiler(SymbolResolver symbolResolver, String sourceName, String... lines) {
+        return new Compiler(symbolResolver, Scanner.forString(sourceName, lines));
     }
 
-    public static Compiler compiler(SymbolResolver symbolResolver, String source, String... data) {
-        SyntaxBuilderFactory builderFactory = new SyntaxBuilderFactory();
-        return compiler()
-            .withScanner(Scanner.forString(source, data))
-            .withInputParser(scanner -> new InputParser(scanner, builderFactory))
-            .withSyntaxParser(graph -> new SyntaxParser(graph, symbolResolver, builderFactory))
-            .withTypeAnalyzer(TypeAnalyzer::new)
-            .withMethodBinder(MethodBinder::new)
-            .withBytecodeGenerator(BytecodeGenerator::new);
+    private final SymbolResolver symbolResolver;
+    private final Scanner scanner;
+
+    private Compiler(SymbolResolver symbolResolver, Scanner scanner) {
+        this.symbolResolver = symbolResolver;
+        this.scanner = scanner;
     }
 
-    private Optional<Scanner>                                      scanner              = Optional.empty();
-    private Optional<Function<DefinitionGraph, SyntaxParser>>      syntaxParser         = Optional.empty();
-    private Optional<Function<DefinitionGraph, TypeAnalyzer>>      typeAnalyzer         = Optional.empty();
-    private Optional<Function<DefinitionGraph, BytecodeGenerator>> bytecodeGenerator    = Optional.empty();
-    private Optional<Function<Scanner, InputParser>>               inputParser          = Optional.empty();
-    private Optional<Function<DefinitionGraph, MethodBinder>>      methodBinder         = Optional.empty();
+    public DefinitionGraph accumulateNames() {
+        return new NameAccumulator(parsePrecedence()).parse();
+    }
 
-    private Compiler() {
-        // intentionally empty
+    public DefinitionGraph qualifyNames() {
+        return new NameQualifier(accumulateNames()).parse();
     }
 
     public DefinitionGraph analyzeTypes() {
-        return typeAnalyzer
-            .map(fn -> fn.apply(parseSyntax()).analyze())
-            .orElseThrow(() -> new IllegalStateException("No type analyzer given"));
-    }
-
-    public DefinitionGraph bindMethods() {
-        return methodBinder
-            .map(fn -> fn.apply(analyzeTypes()).bindMethods())
-            .orElseThrow(() -> new IllegalStateException("No method binder given"));
+        return new TypeAnalyzer(parseDependencies()).analyze();
     }
 
     public List<GeneratedClass> generateBytecode() {
-        return bytecodeGenerator
-            .map(fn -> fn.apply(bindMethods()).generate())
-            .orElseThrow(() -> new IllegalStateException("No bytecode generator given"));
+        return new BytecodeGenerator(analyzeTypes()).generate();
+    }
+
+    public DefinitionGraph parseDependencies() {
+        return new DependencyParser(qualifyNames()).parse();
     }
 
     public DefinitionGraph parseInput() {
-        return inputParser
-            .map(fn -> fn.apply(scanner.orElseThrow(() -> new IllegalStateException("No scanner given"))).parse())
-            .orElseThrow(() -> new IllegalStateException("No input parser given"));
+        return new InputParser(symbolResolver, scanner, new SyntaxBuilderFactory()).parse();
     }
 
-    public DefinitionGraph parseSyntax() {
-        return syntaxParser
-            .map(fn -> fn.apply(parseInput()).parse())
-            .orElseThrow(() -> new IllegalStateException("No syntax parser given"));
+    public DefinitionGraph parseOperators() {
+        return new OperatorParser(parseInput()).parse();
     }
 
-    public Compiler withBytecodeGenerator(Function<DefinitionGraph, BytecodeGenerator> bytecodeGenerator) {
-        this.bytecodeGenerator = Optional.of(bytecodeGenerator);
-        return this;
-    }
-
-    public Compiler withInputParser(Function<Scanner, InputParser> inputParser) {
-        this.inputParser = Optional.of(inputParser);
-        return this;
-    }
-
-    public Compiler withMethodBinder(Function<DefinitionGraph, MethodBinder> methodBinder) {
-        this.methodBinder = Optional.of(methodBinder);
-        return this;
-    }
-
-    public Compiler withScanner(Scanner scanner) {
-        this.scanner = Optional.of(scanner);
-        return this;
-    }
-
-    public Compiler withSyntaxParser(Function<DefinitionGraph, SyntaxParser> syntaxParser) {
-        this.syntaxParser = Optional.of(syntaxParser);
-        return this;
-    }
-
-    public Compiler withTypeAnalyzer(Function<DefinitionGraph, TypeAnalyzer> typeAnalyzer) {
-        this.typeAnalyzer = Optional.of(typeAnalyzer);
-        return this;
+    public DefinitionGraph parsePrecedence() {
+        return new PrecedenceParser(parseOperators(), new SyntaxBuilderFactory()).parse();
     }
 }

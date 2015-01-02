@@ -1,133 +1,66 @@
 package scotch.compiler.syntax;
 
-public abstract class DefinitionEntry {
+import static scotch.compiler.syntax.Definition.scopeDef;
 
-    public static DefinitionEntry patternEntry(PatternMatcher pattern, Scope scope) {
-        return new PatternEntry(pattern, scope);
+import java.util.Set;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.syntax.DefinitionReference.DefinitionReferenceVisitor;
+import scotch.compiler.syntax.DefinitionReference.ValueReference;
+import scotch.compiler.syntax.Value.FunctionValue;
+import scotch.compiler.text.SourceRange;
+
+public class DefinitionEntry {
+
+    public static DefinitionEntry entry(Scope scope, Definition definition) {
+        return new DefinitionEntry(scope, definition);
     }
 
-    public static DefinitionEntry scopedEntry(Definition definition, Scope scope) {
-        return new ScopedEntry(definition, scope);
+    public static DefinitionEntry entry(Scope scope, FunctionValue function) {
+        return new DefinitionEntry(scope, scopeDef(function.getSourceRange(), function.getSymbol()));
     }
 
-    public static DefinitionEntry unscopedEntry(Definition definition) {
-        return new UnscopedEntry(definition);
+    public static DefinitionEntry entry(Scope scope, PatternMatcher matcher) {
+        return entry(scope, scopeDef(matcher.getSourceRange(), matcher.getSymbol()));
     }
 
-    private DefinitionEntry() {
-        // intentionally empty
+    private final Scope scope;
+    private final Definition definition;
+
+    private DefinitionEntry(Scope scope, Definition definition) {
+        this.scope = scope;
+        this.definition = definition;
     }
 
-    public abstract <T> T accept(DefinitionEntryVisitor<T> visitor);
-
-    public abstract DefinitionReference getReference();
-
-    public abstract Scope getScope();
-
-    public interface DefinitionEntryVisitor<T> {
-
-        default T visit(UnscopedEntry entry) {
-            return visitOtherwise(entry);
-        }
-
-        default T visit(ScopedEntry entry) {
-            return visitOtherwise(entry);
-        }
-
-        default T visit(PatternEntry entry) {
-            return visitOtherwise(entry);
-        }
-
-        default T visitOtherwise(DefinitionEntry entry) {
-            throw new UnsupportedOperationException("Can't visit " + entry);
-        }
+    public Definition getDefinition() {
+        return definition;
     }
 
-    public static class PatternEntry extends DefinitionEntry {
-
-        private final Scope          scope;
-        private final PatternMatcher pattern;
-
-        private PatternEntry(PatternMatcher pattern, Scope scope) {
-            this.scope = scope;
-            this.pattern = pattern;
-        }
-
-        @Override
-        public <T> T accept(DefinitionEntryVisitor<T> visitor) {
-            return visitor.visit(this);
-        }
-
-        public PatternMatcher getPattern() {
-            return pattern;
-        }
-
-        @Override
-        public DefinitionReference getReference() {
-            return pattern.getReference();
-        }
-
-        @Override
-        public Scope getScope() {
-            return scope;
-        }
+    public Set<Symbol> getDependencies() {
+        return scope.getDependencies();
     }
 
-    public static class ScopedEntry extends DefinitionEntry {
-
-        private final Scope      scope;
-        private final Definition definition;
-
-        private ScopedEntry(Definition definition, Scope scope) {
-            this.definition = definition;
-            this.scope = scope;
-        }
-
-        @Override
-        public <T> T accept(DefinitionEntryVisitor<T> visitor) {
-            return visitor.visit(this);
-        }
-
-        public Definition getDefinition() {
-            return definition;
-        }
-
-        @Override
-        public DefinitionReference getReference() {
-            return definition.getReference();
-        }
-
-        @Override
-        public Scope getScope() {
-            return scope;
-        }
+    public DefinitionReference getReference() {
+        return definition.getReference();
     }
 
-    public static class UnscopedEntry extends DefinitionEntry {
+    public Scope getScope() {
+        return scope;
+    }
 
-        private final Definition definition;
+    public SourceRange getSourceRange() {
+        return definition.getSourceRange();
+    }
 
-        private UnscopedEntry(Definition definition) {
-            this.definition = definition;
-        }
+    public Symbol getSymbol() {
+        return definition.getReference().accept(new DefinitionReferenceVisitor<Symbol>() {
+            @Override
+            public Symbol visit(ValueReference reference) {
+                return reference.getSymbol();
+            }
+        });
+    }
 
-        @Override
-        public <T> T accept(DefinitionEntryVisitor<T> visitor) {
-            return visitor.visit(this);
-        }
-
-        public Definition getDefinition() {
-            return definition;
-        }
-
-        @Override
-        public DefinitionReference getReference() {
-            return definition.getReference();
-        }
-
-        @Override
-        public Scope getScope() {
-            throw new IllegalStateException();
-        }
+    public DefinitionEntry withScope(Scope scope) {
+        return new DefinitionEntry(scope, definition);
     }
 }

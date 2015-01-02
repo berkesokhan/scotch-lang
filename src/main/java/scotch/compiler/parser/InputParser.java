@@ -38,7 +38,8 @@ import static scotch.compiler.symbol.Type.var;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
 import static scotch.compiler.symbol.Value.Fixity.PREFIX;
 import static scotch.compiler.symbol.Value.Fixity.RIGHT_INFIX;
-import static scotch.compiler.syntax.DefinitionEntry.unscopedEntry;
+import static scotch.compiler.syntax.DefinitionEntry.entry;
+import static scotch.compiler.syntax.Scope.scope;
 import static scotch.compiler.syntax.Value.Identifier;
 import static scotch.data.tuple.TupleValues.tuple2;
 import static scotch.util.StringUtil.quote;
@@ -60,6 +61,7 @@ import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolGenerator;
+import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.Definition;
@@ -68,6 +70,7 @@ import scotch.compiler.syntax.DefinitionGraph;
 import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.Import;
 import scotch.compiler.syntax.PatternMatch;
+import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Argument;
 import scotch.compiler.syntax.Value.FunctionValue;
@@ -86,14 +89,16 @@ public class InputParser {
     private final Deque<NamedSourcePoint> positions;
     private final SyntaxBuilderFactory    builderFactory;
     private final SymbolGenerator         symbolGenerator;
+    private final Deque<Scope>            scopes;
     private       String                  currentModule;
 
-    public InputParser(Scanner scanner, SyntaxBuilderFactory builderFactory) {
+    public InputParser(SymbolResolver resolver, Scanner scanner, SyntaxBuilderFactory builderFactory) {
         this.builderFactory = builderFactory;
         this.scanner = new LookAheadScanner(scanner);
         this.definitions = new ArrayList<>();
         this.positions = new ArrayDeque<>();
         this.symbolGenerator = new SymbolGenerator();
+        this.scopes = new ArrayDeque<>(asList(scope(symbolGenerator, resolver)));
     }
 
     public DefinitionGraph parse() {
@@ -104,8 +109,12 @@ public class InputParser {
     }
 
     private DefinitionReference collect(Definition definition) {
-        definitions.add(unscopedEntry(definition));
+        definitions.add(entry(currentScope(), definition));
         return definition.getReference();
+    }
+
+    private Scope currentScope() {
+        return scopes.peek();
     }
 
     private <D extends Definition, B extends SyntaxBuilder<D>> DefinitionReference definition(Supplier<B> supplier, Consumer<B> consumer) {
@@ -298,7 +307,7 @@ public class InputParser {
     }
 
     private FunctionValue parseFunction() {
-        return node(builderFactory::functionBuilder,
+        return scoped(() -> node(builderFactory::functionBuilder,
             function -> definition(builderFactory::scopeBuilder, scope -> {
                 Symbol symbol = symbolGenerator.reserveSymbol(currentModule);
                 require(LAMBDA);
@@ -307,7 +316,8 @@ public class InputParser {
                 require(ARROW);
                 function.withBody(parseMessage());
                 scope.withSymbol(symbol);
-            }));
+            })
+        ));
     }
 
     private Import parseImport() {
@@ -369,13 +379,17 @@ public class InputParser {
 
     @SuppressWarnings("unchecked")
     private DefinitionReference parseModule() {
-        return definition(builderFactory::moduleBuilder, builder -> {
-            requireWord("module");
-            builder.withSymbol(currentModule = parseQualifiedName());
-            requireTerminator();
-            builder.withImports(parseImports())
-                .withDefinitions(parseModuleDefinitions());
-        });
+        requireWord("module");
+        currentModule = parseQualifiedName();
+        requireTerminator();
+        List<Import> imports = parseImports();
+        return scoped(imports, () -> definition(
+            builderFactory::moduleBuilder,
+            builder -> builder
+                .withSymbol(currentModule)
+                .withImports(imports)
+                .withDefinitions(parseModuleDefinitions())
+        ));
     }
 
     private List<DefinitionReference> parseModuleDefinitions() {
@@ -397,8 +411,7 @@ public class InputParser {
                     .withSymbol(symbol)
                     .withFixity(fixity)
                     .withPrecedence(precedence)
-                    .build()
-            ))
+                    .build()))
             .map(this::collect)
             .collect(toList());
     }
@@ -554,19 +567,19 @@ public class InputParser {
 
     private DefinitionReference parseValueDefinition() {
         if (expectsAt(1, ASSIGN)) {
-            return definition(builderFactory::valueDefBuilder, builder -> {
+            return scoped(() -> definition(builderFactory::valueDefBuilder, builder -> {
                 builder.withSymbol(qualified(currentModule, requireWord()));
                 require(ASSIGN);
                 builder.withType(reserveType())
                     .withBody(parseMessage());
-            });
+            }));
         } else {
-            return definition(builderFactory::unshuffledBuilder, builder -> {
+            return scoped(() -> definition(builderFactory::unshuffledBuilder, builder -> {
                 builder.withMatches(parsePatternMatches());
                 require(ASSIGN);
                 builder.withSymbol(symbolGenerator.reserveSymbol(currentModule))
                     .withBody(parseMessage());
-            });
+            }));
         }
     }
 
@@ -593,8 +606,7 @@ public class InputParser {
                     .withSymbol(symbol)
                     .withType(type)
                     .withSourceRange(sourceRange)
-                    .build()
-            ))
+                    .build()))
             .map(this::collect)
             .collect(toList());
     }
@@ -686,6 +698,25 @@ public class InputParser {
 
     private Type reserveType() {
         return symbolGenerator.reserveType();
+    }
+
+    private <T> T scoped(List<Import> imports, Supplier<T> supplier) {
+        return scoped(Optional.of(imports), supplier);
+    }
+
+    private <T> T scoped(Supplier<T> supplier) {
+        return scoped(Optional.empty(), supplier);
+    }
+
+    private <T> T scoped(Optional<List<Import>> optionalImports, Supplier<T> supplier) {
+        scopes.push(optionalImports
+            .map(imports -> currentScope().enterScope(currentModule, imports))
+            .orElseGet(currentScope()::enterScope));
+        try {
+            return supplier.get();
+        } finally {
+            scopes.pop();
+        }
     }
 
     private ParseException unexpected(TokenKind wantedKind) {

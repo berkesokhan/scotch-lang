@@ -27,14 +27,6 @@ public final class RuntimeUtil {
         };
     }
 
-    public static <A, B> Applicable<A, B> fn1(Function1<A, B> function) {
-        return applicable(a -> callable(() -> function.apply(a)));
-    }
-
-    public static <A, B, C> Applicable<A, Applicable<B, C>> fn2(Function2<A, B, C> function) {
-        return applicable(a -> applicable(b -> callable(() -> function.apply(a, b))));
-    }
-
     private RuntimeUtil() {
         // intentionally empty
     }

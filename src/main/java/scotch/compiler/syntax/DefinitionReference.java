@@ -7,6 +7,7 @@ import java.util.Objects;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.TypeInstanceDescriptor;
 
 public abstract class DefinitionReference {
 
@@ -20,6 +21,10 @@ public abstract class DefinitionReference {
         return new InstanceReference(classReference, moduleReference, types);
     }
 
+    public static InstanceReference instanceRef(TypeInstanceDescriptor descriptor) {
+        return instanceRef(classRef(descriptor.getTypeClass()), moduleRef(descriptor.getModuleName()), descriptor.getParameters());
+    }
+
     public static ModuleReference moduleRef(String name) {
         return new ModuleReference(name);
     }
@@ -28,16 +33,16 @@ public abstract class DefinitionReference {
         return new OperatorReference(symbol);
     }
 
-    public static PatternReference patternRef(Symbol symbol) {
-        return new PatternReference(symbol);
-    }
-
     public static RootReference rootRef() {
         return rootRef;
     }
 
     public static ScopeReference scopeRef(Symbol symbol) {
         return new ScopeReference(symbol);
+    }
+
+    public static SignatureReference signatureRef(Symbol symbol) {
+        return new SignatureReference(symbol);
     }
 
     public static ValueReference valueRef(Symbol symbol) {
@@ -77,15 +82,15 @@ public abstract class DefinitionReference {
             return visitOtherwise(reference);
         }
 
-        default T visit(PatternReference reference) {
-            return visitOtherwise(reference);
-        }
-
         default T visit(RootReference reference) {
             return visitOtherwise(reference);
         }
 
         default T visit(ScopeReference reference) {
+            return visitOtherwise(reference);
+        }
+
+        default T visit(SignatureReference reference) {
             return visitOtherwise(reference);
         }
 
@@ -247,35 +252,6 @@ public abstract class DefinitionReference {
         }
     }
 
-    public static class PatternReference extends DefinitionReference {
-
-        private final Symbol symbol;
-
-        public PatternReference(Symbol symbol) {
-            this.symbol = symbol;
-        }
-
-        @Override
-        public <T> T accept(DefinitionReferenceVisitor<T> visitor) {
-            return visitor.visit(this);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return o == this || o instanceof PatternReference && Objects.equals(symbol, ((PatternReference) o).symbol);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(symbol);
-        }
-
-        @Override
-        public String toString() {
-            return stringify(this) + "(" + symbol + ")";
-        }
-    }
-
     public static class RootReference extends DefinitionReference {
 
         private RootReference() {
@@ -329,6 +305,47 @@ public abstract class DefinitionReference {
         @Override
         public String toString() {
             return stringify(this) + "(" + symbol.getCanonicalName() + ")";
+        }
+    }
+
+    public static class SignatureReference extends DefinitionReference {
+
+        private final Symbol symbol;
+
+        private SignatureReference(Symbol symbol) {
+            this.symbol = symbol;
+        }
+
+        @Override
+        public <T> T accept(DefinitionReferenceVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o == this || o instanceof SignatureReference && Objects.equals(symbol, ((SignatureReference) o).symbol);
+        }
+
+        public String getMemberName() {
+            return symbol.getMemberName();
+        }
+
+        public String getName() {
+            return symbol.getMemberName();
+        }
+
+        public Symbol getSymbol() {
+            return symbol;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(symbol);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(" + symbol + ")";
         }
     }
 

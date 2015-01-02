@@ -39,6 +39,8 @@ public abstract class PatternMatch {
     @Override
     public abstract String toString();
 
+    public abstract PatternMatch withType(Type generate);
+
     public interface PatternMatchVisitor<T> {
 
         default T visit(CaptureMatch match) {
@@ -128,6 +130,7 @@ public abstract class PatternMatch {
             return new CaptureMatch(sourceRange, argument, symbol, type);
         }
 
+        @Override
         public PatternMatch withType(Type type) {
             return new CaptureMatch(sourceRange, argument, symbol, type);
         }
@@ -195,6 +198,11 @@ public abstract class PatternMatch {
         @Override
         public String toString() {
             return stringify(this) + "(" + value + ")";
+        }
+
+        @Override
+        public EqualMatch withType(Type generate) {
+            return new EqualMatch(sourceRange, argument, value);
         }
 
         public EqualMatch withSourceRange(SourceRange sourceRange) {

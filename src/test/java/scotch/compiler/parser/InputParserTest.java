@@ -20,10 +20,10 @@ import static scotch.compiler.util.TestUtil.id;
 import static scotch.compiler.util.TestUtil.message;
 import static scotch.compiler.util.TestUtil.operatorDef;
 import static scotch.compiler.util.TestUtil.operatorRef;
-import static scotch.compiler.util.TestUtil.patternRef;
 import static scotch.compiler.util.TestUtil.root;
+import static scotch.compiler.util.TestUtil.scopeRef;
+import static scotch.compiler.util.TestUtil.signatureRef;
 import static scotch.compiler.util.TestUtil.unshuffled;
-import static scotch.compiler.util.TestUtil.valueRef;
 
 import java.util.List;
 import java.util.function.Function;
@@ -55,10 +55,10 @@ public class InputParserTest extends ParserTest {
             "    x /= y = not x == y"
         );
         shouldHaveClass("scotch.data.eq.Eq", asList(var("a")), asList(
-            valueRef("scotch.data.eq.(==)"),
-            valueRef("scotch.data.eq.(/=)"),
-            patternRef("scotch.data.eq.($0)"),
-            patternRef("scotch.data.eq.($1)")
+            signatureRef("scotch.data.eq.(==)"),
+            signatureRef("scotch.data.eq.(/=)"),
+            scopeRef("scotch.data.eq.($0)"),
+            scopeRef("scotch.data.eq.($1)")
         ));
     }
 
@@ -68,8 +68,8 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "(==), (/=) :: a -> a -> Bool"
         );
-        shouldHaveValue("scotch.test.(==)", fn(var("a"), fn(var("a"), sum("Bool"))));
-        shouldHaveValue("scotch.test.(/=)", fn(var("a"), fn(var("a"), sum("Bool"))));
+        shouldHaveSignature("scotch.test.(==)", fn(var("a"), fn(var("a"), sum("Bool"))));
+        shouldHaveSignature("scotch.test.(/=)", fn(var("a"), fn(var("a"), sum("Bool"))));
     }
 
     @Test
@@ -121,7 +121,7 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "length :: String -> Int"
         );
-        shouldHaveValue("scotch.test.length", fn(sum("String"), sum("Int")));
+        shouldHaveSignature("scotch.test.length", fn(sum("String"), sum("Int")));
     }
 
     @Test
@@ -201,7 +201,7 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "fn :: (Eq a) => a -> a -> Bool"
         );
-        shouldHaveValue("scotch.test.fn", fn(var("a", asList("Eq")), fn(var("a", asList("Eq")), sum("Bool"))));
+        shouldHaveSignature("scotch.test.fn", fn(var("a", asList("Eq")), fn(var("a", asList("Eq")), sum("Bool"))));
     }
 
     @Test
@@ -210,7 +210,7 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "fn :: (Eq a, Show a) => a -> a -> Bool"
         );
-        shouldHaveValue("scotch.test.fn", fn(var("a", asList("Eq", "Show")), fn(var("a", asList("Eq", "Show")), sum("Bool"))));
+        shouldHaveSignature("scotch.test.fn", fn(var("a", asList("Eq", "Show")), fn(var("a", asList("Eq", "Show")), sum("Bool"))));
     }
 
     @Test
@@ -219,7 +219,7 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "fn :: (Eq a, Show b) => a -> b -> Bool"
         );
-        shouldHaveValue("scotch.test.fn", fn(var("a", asList("Eq")), fn(var("b", asList("Show")), sum("Bool"))));
+        shouldHaveSignature("scotch.test.fn", fn(var("a", asList("Eq")), fn(var("b", asList("Show")), sum("Bool"))));
     }
 
     @Test
@@ -262,7 +262,7 @@ public class InputParserTest extends ParserTest {
     }
 
     private void shouldHavePattern(String name, List<PatternMatch> matches, Value body) {
-        assertThat(graph.getDefinition(patternRef(name)).get(), is(unshuffled(name, matches, body)));
+        assertThat(graph.getDefinition(scopeRef(name)).get(), is(unshuffled(name, matches, body)));
     }
 
     @Override

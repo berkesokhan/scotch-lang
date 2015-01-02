@@ -25,8 +25,8 @@ import scotch.runtime.Callable;
 public interface Num<A> {
 
     @Value(memberName = "abs")
-    static <A> Applicable<A, A> abs(Num<A> instance) {
-        return applicable(operand -> flatCallable(() -> instance.abs(operand)));
+    static <A> Applicable<Num<A>, Applicable<A, A>> abs() {
+        return applicable(instance -> applicable(operand -> flatCallable(() -> instance.call().abs(operand))));
     }
 
     @ValueType(forMember = "abs")
@@ -36,8 +36,8 @@ public interface Num<A> {
     }
 
     @Value(memberName = "+", fixity = LEFT_INFIX, precedence = 7)
-    static <A> Applicable<A, Applicable<A, A>> add(Num<A> instance) {
-        return applicable(left -> applicable(right -> flatCallable(() -> instance.add(left, right))));
+    static <A> Applicable<Num<A>, Applicable<A, Applicable<A, A>>> add() {
+        return applicable(instance -> applicable(left -> applicable(right -> flatCallable(() -> instance.call().add(left, right)))));
     }
 
     @ValueType(forMember = "+")
@@ -47,8 +47,8 @@ public interface Num<A> {
     }
 
     @Value(memberName = "fromInteger")
-    static <A> Applicable<Integer, A> fromInteger(Num<A> instance) {
-        return applicable(integer -> flatCallable(() -> instance.fromInteger(integer)));
+    static <A> Applicable<Num<A>, Applicable<Integer, A>> fromInteger() {
+        return applicable(instance -> applicable(integer -> flatCallable(() -> instance.call().fromInteger(integer))));
     }
 
     @ValueType(forMember = "fromInteger")
@@ -57,8 +57,8 @@ public interface Num<A> {
     }
 
     @Value(memberName = "*", fixity = LEFT_INFIX, precedence = 8)
-    static <A> Applicable<A, Applicable<A, A>> multiply(Num<A> instance) {
-        return applicable(left -> applicable(right -> flatCallable(() -> instance.multiply(left, right))));
+    static <A> Applicable<Num<A>, Applicable<A, Applicable<A, A>>> multiply() {
+        return applicable(instance -> applicable(left -> applicable(right -> flatCallable(() -> instance.call().multiply(left, right)))));
     }
 
     @ValueType(forMember = "*")
@@ -68,8 +68,8 @@ public interface Num<A> {
     }
 
     @Value(memberName = "negate")
-    static <A> Applicable<A, A> negate(Num<A> instance) {
-        return applicable(operand -> flatCallable(() -> instance.negate(operand)));
+    static <A> Applicable<Num<A>, Applicable<A, A>> negate() {
+        return applicable(instance -> applicable(operand -> flatCallable(() -> instance.call().negate(operand))));
     }
 
     @ValueType(forMember = "negate")
@@ -79,8 +79,8 @@ public interface Num<A> {
     }
 
     @Value(memberName = "signum")
-    static <A> Applicable<A, A> signum(Num<A> instance) {
-        return applicable(operand -> flatCallable(() -> instance.signum(operand)));
+    static <A> Applicable<Num<A>, Applicable<A, A>> signum() {
+        return applicable(instance -> applicable(operand -> flatCallable(() -> instance.call().signum(operand))));
     }
 
     @ValueType(forMember = "signum")
@@ -90,8 +90,8 @@ public interface Num<A> {
     }
 
     @Value(memberName = "-", fixity = LEFT_INFIX, precedence = 7)
-    static <A> Applicable<A, Applicable<A, A>> sub(Num<A> instance) {
-        return applicable(left -> applicable(right -> flatCallable(() -> instance.sub(left, right))));
+    static <A> Applicable<Num<A>, Applicable<A, Applicable<A, A>>> sub() {
+        return applicable(instance -> applicable(left -> applicable(right -> flatCallable(() -> instance.call().sub(left, right)))));
     }
 
     @ValueType(forMember = "-")

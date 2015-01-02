@@ -3,12 +3,11 @@ package scotch.compiler.syntax;
 import static scotch.compiler.symbol.Operator.operator;
 import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.syntax.DefinitionReference.classRef;
-import static scotch.compiler.syntax.DefinitionReference.instanceRef;
 import static scotch.compiler.syntax.DefinitionReference.moduleRef;
 import static scotch.compiler.syntax.DefinitionReference.operatorRef;
-import static scotch.compiler.syntax.DefinitionReference.patternRef;
 import static scotch.compiler.syntax.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.DefinitionReference.scopeRef;
+import static scotch.compiler.syntax.DefinitionReference.signatureRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
 import static scotch.compiler.syntax.PatternMatcher.pattern;
 import static scotch.util.StringUtil.stringify;
@@ -21,9 +20,8 @@ import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Value.Fixity;
-import scotch.compiler.syntax.DefinitionReference.ClassReference;
-import scotch.compiler.syntax.DefinitionReference.ModuleReference;
 import scotch.compiler.syntax.DefinitionReference.ValueReference;
+import scotch.compiler.syntax.Value.FunctionValue;
 import scotch.compiler.text.SourceRange;
 
 public abstract class Definition {
@@ -44,6 +42,14 @@ public abstract class Definition {
         return new RootDefinition(sourceRange, definitions);
     }
 
+    public static ScopeDefinition scopeDef(FunctionValue function) {
+        return scopeDef(function.getSourceRange(), function.getSymbol());
+    }
+
+    public static ScopeDefinition scopeDef(PatternMatcher matcher) {
+        return scopeDef(matcher.getSourceRange(), matcher.getSymbol());
+    }
+
     public static ScopeDefinition scopeDef(SourceRange sourceRange, Symbol symbol) {
         return new ScopeDefinition(sourceRange, symbol);
     }
@@ -56,8 +62,8 @@ public abstract class Definition {
         return new UnshuffledPattern(sourceRange, symbol, matches, body);
     }
 
-    public static ValueDefinition value(SourceRange sourceRange, Symbol symbol, Type type, Value value, InstanceMap requiredInstances) {
-        return new ValueDefinition(sourceRange, symbol, value, type, requiredInstances);
+    public static ValueDefinition value(SourceRange sourceRange, Symbol symbol, Type type, Value value) {
+        return new ValueDefinition(sourceRange, symbol, value, type);
     }
 
     private Definition() {
@@ -86,10 +92,6 @@ public abstract class Definition {
     public interface DefinitionVisitor<T> {
 
         default T visit(ClassDefinition definition) {
-            return visitOtherwise(definition);
-        }
-
-        default T visit(InstanceDefinition definition) {
             return visitOtherwise(definition);
         }
 
@@ -186,70 +188,6 @@ public abstract class Definition {
         @Override
         public String toString() {
             return stringify(this) + "(" + symbol + ")";
-        }
-    }
-
-    public static class InstanceDefinition extends Definition {
-
-        private final SourceRange      sourceRange;
-        private final ClassReference   classReference;
-        private final ModuleReference  moduleReference;
-        private final List<Type>       types;
-        private final List<Definition> members;
-
-        private InstanceDefinition(
-            SourceRange sourceRange,
-            ClassReference classReference,
-            ModuleReference moduleReference,
-            List<Type> types,
-            List<Definition> members
-        ) {
-            this.sourceRange = sourceRange;
-            this.classReference = classReference;
-            this.moduleReference = moduleReference;
-            this.types = types;
-            this.members = members;
-        }
-
-        @Override
-        public <T> T accept(DefinitionVisitor<T> visitor) {
-            return visitor.visit(this);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            } else if (o instanceof InstanceDefinition) {
-                InstanceDefinition other = (InstanceDefinition) o;
-                return Objects.equals(sourceRange, other.sourceRange)
-                    && Objects.equals(classReference, other.classReference)
-                    && Objects.equals(moduleReference, other.moduleReference)
-                    && Objects.equals(types, other.types)
-                    && Objects.equals(members, other.members);
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public DefinitionReference getReference() {
-            return instanceRef(classReference, moduleReference, types);
-        }
-
-        @Override
-        public SourceRange getSourceRange() {
-            return sourceRange;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(sourceRange, classReference, moduleReference, types, members);
-        }
-
-        @Override
-        public String toString() {
-            return stringify(this) + "(classReference=" + classReference + ", moduleReference=" + moduleReference + ", types=" + types + ")";
         }
     }
 
@@ -526,7 +464,7 @@ public abstract class Definition {
 
         @Override
         public DefinitionReference getReference() {
-            return patternRef(symbol);
+            return scopeRef(symbol);
         }
 
         public SourceRange getSourceRange() {
@@ -554,14 +492,12 @@ public abstract class Definition {
         private       Symbol      symbol;
         private       Value       body;
         private       Type        type;
-        private       InstanceMap instances;
 
-        private ValueDefinition(SourceRange sourceRange, Symbol symbol, Value body, Type type, InstanceMap instances) {
+        private ValueDefinition(SourceRange sourceRange, Symbol symbol, Value body, Type type) {
             this.sourceRange = sourceRange;
             this.symbol = symbol;
             this.body = body;
             this.type = type;
-            this.instances = instances;
         }
 
         @Override
@@ -577,8 +513,7 @@ public abstract class Definition {
                 ValueDefinition other = (ValueDefinition) o;
                 return Objects.equals(symbol, other.symbol)
                     && Objects.equals(body, other.body)
-                    && Objects.equals(type, other.type)
-                    && Objects.equals(instances, other.instances);
+                    && Objects.equals(type, other.type);
             } else {
                 return false;
             }
@@ -586,10 +521,6 @@ public abstract class Definition {
 
         public Value getBody() {
             return body;
-        }
-
-        public InstanceMap getInstances() {
-            return instances;
         }
 
         public String getMethodName() {
@@ -628,19 +559,15 @@ public abstract class Definition {
         }
 
         public ValueDefinition withBody(Value body) {
-            return new ValueDefinition(sourceRange, symbol, body, type, instances);
-        }
-
-        public ValueDefinition withRequiredInstances(InstanceMap requiredInstances) {
-            return new ValueDefinition(sourceRange, symbol, body, type, requiredInstances);
+            return new ValueDefinition(sourceRange, symbol, body, type);
         }
 
         public ValueDefinition withSourceRange(SourceRange sourceRange) {
-            return new ValueDefinition(sourceRange, symbol, body, type, instances);
+            return new ValueDefinition(sourceRange, symbol, body, type);
         }
 
         public ValueDefinition withType(Type type) {
-            return new ValueDefinition(sourceRange, symbol, body, type, instances);
+            return new ValueDefinition(sourceRange, symbol, body, type);
         }
     }
 
@@ -676,7 +603,7 @@ public abstract class Definition {
 
         @Override
         public DefinitionReference getReference() {
-            return valueRef(symbol);
+            return signatureRef(symbol);
         }
 
         @Override
@@ -700,6 +627,10 @@ public abstract class Definition {
         @Override
         public String toString() {
             return stringify(this) + "(" + symbol + " :: " + type + ")";
+        }
+
+        public ValueSignature withType(Type type) {
+            return new ValueSignature(sourceRange, symbol, type);
         }
     }
 }

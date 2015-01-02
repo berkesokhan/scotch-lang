@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import com.google.common.collect.ImmutableSet;
+import scotch.compiler.symbol.Type.VariableType;
 
 public abstract class Unification {
 
@@ -18,6 +19,10 @@ public abstract class Unification {
 
     public static Unification contextMismatch(Type expected, Type actual, Collection<Symbol> expectedContext, Collection<Symbol> actualContext) {
         return new ContextMismatch(expected, actual, expectedContext, actualContext);
+    }
+
+    public static Unification failedBinding(Type targetType, VariableType variableType, Type variableTarget) {
+        return new FailedBinding(targetType, variableType, variableTarget);
     }
 
     public static Unification mismatch(Type expected, Type actual) {
@@ -65,6 +70,10 @@ public abstract class Unification {
 
         default T visit(ContextMismatch contextMismatch) {
             return visitOtherwise(contextMismatch);
+        }
+
+        default T visit(FailedBinding failedBinding) {
+            return visitOtherwise(failedBinding);
         }
 
         default T visit(TypeMismatch typeMismatch) {
@@ -207,6 +216,69 @@ public abstract class Unification {
         @Override
         public String toString() {
             return stringify(this) + "(expected=" + expected + ", actual=" + actual + ", expectedContext=" + expectedContext + ", actualContext=" + actualContext + ")";
+        }
+    }
+
+    public static class FailedBinding extends Unification {
+
+        private final Type         targetType;
+        private final VariableType variableType;
+        private final Type         variableTarget;
+
+        public FailedBinding(Type targetType, VariableType variableType, Type variableTarget) {
+            this.targetType = targetType;
+            this.variableType = variableType;
+            this.variableTarget = variableTarget;
+        }
+
+        @Override
+        public <T> T accept(UnificationVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public Unification andThen(Binding binding) {
+            return this;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof FailedBinding) {
+                FailedBinding other = (FailedBinding) o;
+                return Objects.equals(targetType, other.targetType)
+                    && Objects.equals(variableType, other.variableType)
+                    && Objects.equals(variableTarget, other.variableTarget);
+            } else {
+                return false;
+            }
+        }
+
+        @Override
+        public Unification flip() {
+            return this;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(targetType, variableType, variableTarget);
+        }
+
+        @Override
+        public boolean isUnified() {
+            return false;
+        }
+
+        @Override
+        public String prettyPrint() {
+            return "Can't re-bind type " + variableType + " to new target " + targetType
+                + "; current binding is incompatible: " + variableTarget;
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this) + "(targetType=" + targetType + ", variableType=" + variableType + ", variableTarget=" + variableTarget + ")";
         }
     }
 

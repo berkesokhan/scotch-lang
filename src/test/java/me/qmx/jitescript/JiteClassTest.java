@@ -199,10 +199,11 @@ public class JiteClassTest {
             defineDefaultConstructor();
             defineMethod("getCallback", ACC_PUBLIC | ACC_STATIC, sig(UnaryOperator.class), new CodeBlock() {{
                 ldc("Hello, ");
-                lambda(jiteClass, new LambdaBlock(ACC_STATIC, sig(UnaryOperator.class, String.class)) {{
-                    interfaceType(sig(Object.class, Object.class));
-                    instanceType(sig(String.class, String.class));
-                    block(sig(String.class, String.class, String.class), new CodeBlock() {{
+                lambda(jiteClass, new LambdaBlock() {{
+                    function(p(UnaryOperator.class), "apply", sig(Object.class, Object.class));
+                    specialize(sig(String.class, String.class));
+                    capture(String.class);
+                    delegateTo(ACC_STATIC, sig(String.class, String.class, String.class), new CodeBlock() {{
                         newobj(p(StringBuilder.class));
                         dup();
                         invokespecial(p(StringBuilder.class), "<init>", sig(void.class));

@@ -23,8 +23,8 @@ import scotch.runtime.Callable;
 public interface Show<A> {
 
     @Value(memberName = "show")
-    static <A> Applicable<A, String> show(Show<A> instance) {
-        return applicable(operand -> flatCallable(() -> instance.show(operand)));
+    static <A> Applicable<Show<A>, Applicable<A, String>> show() {
+        return applicable(instance -> applicable(operand -> flatCallable(() -> instance.call().show(operand))));
     }
 
     @ValueType(forMember = "show")

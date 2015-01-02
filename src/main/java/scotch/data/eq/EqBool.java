@@ -13,26 +13,26 @@ import scotch.runtime.Callable;
 
 @SuppressWarnings("unused")
 @TypeInstance(typeClass = "scotch.data.eq.Eq")
-public class EqInt implements Eq<Integer> {
+public class EqBool implements Eq<Boolean> {
 
-    private static final EqInt INSTANCE = new EqInt();
+    private static final EqBool INSTANCE = new EqBool();
 
     @InstanceGetter
-    public static EqInt instance() {
+    public static EqBool instance() {
         return INSTANCE;
     }
 
     @TypeParameters
     public static List<Type> parameters() {
-        return asList(sum("scotch.data.int.Int"));
+        return asList(sum("scotch.data.int.Bool"));
     }
 
-    private EqInt() {
+    private EqBool() {
         // intentionally empty
     }
 
     @Override
-    public Callable<Boolean> eq(Callable<Integer> left, Callable<Integer> right) {
+    public Callable<Boolean> eq(Callable<Boolean> left, Callable<Boolean> right) {
         return callable(() -> left.call().equals(right.call()));
     }
 }

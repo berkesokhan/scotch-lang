@@ -7,13 +7,15 @@ import static scotch.compiler.symbol.Type.fn;
 import static scotch.compiler.symbol.Type.sum;
 import static scotch.compiler.symbol.Type.t;
 import static scotch.compiler.symbol.Type.var;
+import static scotch.compiler.syntax.StubResolver.defaultEq;
+import static scotch.compiler.syntax.StubResolver.defaultInt;
+import static scotch.compiler.syntax.StubResolver.defaultPlus;
 import static scotch.compiler.syntax.Value.apply;
 import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.equal;
 import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
-import static scotch.compiler.util.TestUtil.intType;
 import static scotch.compiler.util.TestUtil.literal;
 import static scotch.compiler.util.TestUtil.pattern;
 import static scotch.compiler.util.TestUtil.patterns;
@@ -37,7 +39,7 @@ public class SyntaxParserTest extends ParserTest {
             "left infix 6 (==), (/=)",
             "x == y = not (x /= y)"
         );
-        shouldHaveValue("scotch.test.(==)", t(9), fn("scotch.test.($1)", asList(arg("$0", t(7)), arg("$1", t(8))), patterns(t(10),
+        shouldHaveValue("scotch.test.(==)", t(7), fn("scotch.test.($1)", asList(arg("$0", t(8)), arg("$1", t(9))), patterns(t(10),
             pattern("scotch.test.($0)", asList(capture("$0", "x", t(0)), capture("$1", "y", t(2))), apply(
                 id("scotch.data.bool.not", t(3)),
                 apply(
@@ -59,7 +61,7 @@ public class SyntaxParserTest extends ParserTest {
             "fib 1 = 1",
             "fib n = fib (n - 1) + fib (n - 2)"
         );
-        shouldHaveValue("scotch.test.fib", t(12), fn("scotch.test.($3)", asList(arg("$0", t(11))), patterns(t(13),
+        shouldHaveValue("scotch.test.fib", t(11), fn("scotch.test.($3)", asList(arg("$0", t(12))), patterns(t(13),
             pattern("scotch.test.($0)", asList(equal("$0", literal(0))), literal(0)),
             pattern("scotch.test.($1)", asList(equal("$0", literal(1))), literal(1)),
             pattern("scotch.test.($2)", asList(capture("$0", "n", t(3))), apply(
@@ -90,6 +92,38 @@ public class SyntaxParserTest extends ParserTest {
         )));
     }
 
+    @Test
+    public void shouldQualifySiblingValues() {
+        resolver
+            .define(defaultPlus())
+            .define(defaultEq());
+        parse(
+            "module scotch.test",
+            "import scotch.data.eq",
+            "import scotch.data.num",
+            "fn a b = a + b == b + a",
+            "commutative? a b = fn a b"
+        );
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.(commutative?)", fn(
+            "scotch.test.($3)",
+            asList(arg("$0", t(27)), arg("$1", t(28))),
+            patterns(t(29), pattern(
+                "scotch.test.($1)",
+                asList(capture("$0", "a", t(11)), capture("$1", "b", t(12))),
+                apply(
+                    apply(
+                        id("scotch.test.fn", t(13)),
+                        id("a", t(14)),
+                        t(30)
+                    ),
+                    id("b", t(15)),
+                    t(31)
+                )
+            ))
+        ));
+    }
+
     @Ignore
     @Test
     public void shouldParseTypeClass() {
@@ -112,12 +146,12 @@ public class SyntaxParserTest extends ParserTest {
 
     @Override
     protected void initResolver(StubResolver resolver) {
-        resolver.define(immutableEntry(qualified("scotch.data.int", "Int")).withType(intType()).build());
+        resolver.define(defaultInt());
     }
 
     @Override
     protected Function<Compiler, DefinitionGraph> parse() {
-        return Compiler::parseSyntax;
+        return Compiler::parseDependencies;
     }
 
     @Override

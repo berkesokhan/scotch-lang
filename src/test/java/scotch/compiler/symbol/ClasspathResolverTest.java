@@ -33,7 +33,7 @@ public class ClasspathResolverTest {
 
         assertThat(entry.getValue(), is(fn(a, fn(a, a))));
         assertThat(entry.getOperator(), is(operator(LEFT_INFIX, 7)));
-        assertThat(entry.getValueSignature().toString(), is("scotch/data/num/Num:add:(Lscotch/data/num/Num;)Lscotch/runtime/Applicable;"));
+        assertThat(entry.getValueSignature().toString(), is("scotch/data/num/Num:add:()Lscotch/runtime/Applicable;"));
         assertThat(entry.getMemberOf(), is(fromString("scotch.data.num.Num")));
     }
 

@@ -25,8 +25,8 @@ import scotch.runtime.Callable;
 public interface Eq<A> {
 
     @Value(memberName = "==", fixity = LEFT_INFIX, precedence = 5)
-    static <A> Applicable<A, Applicable<A, Boolean>> eq(Eq<A> instance) {
-        return applicable(left -> applicable(right -> instance.eq(left, right)));
+    static <A> Applicable<Eq<A>, Applicable<A, Applicable<A, Boolean>>> eq() {
+        return applicable(instance -> applicable(left -> applicable(right -> instance.call().eq(left, right))));
     }
 
     @ValueType(forMember = "==")
@@ -36,8 +36,8 @@ public interface Eq<A> {
     }
 
     @Value(memberName = "/=", fixity = LEFT_INFIX, precedence = 5)
-    static <A> Applicable<A, Applicable<A, Boolean>> ne(Eq<A> instance) {
-        return applicable(left -> applicable(right -> instance.ne(left, right)));
+    static <A> Applicable<Eq<A>, Applicable<A, Applicable<A, Boolean>>> ne() {
+        return applicable(instance -> applicable(left -> applicable(right -> instance.call().ne(left, right))));
     }
 
     @ValueType(forMember = "/=")

@@ -2,6 +2,8 @@ package scotch.compiler.syntax;
 
 import static java.util.Collections.emptySet;
 import static scotch.compiler.symbol.Type.fn;
+import static scotch.compiler.symbol.Unification.failedBinding;
+import static scotch.compiler.symbol.Unification.unified;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,6 +19,7 @@ import scotch.compiler.symbol.Type.SumType;
 import scotch.compiler.symbol.Type.TypeVisitor;
 import scotch.compiler.symbol.Type.VariableType;
 import scotch.compiler.symbol.TypeScope;
+import scotch.compiler.symbol.Unification;
 
 public class DefaultTypeScope implements TypeScope {
 
@@ -35,8 +38,8 @@ public class DefaultTypeScope implements TypeScope {
     }
 
     @Override
-    public void bind(VariableType variableType, Type targetType) {
-        bind_(variableType.simplify(), targetType);
+    public Unification bind(VariableType variableType, Type targetType) {
+        return bind_(variableType.simplify(), targetType);
     }
 
     @Override
@@ -59,7 +62,7 @@ public class DefaultTypeScope implements TypeScope {
 
             @Override
             public Type visit(InstanceType type) {
-                return type;
+                return type.withBinding(generate(type.getBinding()));
             }
 
             @Override
@@ -145,12 +148,12 @@ public class DefaultTypeScope implements TypeScope {
         specializedTypes.add(type.simplify());
     }
 
-    private void bind_(VariableType variableType, Type targetType) {
+    private Unification bind_(VariableType variableType, Type targetType) {
         if (isBound(variableType) && !getTarget(variableType).simplify().equals(targetType)) {
-            throw new UnsupportedOperationException("Can't re-bind type " + variableType + " to new target "
-                + targetType + "; current binding is incompatible: " + getTarget(variableType));
+            return failedBinding(targetType, variableType, getTarget(variableType));
         } else if (!getTarget(targetType).simplify().equals(variableType)) {
             bindings.put(variableType, targetType);
         }
+        return unified(targetType);
     }
 }

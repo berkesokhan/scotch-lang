@@ -25,6 +25,10 @@ public abstract class SyntaxError {
         return new AmbiguousTypeInstanceError(typeClass, parameters, typeInstances, location);
     }
 
+    public static SyntaxError cyclicDependency(DependencyCycle cycle) {
+        return new CyclicDependencyError(cycle);
+    }
+
     public static SyntaxError parseError(String description, SourceRange location) {
         return new ParseError(description, location);
     }
@@ -121,6 +125,35 @@ public abstract class SyntaxError {
         @Override
         public String toString() {
             return stringify(this) + "(typeClass=" + typeClass + ", instances=" + typeInstances + ")";
+        }
+    }
+
+    public static class CyclicDependencyError extends SyntaxError {
+
+        private final DependencyCycle cycle;
+
+        public CyclicDependencyError(DependencyCycle cycle) {
+            this.cycle = cycle;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o == this || o instanceof CyclicDependencyError && Objects.equals(cycle, ((CyclicDependencyError) o).cycle);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(cycle);
+        }
+
+        @Override
+        public String prettyPrint() {
+            return cycle.prettyPrint();
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this);
         }
     }
 
@@ -227,7 +260,7 @@ public abstract class SyntaxError {
 
         @Override
         public int hashCode() {
-            return Objects.hash(unification, sourceRange);
+            return Objects.hash(unification);
         }
 
         @Override

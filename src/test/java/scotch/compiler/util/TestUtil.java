@@ -2,6 +2,7 @@ package scotch.compiler.util;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.Compiler.compiler;
 import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.symbol.Type.sum;
 import static scotch.compiler.syntax.DefinitionReference.moduleRef;
@@ -9,9 +10,12 @@ import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 
 import java.util.List;
 import java.util.Optional;
+import scotch.compiler.generator.BytecodeGenerator;
+import scotch.compiler.generator.GeneratedClass;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
+import scotch.compiler.symbol.ClasspathResolver;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
@@ -28,11 +32,11 @@ import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.DefinitionReference.ClassReference;
 import scotch.compiler.syntax.DefinitionReference.InstanceReference;
 import scotch.compiler.syntax.DefinitionReference.OperatorReference;
-import scotch.compiler.syntax.DefinitionReference.PatternReference;
+import scotch.compiler.syntax.DefinitionReference.ScopeReference;
+import scotch.compiler.syntax.DefinitionReference.SignatureReference;
 import scotch.compiler.syntax.DefinitionReference.ValueReference;
 import scotch.compiler.syntax.Import;
 import scotch.compiler.syntax.Import.ModuleImport;
-import scotch.compiler.syntax.InstanceMap;
 import scotch.compiler.syntax.PatternMatch;
 import scotch.compiler.syntax.PatternMatch.CaptureMatch;
 import scotch.compiler.syntax.PatternMatch.EqualMatch;
@@ -50,15 +54,28 @@ import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.syntax.Value.Method;
 import scotch.compiler.syntax.Value.PatternMatchers;
 import scotch.compiler.syntax.Value.StringLiteral;
+import scotch.runtime.Callable;
 
 public class TestUtil {
 
-    public static Argument arg(String name, Type type) {
-        return Value.arg(NULL_SOURCE, name, type);
+    @SuppressWarnings("unchecked")
+    public static <A> A exec(String... lines) {
+        try {
+            ClasspathResolver resolver = new ClasspathResolver(BytecodeGenerator.class.getClassLoader());
+            BytecodeClassLoader classLoader = new BytecodeClassLoader();
+            classLoader.defineAll(generateBytecode(resolver, lines));
+            return ((Callable<A>) classLoader.loadClass("scotch.test.ScotchModule").getMethod("run").invoke(null)).call();
+        } catch (ReflectiveOperationException exception) {
+            throw new RuntimeException(exception);
+        }
     }
 
-    public static Value instanceMethod(String name, InstanceReference instance, Type type) {
-        return Value.boundMethod(NULL_SOURCE, valueRef(name), instance, type);
+    public static List<GeneratedClass> generateBytecode(ClasspathResolver resolver, String... lines) {
+        return compiler(resolver, "$test", lines).generateBytecode();
+    }
+
+    public static Argument arg(String name, Type type) {
+        return Value.arg(NULL_SOURCE, name, type);
     }
 
     public static CaptureMatch capture(String name, Type type) {
@@ -157,16 +174,20 @@ public class TestUtil {
         return PatternMatcher.pattern(NULL_SOURCE, fromString(name), matches, body);
     }
 
-    public static PatternReference patternRef(String name) {
-        return DefinitionReference.patternRef(fromString(name));
-    }
-
     public static PatternMatchers patterns(Type type, PatternMatcher... matchers) {
         return Value.patterns(NULL_SOURCE, type, asList(matchers));
     }
 
     public static RootDefinition root(List<DefinitionReference> definitions) {
         return Definition.root(NULL_SOURCE, definitions);
+    }
+
+    public static ScopeReference scopeRef(String name) {
+        return DefinitionReference.scopeRef(Symbol.fromString(name));
+    }
+
+    public static SignatureReference signatureRef(String name) {
+        return DefinitionReference.signatureRef(Symbol.fromString(name));
     }
 
     public static Token token(TokenKind kind, Object value) {
@@ -196,7 +217,7 @@ public class TestUtil {
     }
 
     public static ValueDefinition value(String name, Type type, Value value) {
-        return Definition.value(NULL_SOURCE, fromString(name), type, value, InstanceMap.empty());
+        return Definition.value(NULL_SOURCE, fromString(name), type, value);
     }
 
     public static ValueReference valueRef(String name) {

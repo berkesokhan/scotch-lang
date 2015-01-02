@@ -8,6 +8,8 @@ import static scotch.util.StringUtil.quote;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -29,24 +31,24 @@ import scotch.compiler.symbol.Type.VariableType;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.TypeScope;
+import scotch.compiler.symbol.Unification;
 import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.syntax.DefinitionReference.ClassReference;
 import scotch.compiler.syntax.DefinitionReference.ModuleReference;
 import scotch.compiler.syntax.DefinitionReference.ValueReference;
-import scotch.compiler.syntax.Value.Argument;
 import scotch.compiler.syntax.Value.Identifier;
 
 public abstract class Scope implements TypeScope {
 
-    public static Scope scope(SymbolGenerator symbolGenerator, SymbolResolver resolver) {
+    public static RootScope scope(SymbolGenerator symbolGenerator, SymbolResolver resolver) {
         return new RootScope(symbolGenerator, resolver);
     }
 
-    public static Scope scope(Scope parent, TypeScope types, SymbolResolver resolver, String moduleName, List<Import> imports) {
+    public static ModuleScope scope(Scope parent, TypeScope types, SymbolResolver resolver, String moduleName, List<Import> imports) {
         return new ModuleScope(parent, types, resolver, moduleName, imports);
     }
 
-    public static Scope scope(Scope parent, TypeScope types) {
+    public static ChildScope scope(Scope parent, TypeScope types) {
         return new ChildScope(parent, types);
     }
 
@@ -54,18 +56,16 @@ public abstract class Scope implements TypeScope {
         // intentionally empty
     }
 
-    public abstract void addPattern(Symbol symbol, PatternMatcher pattern);
+    public abstract void addDependency(Symbol symbol);
 
-    public abstract void beginPattern(Symbol symbol);
+    public abstract void addPattern(Symbol symbol, PatternMatcher pattern);
 
     public Value bind(Identifier identifier) {
         return identifier.getSymbol().accept(new SymbolVisitor<Value>() {
             @Override
             public Value visit(QualifiedSymbol symbol) {
-                if (isMember(symbol)) {
+                if (isMember(symbol) || getValue(symbol).hasContext()) {
                     return identifier.unboundMethod(getValue(symbol));
-                } else if (getValue(symbol).hasContext()) {
-                    return identifier.unboundValue(getValueSignature(symbol).get(), getValue(symbol));
                 } else {
                     return identifier.boundValue(getValue(symbol));
                 }
@@ -90,7 +90,7 @@ public abstract class Scope implements TypeScope {
 
     public abstract void generalize(Type type);
 
-    public abstract List<Argument> getInstanceArguments();
+    public abstract Set<Symbol> getDependencies();
 
     public abstract TypeClassDescriptor getMemberOf(ValueReference valueRef);
 
@@ -119,19 +119,29 @@ public abstract class Scope implements TypeScope {
 
     public abstract Set<TypeInstanceDescriptor> getTypeInstances(Symbol typeClass, List<Type> parameters);
 
+    public Type getValue(ValueReference reference) {
+        return getValue(reference.getSymbol());
+    }
+
     public Type getValue(Symbol symbol) {
         return genericCopy(getRawValue(symbol));
     }
 
     public abstract Optional<MethodSignature> getValueSignature(Symbol symbol);
 
+    public void insert(Scope scope) {
+        throw new IllegalStateException();
+    }
+
     public abstract boolean isDefined(Symbol symbol);
+
+    public boolean isMember(Symbol symbol) {
+        return getEntry(symbol).map(SymbolEntry::isMember).orElse(false);
+    }
 
     public boolean isOperator(Symbol symbol) {
         return qualify(symbol).map(this::isOperator_).orElse(false);
     }
-
-    public abstract boolean isPattern(Symbol symbol);
 
     public abstract Scope leaveScope();
 
@@ -139,13 +149,33 @@ public abstract class Scope implements TypeScope {
 
     public abstract Symbol qualifyCurrent(Symbol symbol);
 
-    public abstract void redefineValue(Symbol symbol, Type type);
+    public void redefineSignature(Symbol symbol, Type type) {
+        Optional<SymbolEntry> optionalEntry = getEntry(symbol);
+        if (optionalEntry.isPresent()) {
+            optionalEntry.get().redefineSignature(type);
+        } else {
+            throw new SymbolNotFoundException("Can't redefine non-existent value " + symbol.quote());
+        }
+    }
+
+    public void redefineValue(Symbol symbol, Type type) {
+        Optional<SymbolEntry> optionalEntry = getEntry(symbol);
+        if (optionalEntry.isPresent()) {
+            optionalEntry.get().redefineValue(type);
+        } else {
+            throw new SymbolNotFoundException("Can't redefine non-existent value " + symbol.quote());
+        }
+    }
 
     public abstract Symbol reserveSymbol();
 
-    public abstract Type reserveType();
+    public Type reserveType() {
+        return getParent().reserveType();
+    }
 
-    public abstract void setInstanceArguments(List<Argument> instanceArguments);
+    public void setParent(Scope parent) {
+        throw new IllegalStateException();
+    }
 
     public abstract void specialize(Type type);
 
@@ -153,40 +183,44 @@ public abstract class Scope implements TypeScope {
 
     protected abstract boolean isDefinedLocally(Symbol symbol);
 
-    protected boolean isMember(Symbol symbol) {
-        return getEntry(symbol).map(SymbolEntry::isMember).orElse(false);
+    protected boolean isExternal(Symbol symbol) {
+        return getParent().isExternal(symbol);
     }
 
     protected abstract boolean isOperator_(Symbol symbol);
 
     public static class ChildScope extends Scope {
 
-        private final Scope                             parent;
         private final TypeScope                         types;
+        private final Set<ChildScope>                   children;
         private final Map<Symbol, SymbolEntry>          entries;
         private final Map<Symbol, List<PatternMatcher>> patterns;
-        private final List<Argument>                    instanceArguments;
+        private final Set<Symbol>                       dependencies;
+        private       Scope                             parent;
 
         private ChildScope(Scope parent, TypeScope types) {
             this.parent = parent;
             this.types = types;
+            this.children = new HashSet<>();
             this.entries = new HashMap<>();
-            this.patterns = new HashMap<>();
-            this.instanceArguments = new ArrayList<>();
+            this.patterns = new LinkedHashMap<>();
+            this.dependencies = new HashSet<>();
+        }
+
+        @Override
+        public void addDependency(Symbol symbol) {
+            if (!isExternal(symbol)) {
+                dependencies.add(symbol);
+            }
         }
 
         public void addPattern(Symbol symbol, PatternMatcher pattern) {
-            patterns.get(symbol).add(pattern);
+            patterns.computeIfAbsent(symbol, k -> new ArrayList<>()).add(pattern);
         }
 
         @Override
-        public void beginPattern(Symbol symbol) {
-            patterns.put(symbol, new ArrayList<>());
-        }
-
-        @Override
-        public void bind(VariableType variableType, Type target) {
-            types.bind(variableType, target);
+        public Unification bind(VariableType variableType, Type target) {
+            return types.bind(variableType, target);
         }
 
         @Override
@@ -206,7 +240,9 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public Scope enterScope() {
-            return scope(this, types);
+            ChildScope child = scope(this, types);
+            children.add(child);
+            return child;
         }
 
         @Override
@@ -225,11 +261,6 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public List<Argument> getInstanceArguments() {
-            return ImmutableList.copyOf(instanceArguments);
-        }
-
-        @Override
         public Type generate(Type type) {
             return types.generate(type);
         }
@@ -245,6 +276,11 @@ public abstract class Scope implements TypeScope {
                 .addAll(types.getContext(type))
                 .addAll(parent.getContext(type))
                 .build();
+        }
+
+        @Override
+        public Set<Symbol> getDependencies() {
+            return new HashSet<>(dependencies);
         }
 
         @Override
@@ -297,6 +333,11 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public void insert(Scope scope) {
+            insert_((ChildScope) scope);
+        }
+
+        @Override
         public boolean isBound(VariableType type) {
             return types.isBound(type);
         }
@@ -319,11 +360,6 @@ public abstract class Scope implements TypeScope {
         @Override
         public boolean isOperator_(Symbol symbol) {
             return parent.isOperator_(symbol);
-        }
-
-        @Override
-        public boolean isPattern(Symbol symbol) {
-            return patterns.containsKey(symbol);
         }
 
         @Override
@@ -356,29 +392,13 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public void redefineValue(Symbol symbol, Type type) {
-            Optional<SymbolEntry> optionalEntry = getEntry(symbol);
-            if (optionalEntry.isPresent()) {
-                optionalEntry.get().redefineValue(type);
-            } else {
-                throw new SymbolNotFoundException("Can't redefine non-existent value " + symbol.quote());
-            }
-        }
-
-        @Override
         public Symbol reserveSymbol() {
             return parent.reserveSymbol();
         }
 
         @Override
-        public Type reserveType() {
-            return parent.reserveType();
-        }
-
-        @Override
-        public void setInstanceArguments(List<Argument> instanceArguments) {
-            this.instanceArguments.clear();
-            this.instanceArguments.addAll(instanceArguments);
+        public void setParent(Scope parent) {
+            this.parent = parent;
         }
 
         @Override
@@ -398,6 +418,14 @@ public abstract class Scope implements TypeScope {
                     return entries.computeIfAbsent(symbol, k -> mutableEntry(symbol));
                 }
             });
+        }
+
+        private void insert_(ChildScope scope) {
+            scope.children.clear();
+            scope.children.addAll(children);
+            children.forEach(child -> child.setParent(scope));
+            children.clear();
+            children.add(scope);
         }
 
         private SymbolEntry requireEntry(Symbol symbol) {
@@ -429,6 +457,7 @@ public abstract class Scope implements TypeScope {
         private final List<Import>                      imports;
         private final Map<Symbol, SymbolEntry>          entries;
         private final Map<Symbol, List<PatternMatcher>> patterns;
+        private final Set<Symbol>                       dependencies;
 
         private ModuleScope(Scope parent, TypeScope types, SymbolResolver resolver, String moduleName, List<Import> imports) {
             this.parent = parent;
@@ -437,22 +466,25 @@ public abstract class Scope implements TypeScope {
             this.moduleName = moduleName;
             this.imports = ImmutableList.copyOf(imports);
             this.entries = new HashMap<>();
-            this.patterns = new HashMap<>();
+            this.patterns = new LinkedHashMap<>();
+            this.dependencies = new HashSet<>();
+        }
+
+        @Override
+        public void addDependency(Symbol symbol) {
+            if (!isExternal(symbol)) {
+                dependencies.add(symbol);
+            }
         }
 
         @Override
         public void addPattern(Symbol symbol, PatternMatcher pattern) {
-            patterns.get(symbol).add(pattern);
+            patterns.computeIfAbsent(symbol, k -> new ArrayList<>()).add(pattern);
         }
 
         @Override
-        public void beginPattern(Symbol symbol) {
-            patterns.put(symbol, new ArrayList<>());
-        }
-
-        @Override
-        public void bind(VariableType variableType, Type target) {
-            types.bind(variableType, target);
+        public Unification bind(VariableType variableType, Type target) {
+            return types.bind(variableType, target);
         }
 
         @Override
@@ -491,11 +523,6 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public List<Argument> getInstanceArguments() {
-            throw new IllegalStateException();
-        }
-
-        @Override
         public Type generate(Type type) {
             return types.generate(type);
         }
@@ -514,6 +541,11 @@ public abstract class Scope implements TypeScope {
                     .flatMap(Collection::stream)
                     .collect(toSet()))
                 .build();
+        }
+
+        @Override
+        public Set<Symbol> getDependencies() {
+            return new HashSet<>(dependencies);
         }
 
         @Override
@@ -591,11 +623,6 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public boolean isPattern(Symbol symbol) {
-            return patterns.containsKey(symbol);
-        }
-
-        @Override
         public Scope leaveScope() {
             return parent;
         }
@@ -637,28 +664,8 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public void redefineValue(Symbol symbol, Type type) {
-            Optional<SymbolEntry> optionalEntry = getEntry(symbol);
-            if (optionalEntry.isPresent()) {
-                optionalEntry.get().redefineValue(type);
-            } else {
-                throw new SymbolNotFoundException("Can't redefine non-existent value " + symbol.quote());
-            }
-        }
-
-        @Override
         public Symbol reserveSymbol() {
             return parent.reserveSymbol().qualifyWith(moduleName);
-        }
-
-        @Override
-        public Type reserveType() {
-            return parent.reserveType();
-        }
-
-        @Override
-        public void setInstanceArguments(List<Argument> instanceArguments) {
-            throw new IllegalStateException();
         }
 
         @Override
@@ -713,7 +720,7 @@ public abstract class Scope implements TypeScope {
     public static class RootScope extends Scope {
 
         private final SymbolGenerator    symbolGenerator;
-        private final SymbolResolver     resolver;
+        private final RootResolver       resolver;
         private final Map<String, Scope> children;
 
         private RootScope(SymbolGenerator symbolGenerator, SymbolResolver resolver) {
@@ -723,17 +730,17 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public void addDependency(Symbol symbol) {
+            throw new IllegalStateException();
+        }
+
+        @Override
         public void addPattern(Symbol symbol, PatternMatcher pattern) {
             throw new IllegalStateException();
         }
 
         @Override
-        public void beginPattern(Symbol symbol) {
-            throw new IllegalStateException();
-        }
-
-        @Override
-        public void bind(VariableType variableType, Type target) {
+        public Unification bind(VariableType variableType, Type target) {
             throw new IllegalStateException();
         }
 
@@ -775,11 +782,6 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public List<Argument> getInstanceArguments() {
-            throw new IllegalStateException();
-        }
-
-        @Override
         public Type generate(Type type) {
             throw new IllegalStateException();
         }
@@ -791,6 +793,11 @@ public abstract class Scope implements TypeScope {
 
         @Override
         public Set<Symbol> getContext(Type type) {
+            throw new IllegalStateException();
+        }
+
+        @Override
+        public Set<Symbol> getDependencies() {
             throw new IllegalStateException();
         }
 
@@ -870,11 +877,6 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public boolean isPattern(Symbol symbol) {
-            return false;
-        }
-
-        @Override
         public Scope leaveScope() {
             throw new IllegalStateException("Can't leave root scope");
         }
@@ -904,11 +906,6 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
-        public void redefineValue(Symbol symbol, Type type) {
-            throw new IllegalStateException();
-        }
-
-        @Override
         public Symbol reserveSymbol() {
             return symbolGenerator.reserveSymbol();
         }
@@ -916,11 +913,6 @@ public abstract class Scope implements TypeScope {
         @Override
         public Type reserveType() {
             return symbolGenerator.reserveType();
-        }
-
-        @Override
-        public void setInstanceArguments(List<Argument> instanceArguments) {
-            throw new IllegalStateException();
         }
 
         @Override
@@ -946,6 +938,11 @@ public abstract class Scope implements TypeScope {
         @Override
         protected boolean isDefinedLocally(Symbol symbol) {
             return false;
+        }
+
+        @Override
+        protected boolean isExternal(Symbol symbol) {
+            return resolver.isExternal(symbol);
         }
 
         private final class RootResolver implements SymbolResolver {
@@ -999,6 +996,10 @@ public abstract class Scope implements TypeScope {
                         return false;
                     }
                 });
+            }
+
+            public boolean isExternal(Symbol symbol) {
+                return resolver.isDefined(symbol);
             }
         }
     }

@@ -12,6 +12,7 @@ import static scotch.compiler.symbol.Type.sum;
 import static scotch.compiler.symbol.Type.var;
 import static scotch.compiler.symbol.Unification.circular;
 import static scotch.compiler.symbol.Unification.contextMismatch;
+import static scotch.compiler.symbol.Unification.failedBinding;
 import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.symbol.Unification.unified;
 
@@ -117,12 +118,12 @@ public class TypeTest {
         shouldBeMismatch(unify(variable, function), target, function);
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void shouldNotBindVariable_whenVariableHasAlreadyBeenBound() {
         VariableType variable = var("a");
         Type target = sum("Char");
         scope.bind(variable, target);
-        scope.bind(variable, sum("Int"));
+        assertThat(scope.bind(variable, sum("Int")), is(failedBinding(sum("Int"), variable, target)));
     }
 
     @Test

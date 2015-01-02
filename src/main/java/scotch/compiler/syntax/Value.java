@@ -5,25 +5,22 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.symbol.Type.sum;
-import static scotch.compiler.syntax.DefinitionReference.instanceRef;
 import static scotch.compiler.syntax.DefinitionReference.scopeRef;
 import static scotch.compiler.syntax.DefinitionReference.valueRef;
 import static scotch.util.StringUtil.quote;
 import static scotch.util.StringUtil.stringify;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
-import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
-import scotch.compiler.symbol.Type.FunctionType;
-import scotch.compiler.symbol.Type.TypeVisitor;
-import scotch.compiler.syntax.DefinitionReference.ClassReference;
 import scotch.compiler.syntax.DefinitionReference.InstanceReference;
-import scotch.compiler.syntax.DefinitionReference.ModuleReference;
 import scotch.compiler.syntax.DefinitionReference.ScopeReference;
 import scotch.compiler.syntax.DefinitionReference.ValueReference;
 import scotch.compiler.text.SourceRange;
@@ -36,10 +33,6 @@ public abstract class Value {
 
     public static Argument arg(SourceRange sourceRange, String name, Type type) {
         return new Argument(sourceRange, name, type);
-    }
-
-    public static BoundMethod boundMethod(SourceRange sourceRange, ValueReference reference, InstanceReference instance, Type type) {
-        return new BoundMethod(sourceRange, reference, instance, type);
     }
 
     public static FunctionValue fn(SourceRange sourceRange, Symbol symbol, List<Argument> arguments, Value body) {
@@ -129,10 +122,6 @@ public abstract class Value {
             return visitOtherwise(literal);
         }
 
-        default T visit(BoundMethod boundMethod) {
-            return visitOtherwise(boundMethod);
-        }
-
         default T visit(BoundValue boundValue) {
             return visitOtherwise(boundValue);
         }
@@ -145,6 +134,10 @@ public abstract class Value {
             return visitOtherwise(literal);
         }
 
+        default T visit(FunctionValue function) {
+            return visitOtherwise(function);
+        }
+
         default T visit(Identifier identifier) {
             return visitOtherwise(identifier);
         }
@@ -153,8 +146,12 @@ public abstract class Value {
             return visitOtherwise(literal);
         }
 
-        default T visit(FunctionValue function) {
-            return visitOtherwise(function);
+        default T visit(Instance instance) {
+            return visitOtherwise(instance);
+        }
+
+        default T visit(LambdaValue lambda) {
+            return visitOtherwise(lambda);
         }
 
         default T visit(Message message) {
@@ -380,75 +377,6 @@ public abstract class Value {
         }
     }
 
-    public static class BoundMethod extends Value {
-
-        private final SourceRange       sourceRange;
-        private final ValueReference    value;
-        private final InstanceReference instance;
-        private final Type              type;
-
-        private BoundMethod(SourceRange sourceRange, ValueReference value, InstanceReference instance, Type type) {
-            this.sourceRange = sourceRange;
-            this.value = value;
-            this.instance = instance;
-            this.type = type;
-        }
-
-        @Override
-        public <T> T accept(ValueVisitor<T> visitor) {
-            return visitor.visit(this);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            } else if (o instanceof BoundMethod) {
-                BoundMethod other = (BoundMethod) o;
-                return Objects.equals(value, other.value)
-                    && Objects.equals(instance, other.instance)
-                    && Objects.equals(type, other.type);
-            } else {
-                return true;
-            }
-        }
-
-        public InstanceReference getInstance() {
-            return instance;
-        }
-
-        @Override
-        public SourceRange getSourceRange() {
-            return sourceRange;
-        }
-
-        @Override
-        public Type getType() {
-            return type;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(value, instance, type);
-        }
-
-        public CodeBlock reference(Scope scope) {
-            return new CodeBlock()
-                .append(getInstance().reference(scope))
-                .append(scope.getValueSignature(value.getSymbol()).get().reference());
-        }
-
-        @Override
-        public String toString() {
-            return stringify(this) + "(value=" + value + ", instance=" + instance + ")";
-        }
-
-        @Override
-        public Value withType(Type type) {
-            return new BoundMethod(sourceRange, value, instance, type);
-        }
-    }
-
     public static class BoundValue extends Value {
 
         private final SourceRange     sourceRange;
@@ -495,8 +423,8 @@ public abstract class Value {
             return Objects.hash(reference, type);
         }
 
-        public CodeBlock reference() {
-            throw new UnsupportedOperationException(); // TODO
+        public CodeBlock reference(Scope scope) {
+            return scope.getValueSignature(reference.getSymbol()).get().reference();
         }
 
         @Override
@@ -602,6 +530,10 @@ public abstract class Value {
             return sum("scotch.data.double.Double");
         }
 
+        public double getValue() {
+            return value;
+        }
+
         @Override
         public int hashCode() {
             return Objects.hash(value);
@@ -615,6 +547,68 @@ public abstract class Value {
         @Override
         public Value withType(Type type) {
             return this;
+        }
+    }
+
+    public static class LambdaValue extends Value {
+
+        private final Argument argument;
+        private final Value body;
+
+        public LambdaValue(Argument argument, Value body) {
+            this.argument = argument;
+            this.body = body;
+        }
+
+        @Override
+        public <T> T accept(ValueVisitor<T> visitor) {
+            return visitor.visit(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (o == this) {
+                return true;
+            } else if (o instanceof LambdaValue) {
+                LambdaValue other = (LambdaValue) o;
+                return Objects.equals(argument, other.argument)
+                    && Objects.equals(body, other.body);
+            } else {
+                return false;
+            }
+        }
+
+        public String getArgumentName() {
+            return argument.getName();
+        }
+
+        public Value getBody() {
+            return body;
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public Type getType() {
+            return Type.fn(argument.getType(), body.getType());
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(argument, body);
+        }
+
+        @Override
+        public String toString() {
+            return stringify(this);
+        }
+
+        @Override
+        public Value withType(Type type) {
+            throw new UnsupportedOperationException();
         }
     }
 
@@ -635,6 +629,18 @@ public abstract class Value {
         @Override
         public <T> T accept(ValueVisitor<T> visitor) {
             return visitor.visit(this);
+        }
+
+        public Value curry() {
+            return curry_(new ArrayDeque<>(arguments));
+        }
+
+        private Value curry_(Deque<Argument> args) {
+            if (args.isEmpty()) {
+                return body;
+            } else {
+                return new LambdaValue(args.pop(), curry_(args));
+            }
         }
 
         @Override
@@ -771,10 +777,6 @@ public abstract class Value {
             return unboundMethod(sourceRange, valueRef(symbol), type);
         }
 
-        public Value unboundValue(MethodSignature methodSignature, Type value) {
-            throw new UnsupportedOperationException(); // TODO
-        }
-
         public Identifier withSourceRange(SourceRange sourceRange) {
             return new Identifier(sourceRange, symbol, type);
         }
@@ -802,7 +804,7 @@ public abstract class Value {
 
         @Override
         public <T> T accept(ValueVisitor<T> visitor) {
-            throw new UnsupportedOperationException(); // TODO
+            return visitor.visit(this);
         }
 
         @Override
@@ -832,6 +834,10 @@ public abstract class Value {
         @Override
         public int hashCode() {
             return Objects.hash(reference, type);
+        }
+
+        public CodeBlock reference(Scope scope) {
+            return reference.reference(scope);
         }
 
         @Override
@@ -960,6 +966,10 @@ public abstract class Value {
             return collapse().unwrap();
         }
 
+        public Message withMembers(List<Value> members) {
+            return new Message(sourceRange, members);
+        }
+
         public Message withSourceRange(SourceRange sourceRange) {
             return new Message(sourceRange, members);
         }
@@ -973,13 +983,13 @@ public abstract class Value {
     public static class Method extends Value {
 
         private final SourceRange    sourceRange;
-        private final ValueReference valueRef;
+        private final ValueReference reference;
         private final List<Type>     instances;
         private final Type           type;
 
-        private Method(SourceRange sourceRange, ValueReference valueRef, List<Type> instances, Type type) {
+        private Method(SourceRange sourceRange, ValueReference reference, List<Type> instances, Type type) {
             this.sourceRange = sourceRange;
-            this.valueRef = valueRef;
+            this.reference = reference;
             this.instances = ImmutableList.copyOf(instances);
             this.type = type;
         }
@@ -989,14 +999,6 @@ public abstract class Value {
             return visitor.visit(this);
         }
 
-        public Value bind(ClassReference classRef, ModuleReference moduleRef, List<Type> parameters, Type type) {
-            return apply(
-                this,
-                instance(sourceRange, instanceRef(classRef, moduleRef, parameters), type),
-                type
-            );
-        }
-
         @Override
         public boolean equals(Object o) {
             if (o == this) {
@@ -1004,7 +1006,7 @@ public abstract class Value {
             } else if (o instanceof Method) {
                 Method other = (Method) o;
                 return Objects.equals(sourceRange, other.sourceRange)
-                    && Objects.equals(valueRef, other.valueRef)
+                    && Objects.equals(reference, other.reference)
                     && Objects.equals(instances, other.instances)
                     && Objects.equals(type, other.type);
             } else {
@@ -1012,8 +1014,8 @@ public abstract class Value {
             }
         }
 
-        public List<Type> getInstances() {
-            return instances;
+        public int getInstanceCount() {
+            return instances.size();
         }
 
         @Override
@@ -1021,13 +1023,8 @@ public abstract class Value {
             return sourceRange;
         }
 
-        public Type getTargetType() {
-            return instances.stream().reduce(type, (left, right) -> type.accept(new TypeVisitor<Type>() {
-                @Override
-                public Type visit(FunctionType type) {
-                    return type.getResult();
-                }
-            }));
+        public Symbol getSymbol() {
+            return reference.getSymbol();
         }
 
         @Override
@@ -1035,23 +1032,27 @@ public abstract class Value {
             return type;
         }
 
-        public ValueReference getValueRef() {
-            return valueRef;
+        public ValueReference getReference() {
+            return reference;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(valueRef, instances, type);
+            return Objects.hash(reference, instances, type);
+        }
+
+        public CodeBlock reference(Scope scope) {
+            return scope.getValueSignature(reference.getSymbol()).get().reference();
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + valueRef.getMemberName() + " [" + instances.stream().map(Object::toString).collect(joining(", ")) + "])";
+            return stringify(this) + "(" + reference.getMemberName() + " [" + instances.stream().map(Object::toString).collect(joining(", ")) + "])";
         }
 
         @Override
         public Method withType(Type type) {
-            return new Method(sourceRange, valueRef, instances, type);
+            return new Method(sourceRange, reference, instances, type);
         }
     }
 
@@ -1209,10 +1210,21 @@ public abstract class Value {
         }
 
         public Value bind(Scope scope) {
-            List<Type> instances = scope.getRawValue(valueRef).getContexts().stream()
+            List<Type> instances = listInstanceTypes(scope.getRawValue(valueRef));
+            List<Type> instanceTypes = listInstanceTypes(scope.getValue(valueRef));
+            return method(sourceRange, valueRef, instances, scope.generate(getMethodType(instanceTypes)));
+        }
+
+        private List<Type> listInstanceTypes(Type valueType) {
+            return valueType.getContexts().stream()
                 .map(tuple -> tuple.into((type, symbol) -> Type.instance(symbol, type.simplify())))
                 .collect(toList());
-            return method(sourceRange, valueRef, instances, instances.stream().reduce(type, (left, right) -> Type.fn(right, left)));
+        }
+
+        private Type getMethodType(List<Type> instances) {
+            List<Type> reversedInstances = new ArrayList<>(instances);
+            Collections.reverse(reversedInstances);
+            return reversedInstances.stream().reduce(type, (left, right) -> Type.fn(right, left));
         }
 
         @Override
@@ -1241,10 +1253,6 @@ public abstract class Value {
         @Override
         public Type getType() {
             return type;
-        }
-
-        public ValueReference getValueRef() {
-            return valueRef;
         }
 
         @Override
