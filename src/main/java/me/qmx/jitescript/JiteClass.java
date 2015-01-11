@@ -15,10 +15,9 @@
  */
 package me.qmx.jitescript;
 
-import static java.util.Collections.*;
-import static java.util.stream.Collectors.*;
-import static me.qmx.jitescript.CodeBlock.*;
-import static me.qmx.jitescript.util.CodegenUtils.*;
+import static me.qmx.jitescript.CodeBlock.newCodeBlock;
+import static me.qmx.jitescript.util.CodegenUtils.p;
+import static me.qmx.jitescript.util.CodegenUtils.sig;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,15 +31,14 @@ import org.objectweb.asm.tree.ClassNode;
  *
  * @author qmx
  */
-@SuppressWarnings("unchecked")
 public class JiteClass implements Opcodes {
 
     public static final String[] INTERFACES = new String[]{};
-    private final List<MethodDefinition> methods = new ArrayList<>();
-    private final List<FieldDefinition> fields = new ArrayList<>();
-    private final List<String> interfaces = new ArrayList<>();
-    private final List<AnnotationData> annotations = new ArrayList<>();
-    private final List<ChildEntry> childClasses = new ArrayList<>();
+    private final List<MethodDefinition> methods = new ArrayList<MethodDefinition>();
+    private final List<FieldDefinition> fields = new ArrayList<FieldDefinition>();
+    private final List<String> interfaces = new ArrayList<String>();
+    private final List<VisibleAnnotation> annotations = new ArrayList<VisibleAnnotation>();
+    private final List<ChildEntry> childClasses = new ArrayList<ChildEntry>();
     private final String className;
     private final String superClassName;
     private String sourceFile;
@@ -65,7 +63,7 @@ public class JiteClass implements Opcodes {
      * @param interfaces the desired java interfaces this class will implement
      */
     public JiteClass(String className, String[] interfaces) {
-        this(className, p(Object.class), interfaces);
+        this(className, p((Class) Object.class), interfaces);
     }
 
     /**
@@ -78,7 +76,9 @@ public class JiteClass implements Opcodes {
     public JiteClass(String className, String superClassName, String[] interfaces) {
         this.className = className;
         this.superClassName = superClassName;
-        addAll(this.interfaces, interfaces);
+        for (String anInterface : interfaces) {
+            this.interfaces.add(anInterface);
+        }
     }
 
     public int getAccess() {
@@ -91,10 +91,6 @@ public class JiteClass implements Opcodes {
 
     public String getParentClassName() {
         return parentClassName;
-    }
-
-    public String getSuperClassName() {
-        return superClassName;
     }
 
     public String reserveLambda() {
@@ -117,7 +113,7 @@ public class JiteClass implements Opcodes {
         this.sourceDebug = sourceDebug;
     }
 
-    public void addChildClass(JiteClass child) {
+    public void addChildClass(me.qmx.jitescript.JiteClass child) {
         String childName = child.getClassName();
         if (childName.contains("$")) {
             childName = childName.substring(childName.lastIndexOf('$') + 1);
@@ -127,13 +123,17 @@ public class JiteClass implements Opcodes {
         addChildClass(childName.substring(childName.lastIndexOf('$') + 1), child);
     }
 
-    public void addChildClass(String innerName, JiteClass child) {
+    public void addChildClass(String innerName, me.qmx.jitescript.JiteClass child) {
         child.setParentClassName(getClassName());
         childClasses.add(new ChildEntry(innerName, child));
     }
 
-    public List<JiteClass> getChildClasses() {
-        return childClasses.stream().map(ChildEntry::getJiteClass).collect(toList());
+    public List<me.qmx.jitescript.JiteClass> getChildClasses() {
+        List<me.qmx.jitescript.JiteClass> childClasses = new ArrayList<me.qmx.jitescript.JiteClass>();
+        for (ChildEntry child : this.childClasses) {
+            childClasses.add(child.getJiteClass());
+        }
+        return childClasses;
     }
 
     /**
@@ -145,11 +145,7 @@ public class JiteClass implements Opcodes {
      * @param methodBody the method body
      */
     public void defineMethod(String methodName, int modifiers, String signature, CodeBlock methodBody) {
-        addMethod(new MethodDefinition(methodName, modifiers, signature, methodBody));
-    }
-
-    public void addMethod(MethodDefinition methodDefinition) {
-        this.methods.add(methodDefinition);
+        this.methods.add(new MethodDefinition(methodName, modifiers, signature, methodBody));
     }
 
     /**
@@ -165,10 +161,6 @@ public class JiteClass implements Opcodes {
         FieldDefinition field = new FieldDefinition(fieldName, modifiers, signature, value);
         this.fields.add(field);
         return field;
-    }
-
-    public void addField(FieldDefinition field) {
-        this.fields.add(field);
     }
 
     /**
@@ -193,17 +185,11 @@ public class JiteClass implements Opcodes {
      * @return the bytecode representation
      */
     public byte[] toBytes() {
-        return toBytes(JDKVersion.V1_8);
+        return toBytes(JDKVersion.V1_6);
     }
 
-    public void addAnnotation(AnnotationData annotation) {
+    public void addAnnotation(VisibleAnnotation annotation) {
         annotations.add(annotation);
-    }
-
-    public AnnotationData annotate(Class<?> type) {
-        AnnotationData annotation = new AnnotationData(ci(type));
-        addAnnotation(annotation);
-        return annotation;
     }
 
     /**
@@ -212,13 +198,10 @@ public class JiteClass implements Opcodes {
      * @param version the desired JDK version
      * @return the bytecode representation of this class
      */
-    public byte[] toBytes(ClassWriter writer, JDKVersion version) {
+    public byte[] toBytes(JDKVersion version) {
         ClassNode node = new ClassNode();
         node.version = version.getVer();
-        node.access = this.access;
-        if ((node.access & ACC_INTERFACE) == 0) {
-            node.access |= ACC_SUPER;
-        }
+        node.access = this.access | ACC_SUPER;
         node.name = this.className;
         node.superName = this.superClassName;
         node.sourceFile = this.sourceFile;
@@ -236,29 +219,33 @@ public class JiteClass implements Opcodes {
             node.interfaces.addAll(this.interfaces);
         }
 
-        node.methods.addAll(methods.stream().map(MethodDefinition::getMethodNode).collect(toList()));
-        node.fields.addAll(fields.stream().map(FieldDefinition::getFieldNode).collect(toList()));
+        for (MethodDefinition def : methods) {
+            node.methods.add(def.getMethodNode());
+        }
+
+        for (FieldDefinition def : fields) {
+            node.fields.add(def.getFieldNode());
+        }
 
         if (node.visibleAnnotations == null) {
             node.visibleAnnotations = new ArrayList<AnnotationNode>();
         }
 
-        node.visibleAnnotations.addAll(annotations.stream().map(AnnotationData::getNode).collect(toList()));
+        for (VisibleAnnotation a : annotations) {
+            node.visibleAnnotations.add(a.getNode());
+        }
 
-        node.accept(writer);
-        return writer.toByteArray();
-    }
-
-    public byte[] toBytes(JDKVersion version) {
-        return toBytes(new ClassWriter(ClassWriter.COMPUTE_FRAMES), version);
+        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+        node.accept(cw);
+        return cw.toByteArray();
     }
 
     private static final class ChildEntry {
 
         public final String innerName;
-        public final JiteClass jiteClass;
+        public final me.qmx.jitescript.JiteClass jiteClass;
 
-        public ChildEntry(String innerName, JiteClass jiteClass) {
+        public ChildEntry(String innerName, me.qmx.jitescript.JiteClass jiteClass) {
             this.innerName = innerName;
             this.jiteClass = jiteClass;
         }
@@ -275,7 +262,7 @@ public class JiteClass implements Opcodes {
             return innerName;
         }
 
-        public JiteClass getJiteClass() {
+        public me.qmx.jitescript.JiteClass getJiteClass() {
             return jiteClass;
         }
     }

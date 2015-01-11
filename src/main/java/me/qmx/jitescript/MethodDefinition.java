@@ -15,23 +15,20 @@
  */
 package me.qmx.jitescript;
 
-import static java.util.stream.Collectors.toList;
-
 import java.util.ArrayList;
-import java.util.Optional;
+import org.objectweb.asm.tree.LocalVariableNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TryCatchBlockNode;
 
 /**
  * @author qmx
  */
-@SuppressWarnings("unchecked")
 public class MethodDefinition {
 
-    private final String           methodName;
-    private final int              modifiers;
-    private final String           signature;
-    private final CodeBlock        methodBody;
-    private       Optional<String> enclosingMethod;
+    private final String methodName;
+    private final int modifiers;
+    private final String signature;
+    private final CodeBlock methodBody;
 
     public MethodDefinition(String methodName, int modifiers, String signature, CodeBlock methodBody) {
         this.methodName = methodName;
@@ -58,16 +55,17 @@ public class MethodDefinition {
 
     public MethodNode getMethodNode() {
         MethodNode method = new MethodNode(getModifiers(), getMethodName(), getSignature(), null, null);
-        method.visibleAnnotations = new ArrayList<>();
+        method.visibleAnnotations = new ArrayList<VisibleAnnotation>();
         method.instructions.add(getMethodBody().getInstructionList());
-        method.tryCatchBlocks.addAll(getMethodBody().getTryCatchBlockList());
-        method.localVariables.addAll(getMethodBody().getLocalVariableList());
-        method.visibleAnnotations.addAll(methodBody.getAnnotations().stream().map(AnnotationData::getNode).collect(toList()));
+        for (TryCatchBlockNode tryCatchBlockNode : getMethodBody().getTryCatchBlockList()) {
+            method.tryCatchBlocks.add(tryCatchBlockNode);
+        }
+        for (LocalVariableNode localVariableNode : getMethodBody().getLocalVariableList()) {
+            method.localVariables.add(localVariableNode);
+        }
+        for (VisibleAnnotation annotation : methodBody.getAnnotations()) {
+            method.visibleAnnotations.add(annotation.getNode());
+        }
         return method;
-    }
-
-    @Override
-    public String toString() {
-        return methodName + ':' + signature;
     }
 }

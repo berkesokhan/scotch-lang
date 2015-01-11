@@ -20,11 +20,8 @@ import static me.qmx.jitescript.util.CodegenUtils.c;
 import static me.qmx.jitescript.util.CodegenUtils.ci;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.PrintStream;
@@ -192,10 +189,17 @@ public class JiteClassTest {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testLambda() throws Exception {
+
+        if (!System.getProperty("java.version").startsWith("1.8")) {
+            System.out.println("Can't run test without Java 8");
+            return;
+        }
+
         JiteClass test = new JiteClass("Test", new String[0]) {{
-            JiteClass jiteClass = this;
+            final JiteClass jiteClass = this;
             defineDefaultConstructor();
             defineMethod("getCallback", ACC_PUBLIC | ACC_STATIC, sig(UnaryOperator.class), new CodeBlock() {{
                 ldc("Hello, ");
@@ -225,7 +229,21 @@ public class JiteClassTest {
         Class<?> clazz = classLoader.define(test, JDKVersion.V1_8);
         Object callback = clazz.getMethod("getCallback").invoke(null);
 
-        assertThat(callback, instanceOf(UnaryOperator.class));
-        assertThat(((UnaryOperator) callback).apply("World"), equalTo("Hello, World!"));
+        shouldImplement(callback, "java.util.function.UnaryOperator");
+
+        Method method = callback.getClass().getMethod("apply", Object.class);
+        method.setAccessible(true);
+        assertEquals(method.invoke(callback, "World"), "Hello, World!");
+    }
+
+    private void shouldImplement(Object object, String interfaceType) {
+        boolean found = false;
+        for (Class<?> i : object.getClass().getInterfaces()) {
+            if (i.getCanonicalName().equals(interfaceType)) {
+                found = true;
+                break;
+            }
+        }
+        assertTrue(object + " does not implement " + interfaceType, found);
     }
 }

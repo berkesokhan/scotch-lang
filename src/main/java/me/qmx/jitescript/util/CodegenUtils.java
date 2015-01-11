@@ -127,8 +127,8 @@ public final class CodegenUtils {
     public static String sigParams(Class... params) {
         StringBuilder signature = new StringBuilder("(");
 
-        for (Class param : params) {
-            signature.append(ci(param));
+        for (int i = 0; i < params.length; i++) {
+            signature.append(ci(params[i]));
         }
 
         signature.append(")");
@@ -141,8 +141,8 @@ public final class CodegenUtils {
 
         signature.append(descriptor);
 
-        for (Class param : params) {
-            signature.append(ci(param));
+        for (int i = 0; i < params.length; i++) {
+            signature.append(ci(params[i]));
         }
 
         signature.append(")");
@@ -210,8 +210,8 @@ public final class CodegenUtils {
             if (value.getClass().isArray()) {
                 Object[] values = (Object[]) value;
                 AnnotationVisitor arrayV = visitor.visitArray(fieldEntry.getKey());
-                for (Object value1 : values) {
-                    arrayV.visit(null, value1);
+                for (int i = 0; i < values.length; i++) {
+                    arrayV.visit(null, values[i]);
                 }
                 arrayV.visitEnd();
             } else if (value.getClass().isEnum()) {

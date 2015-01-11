@@ -5,19 +5,19 @@ import static me.qmx.jitescript.util.CodegenUtils.ci;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.tree.AnnotationNode;
 
-public class AnnotationData {
+public class VisibleAnnotation {
 
     private final AnnotationVisitor node;
 
-    public AnnotationData(Class<?> type) {
+    public VisibleAnnotation(Class<?> type) {
         this(ci(type));
     }
 
-    public AnnotationData(String desc) {
+    public VisibleAnnotation(String desc) {
         this.node = new AnnotationNode(desc);
     }
 
-    private AnnotationData(AnnotationVisitor node) {
+    private VisibleAnnotation(AnnotationVisitor node) {
         this.node = node;
     }
 
@@ -25,27 +25,27 @@ public class AnnotationData {
         return (AnnotationNode) node;
     }
 
-    public AnnotationData value(String name, Object value) {
+    public VisibleAnnotation value(String name, Object value) {
         node.visit(name, value);
         return this;
     }
 
-    public AnnotationData enumValue(String name, Enum value) {
+    public VisibleAnnotation enumValue(String name, Enum value) {
         enumValue(name, ci(value.getClass()), value.name());
         return this;
     }
 
-    public AnnotationData enumValue(String name, String desc, String value) {
+    public VisibleAnnotation enumValue(String name, String desc, String value) {
         node.visitEnum(name, desc, value);
         return this;
     }
 
-    public AnnotationData annotationValue(String name, Class<?> type) {
+    public VisibleAnnotation annotationValue(String name, Class<?> type) {
         return annotationValue(name, ci(type));
     }
 
-    public AnnotationData annotationValue(String name, String desc) {
-        return new AnnotationData(node.visitAnnotation(name, desc));
+    public VisibleAnnotation annotationValue(String name, String desc) {
+        return new VisibleAnnotation(node.visitAnnotation(name, desc));
     }
 
     public AnnotationArrayValue arrayValue(String name) {
