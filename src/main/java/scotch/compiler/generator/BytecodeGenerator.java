@@ -2,6 +2,7 @@ package scotch.compiler.generator;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
+import static me.qmx.jitescript.JDKVersion.V1_8;
 import static me.qmx.jitescript.util.CodegenUtils.c;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
@@ -20,7 +21,6 @@ import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
 import me.qmx.jitescript.LambdaBlock;
-import me.qmx.jitescript.MethodDefinition;
 import scotch.compiler.CompileException;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Type.FunctionType;
@@ -231,7 +231,7 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
 
     private void endClass() {
         JiteClass jiteClass = jiteClasses.pop();
-        generatedClasses.add(new GeneratedClass(c(jiteClass.getClassName()), jiteClass.toBytes()));
+        generatedClasses.add(new GeneratedClass(c(jiteClass.getClassName()), jiteClass.toBytes(V1_8)));
     }
 
     private CodeBlock generate(Value value) {
@@ -254,7 +254,7 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
     }
 
     private void method(String methodName, int modifiers, String signature, CodeBlock methodBody) {
-        currentClass().addMethod(new MethodDefinition(methodName, modifiers, signature, methodBody));
+        currentClass().defineMethod(methodName, modifiers, signature, methodBody);
     }
 
     private void scoped(Definition definition, Runnable runnable) {
