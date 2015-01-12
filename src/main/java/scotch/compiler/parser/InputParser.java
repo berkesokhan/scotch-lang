@@ -18,9 +18,11 @@ import static scotch.compiler.scanner.Token.TokenKind.DOUBLE;
 import static scotch.compiler.scanner.Token.TokenKind.DOUBLE_ARROW;
 import static scotch.compiler.scanner.Token.TokenKind.DOUBLE_COLON;
 import static scotch.compiler.scanner.Token.TokenKind.EOF;
+import static scotch.compiler.scanner.Token.TokenKind.IN;
 import static scotch.compiler.scanner.Token.TokenKind.INT;
 import static scotch.compiler.scanner.Token.TokenKind.LAMBDA;
 import static scotch.compiler.scanner.Token.TokenKind.LCURLY;
+import static scotch.compiler.scanner.Token.TokenKind.LET;
 import static scotch.compiler.scanner.Token.TokenKind.LPAREN;
 import static scotch.compiler.scanner.Token.TokenKind.RCURLY;
 import static scotch.compiler.scanner.Token.TokenKind.RPAREN;
@@ -309,7 +311,7 @@ public class InputParser {
     private FunctionValue parseFunction() {
         return scoped(() -> node(builderFactory::functionBuilder,
             function -> definition(builderFactory::scopeBuilder, scope -> {
-                Symbol symbol = symbolGenerator.reserveSymbol(currentModule);
+                Symbol symbol = reserveSymbol();
                 require(LAMBDA);
                 function.withSymbol(symbol);
                 function.withArguments(parseArguments());
@@ -468,10 +470,37 @@ public class InputParser {
             require(RPAREN);
         } else if (expects(LAMBDA)) {
             value = parseFunction();
+        } else if (expects(LET)) {
+            value = parseLet();
         } else if (required) {
             throw unexpected(ImmutableList.<TokenKind>builder().add(WORD, LPAREN).addAll(literals).build());
         }
         return ofNullable(value);
+    }
+
+    private Value parseLet() {
+        return scoped(() -> node(builderFactory::letBuilder,
+            let -> definition(builderFactory::scopeBuilder, scope -> {
+                Symbol symbol = reserveSymbol();
+                List<DefinitionReference> definitions = new ArrayList<>();
+                require(LET);
+                require(LCURLY);
+                while (!expects(RCURLY)) {
+                    if (expectsValueSignatures()) {
+                        definitions.addAll(parseValueSignatures());
+                    } else {
+                        definitions.add(parseValueDefinition());
+                    }
+                    require(SEMICOLON);
+                }
+                require(RCURLY);
+                require(IN);
+                scope.withSymbol(symbol);
+                let.withSymbol(symbol)
+                    .withDefinitions(definitions)
+                    .withBody(parseMessage());
+            })
+        ));
     }
 
     private String parseQualifiedName() {
@@ -577,10 +606,14 @@ public class InputParser {
             return scoped(() -> definition(builderFactory::unshuffledBuilder, builder -> {
                 builder.withMatches(parsePatternMatches());
                 require(ASSIGN);
-                builder.withSymbol(symbolGenerator.reserveSymbol(currentModule))
+                builder.withSymbol(reserveSymbol())
                     .withBody(parseMessage());
             }));
         }
+    }
+
+    private Symbol reserveSymbol() {
+        return currentScope().reserveSymbol();
     }
 
     private Type parseValueSignature() {
@@ -697,7 +730,7 @@ public class InputParser {
     }
 
     private Type reserveType() {
-        return symbolGenerator.reserveType();
+        return currentScope().reserveType();
     }
 
     private <T> T scoped(List<Import> imports, Supplier<T> supplier) {

@@ -32,6 +32,17 @@ public class NameAccumulatorTest extends ParserTest {
         shouldBeDefined(scopeRef("scotch.test.($0)"), "b");
     }
 
+    @Test
+    public void shouldAliasLetDeclarations() {
+        parse(
+            "module scotch.test",
+            "main = let",
+            "    f x = a x",
+            "    a g = g + g",
+            "  f 2"
+        );
+    }
+
     @Override
     protected void initResolver(StubResolver resolver) {
         // intentionally empty

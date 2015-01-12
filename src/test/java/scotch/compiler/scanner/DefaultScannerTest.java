@@ -4,6 +4,7 @@ import static java.lang.String.join;
 import static java.lang.System.lineSeparator;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.rules.ExpectedException.none;
 import static scotch.compiler.scanner.Token.TokenKind.ARROW;
@@ -16,6 +17,7 @@ import static scotch.compiler.scanner.Token.TokenKind.IN;
 import static scotch.compiler.scanner.Token.TokenKind.INT;
 import static scotch.compiler.scanner.Token.TokenKind.LAMBDA;
 import static scotch.compiler.scanner.Token.TokenKind.LCURLY;
+import static scotch.compiler.scanner.Token.TokenKind.LET;
 import static scotch.compiler.scanner.Token.TokenKind.LSQUARE;
 import static scotch.compiler.scanner.Token.TokenKind.MATCH;
 import static scotch.compiler.scanner.Token.TokenKind.NEWLINE;
@@ -279,6 +281,11 @@ public class DefaultScannerTest {
         exception.expect(ScanException.class);
         exception.expectMessage(containsString("Cannot quote reserved word 'else' ['test' (1, 2)]"));
         firstFrom(" `else`");
+    }
+
+    @Test
+    public void shouldGetLet() {
+        assertThat(firstFrom("let"), is(token(LET, "let")));
     }
 
     private Token firstFrom(String... data) {

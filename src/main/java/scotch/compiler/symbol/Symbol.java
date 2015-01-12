@@ -71,7 +71,7 @@ public abstract class Symbol implements Comparable<Symbol> {
         .put('>', "$right")
         .put('.', "$dot")
         .put(':', "$doot")
-        .put('#', "$chirp")
+        .put('#', "$")
         .build();
 
     public static Symbol fromString(String name) {

@@ -44,6 +44,7 @@ import scotch.compiler.syntax.Value.DoubleLiteral;
 import scotch.compiler.syntax.Value.FunctionValue;
 import scotch.compiler.syntax.Value.Identifier;
 import scotch.compiler.syntax.Value.IntLiteral;
+import scotch.compiler.syntax.Value.Let;
 import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.syntax.Value.PatternMatchers;
 import scotch.compiler.syntax.Value.StringLiteral;
@@ -132,6 +133,17 @@ public class PrecedenceParser implements
     @Override
     public Value visit(IntLiteral literal) {
         return literal;
+    }
+
+    @Override
+    public Value visit(Let let) {
+        return scoped(let.getReference(), () -> let
+            .withDefinitions(let.getDefinitions().stream()
+                .map(reference -> reference.accept(this))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(toList()))
+            .withBody(let.getBody().accept(this)));
     }
 
     @Override

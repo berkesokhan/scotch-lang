@@ -36,7 +36,6 @@ import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.syntax.DefinitionReference.ClassReference;
 import scotch.compiler.syntax.DefinitionReference.ModuleReference;
 import scotch.compiler.syntax.DefinitionReference.ValueReference;
-import scotch.compiler.syntax.Value.Identifier;
 
 public abstract class Scope implements TypeScope {
 
@@ -59,24 +58,6 @@ public abstract class Scope implements TypeScope {
     public abstract void addDependency(Symbol symbol);
 
     public abstract void addPattern(Symbol symbol, PatternMatcher pattern);
-
-    public Value bind(Identifier identifier) {
-        return identifier.getSymbol().accept(new SymbolVisitor<Value>() {
-            @Override
-            public Value visit(QualifiedSymbol symbol) {
-                if (isMember(symbol) || getValue(symbol).hasContext()) {
-                    return identifier.unboundMethod(getValue(symbol));
-                } else {
-                    return identifier.boundValue(getValue(symbol));
-                }
-            }
-
-            @Override
-            public Value visit(UnqualifiedSymbol symbol) {
-                return identifier.boundArg(getValue(symbol));
-            }
-        });
-    }
 
     public abstract void defineOperator(Symbol symbol, Operator operator);
 

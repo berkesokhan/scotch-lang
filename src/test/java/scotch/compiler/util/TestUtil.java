@@ -50,6 +50,7 @@ import scotch.compiler.syntax.Value.FunctionValue;
 import scotch.compiler.syntax.Value.Identifier;
 import scotch.compiler.syntax.Value.Instance;
 import scotch.compiler.syntax.Value.IntLiteral;
+import scotch.compiler.syntax.Value.Let;
 import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.syntax.Value.Method;
 import scotch.compiler.syntax.Value.PatternMatchers;
@@ -124,6 +125,10 @@ public class TestUtil {
 
     public static Type intType() {
         return sum("scotch.data.int.Int");
+    }
+
+    public static Let let(String name, List<DefinitionReference> definitions, Value body) {
+        return Value.let(NULL_SOURCE, Symbol.fromString(name), definitions, body);
     }
 
     public static BoolLiteral literal(boolean value) {

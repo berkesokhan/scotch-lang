@@ -19,6 +19,7 @@ import scotch.compiler.syntax.builder.PatternMatchBuilder.EqualMatchBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.ArgumentBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.FunctionBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.IdentifierBuilder;
+import scotch.compiler.syntax.builder.ValueBuilder.LetBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.LiteralBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.MessageBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.PatternsBuilder;
@@ -51,6 +52,10 @@ public class SyntaxBuilderFactory {
 
     public IdentifierBuilder idBuilder() {
         return ValueBuilder.idBuilder();
+    }
+
+    public LetBuilder letBuilder() {
+        return ValueBuilder.letBuilder();
     }
 
     public LiteralBuilder literalBuilder() {

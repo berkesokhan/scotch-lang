@@ -284,7 +284,8 @@ public class TypeAnalyzer {
         }
 
         private Value findInstance(Method method, InstanceType instanceType) {
-            Value typeArgument;Set<TypeInstanceDescriptor> typeInstances = currentScope().getTypeInstances(
+            Value typeArgument;
+            Set<TypeInstanceDescriptor> typeInstances = currentScope().getTypeInstances(
                 instanceType.getSymbol(),
                 asList(instanceType.getBinding())
             );
@@ -532,7 +533,7 @@ public class TypeAnalyzer {
 
         @Override
         public Value visit(Identifier identifier) {
-            return currentScope().bind(identifier);
+            return identifier.bind(currentScope());
         }
 
         @Override

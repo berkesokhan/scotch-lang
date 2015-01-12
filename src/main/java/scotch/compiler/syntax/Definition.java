@@ -22,6 +22,7 @@ import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.DefinitionReference.ValueReference;
 import scotch.compiler.syntax.Value.FunctionValue;
+import scotch.compiler.syntax.Value.Let;
 import scotch.compiler.text.SourceRange;
 
 public abstract class Definition {
@@ -44,6 +45,10 @@ public abstract class Definition {
 
     public static ScopeDefinition scopeDef(FunctionValue function) {
         return scopeDef(function.getSourceRange(), function.getSymbol());
+    }
+
+    public static ScopeDefinition scopeDef(Let let) {
+        return scopeDef(let.getSourceRange(), let.getSymbol());
     }
 
     public static ScopeDefinition scopeDef(PatternMatcher matcher) {

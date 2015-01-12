@@ -17,6 +17,8 @@ import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
+import static scotch.compiler.util.TestUtil.let;
+import static scotch.compiler.util.TestUtil.literal;
 import static scotch.compiler.util.TestUtil.message;
 import static scotch.compiler.util.TestUtil.operatorDef;
 import static scotch.compiler.util.TestUtil.operatorRef;
@@ -241,6 +243,24 @@ public class InputParserTest extends ParserTest {
             "scotch.test.($0)",
             asList(arg("x", t(1)), arg("y", t(2)), arg("z", t(3))),
             message(id("x", t(4)), id("y", t(5)), id("z", t(6)))
+        ));
+    }
+
+    @Test
+    public void shouldParseLet() {
+        parse(
+            "module scotch.test",
+            "main = let",
+            "    f x = a x",
+            "    a g = g + g",
+            "  f 2"
+        );
+        shouldHavePattern("scotch.test.($0)", asList(capture("f", t(1)), capture("x", t(2))), message(id("a", t(3)), id("x", t(4))));
+        shouldHavePattern("scotch.test.($1)", asList(capture("a", t(5)), capture("g", t(6))), message(id("g", t(7)), id("+", t(8)), id("g", t(9))));
+        shouldHaveValue("scotch.test.main", let(
+            "scotch.test.($2)",
+            asList(scopeRef("scotch.test.($0)"), scopeRef("scotch.test.($1)")),
+            message(id("f", t(10)), literal(2))
         ));
     }
 

@@ -16,9 +16,12 @@ import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.equal;
 import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
+import static scotch.compiler.util.TestUtil.let;
 import static scotch.compiler.util.TestUtil.literal;
+import static scotch.compiler.util.TestUtil.message;
 import static scotch.compiler.util.TestUtil.pattern;
 import static scotch.compiler.util.TestUtil.patterns;
+import static scotch.compiler.util.TestUtil.scopeRef;
 import static scotch.compiler.util.TestUtil.valueRef;
 
 import java.util.function.Function;
@@ -122,6 +125,33 @@ public class SyntaxParserTest extends ParserTest {
                 )
             ))
         ));
+    }
+
+    @Test
+    public void shouldParseLet() {
+        parse(
+            "module scotch.test",
+            "left infix 7 (+)",
+            "main = let",
+            "    f x = a x",
+            "    a g = g + g",
+            "  f 2"
+        );
+        shouldHaveValue("scotch.test.main", let(
+            "scotch.test.($2)",
+            asList(scopeRef("scotch.test.(main#f)"), scopeRef("scotch.test.(main#a)")),
+            message(id("scotch.test.(main#f)", t(10)), literal(2))
+        ));
+        shouldHaveValue("scotch.test.(main#f)", fn("scotch.test.($4)", asList(arg("$0", t(0))), patterns(t(0), pattern(
+            "scotch.test.($5)",
+            asList(capture("$0", "x", t(0))),
+            apply(id("scotch.test.(main#a)", t(0)), id("x", t(0)), t(0))
+        ))));
+        shouldHaveValue("scotch.test.(main#a)", fn("scotch.test.($6)", asList(arg("$0", t(0))), patterns(t(0), pattern(
+            "scotch.test.($7)",
+            asList(capture("$0", "g", t(0))),
+            apply(apply(id("scotch.test.(+)", t(0)), id("g", t(0)), t(0)), id("g", t(0)), t(0))
+        ))));
     }
 
     @Ignore
