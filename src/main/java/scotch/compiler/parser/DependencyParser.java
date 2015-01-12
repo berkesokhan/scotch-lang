@@ -46,10 +46,10 @@ import scotch.compiler.syntax.Value.ValueVisitor;
 import scotch.compiler.text.SourceRange;
 
 public class DependencyParser implements
-    PatternMatchVisitor<Object>,
-    ValueVisitor<Object>,
-    DefinitionVisitor<Object>,
-    DefinitionReferenceVisitor<Object> {
+    PatternMatchVisitor<Void>,
+    ValueVisitor<Void>,
+    DefinitionVisitor<Void>,
+    DefinitionReferenceVisitor<Void> {
 
     private final DefinitionGraph   graph;
     private final Deque<Scope>      scopes;
@@ -72,44 +72,44 @@ public class DependencyParser implements
     }
 
     @Override
-    public Object visit(Apply apply) {
+    public Void visit(Apply apply) {
         apply.getFunction().accept(this);
         apply.getArgument().accept(this);
         return null;
     }
 
     @Override
-    public Object visit(BoolLiteral literal) {
+    public Void visit(BoolLiteral literal) {
         return null;
     }
 
     @Override
-    public Object visit(CharLiteral literal) {
+    public Void visit(CharLiteral literal) {
         return null;
     }
 
     @Override
-    public Object visit(DoubleLiteral literal) {
+    public Void visit(DoubleLiteral literal) {
         return null;
     }
 
     @Override
-    public Object visit(EqualMatch match) {
+    public Void visit(EqualMatch match) {
         match.getValue().accept(this);
         return null;
     }
 
     @Override
-    public Object visit(FunctionValue function) {
+    public Void visit(FunctionValue function) {
         function.getBody().accept(this);
         return null;
     }
 
     @Override
-    public Object visit(Identifier identifier) {
-        return identifier.getSymbol().accept(new SymbolVisitor<Object>() {
+    public Void visit(Identifier identifier) {
+        return identifier.getSymbol().accept(new SymbolVisitor<Void>() {
             @Override
-            public Object visit(QualifiedSymbol symbol) {
+            public Void visit(QualifiedSymbol symbol) {
                 if (!symbols.peek().equals(symbol)) {
                     currentScope().addDependency(symbol);
                 }
@@ -117,30 +117,30 @@ public class DependencyParser implements
             }
 
             @Override
-            public Object visit(UnqualifiedSymbol symbol) {
+            public Void visit(UnqualifiedSymbol symbol) {
                 return null;
             }
         });
     }
 
     @Override
-    public Object visit(IntLiteral literal) {
+    public Void visit(IntLiteral literal) {
         return null;
     }
 
     @Override
-    public Object visit(ModuleDefinition definition) {
+    public Void visit(ModuleDefinition definition) {
         definition.getDefinitions().forEach(reference -> reference.accept(this));
         return null;
     }
 
     @Override
-    public Object visit(OperatorDefinition definition) {
+    public Void visit(OperatorDefinition definition) {
         return null;
     }
 
     @Override
-    public Object visit(PatternMatchers matchers) {
+    public Void visit(PatternMatchers matchers) {
         matchers.getMatchers().forEach(matcher -> {
             matcher.getMatches().forEach(match -> match.accept(this));
             matcher.getBody().accept(this);
@@ -149,18 +149,18 @@ public class DependencyParser implements
     }
 
     @Override
-    public Object visit(RootDefinition definition) {
+    public Void visit(RootDefinition definition) {
         definition.getDefinitions().forEach(reference -> reference.accept(this));
         return null;
     }
 
     @Override
-    public Object visit(StringLiteral literal) {
+    public Void visit(StringLiteral literal) {
         return null;
     }
 
     @Override
-    public Object visit(ValueDefinition definition) {
+    public Void visit(ValueDefinition definition) {
         symbols.push(definition.getSymbol());
         try {
             definition.getBody().accept(this);
@@ -171,18 +171,21 @@ public class DependencyParser implements
     }
 
     @Override
-    public Object visit(ValueSignature signature) {
+    public Void visit(ValueSignature signature) {
         return null;
     }
 
     @Override
-    public Object visitOtherwise(PatternMatch match) {
+    public Void visitOtherwise(PatternMatch match) {
         return null; // TODO
     }
 
     @Override
-    public Object visitOtherwise(DefinitionReference reference) {
-        return scoped(reference, () -> graph.getDefinition(reference).map(definition -> definition.accept(this)));
+    public Void visitOtherwise(DefinitionReference reference) {
+        return scoped(reference, () -> {
+            graph.getDefinition(reference).map(definition -> definition.accept(this));
+            return null;
+        });
     }
 
     private Scope currentScope() {
