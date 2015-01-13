@@ -22,16 +22,19 @@ import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
 import me.qmx.jitescript.LambdaBlock;
 import scotch.compiler.CompileException;
+import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Type.FunctionType;
 import scotch.compiler.symbol.Type.TypeVisitor;
-import scotch.compiler.syntax.Definition;
 import scotch.compiler.syntax.Definition.DefinitionVisitor;
 import scotch.compiler.syntax.Definition.ModuleDefinition;
 import scotch.compiler.syntax.Definition.RootDefinition;
 import scotch.compiler.syntax.Definition.ValueDefinition;
 import scotch.compiler.syntax.DefinitionGraph;
 import scotch.compiler.syntax.DefinitionReference;
+import scotch.compiler.syntax.PatternMatch;
+import scotch.compiler.syntax.PatternMatch.CaptureMatch;
+import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
 import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
@@ -43,6 +46,7 @@ import scotch.compiler.syntax.Value.Instance;
 import scotch.compiler.syntax.Value.IntLiteral;
 import scotch.compiler.syntax.Value.LambdaValue;
 import scotch.compiler.syntax.Value.Method;
+import scotch.compiler.syntax.Value.PatternMatchers;
 import scotch.compiler.syntax.Value.StringLiteral;
 import scotch.compiler.syntax.Value.ValueVisitor;
 import scotch.compiler.text.SourceRange;
@@ -50,13 +54,19 @@ import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 import scotch.runtime.SuppliedThunk;
 
-public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<CodeBlock> {
+public class BytecodeGenerator implements
+    DefinitionVisitor<Void>,
+    ValueVisitor<CodeBlock>,
+    PatternMatchVisitor<CodeBlock> {
 
     private final DefinitionGraph      graph;
     private final Deque<JiteClass>     jiteClasses;
     private final List<GeneratedClass> generatedClasses;
     private final Deque<Scope>         scopes;
     private final Deque<List<String>>  arguments;
+    private final Deque<List<String>>  matches;
+    private       int                  lambdas;
+    private       int                  applies;
 
     public BytecodeGenerator(DefinitionGraph graph) {
         this.graph = graph;
@@ -64,6 +74,7 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
         this.generatedClasses = new ArrayList<>();
         this.scopes = new ArrayDeque<>();
         this.arguments = new ArrayDeque<>(asList(ImmutableList.of()));
+        this.matches = new ArrayDeque<>(asList(ImmutableList.of()));
     }
 
     public List<GeneratedClass> generate() {
@@ -79,17 +90,21 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
         return new CodeBlock() {{
             newobj(p(SuppliedThunk.class));
             dup();
-            currentArgs().forEach(arg -> aload(currentArgs().indexOf(arg)));
-            lambda(currentClass(), new LambdaBlock() {{
+            append(captureApply());
+            lambda(currentClass(), new LambdaBlock("apply$" + applies++) {{
                 function(p(Supplier.class), "get", sig(Object.class));
                 specialize(sig(Callable.class));
-                capture(getArgumentTypes());
-                delegateTo(ACC_STATIC, sig(Callable.class, getArgumentTypes()), new CodeBlock() {{
+                capture(getCaptureAllTypes());
+                Class<?> returnType = typeOf(apply.getType());
+                delegateTo(ACC_STATIC, sig(returnType, getCaptureAllTypes()), new CodeBlock() {{
                     append(generate(apply.getFunction()));
                     invokeinterface(p(Callable.class), "call", sig(Object.class));
                     checkcast(p(Applicable.class));
                     append(generate(apply.getArgument()));
                     invokeinterface(p(Applicable.class), "apply", sig(Callable.class, Callable.class));
+                    if (returnType != Callable.class) {
+                        checkcast(p(returnType));
+                    }
                     areturn();
                 }});
             }});
@@ -100,13 +115,22 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
     @Override
     public CodeBlock visit(Argument argument) {
         return new CodeBlock() {{
-            aload(arguments.peek().indexOf(argument.getName()));
+            aload(getVariable(argument.getName()));
         }};
     }
 
     @Override
     public CodeBlock visit(BoundValue boundValue) {
         return boundValue.reference(currentScope());
+    }
+
+    @Override
+    public CodeBlock visit(CaptureMatch match) {
+        return new CodeBlock() {{
+            getMatches().add(match.getName());
+            aload(getVariable(match.getArgument()));
+            astore(getVariable(match.getName()));
+        }};
     }
 
     @Override
@@ -119,7 +143,12 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
 
     @Override
     public CodeBlock visit(FunctionValue function) {
-        return generate(function.curry()).areturn();
+        return scoped(function.getReference(), () -> {
+            arguments.push(new ArrayList<>());
+            CodeBlock result = generate(function.curry());
+            arguments.pop();
+            return result;
+        });
     }
 
     @Override
@@ -138,23 +167,16 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
     @Override
     public CodeBlock visit(LambdaValue lambda) {
         return new CodeBlock() {{
-            currentArgs().forEach(arg -> aload(currentArgs().indexOf(arg)));
-            lambda(currentClass(), new LambdaBlock() {{
+            append(captureLambda(lambda.getArgumentName()));
+            lambda(currentClass(), new LambdaBlock("lambda$" + lambdas++) {{
                 function(p(Applicable.class), "apply", sig(Callable.class, Callable.class));
-                capture(getArgumentTypes());
-                arguments.push(ImmutableList.<String>builder()
-                    .addAll(currentArgs())
-                    .add(lambda.getArgumentName())
-                    .build());
-                try {
-                    delegateTo(ACC_STATIC, sig(Callable.class, getArgumentTypes()), new CodeBlock() {{
-                        append(generate(lambda.getBody()));
-                        areturn();
-                    }});
-                } finally {
-                    arguments.pop();
-                }
+                capture(getLambdaCaptureTypes());
+                delegateTo(ACC_STATIC, sig(typeOf(lambda.getBody().getType()), getLambdaType()), new CodeBlock() {{
+                    append(generate(lambda.getBody()));
+                    areturn();
+                }});
             }});
+            releaseLambda(lambda.getArgumentName());
         }};
     }
 
@@ -165,19 +187,34 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
 
     @Override
     public Void visit(ModuleDefinition definition) {
-        scoped(definition, () -> {
+        return scoped(definition.getReference(), () -> {
             beginClass(definition.getClassName(), definition.getSourceRange());
             currentClass().defineDefaultConstructor(ACC_PRIVATE);
             generateAll(definition.getDefinitions());
             endClass();
+            return null;
         });
-        return null;
+    }
+
+    @Override
+    public CodeBlock visit(PatternMatchers matchers) {
+        return new CodeBlock() {{
+            matchers.getMatchers().forEach(matcher -> scoped(matcher.getReference(), () -> {
+                matches.push(new ArrayList<>());
+                matcher.getMatches().forEach(match -> append(generate(match)));
+                append(generate(matcher.getBody()));
+                matches.pop();
+                return null;
+            }));
+        }};
     }
 
     @Override
     public Void visit(RootDefinition definition) {
-        scoped(definition, () -> generateAll(definition.getDefinitions()));
-        return null;
+        return scoped(definition.getReference(), () -> {
+            generateAll(definition.getDefinitions());
+            return null;
+        });
     }
 
     @Override
@@ -190,7 +227,7 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
 
     @Override
     public Void visit(ValueDefinition definition) {
-        scoped(definition, () -> {
+        return scoped(definition.getReference(), () -> {
             String signature = definition.getType().accept(new TypeVisitor<String>() {
                 @Override
                 public String visit(FunctionType type) {
@@ -208,8 +245,8 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
                 append(generate(definition.getBody()));
                 areturn();
             }});
+            return null;
         });
-        return null;
     }
 
     private void beginClass(String className, SourceRange sourceRange) {
@@ -217,8 +254,43 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
         currentClass().setSourceFile(sourceRange.getSourceName());
     }
 
-    private List<String> currentArgs() {
+    private CodeBlock captureApply() {
+        List<String> variables = ImmutableList.<String>builder()
+            .addAll(getCaptures())
+            .addAll(getLocals())
+            .addAll(getArguments())
+            .addAll(getMatches())
+            .build();
+        return variables.stream()
+            .map(variables::indexOf)
+            .map(new CodeBlock()::aload)
+            .reduce(new CodeBlock(), CodeBlock::append);
+    }
+
+    private CodeBlock captureLambda(String lambdaArgument) {
+        List<String> variables = ImmutableList.<String>builder()
+            .addAll(getCaptures())
+            .addAll(getArguments())
+            .addAll(getMatches())
+            .build();
+        CodeBlock block = variables.stream()
+            .map(this::getVariable)
+            .map(new CodeBlock()::aload)
+            .reduce(new CodeBlock(), CodeBlock::append);
+        getArguments().add(lambdaArgument);
+        return block;
+    }
+
+    private List<String> getMatches() {
+        return matches.peek();
+    }
+
+    private List<String> getArguments() {
         return arguments.peek();
+    }
+
+    private List<String> getCaptures() {
+        return currentScope().getCaptures();
     }
 
     private JiteClass currentClass() {
@@ -238,6 +310,10 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
         return value.accept(this);
     }
 
+    private CodeBlock generate(PatternMatch match) {
+        return match.accept(this);
+    }
+
     private void generateAll(List<DefinitionReference> definitions) {
         definitions.stream()
             .map(this.graph::getDefinition)
@@ -246,21 +322,70 @@ public class BytecodeGenerator implements DefinitionVisitor<Void>, ValueVisitor<
             .forEach(definition -> definition.accept(this));
     }
 
-    private Class<?>[] getArgumentTypes() {
-        return currentArgs().stream()
-            .map(arg -> Callable.class)
-            .collect(toList())
-            .toArray(new Class<?>[currentArgs().size()]);
+    private Class<?>[] getCaptureAllTypes() {
+        List<Class<?>> types = ImmutableList.<Class<?>>builder()
+            .addAll(getCaptureTypes(getCaptures()))
+            .addAll(getCaptureTypes(getLocals()))
+            .addAll(getCaptureTypes(getArguments()))
+            .addAll(getCaptureTypes(getMatches()))
+            .build();
+        return types.toArray(new Class<?>[types.size()]);
+    }
+
+    private List<String> getLocals() {
+        return currentScope().getLocals();
+    }
+
+    private List<Class<? extends Callable>> getCaptureTypes(List<String> captures) {
+        return captures.stream()
+            .map(Symbol::unqualified)
+            .map(currentScope()::getValue)
+            .map(this::typeOf)
+            .collect(toList());
+    }
+
+    private Class<? extends Callable> typeOf(Type type) {
+        return type instanceof FunctionType ? Applicable.class : Callable.class;
+    }
+
+    private Class<?>[] getLambdaCaptureTypes() {
+        List<Class<?>> types = ImmutableList.<Class<?>>builder()
+            .addAll(getCaptureTypes(getCaptures()))
+            .addAll(getCaptureTypes(getArguments().subList(0, getArguments().size() - 1)))
+            .build();
+        return types.toArray(new Class<?>[types.size()]);
+    }
+
+    private Class<?>[] getLambdaType() {
+        List<Class<?>> types = ImmutableList.<Class<?>>builder()
+            .addAll(getCaptureTypes(getCaptures()))
+            .addAll(getCaptureTypes(getArguments()))
+            .build();
+        return types.toArray(new Class<?>[types.size()]);
+    }
+
+    private int getVariable(String name) {
+        return ImmutableList.<String>builder()
+            .addAll(getCaptures())
+            .addAll(getLocals())
+            .addAll(getArguments())
+            .addAll(getMatches())
+            .build()
+            .indexOf(name);
     }
 
     private void method(String methodName, int modifiers, String signature, CodeBlock methodBody) {
         currentClass().defineMethod(methodName, modifiers, signature, methodBody);
     }
 
-    private void scoped(Definition definition, Runnable runnable) {
-        scopes.push(graph.getScope(definition.getReference()));
+    private void releaseLambda(String lambdaArgument) {
+        getArguments().remove(lambdaArgument);
+    }
+
+    private <T> T scoped(DefinitionReference reference, Supplier<T> supplier) {
+        scopes.push(graph.getScope(reference));
         try {
-            runnable.run();
+            return supplier.get();
         } finally {
             scopes.pop();
         }

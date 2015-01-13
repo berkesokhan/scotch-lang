@@ -7,10 +7,8 @@ import static scotch.compiler.syntax.SyntaxError.cyclicDependency;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Supplier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Symbol.QualifiedSymbol;
@@ -24,6 +22,7 @@ import scotch.compiler.syntax.Definition.ValueDefinition;
 import scotch.compiler.syntax.Definition.ValueSignature;
 import scotch.compiler.syntax.DefinitionEntry;
 import scotch.compiler.syntax.DefinitionGraph;
+import scotch.compiler.syntax.DefinitionNode;
 import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.DefinitionReference.DefinitionReferenceVisitor;
 import scotch.compiler.syntax.DefinitionReference.ValueReference;
@@ -43,7 +42,6 @@ import scotch.compiler.syntax.Value.IntLiteral;
 import scotch.compiler.syntax.Value.PatternMatchers;
 import scotch.compiler.syntax.Value.StringLiteral;
 import scotch.compiler.syntax.Value.ValueVisitor;
-import scotch.compiler.text.SourceRange;
 
 public class DependencyParser implements
     PatternMatchVisitor<Void>,
@@ -245,45 +243,6 @@ public class DependencyParser implements
             errors.add(cyclicDependency(DependencyCycle.fromNodes(nodes)));
             output.addAll(nodes.stream().map(DefinitionNode::getEntry).collect(toList()));
             return output;
-        }
-    }
-
-    public final class DefinitionNode {
-
-        private final DefinitionEntry entry;
-        private final Set<Symbol>     dependencies;
-
-        public DefinitionNode(DefinitionEntry entry) {
-            this.entry = entry;
-            this.dependencies = new HashSet<>(entry.getDependencies());
-        }
-
-        public Set<Symbol> getDependencies() {
-            return dependencies;
-        }
-
-        public DefinitionEntry getEntry() {
-            return entry;
-        }
-
-        public SourceRange getSourceRange() {
-            return entry.getSourceRange();
-        }
-
-        public Symbol getSymbol() {
-            return entry.getSymbol();
-        }
-
-        public boolean hasDependencies() {
-            return !dependencies.isEmpty();
-        }
-
-        public boolean isDependentOn(DefinitionNode node) {
-            return dependencies.contains(node.getSymbol());
-        }
-
-        public void removeDependency(DefinitionNode node) {
-            dependencies.remove(node.getSymbol());
         }
     }
 }

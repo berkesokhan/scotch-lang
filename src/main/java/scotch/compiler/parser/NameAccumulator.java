@@ -66,8 +66,8 @@ public class NameAccumulator implements
     @Override
     public Value visit(Apply apply) {
         return apply
-            .withFunction(apply.getFunction())
-            .withArgument(apply.getArgument());
+            .withFunction(apply.getFunction().accept(this))
+            .withArgument(apply.getArgument().accept(this));
     }
 
     @Override

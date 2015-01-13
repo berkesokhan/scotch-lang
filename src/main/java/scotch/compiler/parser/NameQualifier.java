@@ -58,7 +58,7 @@ public class NameQualifier implements
     private final DefinitionGraph                           graph;
     private final Map<DefinitionReference, DefinitionEntry> definitions;
     private final Deque<Scope>                              scopes;
-    private final List<SyntaxError> errors;
+    private final List<SyntaxError>                         errors;
 
     public NameQualifier(DefinitionGraph graph) {
         this.graph = graph;
@@ -179,7 +179,7 @@ public class NameQualifier implements
 
     @Override
     public Definition visit(ValueDefinition definition) {
-        return definition.withBody(definition.getBody().accept(this));
+        return scoped(definition.getReference(), () -> definition.withBody(definition.getBody().accept(this)));
     }
 
     @Override

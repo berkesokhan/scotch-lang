@@ -12,7 +12,6 @@ import static scotch.compiler.symbol.Unification.circular;
 import static scotch.compiler.symbol.Unification.contextMismatch;
 import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.symbol.Unification.unified;
-import static scotch.compiler.syntax.DefinitionReference.classRef;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 import static scotch.data.tuple.TupleValues.tuple2;
 
@@ -30,7 +29,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
-import scotch.compiler.syntax.DefinitionReference.ClassReference;
 import scotch.compiler.text.SourceRange;
 import scotch.data.tuple.Tuple2;
 
@@ -353,10 +351,6 @@ public abstract class Type {
 
         public Type getBinding() {
             return binding;
-        }
-
-        public ClassReference getClassRef() {
-            return classRef(symbol);
         }
 
         @Override
@@ -685,7 +679,7 @@ public abstract class Type {
         private Optional<Unification> unify_(Type target, TypeScope scope) {
             if (scope.isBound(this)) {
                 return Optional.of(target.unify(scope.getTarget(this), scope));
-            } else if (target.contains(this)) {
+            } else if (target.contains(this) && !equals(target)) {
                 return Optional.of(circular(target, this));
             } else {
                 return Optional.empty();
@@ -729,14 +723,16 @@ public abstract class Type {
 
         @Override
         protected Unification unifyWith(VariableType target, TypeScope scope) {
-            return unify_(target, scope).orElseGet(() -> {
+            if (scope.isBound(this)) {
+                return target.unify(scope.getTarget(this), scope);
+            } else {
                 Set<Symbol> additionalContext = new HashSet<>();
                 additionalContext.addAll(context);
                 additionalContext.addAll(target.context);
                 scope.extendContext(target, additionalContext);
                 scope.extendContext(this, additionalContext);
                 return bind(target, scope);
-            });
+            }
         }
     }
 }

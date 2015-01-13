@@ -8,7 +8,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import com.google.common.collect.ImmutableSet;
-import scotch.compiler.parser.DependencyParser.DefinitionNode;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.text.SourceRange;
 

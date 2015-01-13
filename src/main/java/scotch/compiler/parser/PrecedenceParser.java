@@ -137,7 +137,7 @@ public class PrecedenceParser implements
     @Override
     public Value visit(Message message) {
         if (message.getMembers().size() == 1) {
-            return message;
+            return message.getMembers().get(0).accept(this);
         } else {
             return valueShuffler.shuffle(currentScope(), message.getMembers()).accept(new EitherVisitor<SyntaxError, Value, Value>() {
                 @Override
@@ -243,7 +243,7 @@ public class PrecedenceParser implements
                 .withPatterns(patterns)
                 .build())
             .build();
-        collect(scopeDef(function));
+        definitions.put(function.getReference(), entry(functionScopes.get(function.getReference()), scopeDef(function)));
         return function;
     }
 

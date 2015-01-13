@@ -58,6 +58,10 @@ public abstract class Scope implements TypeScope {
 
     public abstract void addDependency(Symbol symbol);
 
+    public void addLocal(String argument) {
+        throw new IllegalStateException();
+    }
+
     public abstract void addPattern(Symbol symbol, PatternMatcher pattern);
 
     public Value bind(Identifier identifier) {
@@ -78,6 +82,10 @@ public abstract class Scope implements TypeScope {
         });
     }
 
+    public void capture(String argument) {
+        throw new IllegalStateException();
+    }
+
     public abstract void defineOperator(Symbol symbol, Operator operator);
 
     public abstract void defineSignature(Symbol symbol, Type type);
@@ -90,7 +98,15 @@ public abstract class Scope implements TypeScope {
 
     public abstract void generalize(Type type);
 
+    public List<String> getCaptures() {
+        throw new IllegalStateException();
+    }
+
     public abstract Set<Symbol> getDependencies();
+
+    public List<String> getLocals() {
+        throw new IllegalStateException();
+    }
 
     public abstract TypeClassDescriptor getMemberOf(ValueReference valueRef);
 
@@ -145,6 +161,10 @@ public abstract class Scope implements TypeScope {
 
     public abstract Scope leaveScope();
 
+    public void prependLocals(List<String> locals) {
+        throw new IllegalStateException();
+    }
+
     public abstract Optional<Symbol> qualify(Symbol symbol);
 
     public abstract Symbol qualifyCurrent(Symbol symbol);
@@ -196,6 +216,8 @@ public abstract class Scope implements TypeScope {
         private final Map<Symbol, SymbolEntry>          entries;
         private final Map<Symbol, List<PatternMatcher>> patterns;
         private final Set<Symbol>                       dependencies;
+        private final List<String>                      captures;
+        private final List<String>                      locals;
         private       Scope                             parent;
 
         private ChildScope(Scope parent, TypeScope types) {
@@ -205,12 +227,23 @@ public abstract class Scope implements TypeScope {
             this.entries = new HashMap<>();
             this.patterns = new LinkedHashMap<>();
             this.dependencies = new HashSet<>();
+            this.captures = new ArrayList<>();
+            this.locals = new ArrayList<>();
         }
 
         @Override
         public void addDependency(Symbol symbol) {
             if (!isExternal(symbol)) {
                 dependencies.add(symbol);
+            }
+        }
+
+        @Override
+        public void addLocal(String argument) {
+            if (captures.contains(argument)) {
+                throw new IllegalStateException("Argument " + quote(argument) + " is a capture!");
+            } else if (!locals.contains(argument)) {
+                locals.add(argument);
             }
         }
 
@@ -221,6 +254,13 @@ public abstract class Scope implements TypeScope {
         @Override
         public Unification bind(VariableType variableType, Type target) {
             return types.bind(variableType, target);
+        }
+
+        @Override
+        public void capture(String argument) {
+            if (!locals.contains(argument) && !captures.contains(argument)) {
+                captures.add(argument);
+            }
         }
 
         @Override
@@ -271,6 +311,11 @@ public abstract class Scope implements TypeScope {
         }
 
         @Override
+        public List<String> getCaptures() {
+            return ImmutableList.copyOf(captures);
+        }
+
+        @Override
         public Set<Symbol> getContext(Type type) {
             return ImmutableSet.<Symbol>builder()
                 .addAll(types.getContext(type))
@@ -281,6 +326,11 @@ public abstract class Scope implements TypeScope {
         @Override
         public Set<Symbol> getDependencies() {
             return new HashSet<>(dependencies);
+        }
+
+        @Override
+        public List<String> getLocals() {
+            return ImmutableList.copyOf(locals);
         }
 
         @Override
@@ -365,6 +415,11 @@ public abstract class Scope implements TypeScope {
         @Override
         public Scope leaveScope() {
             return parent;
+        }
+
+        @Override
+        public void prependLocals(List<String> locals) {
+            this.locals.addAll(0, locals);
         }
 
         @Override

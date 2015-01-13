@@ -26,9 +26,13 @@ import scotch.compiler.syntax.PatternMatcher;
 import scotch.compiler.syntax.Scope;
 import scotch.compiler.syntax.Value;
 import scotch.compiler.syntax.Value.Apply;
+import scotch.compiler.syntax.Value.DoubleLiteral;
 import scotch.compiler.syntax.Value.FunctionValue;
+import scotch.compiler.syntax.Value.Identifier;
+import scotch.compiler.syntax.Value.IntLiteral;
 import scotch.compiler.syntax.Value.Message;
 import scotch.compiler.syntax.Value.PatternMatchers;
+import scotch.compiler.syntax.Value.StringLiteral;
 import scotch.compiler.syntax.Value.ValueVisitor;
 
 public class OperatorParser implements
@@ -59,11 +63,26 @@ public class OperatorParser implements
     }
 
     @Override
+    public Value visit(DoubleLiteral literal) {
+        return literal;
+    }
+
+    @Override
     public Value visit(FunctionValue function) {
         return scoped(function.getReference(), () -> {
             collect(scopeDef(function));
             return function.withBody(function.getBody().accept(this));
         });
+    }
+
+    @Override
+    public Value visit(Identifier identifier) {
+        return identifier;
+    }
+
+    @Override
+    public Value visit(IntLiteral literal) {
+        return literal;
     }
 
     @Override
@@ -101,8 +120,13 @@ public class OperatorParser implements
     }
 
     @Override
+    public Value visit(StringLiteral literal) {
+        return literal;
+    }
+
+    @Override
     public Definition visit(UnshuffledPattern pattern) {
-        return collect(pattern);
+        return collect(pattern.withBody(pattern.getBody().accept(this)));
     }
 
     @Override
@@ -122,11 +146,6 @@ public class OperatorParser implements
             .map(this::collect)
             .map(Definition::getReference)
             .get());
-    }
-
-    @Override
-    public Value visitOtherwise(Value value) {
-        return value;
     }
 
     private Definition collect(Definition definition) {

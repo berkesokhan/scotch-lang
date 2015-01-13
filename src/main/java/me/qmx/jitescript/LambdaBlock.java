@@ -43,6 +43,15 @@ public class LambdaBlock {
     private String interfaceSignature;
     /** The specialized functional interface method signature. */
     private String specializedSignature;
+    private String lambdaName;
+
+    public LambdaBlock() {
+        // intentionally empty
+    }
+
+    public LambdaBlock(String lambdaName) {
+        this.lambdaName = lambdaName;
+    }
 
     /**
      * Applies this lambda block to the given class and code block, inserting the associated invokedynamic instruction.
@@ -52,7 +61,9 @@ public class LambdaBlock {
      */
     public void apply(JiteClass jiteClass, CodeBlock block) {
         int handleType = ((implementationAccess & ACC_STATIC) == ACC_STATIC) ? H_INVOKESTATIC : H_INVOKEVIRTUAL;
-        String lambdaName = jiteClass.reserveLambda();
+        if (lambdaName == null) {
+            lambdaName = jiteClass.reserveLambda();
+        }
         jiteClass.defineMethod(lambdaName, implementationAccess, implementationSignature, implementationCode);
         block.invokedynamic(interfaceMethod, getCallSiteSignature(), METAFACTORY,
             getMethodType(interfaceSignature),
