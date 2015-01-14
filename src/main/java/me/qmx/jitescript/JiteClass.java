@@ -119,7 +119,7 @@ public class JiteClass implements Opcodes {
         this.sourceDebug = sourceDebug;
     }
 
-    public void addChildClass(me.qmx.jitescript.JiteClass child) {
+    public void addChildClass(JiteClass child) {
         String childName = child.getClassName();
         if (childName.contains("$")) {
             childName = childName.substring(childName.lastIndexOf('$') + 1);
@@ -129,13 +129,13 @@ public class JiteClass implements Opcodes {
         addChildClass(childName.substring(childName.lastIndexOf('$') + 1), child);
     }
 
-    public void addChildClass(String innerName, me.qmx.jitescript.JiteClass child) {
+    public void addChildClass(String innerName, JiteClass child) {
         child.setParentClassName(getClassName());
         childClasses.add(new ChildEntry(innerName, child));
     }
 
-    public List<me.qmx.jitescript.JiteClass> getChildClasses() {
-        List<me.qmx.jitescript.JiteClass> childClasses = new ArrayList<me.qmx.jitescript.JiteClass>();
+    public List<JiteClass> getChildClasses() {
+        List<JiteClass> childClasses = new ArrayList<JiteClass>();
         for (ChildEntry child : this.childClasses) {
             childClasses.add(child.getJiteClass());
         }
@@ -249,9 +249,9 @@ public class JiteClass implements Opcodes {
     private static final class ChildEntry {
 
         public final String innerName;
-        public final me.qmx.jitescript.JiteClass jiteClass;
+        public final JiteClass jiteClass;
 
-        public ChildEntry(String innerName, me.qmx.jitescript.JiteClass jiteClass) {
+        public ChildEntry(String innerName, JiteClass jiteClass) {
             this.innerName = innerName;
             this.jiteClass = jiteClass;
         }
@@ -268,7 +268,7 @@ public class JiteClass implements Opcodes {
             return innerName;
         }
 
-        public me.qmx.jitescript.JiteClass getJiteClass() {
+        public JiteClass getJiteClass() {
             return jiteClass;
         }
     }

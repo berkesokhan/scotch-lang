@@ -54,6 +54,7 @@ public class DefaultTypeScope implements TypeScope {
 
     @Override
     public Type generate(Type type) {
+        Set<Type> visited = new HashSet<>();
         return type.accept(new TypeVisitor<Type>() {
             @Override
             public Type visit(FunctionType type) {
@@ -72,7 +73,12 @@ public class DefaultTypeScope implements TypeScope {
 
             @Override
             public Type visit(VariableType type) {
-                return getTarget(type);
+                if (visited.contains(type)) {
+                    return type;
+                } else {
+                    visited.add(type);
+                    return getTarget(type).accept(this);
+                }
             }
         });
     }
@@ -88,17 +94,22 @@ public class DefaultTypeScope implements TypeScope {
             }
 
             @Override
+            public Type visit(InstanceType type) {
+                return type;
+            }
+
+            @Override
+            public Type visit(SumType type) {
+                return type;
+            }
+
+            @Override
             public Type visit(VariableType type) {
                 if (specializedTypes.contains(type.simplify())) {
                     return type;
                 } else {
                     return genericMappings.computeIfAbsent(type, k -> symbolGenerator.reserveType().withContext(type.getContext()));
                 }
-            }
-
-            @Override
-            public Type visit(SumType type) {
-                return type;
             }
         });
     }
@@ -150,7 +161,22 @@ public class DefaultTypeScope implements TypeScope {
 
     private Unification bind_(VariableType variableType, Type targetType) {
         if (isBound(variableType) && !getTarget(variableType).simplify().equals(targetType)) {
-            return failedBinding(targetType, variableType, getTarget(variableType));
+            return targetType.accept(new TypeVisitor<Unification>() {
+                @Override
+                public Unification visit(VariableType type) {
+                    if (isBound(type)) {
+                        return failedBinding(targetType, variableType, getTarget(variableType));
+                    } else {
+                        bindings.put(targetType, getTarget(variableType));
+                        return unified(variableType);
+                    }
+                }
+
+                @Override
+                public Unification visitOtherwise(Type type) {
+                    return failedBinding(targetType, variableType, getTarget(variableType));
+                }
+            });
         } else if (!getTarget(targetType).simplify().equals(variableType)) {
             bindings.put(variableType, targetType);
         }

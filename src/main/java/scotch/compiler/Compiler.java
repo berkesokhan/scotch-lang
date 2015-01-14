@@ -22,7 +22,7 @@ public class Compiler {
     }
 
     private final SymbolResolver symbolResolver;
-    private final Scanner scanner;
+    private final Scanner        scanner;
 
     private Compiler(SymbolResolver symbolResolver, Scanner scanner) {
         this.symbolResolver = symbolResolver;
@@ -31,10 +31,6 @@ public class Compiler {
 
     public DefinitionGraph accumulateNames() {
         return new NameAccumulator(parsePrecedence()).parse();
-    }
-
-    public DefinitionGraph qualifyNames() {
-        return new NameQualifier(accumulateNames()).parse();
     }
 
     public DefinitionGraph analyzeTypes() {
@@ -59,5 +55,9 @@ public class Compiler {
 
     public DefinitionGraph parsePrecedence() {
         return new PrecedenceParser(parseOperators(), new SyntaxBuilderFactory()).parse();
+    }
+
+    public DefinitionGraph qualifyNames() {
+        return new NameQualifier(accumulateNames()).parse();
     }
 }

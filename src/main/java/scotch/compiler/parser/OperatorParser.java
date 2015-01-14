@@ -151,7 +151,7 @@ public class OperatorParser implements
 
     @Override
     public Definition visit(UnshuffledPattern pattern) {
-        return collect(pattern);
+        return collect(pattern.withBody(pattern.getBody().accept(this)));
     }
 
     @Override

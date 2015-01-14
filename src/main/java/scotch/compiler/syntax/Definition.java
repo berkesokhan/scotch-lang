@@ -463,6 +463,10 @@ public abstract class Definition {
             }
         }
 
+        public Value getBody() {
+            return body;
+        }
+
         public List<PatternMatch> getMatches() {
             return matches;
         }
@@ -488,6 +492,10 @@ public abstract class Definition {
         @Override
         public String toString() {
             return stringify(this) + "(" + symbol + ")";
+        }
+
+        public UnshuffledPattern withBody(Value body) {
+            return new UnshuffledPattern(sourceRange, symbol, matches, body);
         }
     }
 

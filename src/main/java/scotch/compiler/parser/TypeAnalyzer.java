@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Type.FunctionType;
 import scotch.compiler.symbol.Type.InstanceType;
@@ -76,18 +75,17 @@ import scotch.compiler.syntax.Value.ValueVisitor;
 
 public class TypeAnalyzer {
 
+    private static final Object mark = new Object();
     private final DefinitionGraph                           graph;
     private final Map<DefinitionReference, DefinitionEntry> definitions;
     private final Deque<Scope>                              scopes;
     private final List<SyntaxError>                         errors;
-    private       SymbolGenerator                           symbolGenerator;
 
     public TypeAnalyzer(DefinitionGraph graph) {
         this.graph = graph;
         this.definitions = new HashMap<>();
         this.scopes = new ArrayDeque<>();
         this.errors = new ArrayList<>();
-        this.symbolGenerator = graph.getSymbolGenerator();
     }
 
     public DefinitionGraph analyze() {
@@ -95,7 +93,6 @@ public class TypeAnalyzer {
         graph.getSortedReferences().forEach(reference -> reference.accept(typeChecker));
         return graph
             .copyWith(definitions.values())
-            .withSequence(symbolGenerator)
             .appendErrors(errors)
             .build();
     }
@@ -143,9 +140,13 @@ public class TypeAnalyzer {
                         return definition.withBody(definition.getBody().accept(new ValueVisitor<Value>() {
                             @Override
                             public Value visit(FunctionValue function) {
-                                instanceArguments.forEach(argument -> graph
-                                    .getScope(function.getReference())
-                                    .defineValue(argument.getSymbol(), argument.getType()));
+                                Scope scope = graph.getScope(function.getReference());
+                                List<String> locals = new ArrayList<>();
+                                instanceArguments.forEach(argument -> {
+                                    scope.defineValue(argument.getSymbol(), argument.getType());
+                                    locals.add(argument.getName());
+                                });
+                                scope.prependLocals(locals);
                                 return function.withArguments(ImmutableList.<Argument>builder()
                                     .addAll(instanceArguments)
                                     .addAll(function.getArguments())
@@ -159,7 +160,10 @@ public class TypeAnalyzer {
                                 currentScope().insert(functionScope);
                                 FunctionValue function = fn(value.getSourceRange(), functionSymbol, instanceArguments, value);
                                 definitions.put(function.getReference(), entry(functionScope, function));
-                                instanceArguments.forEach(argument -> functionScope.defineValue(argument.getSymbol(), argument.getType()));
+                                instanceArguments.forEach(argument -> {
+                                    functionScope.defineValue(argument.getSymbol(), argument.getType());
+                                    functionScope.addLocal(argument.getName());
+                                });
                                 return function;
                             }
                         }).accept(this));
@@ -284,30 +288,27 @@ public class TypeAnalyzer {
         }
 
         private Value findInstance(Method method, InstanceType instanceType) {
-            Value typeArgument;
             Set<TypeInstanceDescriptor> typeInstances = currentScope().getTypeInstances(
                 instanceType.getSymbol(),
                 asList(instanceType.getBinding())
             );
             if (typeInstances.isEmpty()) {
                 errors.add(typeInstanceNotFound(
-                    currentScope().getTypeClass(instanceType.getClassRef()),
+                    currentScope().getTypeClass(classRef(instanceType.getSymbol())),
                     asList(instanceType.getBinding()),
                     method.getSourceRange()
                 ));
-                typeArgument = null; // TODO
             } else if (typeInstances.size() > 1) {
                 errors.add(ambiguousTypeInstance(
-                    currentScope().getTypeClass(instanceType.getClassRef()),
+                    currentScope().getTypeClass(classRef(instanceType.getSymbol())),
                     asList(instanceType.getBinding()),
                     typeInstances,
                     method.getSourceRange()
                 ));
-                typeArgument = null; // TODO
             } else {
-                typeArgument = instance(method.getSourceRange(), instanceRef(typeInstances.iterator().next()), instanceType);
+                return instance(method.getSourceRange(), instanceRef(typeInstances.iterator().next()), instanceType);
             }
-            return typeArgument;
+            return method;
         }
 
         private List<Argument> getAdditionalArguments(ValueDefinition definition, InstanceMap instances) {
@@ -353,8 +354,13 @@ public class TypeAnalyzer {
         }
 
         @Override
-        public PatternMatch visit(EqualMatch match) {
-            return match.withValue(match.getValue().accept(this));
+        public Value visit(Argument argument) {
+            return bind(argument);
+        }
+
+        @Override
+        public Value visit(BoundValue boundValue) {
+            return bind(boundValue);
         }
 
         @Override
@@ -363,12 +369,41 @@ public class TypeAnalyzer {
         }
 
         @Override
+        public Value visit(DoubleLiteral literal) {
+            return literal;
+        }
+
+        @Override
+        public PatternMatch visit(EqualMatch match) {
+            return match.withValue(match.getValue().accept(this));
+        }
+
+        @Override
         public Value visit(FunctionValue function) {
-            return scoped(function.getReference(), () -> function
-                .withArguments(function.getArguments().stream()
-                    .map(argument -> (Argument) argument.accept(this))
-                    .collect(toList()))
-                .withBody(function.getBody().accept(this)));
+            return scoped(
+                function.getReference(),
+                () -> function
+                    .withArguments(function.getArguments().stream()
+                        .map(argument -> (Argument) argument.accept(this))
+                        .collect(toList()))
+                    .withBody(function.getBody().accept(this))
+                    .withType(generate(function.getType()))
+            );
+        }
+
+        @Override
+        public Value visit(Identifier identifier) {
+            return bind(identifier);
+        }
+
+        @Override
+        public Value visit(IntLiteral literal) {
+            return literal;
+        }
+
+        @Override
+        public Value visit(Method method) {
+            return bind(method);
         }
 
         @Override
@@ -384,12 +419,16 @@ public class TypeAnalyzer {
         }
 
         @Override
+        public Value visit(StringLiteral literal) {
+            return literal;
+        }
+
+        @Override
         public Value visit(UnboundMethod unboundMethod) {
             return unboundMethod.bind(currentScope()).accept(this);
         }
 
-        @Override
-        public Value visitOtherwise(Value value) {
+        private Value bind(Value value) {
             return value.withType(generate(value.getType()));
         }
 
@@ -408,9 +447,72 @@ public class TypeAnalyzer {
         ValueVisitor<Value>,
         PatternMatchVisitor<PatternMatch> {
 
+        private final Deque<Scope>  closures;
+        private final Deque<Object> nestings;
+
+        public TypeChecker() {
+            closures = new ArrayDeque<>();
+            nestings = new ArrayDeque<>();
+        }
+
+        @Override
+        public Value visit(Apply apply) {
+            Value function = apply.getFunction().accept(this);
+            Value argument = apply.getArgument().accept(this);
+            Type resultType = reserveType();
+            return function.getType().unify(fn(argument.getType(), resultType), currentScope()).accept(new UnificationVisitor<Value>() {
+                @Override
+                public Value visit(Unified unified) {
+                    Value typedFunction = function.withType(currentScope().generate(function.getType()));
+                    Value typedArgument = argument.withType(currentScope().generate(argument.getType()));
+                    return apply
+                        .withFunction(typedFunction)
+                        .withArgument(typedArgument)
+                        .withType(currentScope().generate(resultType));
+                }
+
+                @Override
+                public Value visitOtherwise(Unification unification) {
+                    errors.add(typeError(unification, apply.getSourceRange()));
+                    return apply.withType(resultType);
+                }
+            });
+        }
+
+        @Override
+        public Value visit(Argument argument) {
+            closure().capture(argument.getName());
+            return argument;
+        }
+
         @Override
         public Value visit(BoolLiteral literal) {
             return literal;
+        }
+
+        @Override
+        public Value visit(BoundValue boundValue) {
+            return boundValue;
+        }
+
+        @Override
+        public PatternMatch visit(CaptureMatch match) {
+            Scope scope = currentScope();
+            closure().addLocal(match.getName());
+            return scope.generate(match.getType())
+                .unify(scope.getValue(unqualified(match.getArgument())), scope)
+                .accept(new UnificationVisitor<PatternMatch>() {
+                    @Override
+                    public PatternMatch visit(Unified unified) {
+                        return match.withType(unified.getUnifiedType());
+                    }
+
+                    @Override
+                    public PatternMatch visitOtherwise(Unification unification) {
+                        errors.add(typeError(unification, match.getSourceRange()));
+                        return match;
+                    }
+                });
         }
 
         @Override
@@ -424,11 +526,20 @@ public class TypeAnalyzer {
         }
 
         @Override
+        public PatternMatch visit(EqualMatch match) {
+            return match.withValue(match.getValue().accept(this));
+        }
+
+        @Override
         public Value visit(FunctionValue function) {
             return scoped(function.getReference(), () -> {
+                closures.push(currentScope());
                 List<Type> argumentTypes = function.getArguments().stream()
                     .map(Argument::getType)
                     .collect(toList());
+                function.getArguments().stream()
+                    .map(Argument::getName)
+                    .forEach(closure()::addLocal);
                 argumentTypes.forEach(currentScope()::specialize);
                 try {
                     return function
@@ -438,8 +549,14 @@ public class TypeAnalyzer {
                             .collect(toList()));
                 } finally {
                     argumentTypes.forEach(currentScope()::generalize);
+                    closures.pop();
                 }
             });
+        }
+
+        @Override
+        public Value visit(Identifier identifier) {
+            return identifier.bind(currentScope()).accept(this);
         }
 
         @Override
@@ -448,43 +565,13 @@ public class TypeAnalyzer {
         }
 
         @Override
-        public Value visit(StringLiteral literal) {
-            return literal;
+        public Value visit(Method method) {
+            return method;
         }
 
         @Override
         public Definition visit(ModuleDefinition definition) {
             return collect(definition);
-        }
-
-        @Override
-        public Definition visit(RootDefinition definition) {
-            return collect(definition);
-        }
-
-        @Override
-        public Definition visit(ScopeDefinition definition) {
-            return collect(definition);
-        }
-
-        @Override
-        public Definition visit(ValueDefinition definition) {
-            Value body = definition.getBody().accept(this);
-            Type type = currentScope().getSignature(definition.getSymbol()).orElseGet(() -> currentScope().getValue(definition.getSymbol()));
-            return type.unify(body.getType(), currentScope()).accept(new UnificationVisitor<Definition>() {
-                @Override
-                public Definition visit(Unified unified) {
-                    Type unifiedType = currentScope().generate(unified.getUnifiedType());
-                    currentScope().redefineValue(definition.getSymbol(), unifiedType);
-                    return collect(bind(definition.withBody(body).withType(unifiedType)));
-                }
-
-                @Override
-                public Definition visitOtherwise(Unification unification) {
-                    errors.add(typeError(unification, definition.getSourceRange()));
-                    return collect(definition.withBody(body).withType(type));
-                }
-            });
         }
 
         @Override
@@ -513,56 +600,54 @@ public class TypeAnalyzer {
         }
 
         @Override
-        public PatternMatch visit(CaptureMatch match) {
-            Scope scope = currentScope();
-            return scope.generate(match.getType())
-                .unify(scope.getValue(unqualified(match.getArgument())), scope)
-                .accept(new UnificationVisitor<PatternMatch>() {
+        public Definition visit(RootDefinition definition) {
+            return collect(definition);
+        }
+
+        @Override
+        public Definition visit(ScopeDefinition definition) {
+            return collect(definition);
+        }
+
+        @Override
+        public Value visit(StringLiteral literal) {
+            return literal;
+        }
+
+        @Override
+        public Value visit(UnboundMethod unboundMethod) {
+            return unboundMethod;
+        }
+
+        @Override
+        public Definition visit(ValueDefinition definition) {
+            if (isNested()) {
+                closures.push(currentScope());
+            }
+            nestings.push(mark);
+            try {
+                Value body = definition.getBody().accept(this);
+                Type type = currentScope().getSignature(definition.getSymbol()).orElseGet(() -> currentScope().getValue(definition.getSymbol()));
+                return type.unify(body.getType(), currentScope()).accept(new UnificationVisitor<Definition>() {
                     @Override
-                    public PatternMatch visit(Unified unified) {
-                        return match.withType(unified.getUnifiedType());
+                    public Definition visit(Unified unified) {
+                        Type unifiedType = currentScope().generate(unified.getUnifiedType());
+                        currentScope().redefineValue(definition.getSymbol(), unifiedType);
+                        return collect(bind(definition.withBody(body).withType(unifiedType)));
                     }
 
                     @Override
-                    public PatternMatch visitOtherwise(Unification unification) {
-                        errors.add(typeError(unification, match.getSourceRange()));
-                        return match;
+                    public Definition visitOtherwise(Unification unification) {
+                        errors.add(typeError(unification, definition.getSourceRange()));
+                        return collect(definition.withBody(body).withType(type));
                     }
                 });
-        }
-
-        @Override
-        public Value visit(Identifier identifier) {
-            return identifier.bind(currentScope());
-        }
-
-        @Override
-        public Value visit(Apply apply) {
-            Value function = apply.getFunction().accept(this);
-            Value argument = apply.getArgument().accept(this);
-            Type resultType = reserveType();
-            return function.getType().unify(fn(argument.getType(), resultType), currentScope()).accept(new UnificationVisitor<Value>() {
-                @Override
-                public Value visit(Unified unified) {
-                    Value typedFunction = function.withType(currentScope().generate(function.getType()));
-                    Value typedArgument = argument.withType(currentScope().generate(argument.getType()));
-                    return apply
-                        .withFunction(typedFunction)
-                        .withArgument(typedArgument)
-                        .withType(currentScope().generate(resultType));
+            } finally {
+                nestings.pop();
+                if (isNested()) {
+                    closures.pop();
                 }
-
-                @Override
-                public Value visitOtherwise(Unification unification) {
-                    errors.add(typeError(unification, apply.getSourceRange()));
-                    return apply.withType(resultType);
-                }
-            });
-        }
-
-        @Override
-        public PatternMatch visit(EqualMatch match) {
-            return match.withValue(match.getValue().accept(this));
+            }
         }
 
         @Override
@@ -580,6 +665,10 @@ public class TypeAnalyzer {
             return new MethodBinder(new TypeBinder(valueDefinition).bind()).bind();
         }
 
+        private Scope closure() {
+            return closures.peek();
+        }
+
         private Definition collect(Definition definition) {
             definitions.put(definition.getReference(), entry(getScope(definition.getReference()), definition));
             return definition;
@@ -593,17 +682,21 @@ public class TypeAnalyzer {
             return graph.getScope(reference);
         }
 
+        private boolean isNested() {
+            return !nestings.isEmpty();
+        }
+
         private Type reserveType() {
-            return symbolGenerator.reserveType();
+            return currentScope().reserveType();
         }
 
         private PatternMatcher visitMatcher(PatternMatcher matcher) {
             return scoped(matcher.getReference(), () -> {
-                Value body = matcher.getBody().accept(this);
                 List<PatternMatch> matches = matcher.getMatches().stream()
                     .map(match -> match.accept(this))
                     .map(match -> match.withType(currentScope().generate(match.getType())))
                     .collect(toList());
+                Value body = matcher.getBody().accept(this);
                 return matcher
                     .withMatches(matches)
                     .withBody(body.withType(currentScope().generate(body.getType())));

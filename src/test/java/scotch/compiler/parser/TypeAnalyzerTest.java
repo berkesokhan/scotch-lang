@@ -1,6 +1,8 @@
 package scotch.compiler.parser;
 
 import static java.util.Arrays.asList;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static scotch.compiler.symbol.Type.fn;
 import static scotch.compiler.symbol.Type.instance;
 import static scotch.compiler.symbol.Type.sum;
@@ -30,13 +32,16 @@ import static scotch.compiler.util.TestUtil.literal;
 import static scotch.compiler.util.TestUtil.method;
 import static scotch.compiler.util.TestUtil.pattern;
 import static scotch.compiler.util.TestUtil.patterns;
+import static scotch.compiler.util.TestUtil.scopeRef;
 
+import java.util.List;
 import java.util.function.Function;
 import org.junit.Test;
 import scotch.compiler.Compiler;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Type.InstanceType;
 import scotch.compiler.syntax.DefinitionGraph;
+import scotch.compiler.syntax.DefinitionReference;
 import scotch.compiler.syntax.StubResolver;
 
 public class TypeAnalyzerTest extends ParserTest {
@@ -410,6 +415,36 @@ public class TypeAnalyzerTest extends ParserTest {
             literal(2),
             intType
         ));
+    }
+
+    @Test
+    public void shouldCaptureEnclosedVariables() {
+        parse(
+            "module scotch.test",
+            "fn a b = \\x y -> x a b y"
+        );
+        shouldNotHaveErrors();
+        shouldHaveCaptures(scopeRef("scotch.test.($1)"), asList("a", "b"));
+        shouldHaveCaptures(scopeRef("scotch.test.($2)"), asList());
+    }
+
+    @Test
+    public void shouldMarkLocalVariables() {
+        parse(
+            "module scotch.test",
+            "fn a b = \\x y -> x a b y"
+        );
+        shouldNotHaveErrors();
+        shouldHaveLocals(scopeRef("scotch.test.($1)"), asList("x", "y"));
+        shouldHaveLocals(scopeRef("scotch.test.($2)"), asList("$0", "$1", "a", "b"));
+    }
+
+    private void shouldHaveLocals(DefinitionReference reference, List<String> locals) {
+        assertThat(getScope(reference).getLocals(), is(locals));
+    }
+
+    private void shouldHaveCaptures(DefinitionReference reference, List<String> captures) {
+        assertThat(getScope(reference).getCaptures(), is(captures));
     }
 
     @Override

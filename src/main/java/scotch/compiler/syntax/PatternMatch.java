@@ -102,6 +102,10 @@ public abstract class PatternMatch {
             return argument.orElseThrow(IllegalStateException::new);
         }
 
+        public String getName() {
+            return symbol.getCanonicalName();
+        }
+
         @Override
         public SourceRange getSourceRange() {
             return sourceRange;
