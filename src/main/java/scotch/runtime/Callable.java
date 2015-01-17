@@ -3,11 +3,15 @@ package scotch.runtime;
 @FunctionalInterface
 public interface Callable<A> {
 
-    static Callable<Integer> box(int value) {
+    static Callable<Boolean> box(boolean value) { return new BoxedCallable<>(value); }
+
+    static Callable<Character> box(char value) { return new BoxedCallable<>(value); }
+
+    static Callable<Double> box(double value) {
         return new BoxedCallable<>(value);
     }
 
-    static Callable<Double> box(double value) {
+    static Callable<Integer> box(int value) {
         return new BoxedCallable<>(value);
     }
 

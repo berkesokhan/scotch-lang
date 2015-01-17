@@ -1,9 +1,9 @@
 package scotch.compiler.parser;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.syntax.SyntaxError.parseError;
-import static scotch.compiler.syntax.Value.apply;
-import static scotch.compiler.syntax.Value.message;
+import static scotch.compiler.parser.ParseError.parseError;
+import static scotch.compiler.syntax.value.Value.apply;
+import static scotch.compiler.syntax.value.Value.unshuffled;
 import static scotch.data.either.Either.left;
 import static scotch.data.either.Either.right;
 
@@ -11,17 +11,17 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.function.Function;
+import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Type;
-import scotch.compiler.syntax.PatternMatch;
-import scotch.compiler.syntax.PatternMatch.CaptureMatch;
-import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
-import scotch.compiler.syntax.Scope;
-import scotch.compiler.syntax.SyntaxError;
-import scotch.compiler.syntax.Value;
-import scotch.compiler.syntax.Value.Identifier;
-import scotch.compiler.syntax.Value.Message;
-import scotch.compiler.syntax.Value.ValueVisitor;
+import scotch.compiler.syntax.scope.Scope;
+import scotch.compiler.syntax.value.CaptureMatch;
+import scotch.compiler.syntax.value.Identifier;
+import scotch.compiler.syntax.value.PatternMatch;
+import scotch.compiler.syntax.value.PatternMatch.PatternMatchVisitor;
+import scotch.compiler.syntax.value.UnshuffledValue;
+import scotch.compiler.syntax.value.Value;
+import scotch.compiler.syntax.value.Value.ValueVisitor;
 import scotch.data.either.Either;
 import scotch.data.either.Either.EitherVisitor;
 
@@ -36,7 +36,7 @@ public class ValueShuffler {
     public Either<SyntaxError, Value> shuffle(Scope scope, List<Value> message) {
         if (message.size() == 1) {
             Value value = parser.apply(message.get(0));
-            return right(message(value.getSourceRange(), asList(value)));
+            return right(unshuffled(value.getSourceRange(), asList(value)));
         } else {
             try {
                 return right(parser.apply(new Shuffler(scope, message).shuffleMessage()));
@@ -177,8 +177,8 @@ public class ValueShuffler {
         private Value shuffleNext(Deque<Value> input) {
             return input.poll().accept(new ValueVisitor<Value>() {
                 @Override
-                public Value visit(Message message) {
-                    return shuffle(scope, message.getMembers()).accept(new EitherVisitor<SyntaxError, Value, Value>() {
+                public Value visit(UnshuffledValue value) {
+                    return shuffle(scope, value.getValues()).accept(new EitherVisitor<SyntaxError, Value, Value>() {
                         @Override
                         public Value visitLeft(SyntaxError left) {
                             throw new ShuffleException(left);

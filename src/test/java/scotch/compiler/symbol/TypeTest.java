@@ -22,7 +22,7 @@ import org.junit.Test;
 import scotch.compiler.symbol.Type.FunctionType;
 import scotch.compiler.symbol.Type.TypeVisitor;
 import scotch.compiler.symbol.Type.VariableType;
-import scotch.compiler.syntax.DefaultTypeScope;
+import scotch.compiler.syntax.scope.DefaultTypeScope;
 
 public class TypeTest {
 

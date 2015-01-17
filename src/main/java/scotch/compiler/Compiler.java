@@ -1,19 +1,14 @@
 package scotch.compiler;
 
 import java.util.List;
-import scotch.compiler.generator.BytecodeGenerator;
-import scotch.compiler.generator.GeneratedClass;
-import scotch.compiler.parser.DependencyParser;
 import scotch.compiler.parser.InputParser;
-import scotch.compiler.parser.NameAccumulator;
-import scotch.compiler.parser.NameQualifier;
-import scotch.compiler.parser.OperatorParser;
-import scotch.compiler.parser.PrecedenceParser;
-import scotch.compiler.parser.TypeAnalyzer;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.syntax.DefinitionGraph;
+import scotch.compiler.syntax.SyntaxTreeParser;
+import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.builder.SyntaxBuilderFactory;
+import scotch.compiler.syntax.definition.Definition;
+import scotch.compiler.syntax.definition.DefinitionGraph;
 
 public class Compiler {
 
@@ -30,34 +25,54 @@ public class Compiler {
     }
 
     public DefinitionGraph accumulateNames() {
-        return new NameAccumulator(parsePrecedence()).parse();
+        SyntaxTreeParser state = new TreeParserState(parsePrecedence());
+        state.fromRoot(Definition::accumulateNames);
+        return state.getGraph();
     }
 
-    public DefinitionGraph analyzeTypes() {
-        return new TypeAnalyzer(parseDependencies()).analyze();
+    public DefinitionGraph checkTypes() {
+        TypeChecker state = new TypeCheckerState(accumulateDependencies());
+        state.fromSorted(Definition::checkTypes);
+        return state.getGraph();
     }
 
     public List<GeneratedClass> generateBytecode() {
-        return new BytecodeGenerator(analyzeTypes()).generate();
+        DefinitionGraph graph = checkTypes();
+        if (graph.hasErrors()) {
+            throw new CompileException(graph.getErrors());
+        } else {
+            BytecodeGeneratorState state = new BytecodeGeneratorState(graph);
+            state.fromRoot();
+            return state.getClasses();
+        }
     }
 
-    public DefinitionGraph parseDependencies() {
-        return new DependencyParser(qualifyNames()).parse();
+    public DefinitionGraph accumulateDependencies() {
+        SyntaxTreeParser state = new TreeParserState(qualifyNames());
+        state.fromRoot(Definition::accumulateDependencies);
+        DefinitionGraph graph = state.getGraph();
+        return graph.sort();
     }
 
     public DefinitionGraph parseInput() {
         return new InputParser(symbolResolver, scanner, new SyntaxBuilderFactory()).parse();
     }
 
-    public DefinitionGraph parseOperators() {
-        return new OperatorParser(parseInput()).parse();
+    public DefinitionGraph defineOperators() {
+        SyntaxTreeParser state = new TreeParserState(parseInput());
+        state.fromRoot(Definition::defineOperators);
+        return state.getGraph();
     }
 
     public DefinitionGraph parsePrecedence() {
-        return new PrecedenceParser(parseOperators(), new SyntaxBuilderFactory()).parse();
+        SyntaxTreeParser state = new TreeParserState(defineOperators());
+        state.fromRoot((r, s) -> r.parsePrecedence(s).map(s::collect).get());
+        return state.getGraph();
     }
 
     public DefinitionGraph qualifyNames() {
-        return new NameQualifier(accumulateNames()).parse();
+        SyntaxTreeParser state = new TreeParserState(accumulateNames());
+        state.fromRoot(Definition::qualifyNames);
+        return state.getGraph();
     }
 }

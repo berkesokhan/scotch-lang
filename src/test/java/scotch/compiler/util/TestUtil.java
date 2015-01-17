@@ -5,13 +5,13 @@ import static java.util.stream.Collectors.toList;
 import static scotch.compiler.Compiler.compiler;
 import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.symbol.Type.sum;
-import static scotch.compiler.syntax.DefinitionReference.moduleRef;
+import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 
 import java.util.List;
 import java.util.Optional;
-import scotch.compiler.generator.BytecodeGenerator;
-import scotch.compiler.generator.GeneratedClass;
+import scotch.compiler.Compiler;
+import scotch.compiler.GeneratedClass;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
@@ -22,39 +22,39 @@ import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.Value.Fixity;
-import scotch.compiler.syntax.Definition;
-import scotch.compiler.syntax.Definition.ClassDefinition;
-import scotch.compiler.syntax.Definition.OperatorDefinition;
-import scotch.compiler.syntax.Definition.RootDefinition;
-import scotch.compiler.syntax.Definition.UnshuffledPattern;
-import scotch.compiler.syntax.Definition.ValueDefinition;
-import scotch.compiler.syntax.DefinitionReference;
-import scotch.compiler.syntax.DefinitionReference.ClassReference;
-import scotch.compiler.syntax.DefinitionReference.InstanceReference;
-import scotch.compiler.syntax.DefinitionReference.OperatorReference;
-import scotch.compiler.syntax.DefinitionReference.ScopeReference;
-import scotch.compiler.syntax.DefinitionReference.SignatureReference;
-import scotch.compiler.syntax.DefinitionReference.ValueReference;
-import scotch.compiler.syntax.Import;
-import scotch.compiler.syntax.Import.ModuleImport;
-import scotch.compiler.syntax.PatternMatch;
-import scotch.compiler.syntax.PatternMatch.CaptureMatch;
-import scotch.compiler.syntax.PatternMatch.EqualMatch;
-import scotch.compiler.syntax.PatternMatcher;
-import scotch.compiler.syntax.Value;
-import scotch.compiler.syntax.Value.Argument;
-import scotch.compiler.syntax.Value.BoolLiteral;
-import scotch.compiler.syntax.Value.CharLiteral;
-import scotch.compiler.syntax.Value.DoubleLiteral;
-import scotch.compiler.syntax.Value.FunctionValue;
-import scotch.compiler.syntax.Value.Identifier;
-import scotch.compiler.syntax.Value.Instance;
-import scotch.compiler.syntax.Value.IntLiteral;
-import scotch.compiler.syntax.Value.Let;
-import scotch.compiler.syntax.Value.Message;
-import scotch.compiler.syntax.Value.Method;
-import scotch.compiler.syntax.Value.PatternMatchers;
-import scotch.compiler.syntax.Value.StringLiteral;
+import scotch.compiler.syntax.definition.ClassDefinition;
+import scotch.compiler.syntax.definition.Definition;
+import scotch.compiler.syntax.definition.Import;
+import scotch.compiler.syntax.definition.ModuleImport;
+import scotch.compiler.syntax.definition.OperatorDefinition;
+import scotch.compiler.syntax.definition.RootDefinition;
+import scotch.compiler.syntax.definition.UnshuffledPattern;
+import scotch.compiler.syntax.definition.ValueDefinition;
+import scotch.compiler.syntax.reference.ClassReference;
+import scotch.compiler.syntax.reference.DefinitionReference;
+import scotch.compiler.syntax.reference.InstanceReference;
+import scotch.compiler.syntax.reference.OperatorReference;
+import scotch.compiler.syntax.reference.ScopeReference;
+import scotch.compiler.syntax.reference.SignatureReference;
+import scotch.compiler.syntax.reference.ValueReference;
+import scotch.compiler.syntax.value.Argument;
+import scotch.compiler.syntax.value.BoolLiteral;
+import scotch.compiler.syntax.value.CaptureMatch;
+import scotch.compiler.syntax.value.CharLiteral;
+import scotch.compiler.syntax.value.DoubleLiteral;
+import scotch.compiler.syntax.value.EqualMatch;
+import scotch.compiler.syntax.value.FunctionValue;
+import scotch.compiler.syntax.value.Identifier;
+import scotch.compiler.syntax.value.Instance;
+import scotch.compiler.syntax.value.IntLiteral;
+import scotch.compiler.syntax.value.Let;
+import scotch.compiler.syntax.value.Method;
+import scotch.compiler.syntax.value.PatternMatch;
+import scotch.compiler.syntax.value.PatternMatcher;
+import scotch.compiler.syntax.value.PatternMatchers;
+import scotch.compiler.syntax.value.StringLiteral;
+import scotch.compiler.syntax.value.UnshuffledValue;
+import scotch.compiler.syntax.value.Value;
 import scotch.runtime.Callable;
 
 public class TestUtil {
@@ -62,7 +62,7 @@ public class TestUtil {
     @SuppressWarnings("unchecked")
     public static <A> A exec(String... lines) {
         try {
-            ClasspathResolver resolver = new ClasspathResolver(BytecodeGenerator.class.getClassLoader());
+            ClasspathResolver resolver = new ClasspathResolver(Compiler.class.getClassLoader());
             BytecodeClassLoader classLoader = new BytecodeClassLoader();
             classLoader.defineAll(generateBytecode(resolver, lines));
             return ((Callable<A>) classLoader.loadClass("scotch.test.ScotchModule").getMethod("run").invoke(null)).call();
@@ -151,8 +151,8 @@ public class TestUtil {
         return Value.literal(NULL_SOURCE, value);
     }
 
-    public static Message message(Value... members) {
-        return Value.message(NULL_SOURCE, asList(members));
+    public static UnshuffledValue message(Value... members) {
+        return Value.unshuffled(NULL_SOURCE, asList(members));
     }
 
     public static Method method(String name, List<Type> instances, Type type) {

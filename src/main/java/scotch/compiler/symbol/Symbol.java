@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import com.google.common.collect.ImmutableList;
@@ -150,6 +151,8 @@ public abstract class Symbol implements Comparable<Symbol> {
     @Override
     public abstract int hashCode();
 
+    public abstract Symbol map(Function<QualifiedSymbol, Symbol> function);
+
     public abstract Symbol qualifyWith(String moduleName);
 
     public String quote() {
@@ -257,6 +260,11 @@ public abstract class Symbol implements Comparable<Symbol> {
         }
 
         @Override
+        public Symbol map(Function<QualifiedSymbol, Symbol> function) {
+            return function.apply(this);
+        }
+
+        @Override
         public Symbol qualifyWith(String moduleName) {
             return qualified(moduleName, memberName);
         }
@@ -322,6 +330,11 @@ public abstract class Symbol implements Comparable<Symbol> {
         @Override
         public int hashCode() {
             return Objects.hash(memberName);
+        }
+
+        @Override
+        public Symbol map(Function<QualifiedSymbol, Symbol> function) {
+            return this;
         }
 
         @Override

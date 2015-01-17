@@ -3,7 +3,7 @@ package scotch.compiler;
 import static java.util.stream.Collectors.joining;
 
 import java.util.List;
-import scotch.compiler.syntax.SyntaxError;
+import scotch.compiler.error.SyntaxError;
 
 public class CompileException extends RuntimeException {
 

@@ -1,13 +1,13 @@
 package scotch.compiler.syntax.builder;
 
-import static scotch.compiler.syntax.Value.arg;
-import static scotch.compiler.syntax.Value.fn;
-import static scotch.compiler.syntax.Value.id;
-import static scotch.compiler.syntax.Value.let;
-import static scotch.compiler.syntax.Value.literal;
-import static scotch.compiler.syntax.Value.message;
-import static scotch.compiler.syntax.Value.patterns;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.value.Value.arg;
+import static scotch.compiler.syntax.value.Value.fn;
+import static scotch.compiler.syntax.value.Value.id;
+import static scotch.compiler.syntax.value.Value.let;
+import static scotch.compiler.syntax.value.Value.literal;
+import static scotch.compiler.syntax.value.Value.patterns;
+import static scotch.compiler.syntax.value.Value.unshuffled;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,16 +15,16 @@ import java.util.Optional;
 import java.util.function.Function;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
-import scotch.compiler.syntax.DefinitionReference;
-import scotch.compiler.syntax.PatternMatcher;
-import scotch.compiler.syntax.Value;
-import scotch.compiler.syntax.Value.Argument;
-import scotch.compiler.syntax.Value.FunctionValue;
-import scotch.compiler.syntax.Value.Identifier;
-import scotch.compiler.syntax.Value.Let;
-import scotch.compiler.syntax.Value.Message;
-import scotch.compiler.syntax.Value.PatternMatchers;
-import scotch.compiler.syntax.Value.ValueVisitor;
+import scotch.compiler.syntax.reference.DefinitionReference;
+import scotch.compiler.syntax.value.Argument;
+import scotch.compiler.syntax.value.FunctionValue;
+import scotch.compiler.syntax.value.Identifier;
+import scotch.compiler.syntax.value.Let;
+import scotch.compiler.syntax.value.PatternMatcher;
+import scotch.compiler.syntax.value.PatternMatchers;
+import scotch.compiler.syntax.value.UnshuffledValue;
+import scotch.compiler.syntax.value.Value;
+import scotch.compiler.syntax.value.Value.ValueVisitor;
 import scotch.compiler.text.SourceRange;
 
 public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> {
@@ -119,8 +119,8 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
                 require(arguments, "Function arguments"),
                 require(body, "Function body").accept(new ValueVisitor<Value>() {
                     @Override
-                    public Value visit(Message message) {
-                        return message.collapse();
+                    public Value visit(UnshuffledValue value) {
+                        return value.collapse();
                     }
 
                     @Override
@@ -274,7 +274,7 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
         }
     }
 
-    public static class MessageBuilder extends ValueBuilder<Message> {
+    public static class MessageBuilder extends ValueBuilder<UnshuffledValue> {
 
         private final List<Value>           members     = new ArrayList<>();
         private       Optional<SourceRange> sourceRange = Optional.empty();
@@ -284,8 +284,8 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
         }
 
         @Override
-        public Message build() {
-            return message(
+        public UnshuffledValue build() {
+            return unshuffled(
                 require(sourceRange, "Source range"),
                 members
             );

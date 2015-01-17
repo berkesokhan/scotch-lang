@@ -1,14 +1,14 @@
 package scotch.compiler.syntax.builder;
 
-import static scotch.compiler.syntax.Definition.classDef;
-import static scotch.compiler.syntax.Definition.module;
-import static scotch.compiler.syntax.Definition.operatorDef;
-import static scotch.compiler.syntax.Definition.root;
-import static scotch.compiler.syntax.Definition.scopeDef;
-import static scotch.compiler.syntax.Definition.signature;
-import static scotch.compiler.syntax.Definition.unshuffled;
-import static scotch.compiler.syntax.Definition.value;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.definition.Definition.classDef;
+import static scotch.compiler.syntax.definition.Definition.module;
+import static scotch.compiler.syntax.definition.Definition.operatorDef;
+import static scotch.compiler.syntax.definition.Definition.root;
+import static scotch.compiler.syntax.definition.Definition.scopeDef;
+import static scotch.compiler.syntax.definition.Definition.signature;
+import static scotch.compiler.syntax.definition.Definition.unshuffled;
+import static scotch.compiler.syntax.definition.Definition.value;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,21 +17,21 @@ import java.util.OptionalInt;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Value.Fixity;
-import scotch.compiler.syntax.Definition;
-import scotch.compiler.syntax.Definition.ClassDefinition;
-import scotch.compiler.syntax.Definition.ModuleDefinition;
-import scotch.compiler.syntax.Definition.OperatorDefinition;
-import scotch.compiler.syntax.Definition.RootDefinition;
-import scotch.compiler.syntax.Definition.ScopeDefinition;
-import scotch.compiler.syntax.Definition.UnshuffledPattern;
-import scotch.compiler.syntax.Definition.ValueDefinition;
-import scotch.compiler.syntax.Definition.ValueSignature;
-import scotch.compiler.syntax.DefinitionReference;
-import scotch.compiler.syntax.Import;
-import scotch.compiler.syntax.PatternMatch;
-import scotch.compiler.syntax.Value;
-import scotch.compiler.syntax.Value.Message;
-import scotch.compiler.syntax.Value.ValueVisitor;
+import scotch.compiler.syntax.definition.ClassDefinition;
+import scotch.compiler.syntax.definition.Definition;
+import scotch.compiler.syntax.definition.Import;
+import scotch.compiler.syntax.definition.ModuleDefinition;
+import scotch.compiler.syntax.definition.OperatorDefinition;
+import scotch.compiler.syntax.definition.RootDefinition;
+import scotch.compiler.syntax.definition.ScopeDefinition;
+import scotch.compiler.syntax.definition.UnshuffledPattern;
+import scotch.compiler.syntax.definition.ValueDefinition;
+import scotch.compiler.syntax.definition.ValueSignature;
+import scotch.compiler.syntax.reference.DefinitionReference;
+import scotch.compiler.syntax.value.PatternMatch;
+import scotch.compiler.syntax.value.UnshuffledValue;
+import scotch.compiler.syntax.value.Value;
+import scotch.compiler.syntax.value.Value.ValueVisitor;
 import scotch.compiler.text.SourceRange;
 
 public abstract class DefinitionBuilder<T extends Definition> implements SyntaxBuilder<T> {
@@ -335,8 +335,8 @@ public abstract class DefinitionBuilder<T extends Definition> implements SyntaxB
                 require(type, "Value type"),
                 require(body, "Value body").accept(new ValueVisitor<Value>() {
                     @Override
-                    public Value visit(Message message) {
-                        return message.collapse();
+                    public Value visit(UnshuffledValue value) {
+                        return value.collapse();
                     }
 
                     @Override

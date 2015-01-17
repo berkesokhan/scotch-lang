@@ -5,6 +5,7 @@ import static java.lang.Character.isUpperCase;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.symbol.Symbol.fromString;
@@ -128,6 +129,8 @@ public abstract class Type {
 
     @Override
     public abstract int hashCode();
+
+    public abstract Type qualifyNames(NameQualifier qualifier);
 
     public Type simplify() {
         return this;
@@ -260,6 +263,11 @@ public abstract class Type {
         }
 
         @Override
+        public Type qualifyNames(NameQualifier qualifier) {
+            return withArgument(argument.qualifyNames(qualifier)).withResult(result.qualifyNames(qualifier));
+        }
+
+        @Override
         public String toString() {
             return gatherContext() + toString_();
         }
@@ -386,6 +394,11 @@ public abstract class Type {
             return Objects.hash(symbol);
         }
 
+        @Override
+        public Type qualifyNames(NameQualifier qualifier) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
         public boolean is(Type type) {
             return binding.simplify().equals(type.simplify());
         }
@@ -495,6 +508,14 @@ public abstract class Type {
         @Override
         public int hashCode() {
             return Objects.hash(symbol);
+        }
+
+        @Override
+        public Type qualifyNames(NameQualifier qualifier) {
+            return withSymbol(qualifier.qualify(symbol).orElseGet(() -> {
+                qualifier.symbolNotFound(symbol, sourceRange);
+                return symbol;
+            }));
         }
 
         @Override
@@ -639,6 +660,17 @@ public abstract class Type {
         @Override
         public int hashCode() {
             return Objects.hash(name, context);
+        }
+
+        @Override
+        public Type qualifyNames(NameQualifier qualifier) {
+            return withContext(context.stream()
+                .map(symbol -> tuple2(symbol, qualifier.qualify(symbol)))
+                .map(tuple -> tuple.into((symbol, result) -> result.orElseGet(() -> {
+                    qualifier.symbolNotFound(symbol, sourceRange);
+                    return symbol;
+                })))
+                .collect(toSet()));
         }
 
         public boolean is(String variable) {

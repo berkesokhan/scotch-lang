@@ -1,11 +1,11 @@
 package scotch.compiler.syntax.builder;
 
-import static scotch.compiler.syntax.Import.moduleImport;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.definition.Import.moduleImport;
 
 import java.util.Optional;
-import scotch.compiler.syntax.Import;
-import scotch.compiler.syntax.Import.ModuleImport;
+import scotch.compiler.syntax.definition.Import;
+import scotch.compiler.syntax.definition.ModuleImport;
 import scotch.compiler.text.SourceRange;
 
 public abstract class ImportBuilder<T extends Import> implements SyntaxBuilder<T> {

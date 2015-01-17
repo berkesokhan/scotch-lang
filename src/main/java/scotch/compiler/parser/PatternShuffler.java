@@ -1,7 +1,7 @@
 package scotch.compiler.parser;
 
 import static java.util.Collections.reverse;
-import static scotch.compiler.syntax.SyntaxError.parseError;
+import static scotch.compiler.parser.ParseError.parseError;
 import static scotch.data.either.Either.left;
 import static scotch.data.either.Either.right;
 import static scotch.util.StringUtil.quote;
@@ -10,14 +10,14 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.syntax.Definition.UnshuffledPattern;
-import scotch.compiler.syntax.PatternMatch;
-import scotch.compiler.syntax.PatternMatch.CaptureMatch;
-import scotch.compiler.syntax.PatternMatch.PatternMatchVisitor;
-import scotch.compiler.syntax.Scope;
-import scotch.compiler.syntax.SyntaxError;
+import scotch.compiler.syntax.definition.UnshuffledPattern;
+import scotch.compiler.syntax.scope.Scope;
+import scotch.compiler.syntax.value.CaptureMatch;
+import scotch.compiler.syntax.value.PatternMatch;
+import scotch.compiler.syntax.value.PatternMatch.PatternMatchVisitor;
 import scotch.data.either.Either;
 import scotch.data.either.Either.EitherVisitor;
 

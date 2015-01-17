@@ -1,10 +1,10 @@
 package scotch.compiler.syntax.builder;
 
-import static scotch.compiler.syntax.DefinitionGraph.createGraph;
+import static scotch.compiler.syntax.definition.DefinitionGraph.createGraph;
 
 import java.util.List;
-import scotch.compiler.syntax.DefinitionEntry;
-import scotch.compiler.syntax.DefinitionGraph.DefinitionGraphBuilder;
+import scotch.compiler.syntax.definition.DefinitionEntry;
+import scotch.compiler.syntax.definition.DefinitionGraph.DefinitionGraphBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.ClassDefinitionBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.ModuleDefinitionBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.OperatorDefinitionBuilder;
