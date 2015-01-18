@@ -51,6 +51,6 @@ public class TypeClassDescriptor {
 
     @Override
     public String toString() {
-        return symbol.getMemberName();
+        return symbol.getSimpleName();
     }
 }

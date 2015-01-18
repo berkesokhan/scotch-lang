@@ -1,17 +1,23 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.toList;
+import static scotch.data.either.Either.right;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.SyntaxTreeParser;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.OperatorDefinitionParser;
+import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.text.SourceRange;
+import scotch.data.either.Either;
 
 public class UnshuffledValue extends Value {
 
@@ -24,19 +30,14 @@ public class UnshuffledValue extends Value {
     }
 
     @Override
-    public <T> T accept(ValueVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
-    public Value accumulateDependencies(SyntaxTreeParser state) {
+    public Value accumulateDependencies(DependencyAccumulator state) {
         return withValues(values.stream()
             .map(value -> value.accumulateDependencies(state))
             .collect(toList()));
     }
 
     @Override
-    public Value accumulateNames(SyntaxTreeParser state) {
+    public Value accumulateNames(NameAccumulator state) {
         return withValues(values.stream()
             .map(value -> value.accumulateNames(state))
             .collect(toList()));
@@ -63,6 +64,7 @@ public class UnshuffledValue extends Value {
             .collect(toList()));
     }
 
+    @Override
     public Value collapse() {
         if (values.size() == 1) {
             return values.get(0);
@@ -72,10 +74,15 @@ public class UnshuffledValue extends Value {
     }
 
     @Override
-    public Value defineOperators(SyntaxTreeParser state) {
+    public Value defineOperators(OperatorDefinitionParser state) {
         return withValues(values.stream()
             .map(value -> value.defineOperators(state))
             .collect(toList()));
+    }
+
+    @Override
+    public Either<Value, List<Value>> destructure() {
+        return right(getValues());
     }
 
     @Override
@@ -108,7 +115,7 @@ public class UnshuffledValue extends Value {
     }
 
     @Override
-    public Value parsePrecedence(SyntaxTreeParser state) {
+    public Value parsePrecedence(PrecedenceParser state) {
         if (values.size() == 1) {
             return values.get(0).parsePrecedence(state);
         } else {
@@ -117,7 +124,7 @@ public class UnshuffledValue extends Value {
     }
 
     @Override
-    public Value qualifyNames(SyntaxTreeParser state) {
+    public Value qualifyNames(NameQualifier state) {
         return withValues(values.stream().map(value -> value.qualifyNames(state)).collect(toList()));
     }
 

@@ -8,9 +8,13 @@ import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.SyntaxTreeParser;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.OperatorDefinitionParser;
+import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
@@ -26,17 +30,12 @@ public class DoubleLiteral extends Value {
     }
 
     @Override
-    public <T> T accept(ValueVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
-    public Value accumulateDependencies(SyntaxTreeParser state) {
+    public Value accumulateDependencies(DependencyAccumulator state) {
         return this;
     }
 
     @Override
-    public Value accumulateNames(SyntaxTreeParser state) {
+    public Value accumulateNames(NameAccumulator state) {
         return this;
     }
 
@@ -56,12 +55,12 @@ public class DoubleLiteral extends Value {
     }
 
     @Override
-    public Value defineOperators(SyntaxTreeParser state) {
+    public Value defineOperators(OperatorDefinitionParser state) {
         return this;
     }
 
     @Override
-    public Value parsePrecedence(SyntaxTreeParser state) {
+    public Value parsePrecedence(PrecedenceParser state) {
         return this;
     }
 
@@ -106,7 +105,7 @@ public class DoubleLiteral extends Value {
     }
 
     @Override
-    public Value qualifyNames(SyntaxTreeParser state) {
+    public Value qualifyNames(NameQualifier state) {
         return this;
     }
 

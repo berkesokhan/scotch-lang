@@ -24,7 +24,6 @@ import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.PatternMatchers;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.syntax.value.Value.ValueVisitor;
 import scotch.compiler.text.SourceRange;
 
 public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> {
@@ -117,17 +116,7 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
                 require(sourceRange, "Source range"),
                 require(symbol, "Function symbol"),
                 require(arguments, "Function arguments"),
-                require(body, "Function body").accept(new ValueVisitor<Value>() {
-                    @Override
-                    public Value visit(UnshuffledValue value) {
-                        return value.collapse();
-                    }
-
-                    @Override
-                    public Value visitOtherwise(Value value) {
-                        return value;
-                    }
-                })
+                require(body, "Function body").collapse()
             );
         }
 

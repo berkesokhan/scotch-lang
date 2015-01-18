@@ -5,9 +5,11 @@ import static scotch.util.StringUtil.stringify;
 import java.util.Objects;
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.SyntaxTreeParser;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.text.SourceRange;
 
@@ -24,17 +26,12 @@ public class EqualMatch extends PatternMatch {
     }
 
     @Override
-    public <T> T accept(PatternMatchVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
-    public PatternMatch accumulateDependencies(SyntaxTreeParser state) {
+    public PatternMatch accumulateDependencies(DependencyAccumulator state) {
         return withValue(value.accumulateDependencies(state));
     }
 
     @Override
-    public PatternMatch accumulateNames(SyntaxTreeParser state) {
+    public PatternMatch accumulateNames(NameAccumulator state) {
         return this;
     }
 
@@ -96,7 +93,7 @@ public class EqualMatch extends PatternMatch {
     }
 
     @Override
-    public PatternMatch qualifyNames(SyntaxTreeParser state) {
+    public PatternMatch qualifyNames(NameQualifier state) {
         return withValue(value.qualifyNames(state));
     }
 

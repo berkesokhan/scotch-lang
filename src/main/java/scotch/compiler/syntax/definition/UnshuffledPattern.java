@@ -9,9 +9,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.SyntaxTreeParser;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.OperatorDefinitionParser;
+import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.PatternMatch;
@@ -34,18 +38,13 @@ public class UnshuffledPattern extends Definition {
     }
 
     @Override
-    public <T> T accept(DefinitionVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
-    public Definition accumulateDependencies(SyntaxTreeParser state) {
+    public Definition accumulateDependencies(DependencyAccumulator state) {
         return state.scoped(this, () -> withMatches(matches.stream().map(match -> match.accumulateDependencies(state)).collect(toList()))
             .withBody(body.accumulateDependencies(state)));
     }
 
     @Override
-    public Definition accumulateNames(SyntaxTreeParser state) {
+    public Definition accumulateNames(NameAccumulator state) {
         return state.scoped(this, () -> withMatches(matches.stream().map(match -> match.accumulateNames(state)).collect(toList()))
             .withBody(body.accumulateNames(state)));
     }
@@ -67,7 +66,7 @@ public class UnshuffledPattern extends Definition {
     }
 
     @Override
-    public Definition defineOperators(SyntaxTreeParser state) {
+    public Definition defineOperators(OperatorDefinitionParser state) {
         return state.scoped(this, () -> withBody(body.defineOperators(state)));
     }
 
@@ -117,12 +116,12 @@ public class UnshuffledPattern extends Definition {
     }
 
     @Override
-    public Optional<Definition> parsePrecedence(SyntaxTreeParser state) {
+    public Optional<Definition> parsePrecedence(PrecedenceParser state) {
         return state.scopedOptional(this, () -> state.shuffle(this));
     }
 
     @Override
-    public Definition qualifyNames(SyntaxTreeParser state) {
+    public Definition qualifyNames(NameQualifier state) {
         return state.scoped(this, () -> withMatches(matches.stream().map(match -> match.qualifyNames(state)).collect(toList()))
             .withBody(body.qualifyNames(state)));
     }

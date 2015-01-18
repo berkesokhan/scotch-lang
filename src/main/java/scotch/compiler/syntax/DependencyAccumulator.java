@@ -1,27 +1,32 @@
-package scotch.compiler.symbol;
+package scotch.compiler.syntax;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.syntax.Scoped;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
+import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.PatternMatcher;
-import scotch.compiler.text.SourceRange;
 
-public interface NameQualifier {
+public interface DependencyAccumulator {
+
+    default List<DefinitionReference> accumulateDependencies(List<DefinitionReference> references) {
+        return map(references, Definition::accumulateDependencies);
+    }
+
+    void accumulateDependencies();
+
+    Identifier addDependency(Identifier identifier);
 
     Definition collect(Definition definition);
 
     Definition collect(PatternMatcher pattern);
-
-    default void defineOperator(Symbol symbol, Operator operator) {
-        scope().defineOperator(symbol, operator);
-    }
 
     default void defineValue(Symbol symbol, Type type) {
         scope().defineValue(symbol, type);
@@ -44,17 +49,15 @@ public interface NameQualifier {
 
     void leaveScope();
 
-    List<DefinitionReference> map(List<DefinitionReference> references, BiFunction<? super Definition, NameQualifier, ? extends Definition> function);
+    List<DefinitionReference> map(List<DefinitionReference> references, BiFunction<? super Definition, DependencyAccumulator, ? extends Definition> function);
 
-    void qualifyNames();
+    void popSymbol();
+
+    void pushSymbol(Symbol symbol);
 
     Scope scope();
 
     <T extends Definition> T scoped(T definition, Supplier<? extends T> supplier);
 
     <T extends Scoped> T scoped(Scoped value, Supplier<? extends T> supplier);
-
-    void symbolNotFound(Symbol symbol, SourceRange sourceRange);
-
-    Optional<Symbol> qualify(Symbol symbol);
 }

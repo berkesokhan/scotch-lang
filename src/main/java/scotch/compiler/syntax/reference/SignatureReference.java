@@ -24,11 +24,11 @@ public class SignatureReference extends DefinitionReference {
     }
 
     public String getMemberName() {
-        return symbol.getMemberName();
+        return symbol.getSimpleName();
     }
 
     public String getName() {
-        return symbol.getMemberName();
+        return symbol.getSimpleName();
     }
 
     public Symbol getSymbol() {

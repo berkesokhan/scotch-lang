@@ -2,20 +2,28 @@ package scotch.compiler.syntax.value;
 
 import static java.util.Arrays.asList;
 import static scotch.compiler.syntax.reference.DefinitionReference.valueRef;
+import static scotch.data.tuple.TupleValues.tuple2;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
+import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.NameQualifier;
+import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Symbol.QualifiedSymbol;
 import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.SyntaxTreeParser;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.OperatorDefinitionParser;
+import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
+import scotch.data.tuple.Tuple2;
 
 public class Identifier extends Value {
 
@@ -30,18 +38,20 @@ public class Identifier extends Value {
     }
 
     @Override
-    public <T> T accept(ValueVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
-    public Value accumulateDependencies(SyntaxTreeParser state) {
+    public Value accumulateDependencies(DependencyAccumulator state) {
         return state.addDependency(this);
     }
 
     @Override
-    public Value accumulateNames(SyntaxTreeParser state) {
+    public Value accumulateNames(NameAccumulator state) {
         return this;
+    }
+
+    @Override
+    public Optional<Tuple2<Identifier, Operator>> asOperator(Scope scope) {
+        return scope.qualify(symbol)
+            .map(scope::getOperator)
+            .map(operator -> tuple2(this, operator));
     }
 
     @Override
@@ -60,12 +70,12 @@ public class Identifier extends Value {
     }
 
     @Override
-    public Value defineOperators(SyntaxTreeParser state) {
+    public Value defineOperators(OperatorDefinitionParser state) {
         return this;
     }
 
     @Override
-    public Value parsePrecedence(SyntaxTreeParser state) {
+    public Value parsePrecedence(PrecedenceParser state) {
         if (state.isOperator(symbol)) {
             return state.qualify(symbol)
                 .map(this::withSymbol)
@@ -92,7 +102,7 @@ public class Identifier extends Value {
 
             @Override
             public Value visit(UnqualifiedSymbol symbol) {
-                return arg(sourceRange, symbol.getMemberName(), valueType);
+                return arg(sourceRange, symbol.getSimpleName(), valueType);
             }
         });
     }
@@ -134,7 +144,12 @@ public class Identifier extends Value {
     }
 
     @Override
-    public Value qualifyNames(SyntaxTreeParser state) {
+    public boolean isOperator(Scope scope) {
+        return scope.isOperator(symbol);
+    }
+
+    @Override
+    public Value qualifyNames(NameQualifier state) {
         return state.qualify(symbol)
             .map(this::withSymbol)
             .orElseGet(() -> {

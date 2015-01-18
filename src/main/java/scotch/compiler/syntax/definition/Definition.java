@@ -1,19 +1,26 @@
 package scotch.compiler.syntax.definition;
 
+import static scotch.data.either.Either.left;
+
 import java.util.List;
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.BytecodeGenerator;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.OperatorDefinitionParser;
+import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.Scoped;
-import scotch.compiler.syntax.SyntaxTreeParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.PatternMatch;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
+import scotch.data.either.Either;
 
 public abstract class Definition implements Scoped {
 
@@ -53,17 +60,23 @@ public abstract class Definition implements Scoped {
         // intentionally empty
     }
 
-    public abstract <T> T accept(DefinitionVisitor<T> visitor);
+    public abstract Definition accumulateDependencies(DependencyAccumulator state);
 
-    public abstract Definition accumulateDependencies(SyntaxTreeParser state);
+    public abstract Definition accumulateNames(NameAccumulator state);
 
-    public abstract Definition accumulateNames(SyntaxTreeParser state);
+    public Either<Definition, ValueSignature> asSignature() {
+        return left(this);
+    }
+
+    public Either<Definition, ValueDefinition> asValue() {
+        return left(this);
+    }
 
     public abstract Definition bindTypes(TypeChecker state);
 
     public abstract Definition checkTypes(TypeChecker state);
 
-    public abstract Definition defineOperators(SyntaxTreeParser state);
+    public abstract Definition defineOperators(OperatorDefinitionParser state);
 
     @Override
     public abstract boolean equals(Object o);
@@ -84,49 +97,10 @@ public abstract class Definition implements Scoped {
         getSourceRange().markLine(codeBlock);
     }
 
-    public abstract Optional<Definition> parsePrecedence(SyntaxTreeParser state);
+    public abstract Optional<Definition> parsePrecedence(PrecedenceParser state);
 
-    public abstract Definition qualifyNames(SyntaxTreeParser state);
+    public abstract Definition qualifyNames(NameQualifier state);
 
     @Override
     public abstract String toString();
-
-    public interface DefinitionVisitor<T> {
-
-        default T visit(ClassDefinition definition) {
-            return visitOtherwise(definition);
-        }
-
-        default T visit(ModuleDefinition definition) {
-            return visitOtherwise(definition);
-        }
-
-        default T visit(OperatorDefinition definition) {
-            return visitOtherwise(definition);
-        }
-
-        default T visit(RootDefinition definition) {
-            return visitOtherwise(definition);
-        }
-
-        default T visit(ScopeDefinition definition) {
-            return visitOtherwise(definition);
-        }
-
-        default T visit(UnshuffledPattern pattern) {
-            return visitOtherwise(pattern);
-        }
-
-        default T visit(ValueDefinition definition) {
-            return visitOtherwise(definition);
-        }
-
-        default T visit(ValueSignature signature) {
-            return visitOtherwise(signature);
-        }
-
-        default T visitOtherwise(Definition definition) {
-            throw new UnsupportedOperationException("Can't visit " + definition.getClass().getSimpleName());
-        }
-    }
 }

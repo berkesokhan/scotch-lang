@@ -5,22 +5,28 @@ import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_STATIC;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.reference.DefinitionReference.valueRef;
+import static scotch.data.either.Either.right;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.symbol.Unification.UnificationVisitor;
 import scotch.compiler.symbol.Unification.Unified;
 import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.SyntaxTreeParser;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.OperatorDefinitionParser;
+import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
+import scotch.data.either.Either;
 
 public class ValueDefinition extends Definition {
 
@@ -37,12 +43,7 @@ public class ValueDefinition extends Definition {
     }
 
     @Override
-    public <T> T accept(DefinitionVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
-    public Definition accumulateDependencies(SyntaxTreeParser state) {
+    public Definition accumulateDependencies(DependencyAccumulator state) {
         return state.scoped(this, () -> {
             state.pushSymbol(symbol);
             try {
@@ -54,10 +55,15 @@ public class ValueDefinition extends Definition {
     }
 
     @Override
-    public Definition accumulateNames(SyntaxTreeParser state) {
+    public Definition accumulateNames(NameAccumulator state) {
         state.defineValue(symbol, type);
         state.specialize(type);
         return state.scoped(this, () -> withBody(body.accumulateNames(state)));
+    }
+
+    @Override
+    public Either<Definition, ValueDefinition> asValue() {
+        return right(this);
     }
 
     @Override
@@ -89,7 +95,7 @@ public class ValueDefinition extends Definition {
     }
 
     @Override
-    public Definition defineOperators(SyntaxTreeParser state) {
+    public Definition defineOperators(OperatorDefinitionParser state) {
         return state.scoped(this, () -> withBody(body.defineOperators(state)));
     }
 
@@ -110,7 +116,7 @@ public class ValueDefinition extends Definition {
     @Override
     public void generateBytecode(BytecodeGenerator state) {
         state.generate(this, () -> state.method(getMethodName(), ACC_STATIC | ACC_PUBLIC, sig(state.typeOf(type)), new CodeBlock() {{
-            annotate(Value.class).value("memberName", symbol.getMemberName());
+            annotate(Value.class).value("memberName", symbol.getSimpleName());
             markLine(this);
             append(body.generateBytecode(state));
             areturn();
@@ -152,12 +158,12 @@ public class ValueDefinition extends Definition {
     }
 
     @Override
-    public Optional<Definition> parsePrecedence(SyntaxTreeParser state) {
+    public Optional<Definition> parsePrecedence(PrecedenceParser state) {
         return Optional.of(state.scoped(this, () -> withBody(body.parsePrecedence(state).unwrap())));
     }
 
     @Override
-    public Definition qualifyNames(SyntaxTreeParser state) {
+    public Definition qualifyNames(NameQualifier state) {
         return state.scoped(this, () -> withBody(body.qualifyNames(state)));
     }
 

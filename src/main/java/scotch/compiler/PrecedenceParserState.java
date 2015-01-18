@@ -20,8 +20,8 @@ import scotch.compiler.parser.PatternShuffler.ResultVisitor;
 import scotch.compiler.parser.ValueShuffler;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolNotFoundError;
+import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.Scoped;
-import scotch.compiler.syntax.SyntaxTreeParser;
 import scotch.compiler.syntax.builder.SyntaxBuilderFactory;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
@@ -31,14 +31,13 @@ import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.FunctionValue;
-import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.PatternMatch;
 import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
-public class TreeParserState implements SyntaxTreeParser {
+public class PrecedenceParserState implements PrecedenceParser {
 
     private final DefinitionGraph                           graph;
     private final SyntaxBuilderFactory                      builderFactory;
@@ -46,27 +45,14 @@ public class TreeParserState implements SyntaxTreeParser {
     private final Map<DefinitionReference, Scope>           functionScopes;
     private final Map<DefinitionReference, DefinitionEntry> entries;
     private final List<SyntaxError>                         errors;
-    private final Deque<Symbol>                             symbols;
 
-    public TreeParserState(DefinitionGraph graph) {
+    public PrecedenceParserState(DefinitionGraph graph) {
         this.graph = graph;
         this.builderFactory = new SyntaxBuilderFactory();
         this.scopes = new ArrayDeque<>();
         this.functionScopes = new HashMap<>();
         this.entries = new HashMap<>();
         this.errors = new ArrayList<>();
-        this.symbols = new ArrayDeque<>();
-    }
-
-    @Override
-    public Identifier addDependency(Identifier identifier) {
-        identifier.getSymbol().map(symbol -> {
-            if (!symbols.contains(symbol)) {
-                scope().addDependency(symbol);
-            }
-            return symbol;
-        });
-        return identifier;
     }
 
     @Override
@@ -96,12 +82,6 @@ public class TreeParserState implements SyntaxTreeParser {
     }
 
     @Override
-    public void fromRoot(BiFunction<Definition, SyntaxTreeParser, ? extends Definition> function) {
-        Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
-        scoped(root, () -> function.apply(root, this));
-    }
-
-    @Override
     public Optional<Definition> getDefinition(DefinitionReference reference) {
         return graph.getDefinition(reference);
     }
@@ -126,7 +106,7 @@ public class TreeParserState implements SyntaxTreeParser {
     }
 
     @Override
-    public List<DefinitionReference> map(List<DefinitionReference> references, BiFunction<? super Definition, SyntaxTreeParser, ? extends Definition> function) {
+    public List<DefinitionReference> map(List<DefinitionReference> references, BiFunction<? super Definition, PrecedenceParser, ? extends Definition> function) {
         return references.stream()
             .map(this::getDefinition)
             .filter(Optional::isPresent)
@@ -137,7 +117,7 @@ public class TreeParserState implements SyntaxTreeParser {
     }
 
     @Override
-    public List<DefinitionReference> mapOptional(List<DefinitionReference> references, BiFunction<? super Definition, SyntaxTreeParser, Optional<? extends Definition>> function) {
+    public List<DefinitionReference> mapOptional(List<DefinitionReference> references, BiFunction<? super Definition, PrecedenceParser, Optional<? extends Definition>> function) {
         return references.stream()
             .map(this::getDefinition)
             .filter(Optional::isPresent)
@@ -150,8 +130,9 @@ public class TreeParserState implements SyntaxTreeParser {
     }
 
     @Override
-    public void popSymbol() {
-        symbols.pop();
+    public void parsePrecedence() {
+        Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
+        scopedOptional(root, () -> root.parsePrecedence(this));
     }
 
     @Override
@@ -184,16 +165,6 @@ public class TreeParserState implements SyntaxTreeParser {
             functionScopes.remove(valueRef(symbol));
         });
         return members;
-    }
-
-    @Override
-    public void pushSymbol(Symbol symbol) {
-        symbols.push(symbol);
-    }
-
-    @Override
-    public void symbolNotFound(Symbol symbol, SourceRange sourceRange) {
-        errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceRange));
     }
 
     @Override
@@ -265,6 +236,11 @@ public class TreeParserState implements SyntaxTreeParser {
                 error(left);
                 return value;
             });
+    }
+
+    @Override
+    public void symbolNotFound(Symbol symbol, SourceRange sourceRange) {
+        errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceRange));
     }
 
     private FunctionValue buildFunction(List<PatternMatcher> patterns, SourceRange sourceRange) {

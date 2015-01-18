@@ -3,6 +3,7 @@ package scotch.compiler.syntax.value;
 import static java.util.Collections.reverse;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
+import static scotch.data.either.Either.right;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.ArrayDeque;
@@ -13,15 +14,20 @@ import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.OperatorDefinitionParser;
+import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.Scoped;
-import scotch.compiler.syntax.SyntaxTreeParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.reference.ScopeReference;
 import scotch.compiler.text.SourceRange;
+import scotch.data.either.Either;
 
 public class FunctionValue extends Value implements Scoped {
 
@@ -40,21 +46,21 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
-    public <T> T accept(ValueVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
-    public Value accumulateDependencies(SyntaxTreeParser state) {
+    public Value accumulateDependencies(DependencyAccumulator state) {
         return state.keep(withBody(body.accumulateDependencies(state)));
     }
 
     @Override
-    public Value accumulateNames(SyntaxTreeParser state) {
+    public Value accumulateNames(NameAccumulator state) {
         return state.scoped(this, () -> withArguments(arguments.stream()
             .map(argument -> (Argument) argument.accumulateNames(state))
             .collect(toList()))
             .withBody(body.accumulateNames(state)));
+    }
+
+    @Override
+    public Either<Value, FunctionValue> asFunction() {
+        return right(this);
     }
 
     @Override
@@ -89,7 +95,7 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
-    public Value defineOperators(SyntaxTreeParser state) {
+    public Value defineOperators(OperatorDefinitionParser state) {
         return state.scoped(this, () -> withBody(body.defineOperators(state)));
     }
 
@@ -160,12 +166,12 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
-    public Value qualifyNames(SyntaxTreeParser state) {
+    public Value qualifyNames(NameQualifier state) {
         return state.scoped(this, () -> withBody(body.qualifyNames(state)));
     }
 
     @Override
-    public Value parsePrecedence(SyntaxTreeParser state) {
+    public Value parsePrecedence(PrecedenceParser state) {
         return state.scoped(this, () -> withBody(body.parsePrecedence(state)));
     }
 

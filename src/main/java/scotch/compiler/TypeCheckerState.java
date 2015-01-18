@@ -52,7 +52,6 @@ import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.InstanceMap;
 import scotch.compiler.syntax.value.Method;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.syntax.value.Value.ValueVisitor;
 import scotch.compiler.text.SourceRange;
 
 public class TypeCheckerState implements TypeChecker {
@@ -289,9 +288,8 @@ public class TypeCheckerState implements TypeChecker {
                         return left;
                     }));
                 try {
-                    return definition.withBody(definition.getBody().accept(new ValueVisitor<Value>() {
-                        @Override
-                        public Value visit(FunctionValue function) {
+                    return definition.withBody(definition.getBody().asFunction()
+                        .map(function -> {
                             Scope scope = graph.getScope(function.getReference());
                             List<String> locals = new ArrayList<>();
                             instanceArguments.forEach(argument -> {
@@ -303,10 +301,8 @@ public class TypeCheckerState implements TypeChecker {
                                 .addAll(instanceArguments)
                                 .addAll(function.getArguments())
                                 .build());
-                        }
-
-                        @Override
-                        public Value visitOtherwise(Value value) {
+                        })
+                        .orElseGet(value -> {
                             Symbol functionSymbol = scope().reserveSymbol();
                             Scope functionScope = scope().enterScope();
                             scope().insert(functionScope);
@@ -317,8 +313,8 @@ public class TypeCheckerState implements TypeChecker {
                                 functionScope.addLocal(argument.getName());
                             });
                             return function;
-                        }
-                    }).bindMethods(this));
+                        })
+                        .bindMethods(this));
                 } finally {
                     arguments.pop();
                 }

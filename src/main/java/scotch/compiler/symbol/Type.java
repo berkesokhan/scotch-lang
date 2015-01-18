@@ -149,7 +149,7 @@ public abstract class Type {
             return "";
         } else {
             return "(" + context.stream()
-                .map(tuple -> tuple.into((type, symbol) -> symbol.getMemberName() + " " + type.name))
+                .map(tuple -> tuple.into((type, symbol) -> symbol.getSimpleName() + " " + type.name))
                 .collect(joining(", ")) + ") => ";
         }
     }
@@ -439,7 +439,7 @@ public abstract class Type {
 
         @Override
         protected String toString_() {
-            return symbol.getMemberName();
+            return symbol.getSimpleName();
         }
 
         @Override
@@ -464,7 +464,7 @@ public abstract class Type {
         private final Symbol      symbol;
 
         private SumType(SourceRange sourceRange, Symbol symbol) {
-            shouldBeUpperCase(symbol.getMemberName());
+            shouldBeUpperCase(symbol.getSimpleName());
             this.sourceRange = sourceRange;
             this.symbol = symbol;
         }
@@ -564,7 +564,7 @@ public abstract class Type {
 
         @Override
         protected String toString_() {
-            return symbol.getMemberName();
+            return symbol.getSimpleName();
         }
 
         @Override

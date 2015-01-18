@@ -5,9 +5,13 @@ import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
 import java.util.Optional;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.SyntaxTreeParser;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.OperatorDefinitionParser;
+import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
@@ -23,17 +27,12 @@ public class ScopeDefinition extends Definition {
     }
 
     @Override
-    public <T> T accept(DefinitionVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
-    public Definition accumulateDependencies(SyntaxTreeParser state) {
+    public Definition accumulateDependencies(DependencyAccumulator state) {
         return state.keep(this);
     }
 
     @Override
-    public Definition accumulateNames(SyntaxTreeParser state) {
+    public Definition accumulateNames(NameAccumulator state) {
         return state.keep(this);
     }
 
@@ -48,7 +47,7 @@ public class ScopeDefinition extends Definition {
     }
 
     @Override
-    public Definition defineOperators(SyntaxTreeParser state) {
+    public Definition defineOperators(OperatorDefinitionParser state) {
         return state.keep(this);
     }
 
@@ -86,12 +85,12 @@ public class ScopeDefinition extends Definition {
     }
 
     @Override
-    public Optional<Definition> parsePrecedence(SyntaxTreeParser state) {
+    public Optional<Definition> parsePrecedence(PrecedenceParser state) {
         return Optional.of(state.keep(this));
     }
 
     @Override
-    public Definition qualifyNames(SyntaxTreeParser state) {
+    public Definition qualifyNames(NameQualifier state) {
         return state.keep(this);
     }
 

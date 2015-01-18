@@ -4,20 +4,17 @@ import static java.util.Collections.reverse;
 import static scotch.compiler.parser.ParseError.parseError;
 import static scotch.data.either.Either.left;
 import static scotch.data.either.Either.right;
-import static scotch.util.StringUtil.quote;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.definition.UnshuffledPattern;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.CaptureMatch;
 import scotch.compiler.syntax.value.PatternMatch;
-import scotch.compiler.syntax.value.PatternMatch.PatternMatchVisitor;
 import scotch.data.either.Either;
 import scotch.data.either.Either.EitherVisitor;
 
@@ -80,17 +77,9 @@ public class PatternShuffler {
         public ShuffleResult splitPattern() {
             try {
                 List<PatternMatch> matches = shufflePattern(pattern.getMatches());
-                return matches.remove(0).accept(new PatternMatchVisitor<ShuffleResult>() {
-                    @Override
-                    public ShuffleResult visit(CaptureMatch match) {
-                        return success(scope.qualifyCurrent(match.getSymbol()), matches);
-                    }
-
-                    @Override
-                    public ShuffleResult visitOtherwise(PatternMatch match) {
-                        return error(parseError("Illegal start of pattern", match.getSourceRange()));
-                    }
-                });
+                return matches.remove(0).asCapture()
+                    .map(match -> success(scope.qualifyCurrent(match.getSymbol()), matches))
+                    .orElseGet(match -> error(parseError("Illegal start of pattern", match.getSourceRange())));
             } catch (ShuffleException exception) {
                 return error(exception.syntaxError);
             }
@@ -101,32 +90,19 @@ public class PatternShuffler {
         }
 
         private OperatorPair<CaptureMatch> getOperator(PatternMatch match, boolean expectsPrefix) {
-            return match.accept(new PatternMatchVisitor<OperatorPair<CaptureMatch>>() {
-                @Override
-                public OperatorPair<CaptureMatch> visit(CaptureMatch match) {
-                    Operator operator = scope.qualify(match.getSymbol())
-                        .map(scope::getOperator)
-                        .orElseThrow(() -> new ShuffleException(parseError("Symbol " + match.getSymbol().quote() + " is not an operator", match.getSourceRange())));
+            return match.asOperator(scope)
+                .map(tuple -> tuple.into((capture, operator) -> {
                     if (expectsPrefix && !operator.isPrefix()) {
-                        throw new ShuffleException(parseError("Unexpected binary operator " + quote(match.getSymbol()), match.getSourceRange()));
+                        throw new ShuffleException(parseError("Unexpected binary operator " + capture.getSymbol(), capture.getSourceRange()));
+                    } else {
+                        return new OperatorPair<>(operator, capture);
                     }
-                    return new OperatorPair<>(operator, match);
-                }
-            });
+                }))
+                .orElseThrow(() -> new ShuffleException(parseError("Match " + match.prettyPrint() + " is not an operator", match.getSourceRange())));
         }
 
         private boolean isOperator(PatternMatch match) {
-            return match.accept(new PatternMatchVisitor<Boolean>() {
-                @Override
-                public Boolean visit(CaptureMatch match) {
-                    return scope.isOperator(match.getSymbol());
-                }
-
-                @Override
-                public Boolean visitOtherwise(PatternMatch match) {
-                    return false;
-                }
-            });
+            return match.isOperator(scope);
         }
 
         private List<PatternMatch> shufflePattern(List<PatternMatch> matches) {

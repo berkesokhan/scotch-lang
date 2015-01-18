@@ -12,18 +12,12 @@ import java.util.Deque;
 import java.util.List;
 import java.util.function.Function;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.syntax.value.CaptureMatch;
 import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.PatternMatch;
-import scotch.compiler.syntax.value.PatternMatch.PatternMatchVisitor;
-import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.syntax.value.Value.ValueVisitor;
 import scotch.data.either.Either;
-import scotch.data.either.Either.EitherVisitor;
 
 public class ValueShuffler {
 
@@ -109,46 +103,23 @@ public class ValueShuffler {
         }
 
         private OperatorPair<Identifier> getOperator(Value value, boolean expectsPrefix) {
-            return value.accept(new ValueVisitor<OperatorPair<Identifier>>() {
-                @Override
-                public OperatorPair<Identifier> visit(Identifier identifier) {
-                    Operator operator = scope.qualify(identifier.getSymbol())
-                        .map(scope::getOperator)
-                        .orElseThrow(() -> new ShuffleException(parseError("Symbol is not an operator: " + identifier.getSymbol(), identifier.getSourceRange())));
+            return value.asOperator(scope)
+                .map(tuple -> tuple.into((identifier, operator) -> {
                     if (expectsPrefix && !operator.isPrefix()) {
                         throw new ShuffleException(parseError("Unexpected binary operator " + identifier.getSymbol(), identifier.getSourceRange()));
+                    } else {
+                        return new OperatorPair<>(operator, identifier);
                     }
-                    return new OperatorPair<>(operator, identifier);
-                }
-            });
+                }))
+                .orElseThrow(() -> new ShuffleException(parseError("Value " + value.prettyPrint() + " is not an operator", value.getSourceRange())));
         }
 
         private boolean isOperator(PatternMatch match) {
-            return match.accept(new PatternMatchVisitor<Boolean>() {
-                @Override
-                public Boolean visit(CaptureMatch match) {
-                    return scope.isOperator(match.getSymbol());
-                }
-
-                @Override
-                public Boolean visitOtherwise(PatternMatch match) {
-                    return false;
-                }
-            });
+            return match.isOperator(scope);
         }
 
         private boolean isOperator(Value value) {
-            return value.accept(new ValueVisitor<Boolean>() {
-                @Override
-                public Boolean visit(Identifier identifier) {
-                    return scope.isOperator(identifier.getSymbol());
-                }
-
-                @Override
-                public Boolean visitOtherwise(Value value) {
-                    return false;
-                }
-            });
+            return value.isOperator(scope);
         }
 
         private Type reserveType() {
@@ -175,27 +146,9 @@ public class ValueShuffler {
         }
 
         private Value shuffleNext(Deque<Value> input) {
-            return input.poll().accept(new ValueVisitor<Value>() {
-                @Override
-                public Value visit(UnshuffledValue value) {
-                    return shuffle(scope, value.getValues()).accept(new EitherVisitor<SyntaxError, Value, Value>() {
-                        @Override
-                        public Value visitLeft(SyntaxError left) {
-                            throw new ShuffleException(left);
-                        }
-
-                        @Override
-                        public Value visitRight(Value right) {
-                            return right;
-                        }
-                    });
-                }
-
-                @Override
-                public Value visitOtherwise(Value value) {
-                    return value;
-                }
-            });
+            return input.poll().destructure()
+                .map(values -> shuffle(scope, values).orElseThrow(ShuffleException::new))
+                .orElseGet(left -> left);
         }
     }
 }

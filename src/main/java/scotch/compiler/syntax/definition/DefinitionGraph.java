@@ -18,7 +18,6 @@ import com.google.common.collect.ImmutableList;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.Type;
-import scotch.compiler.syntax.definition.Definition.DefinitionVisitor;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.scope.Scope;
@@ -83,22 +82,11 @@ public class DefinitionGraph {
     }
 
     public Optional<Type> getValue(DefinitionReference reference) {
-        return getDefinition(reference).map(definition -> definition.accept(new DefinitionVisitor<Type>() {
-            @Override
-            public Type visit(ValueDefinition definition) {
-                return definition.getType();
-            }
-
-            @Override
-            public Type visit(ValueSignature signature) {
-                return signature.getType();
-            }
-
-            @Override
-            public Type visitOtherwise(Definition definition) {
-                throw new IllegalArgumentException("Can't get type of " + definition.getClass().getSimpleName());
-            }
-        }));
+        return getDefinition(reference).map(definition -> definition.asValue()
+            .map(ValueDefinition::getType)
+            .orElseGet(def1 -> definition.asSignature()
+                .map(ValueSignature::getType)
+                .orElseThrow(def2 -> new IllegalArgumentException("Can't get type of " + definition.getClass().getSimpleName()))));
     }
 
     public List<ValueReference> getValues() {

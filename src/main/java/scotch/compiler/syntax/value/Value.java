@@ -1,12 +1,19 @@
 package scotch.compiler.syntax.value;
 
+import static scotch.data.either.Either.left;
+
 import java.util.List;
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.NameQualifier;
+import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.SyntaxTreeParser;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.OperatorDefinitionParser;
+import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
@@ -16,6 +23,8 @@ import scotch.compiler.syntax.reference.InstanceReference;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
+import scotch.data.either.Either;
+import scotch.data.tuple.Tuple2;
 
 public abstract class Value {
 
@@ -103,11 +112,17 @@ public abstract class Value {
         // intentionally empty
     }
 
-    public abstract <T> T accept(ValueVisitor<T> visitor);
+    public abstract Value accumulateDependencies(DependencyAccumulator state);
 
-    public abstract Value accumulateDependencies(SyntaxTreeParser state);
+    public abstract Value accumulateNames(NameAccumulator state);
 
-    public abstract Value accumulateNames(SyntaxTreeParser state);
+    public Either<Value, FunctionValue> asFunction() {
+        return left(this);
+    }
+
+    public Optional<Tuple2<Identifier, Operator>> asOperator(Scope scope) {
+        return Optional.empty();
+    }
 
     public abstract Value bindMethods(TypeChecker state);
 
@@ -115,7 +130,15 @@ public abstract class Value {
 
     public abstract Value checkTypes(TypeChecker state);
 
-    public abstract Value defineOperators(SyntaxTreeParser state);
+    public Value collapse() {
+        return this;
+    }
+
+    public abstract Value defineOperators(OperatorDefinitionParser state);
+
+    public Either<Value, List<Value>> destructure() {
+        return left(this);
+    }
 
     @Override
     public abstract boolean equals(Object o);
@@ -129,9 +152,17 @@ public abstract class Value {
     @Override
     public abstract int hashCode();
 
-    public abstract Value parsePrecedence(SyntaxTreeParser state);
+    public boolean isOperator(Scope scope) {
+        return false;
+    }
 
-    public abstract Value qualifyNames(SyntaxTreeParser state);
+    public abstract Value parsePrecedence(PrecedenceParser state);
+
+    public String prettyPrint() {
+        return "[" + getClass().getSimpleName() + "]";
+    }
+
+    public abstract Value qualifyNames(NameQualifier state);
 
     @Override
     public abstract String toString();
@@ -141,79 +172,4 @@ public abstract class Value {
     }
 
     public abstract Value withType(Type type);
-
-    public interface ValueVisitor<T> {
-
-        default T visit(Apply apply) {
-            return visitOtherwise(apply);
-        }
-
-        default T visit(Argument argument) {
-            return visitOtherwise(argument);
-        }
-
-        default T visit(BoolLiteral literal) {
-            return visitOtherwise(literal);
-        }
-
-        default T visit(BoundValue boundValue) {
-            return visitOtherwise(boundValue);
-        }
-
-        default T visit(CharLiteral literal) {
-            return visitOtherwise(literal);
-        }
-
-        default T visit(DoubleLiteral literal) {
-            return visitOtherwise(literal);
-        }
-
-        default T visit(FunctionValue function) {
-            return visitOtherwise(function);
-        }
-
-        default T visit(Identifier identifier) {
-            return visitOtherwise(identifier);
-        }
-
-        default T visit(IntLiteral literal) {
-            return visitOtherwise(literal);
-        }
-
-        default T visit(Instance instance) {
-            return visitOtherwise(instance);
-        }
-
-        default T visit(LambdaValue lambda) {
-            return visitOtherwise(lambda);
-        }
-
-        default T visit(Let let) {
-            return visitOtherwise(let);
-        }
-
-        default T visit(UnshuffledValue value) {
-            return visitOtherwise(value);
-        }
-
-        default T visit(Method method) {
-            return visitOtherwise(method);
-        }
-
-        default T visit(PatternMatchers matchers) {
-            return visitOtherwise(matchers);
-        }
-
-        default T visit(StringLiteral literal) {
-            return visitOtherwise(literal);
-        }
-
-        default T visit(UnboundMethod unboundMethod) {
-            return visitOtherwise(unboundMethod);
-        }
-
-        default T visitOtherwise(Value value) {
-            throw new UnsupportedOperationException("Can't visit " + value.getClass().getSimpleName());
-        }
-    }
 }

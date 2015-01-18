@@ -9,10 +9,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.Scoped;
-import scotch.compiler.syntax.SyntaxTreeParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.reference.DefinitionReference;
@@ -36,12 +39,12 @@ public class PatternMatcher implements Scoped {
         this.body = body;
     }
 
-    public PatternMatcher accumulateDependencies(SyntaxTreeParser state) {
+    public PatternMatcher accumulateDependencies(DependencyAccumulator state) {
         return state.keep(withMatches(matches.stream().map(match -> match.accumulateDependencies(state)).collect(toList()))
             .withBody(body.accumulateDependencies(state)));
     }
 
-    public PatternMatcher accumulateNames(SyntaxTreeParser state) {
+    public PatternMatcher accumulateNames(NameAccumulator state) {
         return state.scoped(this, () -> withMatches(matches.stream().map(match -> match.accumulateNames(state)).collect(toList()))
             .withBody(body.accumulateNames(state)));
     }
@@ -114,7 +117,7 @@ public class PatternMatcher implements Scoped {
         return Objects.hash(symbol, matches, body);
     }
 
-    public PatternMatcher parsePrecedence(SyntaxTreeParser state) {
+    public PatternMatcher parsePrecedence(PrecedenceParser state) {
         return state.scoped(this, () -> {
             List<PatternMatch> boundMatches = new ArrayList<>();
             int counter = 0;
@@ -125,7 +128,7 @@ public class PatternMatcher implements Scoped {
         });
     }
 
-    public PatternMatcher qualifyNames(SyntaxTreeParser state) {
+    public PatternMatcher qualifyNames(NameQualifier state) {
         return state.scoped(this, () -> withMatches(matches.stream()
             .map(match -> match.qualifyNames(state))
             .collect(toList()))

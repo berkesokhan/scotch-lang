@@ -29,9 +29,7 @@ import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.definition.ValueSignature;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.PatternMatch;
-import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.syntax.value.Value.ValueVisitor;
 import scotch.compiler.text.SourceRange;
 
 public abstract class DefinitionBuilder<T extends Definition> implements SyntaxBuilder<T> {
@@ -333,17 +331,7 @@ public abstract class DefinitionBuilder<T extends Definition> implements SyntaxB
                 require(sourceRange, "Source range"),
                 require(symbol, "Value symbol"),
                 require(type, "Value type"),
-                require(body, "Value body").accept(new ValueVisitor<Value>() {
-                    @Override
-                    public Value visit(UnshuffledValue value) {
-                        return value.collapse();
-                    }
-
-                    @Override
-                    public Value visitOtherwise(Value value) {
-                        return value;
-                    }
-                })
+                require(body, "Value body").collapse()
             );
         }
 

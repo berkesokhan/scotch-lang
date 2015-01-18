@@ -7,15 +7,17 @@ import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.OperatorDefinitionParser;
+import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.Scoped;
-import scotch.compiler.syntax.SyntaxTreeParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.definition.Definition;
-import scotch.compiler.syntax.definition.Definition.DefinitionVisitor;
-import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
 
@@ -34,18 +36,13 @@ public class Let extends Value implements Scoped {
     }
 
     @Override
-    public <T> T accept(ValueVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
-    public Value accumulateDependencies(SyntaxTreeParser state) {
+    public Value accumulateDependencies(DependencyAccumulator state) {
         return state.keep(withDefinitions(state.accumulateDependencies(definitions))
         .withBody(body.accumulateDependencies(state)));
     }
 
     @Override
-    public Value accumulateNames(SyntaxTreeParser state) {
+    public Value accumulateNames(NameAccumulator state) {
         return state.scoped(this, () -> withDefinitions(state.accumulateNames(definitions))
             .withBody(body.accumulateNames(state)));
     }
@@ -53,17 +50,9 @@ public class Let extends Value implements Scoped {
     @Override
     public Value bindMethods(TypeChecker state) {
         return state.scoped(this, () -> withBody(body.bindMethods(state))
-            .withDefinitions(state.map(definitions, (definition, s) -> definition.accept(new DefinitionVisitor<Definition>() {
-                @Override
-                public Definition visit(ValueDefinition definition) {
-                    return state.scoped(definition, () -> definition.withBody(body.bindMethods(state)));
-                }
-
-                @Override
-                public Definition visitOtherwise(Definition definition) {
-                    return state.keep(definition);
-                }
-            }))));
+            .withDefinitions(state.map(definitions, (definition, s) -> definition.asValue()
+                .map(value -> state.scoped(definition, () -> value.withBody(body.bindMethods(state))))
+                .orElseGet(state::keep))));
     }
 
     @Override
@@ -79,7 +68,7 @@ public class Let extends Value implements Scoped {
     }
 
     @Override
-    public Value defineOperators(SyntaxTreeParser state) {
+    public Value defineOperators(OperatorDefinitionParser state) {
         return state.scoped(this, () -> withDefinitions(state.map(definitions, Definition::defineOperators))
             .withBody(body.defineOperators(state)));
     }
@@ -141,13 +130,13 @@ public class Let extends Value implements Scoped {
     }
 
     @Override
-    public Value parsePrecedence(SyntaxTreeParser state) {
+    public Value parsePrecedence(PrecedenceParser state) {
         return state.scoped(this, () -> withDefinitions(state.mapOptional(definitions, Definition::parsePrecedence))
             .withBody(body.parsePrecedence(state)));
     }
 
     @Override
-    public Value qualifyNames(SyntaxTreeParser state) {
+    public Value qualifyNames(NameQualifier state) {
         return state.scoped(this, () -> withDefinitions(state.map(definitions, Definition::qualifyNames))
             .withBody(body.qualifyNames(state)));
     }

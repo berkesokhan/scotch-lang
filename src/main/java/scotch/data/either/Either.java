@@ -5,13 +5,13 @@ import static scotch.util.StringUtil.stringify;
 import java.util.Objects;
 import java.util.function.Function;
 
-public abstract class Either<L, R> {
+public abstract class Either<A, B> {
 
-    public static <L, R> Either<L, R> left(L left) {
+    public static <A, B> Either<A, B> left(A left) {
         return new Left<>(left);
     }
 
-    public static <L, R> Either<L, R> right(R right) {
+    public static <A, B> Either<A, B> right(B right) {
         return new Right<>(right);
     }
 
@@ -19,16 +19,16 @@ public abstract class Either<L, R> {
         // intentionally empty
     }
 
-    public abstract <T> T accept(EitherVisitor<L, R, T> visitor);
+    public abstract <T> T accept(EitherVisitor<A, B, T> visitor);
 
     @Override
     public abstract boolean equals(Object o);
 
-    public abstract L getLeft();
+    public abstract A getLeft();
 
-    public abstract R getRight();
+    public abstract B getRight();
 
-    public abstract R getRightOr(Function<L, R> function);
+    public abstract B getRightOr(Function<A, B> function);
 
     @Override
     public abstract int hashCode();
@@ -38,6 +38,12 @@ public abstract class Either<L, R> {
     }
 
     public abstract boolean isRight();
+
+    public abstract <C> Either<A, C> map(Function<? super B, ? extends C> function);
+
+    public abstract B orElseGet(Function<A, B> function);
+
+    public abstract <T extends RuntimeException> B orElseThrow(Function<? super A, ? extends T> function) throws T;
 
     @Override
     public abstract String toString();
@@ -49,42 +55,42 @@ public abstract class Either<L, R> {
         T visitRight(R right);
     }
 
-    public static class Left<L, R> extends Either<L, R> {
+    public static class Left<A, B> extends Either<A, B> {
 
-        private final L left;
+        private final A value;
 
-        private Left(L left) {
-            this.left = left;
+        private Left(A value) {
+            this.value = value;
         }
 
         @Override
-        public <T> T accept(EitherVisitor<L, R, T> visitor) {
-            return visitor.visitLeft(left);
+        public <T> T accept(EitherVisitor<A, B, T> visitor) {
+            return visitor.visitLeft(value);
         }
 
         @Override
         public boolean equals(Object o) {
-            return o == this || o instanceof Left && Objects.equals(left, ((Left) o).left);
+            return o == this || o instanceof Left && Objects.equals(value, ((Left) o).value);
         }
 
         @Override
-        public L getLeft() {
-            return left;
+        public A getLeft() {
+            return value;
         }
 
         @Override
-        public R getRight() {
+        public B getRight() {
             throw new IllegalStateException();
         }
 
         @Override
-        public R getRightOr(Function<L, R> function) {
-            return function.apply(left);
+        public B getRightOr(Function<A, B> function) {
+            return function.apply(value);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(left);
+            return Objects.hash(value);
         }
 
         @Override
@@ -92,48 +98,64 @@ public abstract class Either<L, R> {
             return false;
         }
 
+        @SuppressWarnings("unchecked")
+        @Override
+        public <C> Either<A, C> map(Function<? super B, ? extends C> function) {
+            return (Either<A, C>) this;
+        }
+
+        @Override
+        public B orElseGet(Function<A, B> function) {
+            return function.apply(value);
+        }
+
+        @Override
+        public <T extends RuntimeException> B orElseThrow(Function<? super A, ? extends T> function) throws T {
+            throw function.apply(value);
+        }
+
         @Override
         public String toString() {
-            return stringify(this) + "(" + left + ")";
+            return stringify(this) + "(" + value + ")";
         }
     }
 
-    public static class Right<L, R> extends Either<L, R> {
+    public static class Right<A, B> extends Either<A, B> {
 
-        private final R right;
+        private final B value;
 
-        private Right(R right) {
-            this.right = right;
+        private Right(B value) {
+            this.value = value;
         }
 
         @Override
-        public <T> T accept(EitherVisitor<L, R, T> visitor) {
-            return visitor.visitRight(right);
+        public <T> T accept(EitherVisitor<A, B, T> visitor) {
+            return visitor.visitRight(value);
         }
 
         @Override
         public boolean equals(Object o) {
-            return o == this || o instanceof Right && Objects.equals(right, ((Right) o).right);
+            return o == this || o instanceof Right && Objects.equals(value, ((Right) o).value);
         }
 
         @Override
-        public L getLeft() {
+        public A getLeft() {
             throw new IllegalStateException();
         }
 
         @Override
-        public R getRight() {
-            return right;
+        public B getRight() {
+            return value;
         }
 
         @Override
-        public R getRightOr(Function<L, R> supplier) {
-            return right;
+        public B getRightOr(Function<A, B> supplier) {
+            return value;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(right);
+            return Objects.hash(value);
         }
 
         @Override
@@ -142,8 +164,23 @@ public abstract class Either<L, R> {
         }
 
         @Override
+        public <C> Either<A, C> map(Function<? super B, ? extends C> function) {
+            return right(function.apply(value));
+        }
+
+        @Override
+        public B orElseGet(Function<A, B> function) {
+            return value;
+        }
+
+        @Override
+        public <T extends RuntimeException> B orElseThrow(Function<? super A, ? extends T> function) throws T {
+            return value;
+        }
+
+        @Override
         public String toString() {
-            return stringify(this) + "(" + right + ")";
+            return stringify(this) + "(" + value + ")";
         }
     }
 }

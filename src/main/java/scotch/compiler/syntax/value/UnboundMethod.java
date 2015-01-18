@@ -8,10 +8,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.SyntaxTreeParser;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.OperatorDefinitionParser;
+import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.scope.Scope;
@@ -30,17 +34,12 @@ public class UnboundMethod extends Value {
     }
 
     @Override
-    public <T> T accept(ValueVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
-    public Value accumulateDependencies(SyntaxTreeParser state) {
+    public Value accumulateDependencies(DependencyAccumulator state) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Value accumulateNames(SyntaxTreeParser state) {
+    public Value accumulateNames(NameAccumulator state) {
         throw new UnsupportedOperationException();
     }
 
@@ -66,7 +65,7 @@ public class UnboundMethod extends Value {
     }
 
     @Override
-    public Value defineOperators(SyntaxTreeParser state) {
+    public Value defineOperators(OperatorDefinitionParser state) {
         throw new UnsupportedOperationException();
     }
 
@@ -121,12 +120,12 @@ public class UnboundMethod extends Value {
     }
 
     @Override
-    public Value parsePrecedence(SyntaxTreeParser state) {
+    public Value parsePrecedence(PrecedenceParser state) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Value qualifyNames(SyntaxTreeParser state) {
+    public Value qualifyNames(NameQualifier state) {
         throw new UnsupportedOperationException();
     }
 

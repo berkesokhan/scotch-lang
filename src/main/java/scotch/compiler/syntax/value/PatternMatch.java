@@ -1,13 +1,21 @@
 package scotch.compiler.syntax.value;
 
+import static scotch.data.either.Either.left;
+
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.NameQualifier;
+import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.SyntaxTreeParser;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
+import scotch.data.either.Either;
+import scotch.data.tuple.Tuple2;
 
 public abstract class PatternMatch {
 
@@ -23,11 +31,17 @@ public abstract class PatternMatch {
         // intentionally empty
     }
 
-    public abstract <T> T accept(PatternMatchVisitor<T> visitor);
+    public abstract PatternMatch accumulateDependencies(DependencyAccumulator state);
 
-    public abstract PatternMatch accumulateDependencies(SyntaxTreeParser state);
+    public abstract PatternMatch accumulateNames(NameAccumulator state);
 
-    public abstract PatternMatch accumulateNames(SyntaxTreeParser state);
+    public Either<PatternMatch, CaptureMatch> asCapture() {
+        return left(this);
+    }
+
+    public Optional<Tuple2<CaptureMatch, Operator>> asOperator(Scope scope) {
+        return Optional.empty();
+    }
 
     public abstract PatternMatch bind(String argument);
 
@@ -47,25 +61,18 @@ public abstract class PatternMatch {
     @Override
     public abstract int hashCode();
 
-    public abstract PatternMatch qualifyNames(SyntaxTreeParser state);
+    public boolean isOperator(Scope scope) {
+        return false;
+    }
+
+    public String prettyPrint() {
+        return "[" + getClass().getSimpleName() + "]";
+    }
+
+    public abstract PatternMatch qualifyNames(NameQualifier state);
 
     @Override
     public abstract String toString();
 
     public abstract PatternMatch withType(Type generate);
-
-    public interface PatternMatchVisitor<T> {
-
-        default T visit(CaptureMatch match) {
-            return visitOtherwise(match);
-        }
-
-        default T visit(EqualMatch match) {
-            return visitOtherwise(match);
-        }
-
-        default T visitOtherwise(PatternMatch match) {
-            throw new UnsupportedOperationException("Can't visit " + match.getClass().getSimpleName());
-        }
-    }
 }
