@@ -3,16 +3,17 @@ package scotch.compiler.syntax.value;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
 import static scotch.util.StringUtil.stringify;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
-import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
 import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.Scoped;
@@ -69,7 +70,7 @@ public class Let extends Value implements Scoped {
 
     @Override
     public Value defineOperators(OperatorDefinitionParser state) {
-        return state.scoped(this, () -> withDefinitions(state.map(definitions, Definition::defineOperators))
+        return state.scoped(this, () -> withDefinitions(state.defineOperators(definitions))
             .withBody(body.defineOperators(state)));
     }
 
@@ -131,13 +132,16 @@ public class Let extends Value implements Scoped {
 
     @Override
     public Value parsePrecedence(PrecedenceParser state) {
-        return state.scoped(this, () -> withDefinitions(state.mapOptional(definitions, Definition::parsePrecedence))
-            .withBody(body.parsePrecedence(state)));
+        return state.scoped(this, () -> withBody(body.parsePrecedence(state))
+            .withDefinitions(new ArrayList<DefinitionReference>() {{
+                addAll(state.mapOptional(definitions, Definition::parsePrecedence));
+                addAll(state.processPatterns());
+            }}));
     }
 
     @Override
     public Value qualifyNames(NameQualifier state) {
-        return state.scoped(this, () -> withDefinitions(state.map(definitions, Definition::qualifyNames))
+        return state.scoped(this, () -> withDefinitions(state.qualifyNames(definitions))
             .withBody(body.qualifyNames(state)));
     }
 

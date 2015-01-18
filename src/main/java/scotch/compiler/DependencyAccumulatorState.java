@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Symbol;
@@ -48,6 +47,17 @@ public class DependencyAccumulatorState implements DependencyAccumulator {
     public void accumulateDependencies() {
         Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
         scoped(root, () -> root.accumulateDependencies(this));
+    }
+
+    @Override
+    public List<DefinitionReference> accumulateDependencies(List<DefinitionReference> references) {
+        return references.stream()
+            .map(this::getDefinition)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .map(definition -> definition.accumulateDependencies(this))
+            .map(Definition::getReference)
+            .collect(toList());
     }
 
     @Override
@@ -104,17 +114,6 @@ public class DependencyAccumulatorState implements DependencyAccumulator {
     @Override
     public void leaveScope() {
         scopes.pop();
-    }
-
-    @Override
-    public List<DefinitionReference> map(List<DefinitionReference> references, BiFunction<? super Definition, DependencyAccumulator, ? extends Definition> function) {
-        return references.stream()
-            .map(this::getDefinition)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .map(definition -> function.apply(definition, this))
-            .map(Definition::getReference)
-            .collect(toList());
     }
 
     @Override

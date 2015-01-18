@@ -2,7 +2,6 @@ package scotch.compiler.syntax;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Operator;
@@ -18,9 +17,7 @@ public interface NameAccumulator {
 
     void accumulateNames();
 
-    default List<DefinitionReference> accumulateNames(List<DefinitionReference> references) {
-        return map(references, Definition::accumulateNames);
-    }
+    List<DefinitionReference> accumulateNames(List<DefinitionReference> references);
 
     Definition collect(Definition definition);
 
@@ -54,8 +51,6 @@ public interface NameAccumulator {
     <T extends Scoped> T keep(Scoped scoped);
 
     void leaveScope();
-
-    List<DefinitionReference> map(List<DefinitionReference> references, BiFunction<? super Definition, NameAccumulator, ? extends Definition> function);
 
     Scope scope();
 

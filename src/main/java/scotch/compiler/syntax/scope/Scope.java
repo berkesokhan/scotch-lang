@@ -31,8 +31,8 @@ public abstract class Scope implements TypeScope {
         return new ModuleScope(parent, types, resolver, moduleName, imports);
     }
 
-    public static ChildScope scope(Scope parent, TypeScope types) {
-        return new ChildScope(parent, types);
+    public static ChildScope scope(String moduleName, Scope parent, TypeScope types) {
+        return new ChildScope(moduleName, parent, types);
     }
 
     Scope() {
@@ -157,6 +157,10 @@ public abstract class Scope implements TypeScope {
     }
 
     public abstract Symbol reserveSymbol();
+
+    public Symbol reserveSymbol(List<String> nestings) {
+        return reserveSymbol().nest(nestings);
+    }
 
     public Type reserveType() {
         return getParent().reserveType();

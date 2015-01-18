@@ -1,4 +1,4 @@
-package scotch.compiler;
+package scotch.compiler.parser;
 
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
@@ -32,7 +32,8 @@ import java.util.function.Function;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import scotch.compiler.parser.ParseException;
+import scotch.compiler.Compiler;
+import scotch.compiler.ParserTest;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
@@ -40,7 +41,7 @@ import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.PatternMatch;
 import scotch.compiler.syntax.value.Value;
 
-public class InputParseTest extends ParserTest {
+public class InputParserTest extends ParserTest {
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
@@ -59,8 +60,8 @@ public class InputParseTest extends ParserTest {
         shouldHaveClass("scotch.data.eq.Eq", asList(var("a")), asList(
             signatureRef("scotch.data.eq.(==)"),
             signatureRef("scotch.data.eq.(/=)"),
-            scopeRef("scotch.data.eq.($0)"),
-            scopeRef("scotch.data.eq.($1)")
+            scopeRef("scotch.data.eq.(#0)"),
+            scopeRef("scotch.data.eq.(#1)")
         ));
     }
 
@@ -134,7 +135,7 @@ public class InputParseTest extends ParserTest {
             "length s = jStrlen s"
         );
         shouldHavePattern(
-            "scotch.test.($0)",
+            "scotch.test.(#0)",
             asList(capture("length", t(0)), capture("s", t(1))),
             message(id("jStrlen", t(2)), id("s", t(3)))
         );
@@ -230,7 +231,7 @@ public class InputParseTest extends ParserTest {
             "module scotch.test",
             "id = \\x -> x"
         );
-        shouldHaveValue("scotch.test.id", t(0), fn("scotch.test.($0)", arg("x", t(1)), id("x", t(2))));
+        shouldHaveValue("scotch.test.id", t(0), fn("scotch.test.(id#0)", arg("x", t(1)), id("x", t(2))));
     }
 
     @Test
@@ -240,7 +241,7 @@ public class InputParseTest extends ParserTest {
             "apply2 = \\x y z -> x y z"
         );
         shouldHaveValue("scotch.test.apply2", t(0), fn(
-            "scotch.test.($0)",
+            "scotch.test.(apply2#0)",
             asList(arg("x", t(1)), arg("y", t(2)), arg("z", t(3))),
             message(id("x", t(4)), id("y", t(5)), id("z", t(6)))
         ));
@@ -255,13 +256,44 @@ public class InputParseTest extends ParserTest {
             "    a g = g + g",
             "  f 2"
         );
-        shouldHavePattern("scotch.test.($1)", asList(capture("f", t(1)), capture("x", t(2))), message(id("a", t(3)), id("x", t(4))));
-        shouldHavePattern("scotch.test.($2)", asList(capture("a", t(5)), capture("g", t(6))), message(id("g", t(7)), id("+", t(8)), id("g", t(9))));
+        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(1)), capture("x", t(2))), message(id("a", t(3)), id("x", t(4))));
+        shouldHavePattern("scotch.test.(main#2)", asList(capture("a", t(5)), capture("g", t(6))), message(id("g", t(7)), id("+", t(8)), id("g", t(9))));
         shouldHaveValue("scotch.test.main", let(
-            "scotch.test.($0)",
-            asList(scopeRef("scotch.test.($1)"), scopeRef("scotch.test.($2)")),
+            "scotch.test.(main#0)",
+            asList(scopeRef("scotch.test.(main#1)"), scopeRef("scotch.test.(main#2)")),
             message(id("f", t(10)), literal(2))
         ));
+    }
+
+    @Test
+    public void shouldParseLetWithSignature() {
+        parse(
+            "module scotch.test",
+            "main = let",
+            "    f :: Int -> Int",
+            "    f x = x * x",
+            "  f 2"
+        );
+        shouldHaveSignature("scotch.test.(main#f)", fn(sum("Int"), sum("Int")));
+        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(1)), capture("x", t(2))), message(id("x", t(3)), id("*", t(4)), id("x", t(5))));
+        shouldHaveValue("scotch.test.main", let(
+            "scotch.test.(main#0)",
+            asList(signatureRef("scotch.test.(main#f)"), scopeRef("scotch.test.(main#1)")),
+            message(id("f", t(6)), literal(2))
+        ));
+    }
+
+    @Test
+    public void shouldParseNestedLet() {
+        parse(
+            "module scotch.test",
+            "main = let",
+            "    f = let",
+            "        g = \\x y -> 2 + x + y",
+            "      g 3",
+            "  f 4"
+        );
+        shouldHaveValue("scotch.test.(main#f#g)");
     }
 
     private void expectParseException(String message) {

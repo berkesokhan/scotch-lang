@@ -96,10 +96,10 @@ public abstract class Symbol implements Comparable<Symbol> {
     }
 
     public static String normalizeQualified(String moduleName, String memberName) {
-        if ("[]".equals(memberName) || tuplePattern.matcher(memberName).find() || !containsSymbolsPattern.matcher(memberName).find()) {
-            return moduleName + '.' + memberName;
-        } else if (memberName.matches("^\\d")) {
+        if (memberName.matches("^\\d$")) {
             return moduleName + ".(#" + memberName + ")";
+        } else if ("[]".equals(memberName) || tuplePattern.matcher(memberName).find() || !containsSymbolsPattern.matcher(memberName).find()) {
+            return moduleName + '.' + memberName;
         } else {
             return moduleName + ".(" + memberName + ")";
         }
@@ -139,7 +139,11 @@ public abstract class Symbol implements Comparable<Symbol> {
     }
 
     public static Symbol unqualified(String memberName) {
-        return unqualified(asList(memberName));
+        if (memberName.startsWith("#")) {
+            return unqualified_(memberName.substring(1));
+        } else {
+            return unqualified_(memberName);
+        }
     }
 
     public static Symbol unqualified(List<String> memberNames) {
@@ -174,7 +178,7 @@ public abstract class Symbol implements Comparable<Symbol> {
 
     private static String join(List<String> memberNames) {
         if (memberNames.get(0).matches("^\\d")) {
-            return "#" + memberNames.get(0) + _join(memberNames.subList(1, memberNames.size() + 1));
+            return "#" + _join(memberNames);
         } else {
             return _join(memberNames);
         }
@@ -182,6 +186,10 @@ public abstract class Symbol implements Comparable<Symbol> {
 
     private static Symbol qualified_(String moduleName, String memberName) {
         return qualified(moduleName, asList(memberName.split("#")));
+    }
+
+    private static Symbol unqualified_(String memberName) {
+        return unqualified(asList(memberName.split("#")));
     }
 
     private Symbol() {

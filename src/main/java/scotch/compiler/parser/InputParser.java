@@ -92,6 +92,7 @@ public class InputParser {
     private final SyntaxBuilderFactory    builderFactory;
     private final SymbolGenerator         symbolGenerator;
     private final Deque<Scope>            scopes;
+    private final Deque<List<String>>     memberNames;
     private       String                  currentModule;
 
     public InputParser(SymbolResolver resolver, Scanner scanner, SyntaxBuilderFactory builderFactory) {
@@ -101,6 +102,7 @@ public class InputParser {
         this.positions = new ArrayDeque<>();
         this.symbolGenerator = new SymbolGenerator();
         this.scopes = new ArrayDeque<>(asList(scope(symbolGenerator, resolver)));
+        this.memberNames = new ArrayDeque<>(asList(ImmutableList.of()));
     }
 
     public DefinitionGraph parse() {
@@ -549,12 +551,12 @@ public class InputParser {
 
     private Symbol parseSymbol() {
         if (expects(WORD)) {
-            return qualified(currentModule, requireWord());
+            return qualified(currentModule, requireMemberName());
         } else if (expects(LPAREN)) {
             nextToken();
-            String symbol = requireWord();
+            List<String> memberName = requireMemberName();
             require(RPAREN);
-            return qualified(currentModule, symbol);
+            return qualified(currentModule, memberName);
         } else {
             throw unexpected(asList(WORD, LPAREN));
         }
@@ -573,34 +575,42 @@ public class InputParser {
     }
 
     private Type parseType(Map<String, Type> constraints) {
-        return splitQualified(parseQualifiedName()).into((optionalModuleName, memberName) -> {
-            try {
-                markPosition();
-                if (isLowerCase(memberName.charAt(0))) {
-                    if (optionalModuleName.isPresent()) {
-                        throw parseException("Type name must be uppercase; in " + peekSourceRange().prettyPrint());
-                    } else {
-                        Type type = var(memberName);
-                        return constraints.getOrDefault(memberName, type);
-                    }
+        return splitQualified(parseQualifiedName()).into(
+            (optionalModuleName, memberName) -> parseType_(constraints, optionalModuleName, memberName)
+        );
+    }
+
+    private Type parseType_(Map<String, Type> constraints, Optional<String> optionalModuleName, String memberName) {
+        try {
+            markPosition();
+            if (isLowerCase(memberName.charAt(0))) {
+                if (optionalModuleName.isPresent()) {
+                    throw parseException("Type name must be uppercase; in " + peekSourceRange().prettyPrint());
                 } else {
-                    return optionalModuleName
-                        .map(moduleName -> sum(qualified(moduleName, memberName)))
-                        .orElseGet(() -> sum(unqualified(memberName)));
+
+                    Type type = var(memberName);
+                    return constraints.getOrDefault(memberName, type);
                 }
-            } finally {
-                positions.pop();
+            } else {
+                return optionalModuleName
+                    .map(moduleName -> sum(qualified(moduleName, memberName)))
+                    .orElseGet(() -> sum(unqualified(memberName)));
             }
-        });
+        } finally {
+            positions.pop();
+        }
     }
 
     private DefinitionReference parseValueDefinition() {
         if (expectsAt(1, ASSIGN)) {
             return scoped(() -> definition(builderFactory::valueDefBuilder, builder -> {
-                builder.withSymbol(qualified(currentModule, requireWord()));
+                Symbol symbol = qualified(currentModule, requireMemberName());
+                builder.withSymbol(symbol);
+                memberNames.push(symbol.getMemberNames());
                 require(ASSIGN);
                 builder.withType(reserveType())
                     .withBody(parseMessage());
+                memberNames.pop();
             }));
         } else {
             return scoped(() -> definition(builderFactory::unshuffledBuilder, builder -> {
@@ -612,8 +622,15 @@ public class InputParser {
         }
     }
 
+    private List<String> requireMemberName() {
+        return ImmutableList.<String>builder()
+            .addAll(memberNames.peek())
+            .add(requireWord())
+            .build();
+    }
+
     private Symbol reserveSymbol() {
-        return currentScope().reserveSymbol();
+        return currentScope().reserveSymbol(memberNames.peek());
     }
 
     private Type parseValueSignature() {

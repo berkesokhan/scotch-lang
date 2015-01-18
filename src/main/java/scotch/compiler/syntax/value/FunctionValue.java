@@ -14,12 +14,12 @@ import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
-import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
 import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.Scoped;
@@ -64,8 +64,22 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
+    public Optional<Symbol> asSymbol() {
+        return Optional.of(symbol);
+    }
+
+    @Override
     public Value bindMethods(TypeChecker state) {
         return state.scoped(this, () -> withBody(body.bindMethods(state)));
+    }
+
+    @Override
+    public Value bindTypes(TypeChecker state) {
+        return withArguments(arguments.stream()
+            .map(argument -> (Argument) argument.bindTypes(state))
+            .collect(toList()))
+            .withBody(body.bindTypes(state))
+            .withType(state.generate(getType()));
     }
 
     @Override
@@ -85,22 +99,13 @@ public class FunctionValue extends Value implements Scoped {
         });
     }
 
-    @Override
-    public Value bindTypes(TypeChecker state) {
-        return withArguments(arguments.stream()
-            .map(argument -> (Argument) argument.bindTypes(state))
-            .collect(toList()))
-            .withBody(body.bindTypes(state))
-            .withType(state.generate(getType()));
+    public Value curry() {
+        return curry_(new ArrayDeque<>(arguments));
     }
 
     @Override
     public Value defineOperators(OperatorDefinitionParser state) {
         return state.scoped(this, () -> withBody(body.defineOperators(state)));
-    }
-
-    public Value curry() {
-        return curry_(new ArrayDeque<>(arguments));
     }
 
     @Override
@@ -166,13 +171,13 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
-    public Value qualifyNames(NameQualifier state) {
-        return state.scoped(this, () -> withBody(body.qualifyNames(state)));
+    public Value parsePrecedence(PrecedenceParser state) {
+        return state.scoped(this, () -> withBody(body.parsePrecedence(state)));
     }
 
     @Override
-    public Value parsePrecedence(PrecedenceParser state) {
-        return state.scoped(this, () -> withBody(body.parsePrecedence(state)));
+    public Value qualifyNames(NameQualifier state) {
+        return state.scoped(this, () -> withBody(body.qualifyNames(state)));
     }
 
     @Override

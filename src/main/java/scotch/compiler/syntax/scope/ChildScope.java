@@ -34,16 +34,18 @@ import scotch.compiler.syntax.value.PatternMatcher;
 
 public class ChildScope extends Scope {
 
-    private final TypeScope                                    types;
-    private final Set<ChildScope> children;
-    private final Map<Symbol, SymbolEntry>                     entries;
-    private final Map<Symbol, List<PatternMatcher>>            patterns;
-    private final Set<Symbol>                                  dependencies;
-    private final List<String>                                 captures;
-    private final List<String>                                 locals;
-    private       Scope                                        parent;
+    private final TypeScope                         types;
+    private final Set<ChildScope>                   children;
+    private final Map<Symbol, SymbolEntry>          entries;
+    private final Map<Symbol, List<PatternMatcher>> patterns;
+    private final Set<Symbol>                       dependencies;
+    private final List<String>                      captures;
+    private final List<String>                      locals;
+    private final String                            moduleName;
+    private Scope parent;
 
-    ChildScope(Scope parent, TypeScope types) {
+    ChildScope(String moduleName, Scope parent, TypeScope types) {
+        this.moduleName = moduleName;
         this.parent = parent;
         this.types = types;
         this.children = new HashSet<>();
@@ -113,7 +115,7 @@ public class ChildScope extends Scope {
 
     @Override
     public Scope enterScope() {
-        ChildScope child = scope(this, types);
+        ChildScope child = scope(moduleName, this, types);
         children.add(child);
         return child;
     }
@@ -260,12 +262,18 @@ public class ChildScope extends Scope {
         return symbol.accept(new SymbolVisitor<Optional<Symbol>>() {
             @Override
             public Optional<Symbol> visit(QualifiedSymbol symbol) {
-                return parent.qualify(symbol);
+                if (moduleName.equals(symbol.getModuleName()) && entries.containsKey(symbol)) {
+                    return Optional.of(symbol);
+                } else {
+                    return parent.qualify(symbol);
+                }
             }
 
             @Override
             public Optional<Symbol> visit(UnqualifiedSymbol symbol) {
-                if (isDefinedLocally(symbol)) {
+                if (entries.containsKey(symbol.qualifyWith(moduleName))) {
+                    return Optional.of(symbol.qualifyWith(moduleName));
+                } else if (entries.containsKey(symbol)) {
                     return Optional.of(symbol);
                 } else {
                     return parent.qualify(symbol);
@@ -276,12 +284,17 @@ public class ChildScope extends Scope {
 
     @Override
     public Symbol qualifyCurrent(Symbol symbol) {
-        return parent.qualifyCurrent(symbol);
+        return symbol.qualifyWith(moduleName);
     }
 
     @Override
     public Symbol reserveSymbol() {
         return parent.reserveSymbol();
+    }
+
+    @Override
+    public Symbol reserveSymbol(List<String> nestings) {
+        return parent.reserveSymbol(nestings);
     }
 
     @Override
@@ -295,17 +308,7 @@ public class ChildScope extends Scope {
     }
 
     private SymbolEntry define(Symbol symbol) {
-        return symbol.accept(new SymbolVisitor<SymbolEntry>() {
-            @Override
-            public SymbolEntry visit(QualifiedSymbol symbol) {
-                throw new IllegalStateException("Can't define symbol with qualified name " + symbol.quote());
-            }
-
-            @Override
-            public SymbolEntry visit(UnqualifiedSymbol symbol) {
-                return entries.computeIfAbsent(symbol, k -> mutableEntry(symbol));
-            }
-        });
+        return entries.computeIfAbsent(symbol, k -> mutableEntry(symbol));
     }
 
     private void insert_(ChildScope scope) {

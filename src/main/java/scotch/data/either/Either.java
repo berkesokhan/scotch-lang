@@ -3,6 +3,7 @@ package scotch.data.either;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public abstract class Either<A, B> {
@@ -32,6 +33,8 @@ public abstract class Either<A, B> {
 
     @Override
     public abstract int hashCode();
+
+    public abstract void ifRight(Consumer<B> consumer);
 
     public boolean isLeft() {
         return !isRight();
@@ -91,6 +94,11 @@ public abstract class Either<A, B> {
         @Override
         public int hashCode() {
             return Objects.hash(value);
+        }
+
+        @Override
+        public void ifRight(Consumer<B> consumer) {
+            // intentionally empty
         }
 
         @Override
@@ -156,6 +164,11 @@ public abstract class Either<A, B> {
         @Override
         public int hashCode() {
             return Objects.hash(value);
+        }
+
+        @Override
+        public void ifRight(Consumer<B> consumer) {
+            consumer.accept(value);
         }
 
         @Override

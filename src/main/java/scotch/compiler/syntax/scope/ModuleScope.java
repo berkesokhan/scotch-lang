@@ -93,7 +93,7 @@ public class ModuleScope extends Scope {
 
     @Override
     public Scope enterScope() {
-        return scope(this, types);
+        return scope(moduleName, this, types);
     }
 
     @Override
@@ -255,6 +255,11 @@ public class ModuleScope extends Scope {
     @Override
     public Symbol reserveSymbol() {
         return parent.reserveSymbol().qualifyWith(moduleName);
+    }
+
+    @Override
+    public Symbol reserveSymbol(List<String> nestings) {
+        return getParent().reserveSymbol(nestings).qualifyWith(moduleName);
     }
 
     @Override

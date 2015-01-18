@@ -21,9 +21,9 @@ import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.syntax.definition.Import;
-import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ValueReference;
+import scotch.compiler.syntax.value.PatternMatcher;
 
 public class RootScope extends Scope {
 
@@ -216,6 +216,11 @@ public class RootScope extends Scope {
     @Override
     public Symbol reserveSymbol() {
         return symbolGenerator.reserveSymbol();
+    }
+
+    @Override
+    public Symbol reserveSymbol(List<String> nestings) {
+        return symbolGenerator.reserveSymbol(nestings);
     }
 
     @Override

@@ -27,8 +27,8 @@ public class AccumulateNamesTest extends ParserTest {
             "fn a b = a b"
         );
         shouldNotHaveErrors();
-        shouldBeDefined(scopeRef("scotch.test.($0)"), "a");
-        shouldBeDefined(scopeRef("scotch.test.($0)"), "b");
+        shouldBeDefined(scopeRef("scotch.test.(fn#0#0)"), "a");
+        shouldBeDefined(scopeRef("scotch.test.(fn#0#0)"), "b");
     }
 
     @Test

@@ -2,7 +2,6 @@ package scotch.compiler.syntax;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Symbol;
@@ -16,11 +15,9 @@ import scotch.compiler.syntax.value.PatternMatcher;
 
 public interface DependencyAccumulator {
 
-    default List<DefinitionReference> accumulateDependencies(List<DefinitionReference> references) {
-        return map(references, Definition::accumulateDependencies);
-    }
-
     void accumulateDependencies();
+
+    List<DefinitionReference> accumulateDependencies(List<DefinitionReference> references);
 
     Identifier addDependency(Identifier identifier);
 
@@ -48,8 +45,6 @@ public interface DependencyAccumulator {
     <T extends Scoped> T keep(Scoped scoped);
 
     void leaveScope();
-
-    List<DefinitionReference> map(List<DefinitionReference> references, BiFunction<? super Definition, DependencyAccumulator, ? extends Definition> function);
 
     void popSymbol();
 

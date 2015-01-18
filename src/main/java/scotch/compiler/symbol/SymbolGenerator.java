@@ -1,22 +1,34 @@
 package scotch.compiler.symbol;
 
-import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.symbol.Type.t;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import scotch.compiler.symbol.Type.VariableType;
 
 public class SymbolGenerator {
 
-    private int nextSymbol;
-    private int nextType;
+    private final Map<List<String>, AtomicInteger> counters;
+    private       int                              nextSymbol;
+    private       int                              nextType;
 
-    public Symbol reserveSymbol() {
-        return unqualified("$" + nextSymbol++);
+    public SymbolGenerator() {
+        counters = new HashMap<>();
     }
 
-    public Symbol reserveSymbol(String moduleName) {
-        return qualified(moduleName, "$" + nextSymbol++);
+    public Symbol reserveSymbol() {
+        return unqualified(String.valueOf(nextSymbol++));
+    }
+
+    public Symbol reserveSymbol(List<String> nestings) {
+        List<String> memberNames = new ArrayList<>();
+        memberNames.addAll(nestings);
+        memberNames.add(String.valueOf(counters.computeIfAbsent(nestings, k -> new AtomicInteger()).getAndIncrement()));
+        return unqualified(memberNames);
     }
 
     public VariableType reserveType() {

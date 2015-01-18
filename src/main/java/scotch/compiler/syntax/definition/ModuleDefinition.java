@@ -10,10 +10,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
-import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.syntax.BytecodeGenerator;
 import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
@@ -36,12 +36,12 @@ public class ModuleDefinition extends Definition {
 
     @Override
     public Definition accumulateDependencies(DependencyAccumulator state) {
-        return state.scoped(this, () -> withDefinitions(state.map(definitions, Definition::accumulateDependencies)));
+        return state.scoped(this, () -> withDefinitions(state.accumulateDependencies(definitions)));
     }
 
     @Override
     public Definition accumulateNames(NameAccumulator state) {
-        return state.scoped(this, () -> withDefinitions(state.map(definitions, Definition::accumulateNames)));
+        return state.scoped(this, () -> withDefinitions(state.accumulateNames(definitions)));
     }
 
     @Override
@@ -56,7 +56,7 @@ public class ModuleDefinition extends Definition {
 
     @Override
     public Definition defineOperators(OperatorDefinitionParser state) {
-        return state.scoped(this, () -> withDefinitions(state.map(definitions, Definition::defineOperators)));
+        return state.scoped(this, () -> withDefinitions(state.defineOperators(definitions)));
     }
 
     @Override
@@ -121,7 +121,7 @@ public class ModuleDefinition extends Definition {
 
     @Override
     public Definition qualifyNames(NameQualifier state) {
-        return state.scoped(this, () -> withDefinitions(state.map(definitions, Definition::qualifyNames)));
+        return state.scoped(this, () -> withDefinitions(state.qualifyNames(definitions)));
     }
 
     @Override

@@ -4,13 +4,13 @@ import static scotch.data.either.Either.left;
 
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
-import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
 import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;

@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
+import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.text.SourceRange;
 import scotch.data.tuple.Tuple2;
 

@@ -9,7 +9,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static scotch.compiler.symbol.Symbol.fromString;
-import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.symbol.Type.t;
 import static scotch.compiler.syntax.scope.Scope.scope;
@@ -25,8 +24,6 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.SymbolGenerator;
-import scotch.compiler.syntax.scope.DefaultTypeScope;
-import scotch.compiler.syntax.scope.Scope;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ChildScopeTest {
@@ -39,7 +36,7 @@ public class ChildScopeTest {
 
     @Before
     public void setUp() {
-        childScope = scope(parentScope, new DefaultTypeScope(new SymbolGenerator()));
+        childScope = scope("scotch.test", parentScope, new DefaultTypeScope(new SymbolGenerator()));
     }
 
     @Test
@@ -58,13 +55,6 @@ public class ChildScopeTest {
     public void shouldNotDefineOperator() {
         exception.expect(IllegalStateException.class);
         childScope.defineOperator(unqualified("fn"), mock(Operator.class));
-    }
-
-    @Test
-    public void shouldNotDefineQualifiedValue() {
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("Can't define symbol with qualified name 'scotch.module1.fn'");
-        childScope.defineValue(qualified("scotch.module1", "fn"), t(2));
     }
 
     @Test

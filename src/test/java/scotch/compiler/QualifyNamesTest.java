@@ -26,11 +26,11 @@ public class QualifyNamesTest extends ParserTest {
         );
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fn1", fn(
-            "scotch.test.($2)",
-            asList(arg("$0", t(11)), arg("$1", t(12))),
+            "scotch.test.(fn1#0)",
+            asList(arg("#0", t(11)), arg("#1", t(12))),
             patterns(t(13), pattern(
-                "scotch.test.($0)",
-                asList(capture("$0", "a", t(1)), capture("$1", "b", t(2))),
+                "scotch.test.(fn1#0#0)",
+                asList(capture("#0", "a", t(1)), capture("#1", "b", t(2))),
                 apply(
                     apply(id("scotch.test.fn2", t(3)), id("a", t(4)), t(15)),
                     id("b", t(5)),

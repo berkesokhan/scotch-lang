@@ -5,11 +5,11 @@ import static scotch.util.StringUtil.stringify;
 import java.util.Objects;
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
-import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
 import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.text.SourceRange;
 

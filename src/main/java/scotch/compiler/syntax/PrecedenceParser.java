@@ -22,10 +22,6 @@ public interface PrecedenceParser {
 
     void addPattern(Symbol symbol, PatternMatcher matcher);
 
-    Definition collect(Definition definition);
-
-    Definition collect(PatternMatcher pattern);
-
     default void defineOperator(Symbol symbol, Operator operator) {
         scope().defineOperator(symbol, operator);
     }
@@ -60,6 +56,8 @@ public interface PrecedenceParser {
     List<DefinitionReference> processPatterns();
 
     Optional<Symbol> qualify(Symbol symbol);
+
+    Symbol reserveSymbol();
 
     Scope scope();
 

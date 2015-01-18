@@ -37,7 +37,8 @@ public class DefinitionGraph {
         nodes.forEach(builder::addNode);
         return builder.build();
     }
-    private final Map<DefinitionReference, DefinitionEntry> definitions;
+
+    public final  Map<DefinitionReference, DefinitionEntry> definitions;
     private final SymbolGenerator                           symbolGenerator;
     private final List<SyntaxError>                         errors;
 

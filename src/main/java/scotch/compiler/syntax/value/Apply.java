@@ -9,7 +9,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.LambdaBlock;
-import scotch.compiler.symbol.NameQualifier;
+import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.symbol.Unification.UnificationVisitor;

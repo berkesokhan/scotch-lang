@@ -9,6 +9,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import com.google.common.collect.ImmutableList;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.definition.UnshuffledPattern;
@@ -38,8 +39,8 @@ public class PatternShuffler {
         };
     }
 
-    public ShuffleResult shuffle(Scope scope, UnshuffledPattern pattern) {
-        return new Shuffler(scope, pattern).splitPattern();
+    public ShuffleResult shuffle(Scope scope, List<String> memberNames, UnshuffledPattern pattern) {
+        return new Shuffler(scope, memberNames, pattern).splitPattern();
     }
 
     public interface ResultVisitor<T> {
@@ -66,11 +67,13 @@ public class PatternShuffler {
 
     private final class Shuffler {
 
-        private final Scope             scope;
+        private final Scope        scope;
+        private final List<String> memberNames;
         private final UnshuffledPattern pattern;
 
-        private Shuffler(Scope scope, UnshuffledPattern pattern) {
+        private Shuffler(Scope scope, List<String> memberNames, UnshuffledPattern pattern) {
             this.scope = scope;
+            this.memberNames = ImmutableList.copyOf(memberNames);
             this.pattern = pattern;
         }
 
@@ -78,7 +81,7 @@ public class PatternShuffler {
             try {
                 List<PatternMatch> matches = shufflePattern(pattern.getMatches());
                 return matches.remove(0).asCapture()
-                    .map(match -> success(scope.qualifyCurrent(match.getSymbol()), matches))
+                    .map(match -> success(scope.qualifyCurrent(match.getSymbol()).nest(memberNames), matches))
                     .orElseGet(match -> error(parseError("Illegal start of pattern", match.getSourceRange())));
             } catch (ShuffleException exception) {
                 return error(exception.syntaxError);

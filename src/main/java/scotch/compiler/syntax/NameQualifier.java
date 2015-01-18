@@ -1,23 +1,21 @@
-package scotch.compiler.symbol;
+package scotch.compiler.syntax;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.syntax.Scoped;
+import scotch.compiler.symbol.Operator;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.text.SourceRange;
 
 public interface NameQualifier {
 
     Definition collect(Definition definition);
-
-    Definition collect(PatternMatcher pattern);
 
     default void defineOperator(Symbol symbol, Operator operator) {
         scope().defineOperator(symbol, operator);
@@ -44,9 +42,9 @@ public interface NameQualifier {
 
     void leaveScope();
 
-    List<DefinitionReference> map(List<DefinitionReference> references, BiFunction<? super Definition, NameQualifier, ? extends Definition> function);
-
     void qualifyNames();
+
+    List<DefinitionReference> qualifyNames(List<DefinitionReference> references);
 
     Scope scope();
 

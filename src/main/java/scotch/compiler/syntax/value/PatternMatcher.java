@@ -9,11 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
-import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.TypeChecker;
@@ -122,9 +122,11 @@ public class PatternMatcher implements Scoped {
             List<PatternMatch> boundMatches = new ArrayList<>();
             int counter = 0;
             for (PatternMatch match : matches) {
-                boundMatches.add(match.bind("$" + counter++));
+                boundMatches.add(match.bind("#" + counter++));
             }
-            return withMatches(boundMatches).withBody(body.parsePrecedence(state).unwrap());
+            return withSymbol(state.reserveSymbol())
+                .withMatches(boundMatches)
+                .withBody(body.parsePrecedence(state).unwrap());
         });
     }
 
@@ -133,6 +135,10 @@ public class PatternMatcher implements Scoped {
             .map(match -> match.qualifyNames(state))
             .collect(toList()))
         .withBody(body.qualifyNames(state)));
+    }
+
+    private PatternMatcher withSymbol(Symbol symbol) {
+        return new PatternMatcher(sourceRange, symbol, matches, body);
     }
 
     @Override

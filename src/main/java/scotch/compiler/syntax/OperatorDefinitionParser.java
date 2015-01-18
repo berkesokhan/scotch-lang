@@ -2,7 +2,6 @@ package scotch.compiler.syntax;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Operator;
@@ -26,6 +25,8 @@ public interface OperatorDefinitionParser {
 
     void defineOperators();
 
+    List<DefinitionReference> defineOperators(List<DefinitionReference> references);
+
     default void defineValue(Symbol symbol, Type type) {
         scope().defineValue(symbol, type);
     }
@@ -46,8 +47,6 @@ public interface OperatorDefinitionParser {
     <T extends Scoped> T keep(Scoped scoped);
 
     void leaveScope();
-
-    List<DefinitionReference> map(List<DefinitionReference> references, BiFunction<? super Definition, OperatorDefinitionParser, ? extends Definition> function);
 
     Scope scope();
 

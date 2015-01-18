@@ -5,11 +5,11 @@ import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
 import java.util.Optional;
-import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.BytecodeGenerator;
 import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;

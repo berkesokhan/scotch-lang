@@ -6,7 +6,7 @@ import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
 import java.util.Optional;
-import scotch.compiler.symbol.NameQualifier;
+import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Value.Fixity;
@@ -105,7 +105,7 @@ public class OperatorDefinition extends Definition {
 
     @Override
     public Optional<Definition> parsePrecedence(PrecedenceParser state) {
-        return Optional.of(state.collect(this));
+        return Optional.of(state.keep(this));
     }
 
     @Override

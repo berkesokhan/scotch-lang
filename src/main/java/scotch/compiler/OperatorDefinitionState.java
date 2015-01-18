@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.syntax.OperatorDefinitionParser;
@@ -58,6 +57,17 @@ public class OperatorDefinitionState implements OperatorDefinitionParser {
     }
 
     @Override
+    public List<DefinitionReference> defineOperators(List<DefinitionReference> references) {
+        return references.stream()
+            .map(this::getDefinition)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .map(definition -> definition.defineOperators(this))
+            .map(Definition::getReference)
+            .collect(toList());
+    }
+
+    @Override
     public void enterScope(Definition definition) {
         enterScope(definition.getReference());
     }
@@ -89,17 +99,6 @@ public class OperatorDefinitionState implements OperatorDefinitionParser {
     @Override
     public void leaveScope() {
         scopes.pop();
-    }
-
-    @Override
-    public List<DefinitionReference> map(List<DefinitionReference> references, BiFunction<? super Definition, OperatorDefinitionParser, ? extends Definition> function) {
-        return references.stream()
-            .map(this::getDefinition)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .map(definition -> function.apply(definition, this))
-            .map(Definition::getReference)
-            .collect(toList());
     }
 
     @Override

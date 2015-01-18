@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.syntax.NameAccumulator;
@@ -44,6 +43,17 @@ public class NameAccumulatorState implements NameAccumulator {
     public void accumulateNames() {
         Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
         scoped(root, () -> root.accumulateNames(this));
+    }
+
+    @Override
+    public List<DefinitionReference> accumulateNames(List<DefinitionReference> references) {
+        return references.stream()
+            .map(this::getDefinition)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .map(definition -> definition.accumulateNames(this))
+            .map(Definition::getReference)
+            .collect(toList());
     }
 
     @Override
@@ -89,17 +99,6 @@ public class NameAccumulatorState implements NameAccumulator {
     @Override
     public void leaveScope() {
         scopes.pop();
-    }
-
-    @Override
-    public List<DefinitionReference> map(List<DefinitionReference> references, BiFunction<? super Definition, NameAccumulator, ? extends Definition> function) {
-        return references.stream()
-            .map(this::getDefinition)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .map(definition -> function.apply(definition, this))
-            .map(Definition::getReference)
-            .collect(toList());
     }
 
     @Override
