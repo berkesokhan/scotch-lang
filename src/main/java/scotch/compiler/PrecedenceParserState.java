@@ -29,7 +29,6 @@ import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.definition.UnshuffledPattern;
-import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
@@ -124,6 +123,14 @@ public class PrecedenceParserState implements PrecedenceParser {
     }
 
     @Override
+    public <T> T named(Symbol symbol, Supplier<? extends T> supplier) {
+        memberNames.push(symbol.getMemberNames());
+        T result = supplier.get();
+        memberNames.pop();
+        return result;
+    }
+
+    @Override
     public void parsePrecedence() {
         Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
         scopedOptional(root, () -> root.parsePrecedence(this));
@@ -136,7 +143,7 @@ public class PrecedenceParserState implements PrecedenceParser {
             SourceRange sourceRange = patterns.subList(1, patterns.size()).stream()
                 .map(PatternMatcher::getSourceRange)
                 .reduce(patterns.get(0).getSourceRange(), SourceRange::extend);
-            FunctionValue function = buildFunction(symbol, patterns, sourceRange);
+            FunctionValue function = buildFunction(patterns, sourceRange);
 
             patterns.stream()
                 .map(this::collect)
@@ -179,13 +186,11 @@ public class PrecedenceParserState implements PrecedenceParser {
     @Override
     public <T extends Definition> T scoped(T definition, Supplier<? extends T> supplier) {
         enterScope(definition);
-        definition.asValue().map(ValueDefinition::getSymbol).map(Symbol::getMemberNames).ifRight(memberNames::push);
         try {
             T result = supplier.get();
             collect(result);
             return result;
         } finally {
-            definition.asValue().ifRight(value -> memberNames.pop());
             leaveScope();
         }
     }
@@ -193,13 +198,11 @@ public class PrecedenceParserState implements PrecedenceParser {
     @Override
     public <T extends Scoped> T scoped(Scoped value, Supplier<? extends T> supplier) {
         enterScope(value.getReference());
-        value.asSymbol().map(Symbol::getMemberNames).ifPresent(memberNames::push);
         try {
             T result = supplier.get();
             collect(result.getDefinition());
             return result;
         } finally {
-            value.asSymbol().ifPresent(symbol -> memberNames.pop());
             leaveScope();
         }
     }
@@ -246,8 +249,8 @@ public class PrecedenceParserState implements PrecedenceParser {
         errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceRange));
     }
 
-    private FunctionValue buildFunction(Symbol patternSymbol, List<PatternMatcher> patterns, SourceRange sourceRange) {
-        Symbol functionSymbol = scope().reserveSymbol(patternSymbol.getMemberNames());
+    private FunctionValue buildFunction(List<PatternMatcher> patterns, SourceRange sourceRange) {
+        Symbol functionSymbol = scope().reserveSymbol(ImmutableList.of());
         List<Argument> arguments = buildFunctionArguments(patterns, sourceRange);
         FunctionValue function = builderFactory.functionBuilder()
             .withSourceRange(sourceRange)

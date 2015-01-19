@@ -64,11 +64,6 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
-    public Optional<Symbol> asSymbol() {
-        return Optional.of(symbol);
-    }
-
-    @Override
     public Value bindMethods(TypeChecker state) {
         return state.scoped(this, () -> withBody(body.bindMethods(state)));
     }
@@ -172,12 +167,17 @@ public class FunctionValue extends Value implements Scoped {
 
     @Override
     public Value parsePrecedence(PrecedenceParser state) {
-        return state.scoped(this, () -> withBody(body.parsePrecedence(state)));
+        Symbol s = symbol.getMemberNames().size() == 1 ? state.reserveSymbol() : symbol;
+        return state.named(s, () -> state.scoped(this, () -> withSymbol(s).withBody(body.parsePrecedence(state))));
+    }
+
+    private FunctionValue withSymbol(Symbol symbol) {
+        return fn(sourceRange, symbol, arguments, body);
     }
 
     @Override
     public Value qualifyNames(NameQualifier state) {
-        return state.scoped(this, () -> withBody(body.qualifyNames(state)));
+        return state.named(symbol, () -> state.scoped(this, () -> withBody(body.qualifyNames(state))));
     }
 
     @Override

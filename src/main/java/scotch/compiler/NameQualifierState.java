@@ -25,7 +25,6 @@ import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
 import scotch.compiler.syntax.definition.DefinitionGraph;
-import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.FunctionValue;
@@ -90,6 +89,14 @@ public class NameQualifierState implements NameQualifier {
     }
 
     @Override
+    public <T> T named(Symbol symbol, Supplier<T> supplier) {
+        memberNames.push(symbol.getMemberNames());
+        T result = supplier.get();
+        memberNames.pop();
+        return result;
+    }
+
+    @Override
     public List<DefinitionReference> qualifyNames(List<DefinitionReference> references) {
         return references.stream()
             .map(this::getDefinition)
@@ -144,13 +151,11 @@ public class NameQualifierState implements NameQualifier {
     @Override
     public <T extends Definition> T scoped(T definition, Supplier<? extends T> supplier) {
         enterScope(definition);
-        definition.asValue().map(ValueDefinition::getSymbol).map(Symbol::getMemberNames).ifRight(memberNames::push);
         try {
             T result = supplier.get();
             collect(result);
             return result;
         } finally {
-            definition.asValue().ifRight(value -> memberNames.pop());
             leaveScope();
         }
     }
@@ -158,7 +163,6 @@ public class NameQualifierState implements NameQualifier {
     @Override
     public <T extends Scoped> T scoped(Scoped value, Supplier<? extends T> supplier) {
         enterScope(value.getReference());
-        value.asSymbol().map(Symbol::getMemberNames).ifPresent(memberNames::push);
         if (value instanceof FunctionValue) {
             memberNames.push(((FunctionValue) value).getSymbol().getMemberNames());
         }
@@ -167,7 +171,6 @@ public class NameQualifierState implements NameQualifier {
             collect(result.getDefinition());
             return result;
         } finally {
-            value.asSymbol().ifPresent(symbol -> memberNames.pop());
             leaveScope();
         }
     }

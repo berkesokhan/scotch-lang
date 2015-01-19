@@ -423,7 +423,7 @@ public class CheckTypesTest extends ParserTest {
             "fn a b = \\x y -> x a b y"
         );
         shouldNotHaveErrors();
-        shouldHaveCaptures(scopeRef("scotch.test.(#1)"), asList("a", "b"));
+        shouldHaveCaptures(scopeRef("scotch.test.(fn#0#1)"), asList("a", "b"));
         shouldHaveCaptures(scopeRef("scotch.test.(fn#0#0)"), asList());
     }
 
@@ -434,7 +434,7 @@ public class CheckTypesTest extends ParserTest {
             "fn a b = \\x y -> x a b y"
         );
         shouldNotHaveErrors();
-        shouldHaveLocals(scopeRef("scotch.test.(#1)"), asList("x", "y"));
+        shouldHaveLocals(scopeRef("scotch.test.(fn#0#1)"), asList("x", "y"));
         shouldHaveLocals(scopeRef("scotch.test.(fn#0)"), asList("#0", "#1", "a", "b"));
     }
 

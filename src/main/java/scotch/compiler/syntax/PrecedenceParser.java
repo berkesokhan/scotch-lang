@@ -51,6 +51,8 @@ public interface PrecedenceParser {
 
     List<DefinitionReference> mapOptional(List<DefinitionReference> references, BiFunction<? super Definition, PrecedenceParser, Optional<? extends Definition>> function);
 
+    <T> T named(Symbol symbol, Supplier<? extends T> value);
+
     void parsePrecedence();
 
     List<DefinitionReference> processPatterns();

@@ -159,12 +159,12 @@ public class ValueDefinition extends Definition {
 
     @Override
     public Optional<Definition> parsePrecedence(PrecedenceParser state) {
-        return Optional.of(state.scoped(this, () -> withBody(body.parsePrecedence(state).unwrap())));
+        return Optional.of(state.named(symbol, () -> state.scoped(this, () -> withBody(body.parsePrecedence(state).unwrap()))));
     }
 
     @Override
     public Definition qualifyNames(NameQualifier state) {
-        return state.scoped(this, () -> withBody(body.qualifyNames(state)));
+        return state.named(symbol, () -> state.scoped(this, () -> withBody(body.qualifyNames(state))));
     }
 
     @Override

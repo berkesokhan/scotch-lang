@@ -42,6 +42,8 @@ public interface NameQualifier {
 
     void leaveScope();
 
+    <T> T named(Symbol symbol, Supplier<T> supplier);
+
     void qualifyNames();
 
     List<DefinitionReference> qualifyNames(List<DefinitionReference> references);
