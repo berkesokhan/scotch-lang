@@ -2,6 +2,7 @@ package scotch.data.show;
 
 import static java.util.Arrays.asList;
 import static scotch.compiler.symbol.Type.sum;
+import static scotch.runtime.RuntimeUtil.callable;
 
 import java.util.List;
 import scotch.compiler.symbol.InstanceGetter;
@@ -15,10 +16,10 @@ import scotch.runtime.Thunk;
 @TypeInstance(typeClass = "scotch.data.show.Show")
 public class ShowInt implements Show<Integer> {
 
-    private static final ShowInt INSTANCE = new ShowInt();
+    private static final Callable<ShowInt> INSTANCE = callable(ShowInt::new);
 
     @InstanceGetter
-    public static ShowInt instance() {
+    public static Callable<ShowInt> instance() {
         return INSTANCE;
     }
 

@@ -3,8 +3,6 @@ package scotch.compiler.syntax.builder;
 import static scotch.compiler.syntax.definition.DefinitionGraph.createGraph;
 
 import java.util.List;
-import scotch.compiler.syntax.definition.DefinitionEntry;
-import scotch.compiler.syntax.definition.DefinitionGraph.DefinitionGraphBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.ClassDefinitionBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.ModuleDefinitionBuilder;
 import scotch.compiler.syntax.builder.DefinitionBuilder.OperatorDefinitionBuilder;
@@ -17,12 +15,15 @@ import scotch.compiler.syntax.builder.ImportBuilder.ModuleImportBuilder;
 import scotch.compiler.syntax.builder.PatternMatchBuilder.CaptureMatchBuilder;
 import scotch.compiler.syntax.builder.PatternMatchBuilder.EqualMatchBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.ArgumentBuilder;
+import scotch.compiler.syntax.builder.ValueBuilder.ConditionalBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.FunctionBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.IdentifierBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.LetBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.LiteralBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.MessageBuilder;
 import scotch.compiler.syntax.builder.ValueBuilder.PatternsBuilder;
+import scotch.compiler.syntax.definition.DefinitionEntry;
+import scotch.compiler.syntax.definition.DefinitionGraph.DefinitionGraphBuilder;
 
 public class SyntaxBuilderFactory {
 
@@ -36,6 +37,10 @@ public class SyntaxBuilderFactory {
 
     public ClassDefinitionBuilder classBuilder() {
         return DefinitionBuilder.classBuilder();
+    }
+
+    public ConditionalBuilder conditionalBuilder() {
+        return ValueBuilder.conditionalBuilder();
     }
 
     public DefinitionGraphBuilder definitionGraphBuilder(List<DefinitionEntry> definitions) {

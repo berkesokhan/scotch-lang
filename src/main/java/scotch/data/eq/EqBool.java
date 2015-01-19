@@ -15,10 +15,10 @@ import scotch.runtime.Callable;
 @TypeInstance(typeClass = "scotch.data.eq.Eq")
 public class EqBool implements Eq<Boolean> {
 
-    private static final EqBool INSTANCE = new EqBool();
+    private static final Callable<EqBool> INSTANCE = callable(EqBool::new);
 
     @InstanceGetter
-    public static EqBool instance() {
+    public static Callable<EqBool> instance() {
         return INSTANCE;
     }
 

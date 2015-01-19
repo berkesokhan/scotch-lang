@@ -19,6 +19,10 @@ public interface Callable<A> {
         return new BoxedCallable<>(value);
     }
 
+    static boolean unboxBool(Callable<Boolean> callable) {
+        return callable.call();
+    }
+
     A call();
 
     static final class BoxedCallable<A> implements Callable<A> {

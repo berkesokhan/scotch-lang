@@ -2,6 +2,7 @@ package scotch.compiler.syntax.builder;
 
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.value.Value.arg;
+import static scotch.compiler.syntax.value.Value.conditional;
 import static scotch.compiler.syntax.value.Value.fn;
 import static scotch.compiler.syntax.value.Value.id;
 import static scotch.compiler.syntax.value.Value.let;
@@ -17,6 +18,7 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.Argument;
+import scotch.compiler.syntax.value.Conditional;
 import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.Let;
@@ -32,12 +34,20 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
         return new ArgumentBuilder();
     }
 
+    public static ConditionalBuilder conditionalBuilder() {
+        return new ConditionalBuilder();
+    }
+
     public static FunctionBuilder functionBuilder() {
         return new FunctionBuilder();
     }
 
     public static IdentifierBuilder idBuilder() {
         return new IdentifierBuilder();
+    }
+
+    public static LetBuilder letBuilder() {
+        return new LetBuilder();
     }
 
     public static LiteralBuilder literalBuilder() {
@@ -54,10 +64,6 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
 
     private ValueBuilder() {
         // intentionally empty
-    }
-
-    public static LetBuilder letBuilder() {
-        return new LetBuilder();
     }
 
     public static class ArgumentBuilder extends ValueBuilder<Argument> {
@@ -92,6 +98,60 @@ public abstract class ValueBuilder<T extends Value> implements SyntaxBuilder<T> 
 
         public ArgumentBuilder withType(Type type) {
             this.type = Optional.of(type);
+            return this;
+        }
+    }
+
+    public static class ConditionalBuilder extends ValueBuilder<Conditional> {
+
+        private Optional<Value> condition;
+        private Optional<Value> whenTrue;
+        private Optional<Value> whenFalse;
+        private Optional<Type> type;
+        private Optional<SourceRange> sourceRange;
+
+        private ConditionalBuilder() {
+            condition = Optional.empty();
+            whenTrue = Optional.empty();
+            whenFalse = Optional.empty();
+            type = Optional.empty();
+            sourceRange = Optional.empty();
+        }
+
+        @Override
+        public Conditional build() {
+            return conditional(
+                require(sourceRange, "Source range"),
+                require(condition, "Condition"),
+                require(whenTrue, "True case"),
+                require(whenFalse, "False case"),
+                require(type, "Type")
+            );
+        }
+
+        public ConditionalBuilder withCondition(Value condition) {
+            this.condition = Optional.of(condition);
+            return this;
+        }
+
+        @Override
+        public ConditionalBuilder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public ConditionalBuilder withType(Type type) {
+            this.type = Optional.of(type);
+            return this;
+        }
+
+        public ConditionalBuilder withWhenFalse(Value whenFalse) {
+            this.whenFalse = Optional.of(whenFalse);
+            return this;
+        }
+
+        public ConditionalBuilder withWhenTrue(Value whenTrue) {
+            this.whenTrue = Optional.of(whenTrue);
             return this;
         }
     }

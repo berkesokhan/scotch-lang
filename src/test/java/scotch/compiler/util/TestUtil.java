@@ -41,6 +41,7 @@ import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.BoolLiteral;
 import scotch.compiler.syntax.value.CaptureMatch;
 import scotch.compiler.syntax.value.CharLiteral;
+import scotch.compiler.syntax.value.Conditional;
 import scotch.compiler.syntax.value.DoubleLiteral;
 import scotch.compiler.syntax.value.EqualMatch;
 import scotch.compiler.syntax.value.FunctionValue;
@@ -93,6 +94,10 @@ public class TestUtil {
 
     public static ClassReference classRef(String className) {
         return DefinitionReference.classRef(fromString(className));
+    }
+
+    public static Conditional conditional(Value condition, Value whenTrue, Value whenFalse, Type type) {
+        return Value.conditional(NULL_SOURCE, condition, whenTrue, whenFalse, type);
     }
 
     public static Type doubleType() {
@@ -151,7 +156,7 @@ public class TestUtil {
         return Value.literal(NULL_SOURCE, value);
     }
 
-    public static UnshuffledValue message(Value... members) {
+    public static UnshuffledValue unshuffled(Value... members) {
         return Value.unshuffled(NULL_SOURCE, asList(members));
     }
 

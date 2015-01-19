@@ -325,9 +325,9 @@ public abstract class Type {
 
         @Override
         protected Unification unifyWith(FunctionType target, TypeScope scope) {
-            return target.argument.unify(argument, scope).andThen(
-                argumentResult -> target.result.unify(result, scope).andThen(
-                    resultResult -> unified(fn(argumentResult, resultResult))
+            return target.argument.unify(argument, scope).flatMap(
+                argumentResult -> target.result.unify(result, scope).map(
+                    resultResult -> fn(argumentResult, resultResult)
                 )
             );
         }

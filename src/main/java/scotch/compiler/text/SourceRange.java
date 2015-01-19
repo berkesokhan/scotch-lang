@@ -68,10 +68,15 @@ public class SourceRange {
         return new SourceRange(sourceName, start, start);
     }
 
-    public void markLine(CodeBlock codeBlock) {
-        LabelNode label = new LabelNode();
-        codeBlock.label(label);
-        codeBlock.line(start.getLine(), label);
+    public void markLine(CodeBlock block) {
+        if (this != NULL_SOURCE) {
+            LabelNode label = new LabelNode();
+            int line = start.getLine();
+            if (line != -1) {
+                block.label(label);
+                block.line(line, label);
+            }
+        }
     }
 
     public String prettyPrint() {

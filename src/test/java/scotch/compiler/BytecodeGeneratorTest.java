@@ -97,6 +97,30 @@ public class BytecodeGeneratorTest {
         assertThat(result, is(8));
     }
 
+    @Test
+    public void shouldCompileConditional() {
+        String result = exec(
+            "module scotch.test",
+            "run = if True then \"Waffles\" else \"Bananas\""
+        );
+        assertThat(result, is("Waffles"));
+    }
+
+    @Test
+    public void shouldCompileChainedConditional() {
+        int result = exec(
+            "module scotch.test",
+            "import scotch.data.eq",
+            "import scotch.data.num",
+            "",
+            "run = fib 20",
+            "fib = \\n -> if n == 0 then 0",
+            "             else if n == 1 then 1",
+            "             else fib (n - 1) + fib (n - 2)"
+        );
+        assertThat(result, is(6765));
+    }
+
     @Ignore
     @Test
     public void shouldCompileShow() {

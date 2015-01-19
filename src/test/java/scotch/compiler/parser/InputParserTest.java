@@ -15,11 +15,11 @@ import static scotch.compiler.symbol.Value.Fixity.PREFIX;
 import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
 import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
+import static scotch.compiler.util.TestUtil.conditional;
 import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
 import static scotch.compiler.util.TestUtil.let;
 import static scotch.compiler.util.TestUtil.literal;
-import static scotch.compiler.util.TestUtil.message;
 import static scotch.compiler.util.TestUtil.operatorDef;
 import static scotch.compiler.util.TestUtil.operatorRef;
 import static scotch.compiler.util.TestUtil.root;
@@ -112,9 +112,9 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "value = fn (a b)"
         );
-        shouldHaveValue("scotch.test.value", message(
+        shouldHaveValue("scotch.test.value", unshuffled(
             id("fn", t(1)),
-            message(id("a", t(2)), id("b", t(3)))
+            unshuffled(id("a", t(2)), id("b", t(3)))
         ));
     }
 
@@ -137,7 +137,7 @@ public class InputParserTest extends ParserTest {
         shouldHavePattern(
             "scotch.test.(#0)",
             asList(capture("length", t(0)), capture("s", t(1))),
-            message(id("jStrlen", t(2)), id("s", t(3)))
+            unshuffled(id("jStrlen", t(2)), id("s", t(3)))
         );
     }
 
@@ -243,7 +243,7 @@ public class InputParserTest extends ParserTest {
         shouldHaveValue("scotch.test.apply2", t(0), fn(
             "scotch.test.(apply2#0)",
             asList(arg("x", t(1)), arg("y", t(2)), arg("z", t(3))),
-            message(id("x", t(4)), id("y", t(5)), id("z", t(6)))
+            unshuffled(id("x", t(4)), id("y", t(5)), id("z", t(6)))
         ));
     }
 
@@ -256,12 +256,12 @@ public class InputParserTest extends ParserTest {
             "    a g = g + g",
             "  f 2"
         );
-        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(1)), capture("x", t(2))), message(id("a", t(3)), id("x", t(4))));
-        shouldHavePattern("scotch.test.(main#2)", asList(capture("a", t(5)), capture("g", t(6))), message(id("g", t(7)), id("+", t(8)), id("g", t(9))));
+        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(1)), capture("x", t(2))), unshuffled(id("a", t(3)), id("x", t(4))));
+        shouldHavePattern("scotch.test.(main#2)", asList(capture("a", t(5)), capture("g", t(6))), unshuffled(id("g", t(7)), id("+", t(8)), id("g", t(9))));
         shouldHaveValue("scotch.test.main", let(
             "scotch.test.(main#0)",
             asList(scopeRef("scotch.test.(main#1)"), scopeRef("scotch.test.(main#2)")),
-            message(id("f", t(10)), literal(2))
+            unshuffled(id("f", t(10)), literal(2))
         ));
     }
 
@@ -275,11 +275,11 @@ public class InputParserTest extends ParserTest {
             "  f 2"
         );
         shouldHaveSignature("scotch.test.(main#f)", fn(sum("Int"), sum("Int")));
-        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(1)), capture("x", t(2))), message(id("x", t(3)), id("*", t(4)), id("x", t(5))));
+        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(1)), capture("x", t(2))), unshuffled(id("x", t(3)), id("*", t(4)), id("x", t(5))));
         shouldHaveValue("scotch.test.main", let(
             "scotch.test.(main#0)",
             asList(signatureRef("scotch.test.(main#f)"), scopeRef("scotch.test.(main#1)")),
-            message(id("f", t(6)), literal(2))
+            unshuffled(id("f", t(6)), literal(2))
         ));
     }
 
@@ -294,6 +294,63 @@ public class InputParserTest extends ParserTest {
             "  f 4"
         );
         shouldHaveValue("scotch.test.(main#f#g)");
+    }
+
+    @Test
+    public void shouldParseConditional() {
+        parse(
+            "module scotch.test",
+            "really? = if True",
+            "          then \"Yes\"",
+            "          else \"No\""
+        );
+        shouldHaveValue("scotch.test.(really?)", conditional(
+            literal(true),
+            literal("Yes"),
+            literal("No"),
+            t(1)
+        ));
+    }
+
+    @Test
+    public void shouldParseChainedConditional() {
+        parse(
+            "module scotch.test",
+            "really? = if True then \"Yes\"",
+            "          else if Maybe then \"Maybe\"",
+            "          else \"Nope\""
+        );
+        shouldHaveValue("scotch.test.(really?)", conditional(
+            literal(true),
+            literal("Yes"),
+            conditional(
+                id("Maybe", t(1)),
+                literal("Maybe"),
+                literal("Nope"),
+                t(2)
+            ),
+            t(3)
+        ));
+    }
+
+    @Test
+    public void shouldParseNestedConditional() {
+        parse(
+            "module scotch.test",
+            "really? = if True then if False then \"Wat\" else \"Maybe?\"",
+            "          else \"Nope\""
+        );
+        shouldHaveValue("scotch.test.(really?)", conditional(
+            literal(true),
+            conditional(
+                literal(false),
+                literal("Wat"),
+                literal("Maybe?"),
+                t(1)
+            ),
+            literal("Nope"),
+            t(2)
+        ));
     }
 
     private void expectParseException(String message) {

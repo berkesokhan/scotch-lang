@@ -36,6 +36,10 @@ public abstract class Value {
         return new Argument(sourceRange, name, type);
     }
 
+    public static Conditional conditional(SourceRange sourceRange, Value condition, Value whenTrue, Value whenFalse, Type type) {
+        return new Conditional(sourceRange, condition, whenTrue, whenFalse, type);
+    }
+
     public static DefinitionEntry entry(Scope scope, FunctionValue function) {
         return new DefinitionEntry(scope, Definition.scopeDef(function.getSourceRange(), function.getSymbol()));
     }

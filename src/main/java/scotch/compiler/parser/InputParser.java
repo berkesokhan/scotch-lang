@@ -17,7 +17,9 @@ import static scotch.compiler.scanner.Token.TokenKind.DOT;
 import static scotch.compiler.scanner.Token.TokenKind.DOUBLE;
 import static scotch.compiler.scanner.Token.TokenKind.DOUBLE_ARROW;
 import static scotch.compiler.scanner.Token.TokenKind.DOUBLE_COLON;
+import static scotch.compiler.scanner.Token.TokenKind.ELSE;
 import static scotch.compiler.scanner.Token.TokenKind.EOF;
+import static scotch.compiler.scanner.Token.TokenKind.IF;
 import static scotch.compiler.scanner.Token.TokenKind.IN;
 import static scotch.compiler.scanner.Token.TokenKind.INT;
 import static scotch.compiler.scanner.Token.TokenKind.LAMBDA;
@@ -28,6 +30,7 @@ import static scotch.compiler.scanner.Token.TokenKind.RCURLY;
 import static scotch.compiler.scanner.Token.TokenKind.RPAREN;
 import static scotch.compiler.scanner.Token.TokenKind.SEMICOLON;
 import static scotch.compiler.scanner.Token.TokenKind.STRING;
+import static scotch.compiler.scanner.Token.TokenKind.THEN;
 import static scotch.compiler.scanner.Token.TokenKind.WHERE;
 import static scotch.compiler.scanner.Token.TokenKind.WORD;
 import static scotch.compiler.symbol.Symbol.fromString;
@@ -474,10 +477,24 @@ public class InputParser {
             value = parseFunction();
         } else if (expects(LET)) {
             value = parseLet();
+        } else if (expects(IF)) {
+            value = parseConditional();
         } else if (required) {
             throw unexpected(ImmutableList.<TokenKind>builder().add(WORD, LPAREN).addAll(literals).build());
         }
         return ofNullable(value);
+    }
+
+    private Value parseConditional() {
+        return node(builderFactory::conditionalBuilder, conditional -> {
+            require(IF);
+            conditional.withCondition(parseMessage().collapse());
+            require(THEN);
+            conditional.withWhenTrue(parseMessage().collapse());
+            require(ELSE);
+            conditional.withWhenFalse(parseMessage().collapse());
+            conditional.withType(reserveType());
+        });
     }
 
     private Value parseLet() {

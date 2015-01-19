@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import com.google.common.collect.ImmutableSet;
 import scotch.compiler.symbol.Type.VariableType;
 
@@ -39,7 +40,9 @@ public abstract class Unification {
 
     public abstract <T> T accept(UnificationVisitor<T> visitor);
 
-    public abstract Unification andThen(Binding binding);
+    public Unification flatMap(Function<Type, Unification> function) {
+        return this;
+    }
 
     @Override
     public abstract boolean equals(Object o);
@@ -51,16 +54,18 @@ public abstract class Unification {
 
     public abstract boolean isUnified();
 
+    public Unification map(Function<Type, Type> function) {
+        return this;
+    }
+
+    public Type orElseGet(Function<Unification, Type> function) {
+        return function.apply(this);
+    }
+
     public abstract String prettyPrint();
 
     @Override
     public abstract String toString();
-
-    @FunctionalInterface
-    public interface Binding {
-
-        Unification apply(Type result);
-    }
 
     public interface UnificationVisitor<T> {
 
@@ -102,11 +107,6 @@ public abstract class Unification {
         @Override
         public <T> T accept(UnificationVisitor<T> visitor) {
             return visitor.visit(this);
-        }
-
-        @Override
-        public Unification andThen(Binding binding) {
-            return this;
         }
 
         @Override
@@ -166,11 +166,6 @@ public abstract class Unification {
         @Override
         public <T> T accept(UnificationVisitor<T> visitor) {
             return visitor.visit(this);
-        }
-
-        @Override
-        public Unification andThen(Binding binding) {
-            return this;
         }
 
         @Override
@@ -237,11 +232,6 @@ public abstract class Unification {
         }
 
         @Override
-        public Unification andThen(Binding binding) {
-            return this;
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (o == this) {
                 return true;
@@ -298,11 +288,6 @@ public abstract class Unification {
         }
 
         @Override
-        public Unification andThen(Binding binding) {
-            return this;
-        }
-
-        @Override
         public boolean equals(Object o) {
             if (o == this) {
                 return true;
@@ -355,8 +340,8 @@ public abstract class Unification {
         }
 
         @Override
-        public Unification andThen(Binding binding) {
-            return binding.apply(unifiedType);
+        public Unification flatMap(Function<Type, Unification> function) {
+            return function.apply(unifiedType);
         }
 
         @Override
@@ -381,6 +366,16 @@ public abstract class Unification {
         @Override
         public boolean isUnified() {
             return true;
+        }
+
+        @Override
+        public Unification map(Function<Type, Type> function) {
+            return unified(function.apply(unifiedType));
+        }
+
+        @Override
+        public Type orElseGet(Function<Unification, Type> function) {
+            return unifiedType;
         }
 
         @Override
