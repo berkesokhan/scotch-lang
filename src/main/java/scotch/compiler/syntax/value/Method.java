@@ -103,10 +103,6 @@ public class Method extends Value {
         return reference(state.scope());
     }
 
-    public int getInstanceCount() {
-        return instances.size();
-    }
-
     public ValueReference getReference() {
         return reference;
     }

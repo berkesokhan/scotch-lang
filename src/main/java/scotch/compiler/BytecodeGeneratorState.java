@@ -188,7 +188,7 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
     }
 
     @Override
-    public void map(List<DefinitionReference> references) {
+    public void generateBytecode(List<DefinitionReference> references) {
         references.stream()
             .map(this::getDefinition)
             .filter(Optional::isPresent)

@@ -38,8 +38,8 @@ public class Let extends Value implements Scoped {
 
     @Override
     public Value accumulateDependencies(DependencyAccumulator state) {
-        return state.keep(withDefinitions(state.accumulateDependencies(definitions))
-        .withBody(body.accumulateDependencies(state)));
+        return state.scoped(this, () -> withDefinitions(state.accumulateDependencies(definitions))
+            .withBody(body.accumulateDependencies(state)));
     }
 
     @Override
@@ -50,22 +50,17 @@ public class Let extends Value implements Scoped {
 
     @Override
     public Value bindMethods(TypeChecker state) {
-        return state.scoped(this, () -> withBody(body.bindMethods(state))
-            .withDefinitions(state.map(definitions, (definition, s) -> definition.asValue()
-                .map(value -> state.scoped(definition, () -> value.withBody(body.bindMethods(state))))
-                .orElseGet(state::keep))));
+        return state.scoped(this, () -> withBody(body.bindMethods(state)));
     }
 
     @Override
     public Value bindTypes(TypeChecker state) {
-        return withDefinitions(state.map(definitions, Definition::bindTypes))
-            .withBody(body.bindTypes(state));
+        return state.scoped(this, () -> withBody(body.bindTypes(state)));
     }
 
     @Override
     public Value checkTypes(TypeChecker state) {
-        return state.enclose(this, () -> withDefinitions(state.checkTypes(definitions))
-            .withBody(body.checkTypes(state)));
+        return state.enclose(this, () -> withBody(body.checkTypes(state)));
     }
 
     @Override
@@ -91,7 +86,8 @@ public class Let extends Value implements Scoped {
 
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        throw new UnsupportedOperationException(); // TODO
+        state.generateBytecode(definitions);
+        return state.scoped(this, () -> body.generateBytecode(state));
     }
 
     public Value getBody() {

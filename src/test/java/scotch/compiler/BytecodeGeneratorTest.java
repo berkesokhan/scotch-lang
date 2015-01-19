@@ -84,6 +84,19 @@ public class BytecodeGeneratorTest {
         assertThat(result, is(6));
     }
 
+    @Test
+    public void shouldCompileLet() {
+        int result = exec(
+            "module scotch.test",
+            "import scotch.data.num",
+            "run = let",
+            "    f x = a x * 2",
+            "    a g = g + g",
+            "  f 2"
+        );
+        assertThat(result, is(8));
+    }
+
     @Ignore
     @Test
     public void shouldCompileShow() {

@@ -78,7 +78,7 @@ public class ModuleDefinition extends Definition {
         state.scoped(this, () -> {
             state.beginClass(getClassName(), sourceRange);
             state.defineDefaultConstructor(ACC_PRIVATE);
-            state.map(definitions);
+            state.generateBytecode(definitions);
             state.endClass();
             return null;
         });

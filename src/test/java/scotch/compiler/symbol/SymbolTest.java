@@ -45,4 +45,9 @@ public class SymbolTest {
     public void shouldPrefixMultipleMemberNames_whenStartingWithNumber() {
         assertThat(Symbol.fromString("1#test#fn").getCanonicalName(), is("#1#test#fn"));
     }
+
+    @Test
+    public void shouldPrefixNumericNameWithAlphaSuffix() {
+        assertThat(Symbol.fromString("#0i").getCanonicalName(), is("#0i"));
+    }
 }

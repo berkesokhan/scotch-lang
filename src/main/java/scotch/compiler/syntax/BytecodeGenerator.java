@@ -37,6 +37,8 @@ public interface BytecodeGenerator {
 
     <T extends Scoped> void generate(T scoped, Runnable runnable);
 
+    void generateBytecode(List<DefinitionReference> references);
+
     Class<?>[] getCaptureAllTypes();
 
     List<GeneratedClass> getClasses();
@@ -46,8 +48,6 @@ public interface BytecodeGenerator {
     Class<?>[] getLambdaType();
 
     int getVariable(String name);
-
-    void map(List<DefinitionReference> references);
 
     void method(String methodName, int access, String signature, CodeBlock body);
 

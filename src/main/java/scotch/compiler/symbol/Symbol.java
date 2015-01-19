@@ -177,7 +177,7 @@ public abstract class Symbol implements Comparable<Symbol> {
     }
 
     private static String join(List<String> memberNames) {
-        if (memberNames.get(0).matches("^\\d")) {
+        if (memberNames.get(0).matches("^\\d.*$")) {
             return "#" + _join(memberNames);
         } else {
             return _join(memberNames);

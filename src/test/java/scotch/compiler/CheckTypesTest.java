@@ -218,19 +218,19 @@ public class CheckTypesTest extends ParserTest {
         InstanceType eqType = instance("scotch.data.eq.Eq", t(20));
         shouldHaveValue("scotch.test.fn", fn(
             "scotch.test.(fn#0)",
-            asList(arg("#i0", eqType), arg("#i1", numType), arg("#0", t), arg("#1", t)),
+            asList(arg("#0i", eqType), arg("#1i", numType), arg("#0", t), arg("#1", t)),
             patterns(bool, pattern("scotch.test.(fn#0#0)", asList(capture("#0", "a", t), capture("#1", "b", t)), apply(
                 apply(
                     apply(
                         method("scotch.data.eq.(==)", asList(eqType), fn(eqType, fn(t, fn(t, bool)))),
-                        arg("#i0", eqType),
+                        arg("#0i", eqType),
                         fn(t, fn(t, bool))
                     ),
                     apply(
                         apply(
                             apply(
                                 method("scotch.data.num.(+)", asList(numType), fn(numType, fn(t, fn(t, t)))),
-                                arg("#i1", numType),
+                                arg("#1i", numType),
                                 fn(t, fn(t, t))
                             ),
                             arg("a", t),
@@ -245,7 +245,7 @@ public class CheckTypesTest extends ParserTest {
                     apply(
                         apply(
                             method("scotch.data.num.(+)", asList(numType), fn(numType, fn(t, fn(t, t)))),
-                            arg("#i1", numType),
+                            arg("#1i", numType),
                             fn(t, fn(t, t))
                         ),
                         arg("b", t),
@@ -275,7 +275,7 @@ public class CheckTypesTest extends ParserTest {
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.(commutative?)", fn(
             "scotch.test.(commutative?#0)",
-            asList(arg("#i0", eqType), arg("#i1", numType), arg("#0", t), arg("#1", t)),
+            asList(arg("#0i", eqType), arg("#1i", numType), arg("#0", t), arg("#1", t)),
             patterns(bool, pattern(
                 "scotch.test.(commutative?#0#0)",
                 asList(capture("#0", "a", t), capture("#1", "b", t)),
@@ -284,10 +284,10 @@ public class CheckTypesTest extends ParserTest {
                         apply(
                             apply(
                                 method("scotch.test.fn", asList(eqType, numType), fn(eqType, fn(numType, fn(t, fn(t, bool))))),
-                                arg("#i0", eqType),
+                                arg("#0i", eqType),
                                 fn(numType, fn(t, fn(t, bool)))
                             ),
-                            arg("#i1", numType),
+                            arg("#1i", numType),
                             fn(t, fn(t, bool))
                         ),
                         arg("a", t),
@@ -343,12 +343,12 @@ public class CheckTypesTest extends ParserTest {
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fn", fn(
             "scotch.test.(fn#0)",
-            asList(arg("#i0", instance), arg("#0", t), arg("#1", t)),
+            asList(arg("#0i", instance), arg("#0", t), arg("#1", t)),
             patterns(t, pattern("scotch.test.(fn#0#0)", asList(capture("#0", "a", t), capture("#1", "b", t)), apply(
                 apply(
                     apply(
                         method("scotch.data.num.(+)", asList(instance), fn(instance, fn(t, fn(t, t)))),
-                        arg("#i0", instance),
+                        arg("#0i", instance),
                         fn(t, fn(t, t))
                     ),
                     arg("a", t),
@@ -373,12 +373,12 @@ public class CheckTypesTest extends ParserTest {
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fn", fn(
             "scotch.test.(fn#0)",
-            asList(arg("#i0", instance), arg("x", t), arg("y", t)),
+            asList(arg("#0i", instance), arg("x", t), arg("y", t)),
             apply(
                 apply(
                     apply(
                         method("scotch.data.num.(+)", asList(instance), fn(instance, fn(t, fn(t, t)))),
-                        arg("#i0", instance),
+                        arg("#0i", instance),
                         fn(t, fn(t, t))
                     ),
                     arg("x", t),
@@ -436,6 +436,23 @@ public class CheckTypesTest extends ParserTest {
         shouldNotHaveErrors();
         shouldHaveLocals(scopeRef("scotch.test.(fn#0#1)"), asList("x", "y"));
         shouldHaveLocals(scopeRef("scotch.test.(fn#0)"), asList("#0", "#1", "a", "b"));
+    }
+
+    @Test
+    public void shouldGetTypeOfLet() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.num",
+            "main = let",
+            "    f x = a x",
+            "    a g = g + g",
+            "  f 2"
+        );
+        Type num = t(21, asList("scotch.data.num.Num"));
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.main", t(0));
+        shouldHaveValue("scotch.test.(main#f)", fn(intType(), intType()));
+        shouldHaveValue("scotch.test.(main#a)", fn(num, num));
     }
 
     private void shouldHaveLocals(DefinitionReference reference, List<String> locals) {

@@ -367,7 +367,7 @@ public class TypeCheckerState implements TypeChecker {
             .flatMap(tuple -> tuple.into((type, classRefs) -> classRefs.stream()
                 .map(classRef -> arg(
                     definition.getSourceRange().getStartRange(),
-                    "#i" + counter.getAndIncrement(),
+                    "#" + counter.getAndIncrement() + "i",
                     Type.instance(classRef.getSymbol(), type.simplify())
                 ))))
             .collect(toList());

@@ -193,7 +193,11 @@ public class ModuleScope extends Scope {
 
     @Override
     public Optional<MethodSignature> getValueSignature(Symbol symbol) {
-        return parent.getValueSignature(symbol);
+        if (entries.containsKey(symbol)) {
+            return Optional.of(entries.get(symbol).getValueSignature());
+        } else {
+            return parent.getValueSignature(symbol);
+        }
     }
 
     @Override

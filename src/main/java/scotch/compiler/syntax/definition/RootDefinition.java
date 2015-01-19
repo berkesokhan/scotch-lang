@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
-import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.BytecodeGenerator;
 import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
@@ -59,7 +59,7 @@ public class RootDefinition extends Definition {
 
     @Override
     public void generateBytecode(BytecodeGenerator state) {
-        state.generate(this, () -> state.map(definitions));
+        state.generate(this, () -> state.generateBytecode(definitions));
     }
 
     public List<DefinitionReference> getDefinitions() {

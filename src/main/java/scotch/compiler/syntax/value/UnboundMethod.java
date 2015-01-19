@@ -43,12 +43,6 @@ public class UnboundMethod extends Value {
         throw new UnsupportedOperationException();
     }
 
-    public Value bind(Scope scope) {
-        List<Type> instances = listInstanceTypes(scope.getRawValue(valueRef));
-        List<Type> instanceTypes = listInstanceTypes(scope.getValue(valueRef));
-        return method(sourceRange, valueRef, instances, scope.generate(getMethodType(instanceTypes)));
-    }
-
     @Override
     public Value bindMethods(TypeChecker state) {
         throw new UnsupportedOperationException();
@@ -137,5 +131,11 @@ public class UnboundMethod extends Value {
     @Override
     public Value withType(Type type) {
         return unboundMethod(sourceRange, valueRef, type);
+    }
+
+    private Value bind(Scope scope) {
+        List<Type> instances = listInstanceTypes(scope.getRawValue(valueRef));
+        List<Type> instanceTypes = listInstanceTypes(scope.getValue(valueRef));
+        return method(sourceRange, valueRef, instances, scope.generate(getMethodType(instanceTypes)));
     }
 }

@@ -20,6 +20,8 @@ import scotch.compiler.symbol.Type.TypeVisitor;
 import scotch.compiler.symbol.Type.VariableType;
 import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.Unification;
+import scotch.compiler.symbol.Unification.UnificationVisitor;
+import scotch.compiler.symbol.Unification.Unified;
 
 public class DefaultTypeScope implements TypeScope {
 
@@ -165,7 +167,18 @@ public class DefaultTypeScope implements TypeScope {
                 @Override
                 public Unification visit(VariableType type) {
                     if (isBound(type)) {
-                        return failedBinding(targetType, variableType, getTarget(variableType));
+                        return type.unify(variableType, DefaultTypeScope.this).accept(new UnificationVisitor<Unification>() {
+                            @Override
+                            public Unification visit(Unified unified) {
+                                bindings.put(variableType, targetType);
+                                return unified;
+                            }
+
+                            @Override
+                            public Unification visitOtherwise(Unification unification) {
+                                return failedBinding(targetType, variableType, getTarget(variableType));
+                            }
+                        });
                     } else {
                         bindings.put(targetType, getTarget(variableType));
                         return unified(variableType);
