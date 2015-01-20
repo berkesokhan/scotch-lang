@@ -60,24 +60,12 @@ import scotch.runtime.Callable;
 
 public class TestUtil {
 
-    @SuppressWarnings("unchecked")
-    public static <A> A exec(String... lines) {
-        try {
-            ClasspathResolver resolver = new ClasspathResolver(Compiler.class.getClassLoader());
-            BytecodeClassLoader classLoader = new BytecodeClassLoader();
-            classLoader.defineAll(generateBytecode(resolver, lines));
-            return ((Callable<A>) classLoader.loadClass("scotch.test.ScotchModule").getMethod("run").invoke(null)).call();
-        } catch (ReflectiveOperationException exception) {
-            throw new RuntimeException(exception);
-        }
-    }
-
-    public static List<GeneratedClass> generateBytecode(ClasspathResolver resolver, String... lines) {
-        return compiler(resolver, "$test", lines).generateBytecode();
-    }
-
     public static Argument arg(String name, Type type) {
         return Value.arg(NULL_SOURCE, name, type);
+    }
+
+    public static Type boolType() {
+        return sum("scotch.data.bool.Bool");
     }
 
     public static CaptureMatch capture(String name, Type type) {
@@ -112,6 +100,18 @@ public class TestUtil {
         return PatternMatch.equal(NULL_SOURCE, Optional.of(argument), value);
     }
 
+    @SuppressWarnings("unchecked")
+    public static <A> A exec(String... lines) {
+        try {
+            ClasspathResolver resolver = new ClasspathResolver(Compiler.class.getClassLoader());
+            BytecodeClassLoader classLoader = new BytecodeClassLoader();
+            classLoader.defineAll(generateBytecode(resolver, lines));
+            return ((Callable<A>) classLoader.loadClass("scotch.test.ScotchModule").getMethod("run").invoke(null)).call();
+        } catch (ReflectiveOperationException exception) {
+            throw new RuntimeException(exception);
+        }
+    }
+
     public static FunctionValue fn(String name, Argument argument, Value body) {
         return fn(name, asList(argument), body);
     }
@@ -120,8 +120,16 @@ public class TestUtil {
         return Value.fn(NULL_SOURCE, fromString(name), arguments, body);
     }
 
+    public static List<GeneratedClass> generateBytecode(ClasspathResolver resolver, String... lines) {
+        return compiler(resolver, "$test", lines).generateBytecode();
+    }
+
     public static Identifier id(String name, Type type) {
         return Value.id(NULL_SOURCE, fromString(name), type);
+    }
+
+    public static Instance instance(InstanceReference reference, Type type) {
+        return Value.instance(NULL_SOURCE, reference, type);
     }
 
     public static InstanceReference instanceRef(String moduleName, String className, List<Type> parameters) {
@@ -156,16 +164,8 @@ public class TestUtil {
         return Value.literal(NULL_SOURCE, value);
     }
 
-    public static UnshuffledValue unshuffled(Value... members) {
-        return Value.unshuffled(NULL_SOURCE, asList(members));
-    }
-
     public static Method method(String name, List<Type> instances, Type type) {
         return Value.method(NULL_SOURCE, valueRef(name), instances, type);
-    }
-
-    public static Instance instance(InstanceReference reference, Type type) {
-        return Value.instance(NULL_SOURCE, reference, type);
     }
 
     public static ModuleImport moduleImport(String moduleName) {
@@ -200,6 +200,10 @@ public class TestUtil {
         return DefinitionReference.signatureRef(Symbol.fromString(name));
     }
 
+    public static Type stringType() {
+        return sum("scotch.data.string.String");
+    }
+
     public static Token token(TokenKind kind, Object value) {
         return Token.token(kind, value, NULL_SOURCE);
     }
@@ -220,6 +224,10 @@ public class TestUtil {
 
     public static TypeInstanceDescriptor typeInstance(String moduleName, String typeClass, List<Type> parameters, MethodSignature instanceGetter) {
         return TypeInstanceDescriptor.typeInstance(moduleName, fromString(typeClass), parameters, instanceGetter);
+    }
+
+    public static UnshuffledValue unshuffled(Value... members) {
+        return Value.unshuffled(NULL_SOURCE, asList(members));
     }
 
     public static UnshuffledPattern unshuffled(String name, List<PatternMatch> matches, Value body) {

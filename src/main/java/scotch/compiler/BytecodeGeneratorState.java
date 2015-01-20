@@ -15,6 +15,7 @@ import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
+import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Type.FunctionType;
@@ -36,6 +37,7 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
     private final Deque<Scope>         scopes;
     private final Deque<List<String>>  arguments;
     private final Deque<List<String>>  matches;
+    private final Deque<CaseEntry>     cases;
     private       int                  lambdas;
     private       int                  applies;
 
@@ -46,11 +48,22 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
         this.scopes = new ArrayDeque<>();
         this.arguments = new ArrayDeque<>(asList(ImmutableList.of()));
         this.matches = new ArrayDeque<>(asList(ImmutableList.of()));
+        this.cases = new ArrayDeque<>();
     }
 
     @Override
     public void addMatch(String name) {
         matches.peek().add(name);
+    }
+
+    @Override
+    public LabelNode beginCase() {
+        return cases.peek().beginCase();
+    }
+
+    @Override
+    public void beginCases(int size) {
+        cases.push(new CaseEntry(size));
     }
 
     @Override
@@ -113,6 +126,16 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
                 arguments.pop();
             }
         });
+    }
+
+    @Override
+    public LabelNode endCase() {
+        return cases.peek().endCase();
+    }
+
+    @Override
+    public LabelNode endCases() {
+        return cases.pop().endCase();
     }
 
     @Override
@@ -202,6 +225,11 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
     }
 
     @Override
+    public LabelNode nextCase() {
+        return cases.peek().nextCase();
+    }
+
+    @Override
     public void releaseLambda(String lambdaArgument) {
         getArguments().remove(lambdaArgument);
     }
@@ -270,5 +298,30 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
 
     private void leaveScope() {
         scopes.pop();
+    }
+
+    private static class CaseEntry {
+
+        private final List<LabelNode> labels;
+        private int position;
+
+        public CaseEntry(int size) {
+            labels = new ArrayList<>();
+            for (int i = 0; i <= size; i++) {
+                labels.add(new LabelNode());
+            }
+        }
+
+        public LabelNode beginCase() {
+            return labels.get(position++);
+        }
+
+        public LabelNode endCase() {
+            return labels.get(labels.size() - 1);
+        }
+
+        public LabelNode nextCase() {
+            return labels.get(position);
+        }
     }
 }

@@ -64,12 +64,17 @@ public class CaptureMatch extends PatternMatch {
     }
 
     @Override
-    public PatternMatch bind(String argument) {
+    public PatternMatch bind(String argument, Scope scope) {
         if (this.argument.isPresent()) {
             throw new IllegalStateException();
         } else {
             return capture(sourceRange, Optional.of(argument), symbol, type);
         }
+    }
+
+    @Override
+    public PatternMatch bindMethods(TypeChecker state) {
+        return this;
     }
 
     @Override

@@ -11,6 +11,7 @@ import static scotch.compiler.symbol.Type.var;
 import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.syntax.StubResolver.defaultEq;
 import static scotch.compiler.syntax.StubResolver.defaultEqClass;
+import static scotch.compiler.syntax.StubResolver.defaultEqOf;
 import static scotch.compiler.syntax.StubResolver.defaultInt;
 import static scotch.compiler.syntax.StubResolver.defaultMinus;
 import static scotch.compiler.syntax.StubResolver.defaultNum;
@@ -22,8 +23,10 @@ import static scotch.compiler.syntax.value.Value.apply;
 import static scotch.compiler.text.SourcePoint.point;
 import static scotch.compiler.text.SourceRange.source;
 import static scotch.compiler.util.TestUtil.arg;
+import static scotch.compiler.util.TestUtil.boolType;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.doubleType;
+import static scotch.compiler.util.TestUtil.equal;
 import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.instance;
 import static scotch.compiler.util.TestUtil.instanceRef;
@@ -33,6 +36,7 @@ import static scotch.compiler.util.TestUtil.method;
 import static scotch.compiler.util.TestUtil.pattern;
 import static scotch.compiler.util.TestUtil.patterns;
 import static scotch.compiler.util.TestUtil.scopeRef;
+import static scotch.compiler.util.TestUtil.stringType;
 
 import java.util.List;
 import java.util.function.Function;
@@ -47,6 +51,7 @@ public class CheckTypesTest extends ParserTest {
 
     private Type intType;
     private Type doubleType;
+    private Type boolType;
     private Type stringType;
 
     @Test
@@ -65,6 +70,7 @@ public class CheckTypesTest extends ParserTest {
     public void fibShouldBeIntOfInt() {
         parse(
             "module scotch.test",
+            "import scotch.data.eq",
             "import scotch.data.num",
             "fib 0 = 0",
             "fib 1 = 1",
@@ -92,6 +98,7 @@ public class CheckTypesTest extends ParserTest {
     public void mismatchedPatternCaseShouldReportTypeError() {
         parse(
             "module scotch.test",
+            "import scotch.data.eq",
             "import scotch.data.int",
             "fn :: Int -> Int",
             "fn 0 = 0",
@@ -99,7 +106,7 @@ public class CheckTypesTest extends ParserTest {
         );
         shouldHaveErrors(typeError(
             mismatch(intType, stringType),
-            source("mismatchedPatternCaseShouldReportTypeError", point(68, 5, 1), point(96, 5, 29))
+            source("mismatchedPatternCaseShouldReportTypeError", point(90, 6, 1), point(118, 6, 29))
         ));
     }
 
@@ -455,6 +462,37 @@ public class CheckTypesTest extends ParserTest {
         shouldHaveValue("scotch.test.(main#a)", fn(num, num));
     }
 
+    @Test
+    public void shouldBindMethodsInEqualMatch() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.eq", // TODO why does this require an import?
+            "fib 0 = 0"
+        );
+        InstanceType instance = instance("scotch.data.eq.Eq", intType);
+        shouldHaveValue("scotch.test.fib", fn(
+            "scotch.test.fib#0",
+            arg("#0", intType),
+            patterns(intType, pattern(
+                "scotch.test.fib#0#0",
+                asList(equal("#0", apply(
+                    apply(
+                        apply(
+                            method("scotch.data.eq.(==)", asList(instance), fn(instance, fn(intType, fn(intType, boolType)))),
+                            instance(instanceRef("scotch.data.eq", "scotch.data.eq.Eq", asList(intType)), instance),
+                            fn(intType, fn(intType, boolType))
+                        ),
+                        arg("#0", intType),
+                        fn(intType, boolType)
+                    ),
+                    literal(0),
+                    boolType
+                ))),
+                literal(0)
+            ))
+        ));
+    }
+
     private void shouldHaveLocals(DefinitionReference reference, List<String> locals) {
         assertThat(getScope(reference).getLocals(), is(locals));
     }
@@ -472,7 +510,8 @@ public class CheckTypesTest extends ParserTest {
     protected void setUp() {
         intType = intType();
         doubleType = doubleType();
-        stringType = sum("scotch.data.string.String");
+        boolType = boolType();
+        stringType = stringType();
     }
 
     @Override
@@ -486,6 +525,7 @@ public class CheckTypesTest extends ParserTest {
             .define(defaultNumOf(intType))
             .define(defaultNumOf(doubleType))
             .define(defaultEq())
+            .define(defaultEqOf(intType))
             .define(defaultEqClass());
     }
 }

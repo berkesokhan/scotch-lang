@@ -5,6 +5,7 @@ import static scotch.compiler.symbol.Type.t;
 import static scotch.compiler.syntax.value.Value.apply;
 import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
+import static scotch.compiler.util.TestUtil.equal;
 import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
 import static scotch.compiler.util.TestUtil.let;
@@ -82,6 +83,27 @@ public class ParsePrecedenceTest extends ParserTest {
             "scotch.test.(main#0)",
             asList(valueRef("scotch.test.(main#f)"), valueRef("scotch.test.(main#a)")),
             apply(id("f", t(10)), literal(2), t(11))
+        ));
+    }
+
+    @Test
+    public void shouldTranslateEqualMatchToUseEq() {
+        parse(
+            "module scotch.test",
+            "fib 0 = 0"
+        );
+        shouldHaveValue("scotch.test.fib", fn(
+            "scotch.test.fib#0",
+            arg("#0", t(1)),
+            patterns(t(2), pattern(
+                "scotch.test.fib#0#0",
+                asList(equal("#0", apply(
+                    apply(id("scotch.data.eq.(==)", t(4)), id("#0", t(5)), t(6)),
+                    literal(0),
+                    t(7)
+                ))),
+                literal(0)
+            ))
         ));
     }
 

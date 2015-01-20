@@ -121,6 +121,21 @@ public class BytecodeGeneratorTest {
         assertThat(result, is(6765));
     }
 
+    @Test
+    public void shouldCompileConditionalPattern() {
+        int result = exec(
+            "module scotch.test",
+            "import scotch.data.eq",
+            "import scotch.data.num",
+            "",
+            "run = fib 20",
+            "fib 0 = 0",
+            "fib 1 = 1",
+            "fib n = fib (n - 1) + fib (n - 2)"
+        );
+        assertThat(result, is(6765));
+    }
+
     @Ignore
     @Test
     public void shouldCompileShow() {

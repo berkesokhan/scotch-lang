@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.function.Supplier;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
+import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.GeneratedClass;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.reference.DefinitionReference;
@@ -14,6 +15,10 @@ import scotch.runtime.Callable;
 public interface BytecodeGenerator {
 
     void addMatch(String name);
+
+    LabelNode beginCase();
+
+    void beginCases(int size);
 
     void beginClass(String className, SourceRange sourceRange);
 
@@ -28,6 +33,10 @@ public interface BytecodeGenerator {
     void defineDefaultConstructor(int access);
 
     CodeBlock enclose(Scoped scoped, Supplier<CodeBlock> supplier);
+
+    LabelNode endCase();
+
+    LabelNode endCases();
 
     void endClass();
 
@@ -50,6 +59,8 @@ public interface BytecodeGenerator {
     int getVariable(String name);
 
     void method(String methodName, int access, String signature, CodeBlock body);
+
+    LabelNode nextCase();
 
     void releaseLambda(String lambdaArgument);
 

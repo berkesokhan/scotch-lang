@@ -62,32 +62,40 @@ public class SyntaxParseIntegrationTest extends ParserTest {
             "fib n = fib (n - 1) + fib (n - 2)"
         );
         shouldHaveValue("scotch.test.fib", t(13), fn("scotch.test.(fib#0)", asList(arg("#0", t(11))), patterns(t(12),
-            pattern("scotch.test.(fib#0#0)", asList(equal("#0", literal(0))), literal(0)),
-            pattern("scotch.test.(fib#0#1)", asList(equal("#0", literal(1))), literal(1)),
+            pattern("scotch.test.(fib#0#0)", asList(equal("#0", apply(
+                apply(id("scotch.data.eq.(==)", t(14)), id("#0", t(15)), t(16)),
+                literal(0),
+                t(17)
+            ))), literal(0)),
+            pattern("scotch.test.(fib#0#1)", asList(equal("#0", apply(
+                apply(id("scotch.data.eq.(==)", t(18)), id("#0", t(19)), t(20)),
+                literal(1),
+                t(21)
+            ))), literal(1)),
             pattern("scotch.test.(fib#0#2)", asList(capture("#0", "n", t(3))), apply(
                 apply(
                     id("scotch.test.(+)", t(7)),
                     apply(
                         id("scotch.test.fib", t(4)),
                         apply(
-                            apply(id("scotch.test.(-)", t(6)), id("n", t(5)), t(14)),
+                            apply(id("scotch.test.(-)", t(6)), id("n", t(5)), t(22)),
                             literal(1),
-                            t(15)
+                            t(23)
                         ),
-                        t(16)
+                        t(24)
                     ),
-                    t(20)
+                    t(28)
                 ),
                 apply(
                     id("scotch.test.fib", t(8)),
                     apply(
-                        apply(id("scotch.test.(-)", t(10)), id("n", t(9)), t(17)),
+                        apply(id("scotch.test.(-)", t(10)), id("n", t(9)), t(25)),
                         literal(2),
-                        t(18)
+                        t(26)
                     ),
-                    t(19)
+                    t(27)
                 ),
-                t(21)
+                t(29)
             ))
         )));
     }

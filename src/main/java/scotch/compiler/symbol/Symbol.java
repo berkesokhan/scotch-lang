@@ -3,6 +3,7 @@ package scotch.compiler.symbol;
 import static java.util.Arrays.asList;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static scotch.data.tuple.TupleValues.tuple2;
 
@@ -114,11 +115,7 @@ public abstract class Symbol implements Comparable<Symbol> {
     }
 
     public static Symbol qualified(String moduleName, String memberName) {
-        if (memberName.startsWith("#")) {
-            return qualified_(moduleName, memberName.substring(1));
-        } else {
-            return qualified_(moduleName, memberName);
-        }
+        return qualified(moduleName, asList(memberName.split("#")));
     }
 
     public static Symbol qualified(String moduleName, List<String> memberNames) {
@@ -139,19 +136,11 @@ public abstract class Symbol implements Comparable<Symbol> {
     }
 
     public static Symbol unqualified(String memberName) {
-        if (memberName.startsWith("#")) {
-            return unqualified_(memberName.substring(1));
-        } else {
-            return unqualified_(memberName);
-        }
+        return unqualified(asList(memberName.split("#")));
     }
 
     public static Symbol unqualified(List<String> memberNames) {
         return new UnqualifiedSymbol(memberNames);
-    }
-
-    private static String _join(List<String> memberNames) {
-        return memberNames.stream().collect(joining("#"));
     }
 
     private static Integer compareMemberNames(Symbol left, Symbol right) {
@@ -178,18 +167,14 @@ public abstract class Symbol implements Comparable<Symbol> {
 
     private static String join(List<String> memberNames) {
         if (memberNames.get(0).matches("^\\d.*$")) {
-            return "#" + _join(memberNames);
+            return "#" + join_(memberNames);
         } else {
-            return _join(memberNames);
+            return join_(memberNames);
         }
     }
 
-    private static Symbol qualified_(String moduleName, String memberName) {
-        return qualified(moduleName, asList(memberName.split("#")));
-    }
-
-    private static Symbol unqualified_(String memberName) {
-        return unqualified(asList(memberName.split("#")));
+    private static String join_(List<String> memberNames) {
+        return memberNames.stream().collect(joining("#"));
     }
 
     private Symbol() {
@@ -214,7 +199,14 @@ public abstract class Symbol implements Comparable<Symbol> {
         return toJavaName_(getSimpleName());
     }
 
-    public abstract String getSimpleName();
+    public String getSimpleName() {
+        String simpleName = getMemberNames().get(getMemberNames().size() - 1);
+        if (simpleName.matches("^\\d+.*")) {
+            return "#" + simpleName;
+        } else {
+            return simpleName;
+        }
+    }
 
     @Override
     public abstract int hashCode();
@@ -263,7 +255,7 @@ public abstract class Symbol implements Comparable<Symbol> {
 
         private QualifiedSymbol(String moduleName, List<String> memberNames) {
             this.moduleName = moduleName;
-            this.memberNames = ImmutableList.copyOf(memberNames);
+            this.memberNames = normalize(memberNames);
         }
 
         @Override
@@ -333,11 +325,6 @@ public abstract class Symbol implements Comparable<Symbol> {
         }
 
         @Override
-        public String getSimpleName() {
-            return memberNames.get(memberNames.size() - 1);
-        }
-
-        @Override
         public int hashCode() {
             return Objects.hash(moduleName, memberNames);
         }
@@ -372,7 +359,7 @@ public abstract class Symbol implements Comparable<Symbol> {
         private final List<String> memberNames;
 
         public UnqualifiedSymbol(List<String> memberNames) {
-            this.memberNames = ImmutableList.copyOf(memberNames);
+            this.memberNames = normalize(memberNames);
         }
 
         @Override
@@ -416,11 +403,6 @@ public abstract class Symbol implements Comparable<Symbol> {
         }
 
         @Override
-        public String getSimpleName() {
-            return memberNames.get(memberNames.size() - 1);
-        }
-
-        @Override
         public int hashCode() {
             return Objects.hash(memberNames);
         }
@@ -444,5 +426,12 @@ public abstract class Symbol implements Comparable<Symbol> {
         protected Symbol withMemberNames(List<String> memberNames) {
             return new UnqualifiedSymbol(memberNames);
         }
+    }
+
+    private static List<String> normalize(List<String> memberNames) {
+        return ImmutableList.copyOf(memberNames.stream()
+            .filter(name -> !name.isEmpty())
+            .map(name -> name.startsWith("#") ? name.substring(1) : name)
+            .collect(toList()));
     }
 }

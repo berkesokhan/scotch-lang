@@ -1,17 +1,24 @@
 package scotch.compiler.syntax.value;
 
+import static me.qmx.jitescript.util.CodegenUtils.p;
+import static me.qmx.jitescript.util.CodegenUtils.sig;
+import static scotch.compiler.syntax.value.Value.apply;
+import static scotch.compiler.syntax.value.Value.id;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
 import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
 import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
+import scotch.runtime.Callable;
 
 public class EqualMatch extends PatternMatch {
 
@@ -41,12 +48,24 @@ public class EqualMatch extends PatternMatch {
     }
 
     @Override
-    public PatternMatch bind(String argument) {
+    public PatternMatch bind(String argument, Scope scope) {
         if (this.argument.isPresent()) {
             throw new IllegalStateException();
         } else {
-            return new EqualMatch(sourceRange, Optional.of(argument), value);
+            return new EqualMatch(sourceRange, Optional.of(argument), apply(
+                apply(
+                    id(sourceRange, Symbol.fromString("scotch.data.eq.(==)"), scope.reserveType()),
+                    id(sourceRange, Symbol.fromString(argument), scope.reserveType()),
+                    scope.reserveType()
+                ),
+                value,
+                scope.reserveType()
+            ));
         }
+    }
+
+    public PatternMatch bindMethods(TypeChecker state) {
+        return withValue(value.bindMethods(state));
     }
 
     @Override
@@ -70,7 +89,13 @@ public class EqualMatch extends PatternMatch {
 
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return new CodeBlock() {{
+            append(value.generateBytecode(state));
+            invokeinterface(p(Callable.class), "call", sig(Object.class));
+            checkcast(p(Boolean.class));
+            invokevirtual(p(Boolean.class), "booleanValue", sig(boolean.class));
+            iffalse(state.nextCase());
+        }};
     }
 
     @Override

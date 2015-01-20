@@ -105,7 +105,7 @@ public abstract class ParserTest {
 
     protected void shouldNotHaveErrors() {
         assertThat(
-            "Definition graph had errors!\n\t" + graph.getErrors().stream()
+            "Definition graph has " + graph.getErrors().size() + " errors!\n\t" + graph.getErrors().stream()
                 .map(error -> error.prettyPrint() + "\n\tDebugTrace:\n\t\t" + error.getStackTrace().stream()
                     .map(Object::toString)
                     .collect(joining("\n\t\t")))

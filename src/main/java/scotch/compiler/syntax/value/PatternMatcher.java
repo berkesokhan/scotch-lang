@@ -5,12 +5,14 @@ import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
 import static scotch.compiler.syntax.value.Value.scopeDef;
 import static scotch.util.StringUtil.stringify;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 import com.google.common.collect.ImmutableList;
+import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
+import scotch.compiler.syntax.BytecodeGenerator;
 import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
 import scotch.compiler.syntax.NameQualifier;
@@ -49,20 +51,28 @@ public class PatternMatcher implements Scoped {
             .withBody(body.accumulateNames(state)));
     }
 
-    public PatternMatcher analyzeTypes(TypeChecker state) {
-        return state.scoped(this, () -> {
-            List<PatternMatch> matches = this.matches.stream()
+    public PatternMatcher checkTypes(TypeChecker state) {
+        return state.scoped(this,
+            () -> withMatches(matches.stream()
                 .map(match -> match.checkTypes(state))
-                .map(match -> match.withType(state.generate(match.getType())))
-                .collect(toList());
-            Value body = this.body.checkTypes(state);
-            return withMatches(matches)
-                .withBody(body.withType(state.generate(body.getType())));
-        });
+                .collect(toList()))
+            .withBody(body.checkTypes(state)));
     }
 
     public PatternMatcher bindMethods(TypeChecker state) {
-        return withBody(body.bindMethods(state));
+        return state.scoped(this,
+            () -> withMatches(matches.stream()
+                .map(match -> match.bindMethods(state))
+                .collect(toList()))
+            .withBody(body.bindMethods(state)));
+    }
+
+    public PatternMatcher bindTypes(TypeChecker state) {
+        return state.scoped(this,
+            () -> withMatches(matches.stream()
+                .map(match -> match.bindTypes(state))
+                .collect(toList()))
+            .withBody(body.bindTypes(state)));
     }
 
     @Override
@@ -77,6 +87,19 @@ public class PatternMatcher implements Scoped {
         } else {
             return false;
         }
+    }
+
+    public CodeBlock generateBytecode(BytecodeGenerator state) {
+        return new CodeBlock() {{
+            state.generate(PatternMatcher.this, () -> {
+                label(state.beginCase());
+                state.beginMatches();
+                matches.forEach(match -> append(match.generateBytecode(state)));
+                append(body.generateBytecode(state));
+                go_to(state.endCase());
+                state.endMatches();
+            });
+        }};
     }
 
     public int getArity() {
@@ -119,11 +142,10 @@ public class PatternMatcher implements Scoped {
 
     public PatternMatcher parsePrecedence(PrecedenceParser state) {
         return state.scoped(this, () -> {
-            List<PatternMatch> boundMatches = new ArrayList<>();
-            int counter = 0;
-            for (PatternMatch match : matches) {
-                boundMatches.add(match.bind("#" + counter++));
-            }
+            AtomicInteger counter = new AtomicInteger();
+            List<PatternMatch> boundMatches = matches.stream()
+                .map(match -> match.bind("#" + counter.getAndIncrement(), state.scope()))
+                .collect(toList());
             return withSymbol(state.reserveSymbol())
                 .withMatches(boundMatches)
                 .withBody(body.parsePrecedence(state).unwrap());

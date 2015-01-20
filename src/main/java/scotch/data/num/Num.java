@@ -26,6 +26,8 @@ public interface Num<A> {
 
     @Value(memberName = "abs")
     static <A> Applicable<Num<A>, Applicable<A, A>> abs() {
+        // abs 1 => abs (abs for int) 1
+        // abs -2.2 => abs (abs for double) -2.2
         return applicable(instance -> applicable(operand -> flatCallable(() -> instance.call().abs(operand))));
     }
 

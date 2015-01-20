@@ -19,6 +19,7 @@ public interface Callable<A> {
         return new BoxedCallable<>(value);
     }
 
+    @SuppressWarnings("unused")
     static boolean unboxBool(Callable<Boolean> callable) {
         return callable.call();
     }

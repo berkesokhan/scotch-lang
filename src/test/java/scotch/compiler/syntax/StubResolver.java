@@ -1,6 +1,7 @@
 package scotch.compiler.syntax;
 
 import static java.util.Arrays.asList;
+import static org.mockito.Mockito.mock;
 import static scotch.compiler.symbol.Operator.operator;
 import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.symbol.Symbol.qualified;
@@ -29,7 +30,6 @@ import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.data.eq.Eq;
-import scotch.data.num.NumInt;
 import scotch.data.tuple.Tuple2;
 
 public class StubResolver implements SymbolResolver {
@@ -53,6 +53,15 @@ public class StubResolver implements SymbolResolver {
                 fromString("scotch.data.eq.(/=)")
             )))
             .build();
+    }
+
+    public static TypeInstanceDescriptor defaultEqOf(Type type) {
+        return typeInstance(
+            "scotch.data.eq",
+            "scotch.data.eq.Eq",
+            asList(type),
+            mock(MethodSignature.class)
+        );
     }
 
     public static ImmutableEntry defaultInt() {
@@ -100,7 +109,7 @@ public class StubResolver implements SymbolResolver {
             "scotch.data.num",
             "scotch.data.num.Num",
             asList(type),
-            MethodSignature.fromMethod(NumInt.class, "instance")
+            mock(MethodSignature.class)
         );
     }
 

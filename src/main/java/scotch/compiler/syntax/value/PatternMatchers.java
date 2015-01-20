@@ -57,10 +57,7 @@ public class PatternMatchers extends Value {
     @Override
     public Value bindTypes(TypeChecker state) {
         return withMatchers(matchers.stream()
-            .map(matcher -> matcher
-                .withMatches(matcher.getMatches().stream().map(match -> match.bindTypes(state)).collect(toList()))
-                .withBody(matcher.getBody().bindTypes(state))
-                .withType(state.generate(matcher.getType())))
+            .map(matcher -> matcher.bindTypes(state))
             .collect(toList()))
             .withType(state.generate(type));
     }
@@ -68,7 +65,7 @@ public class PatternMatchers extends Value {
     @Override
     public Value checkTypes(TypeChecker state) {
         List<PatternMatcher> patterns = matchers.stream()
-            .map(matcher -> matcher.analyzeTypes(state))
+            .map(matcher -> matcher.checkTypes(state))
             .collect(toList());
         AtomicReference<Type> type = new AtomicReference<>(state.reserveType());
         patterns = patterns.stream()
@@ -111,12 +108,9 @@ public class PatternMatchers extends Value {
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
         return new CodeBlock() {{
-            matchers.forEach(matcher -> state.generate(matcher, () -> {
-                state.beginMatches();
-                matcher.getMatches().forEach(match -> append(match.generateBytecode(state)));
-                append(matcher.getBody().generateBytecode(state));
-                state.endMatches();
-            }));
+            state.beginCases(matchers.size());
+            matchers.forEach(matcher -> append(matcher.generateBytecode(state)));
+            label(state.endCases());
         }};
     }
 
