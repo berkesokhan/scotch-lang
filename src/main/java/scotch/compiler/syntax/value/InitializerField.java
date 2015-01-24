@@ -1,8 +1,10 @@
 package scotch.compiler.syntax.value;
 
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
+import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.syntax.BytecodeGenerator;
 import scotch.compiler.syntax.DependencyAccumulator;
@@ -11,9 +13,14 @@ import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 
 public class InitializerField {
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     public static InitializerField field(SourceRange sourceRange, String name, Value value) {
         return new InitializerField(sourceRange, name, value);
@@ -53,24 +60,6 @@ public class InitializerField {
         return withValue(value.defineOperators(state));
     }
 
-    public CodeBlock generateBytecode(BytecodeGenerator state) {
-        return new CodeBlock() {{
-            value.generateBytecode(state);
-        }};
-    }
-
-    public InitializerField parsePrecedence(PrecedenceParser state) {
-        return withValue(value.parsePrecedence(state));
-    }
-
-    public InitializerField qualifyNames(NameQualifier state) {
-        return withValue(value.qualifyNames(state));
-    }
-
-    private InitializerField withValue(Value value) {
-        return new InitializerField(sourceRange, name, value);
-    }
-
     @Override
     public boolean equals(Object o) {
         if (o == this) {
@@ -85,6 +74,12 @@ public class InitializerField {
         }
     }
 
+    public CodeBlock generateBytecode(BytecodeGenerator state) {
+        return new CodeBlock() {{
+            value.generateBytecode(state);
+        }};
+    }
+
     public String getName() {
         return name;
     }
@@ -94,8 +89,58 @@ public class InitializerField {
         return Objects.hash(name, value);
     }
 
+    public InitializerField parsePrecedence(PrecedenceParser state) {
+        return withValue(value.parsePrecedence(state));
+    }
+
+    public InitializerField qualifyNames(NameQualifier state) {
+        return withValue(value.qualifyNames(state));
+    }
+
     @Override
     public String toString() {
         return stringify(this) + "(" + name + ")";
+    }
+
+    private InitializerField withValue(Value value) {
+        return new InitializerField(sourceRange, name, value);
+    }
+
+    public static class Builder implements SyntaxBuilder<InitializerField> {
+
+        private Optional<SourceRange> sourceRange;
+        private Optional<String>      name;
+        private Optional<Value>       value;
+
+        private Builder() {
+            sourceRange = Optional.empty();
+            name = Optional.empty();
+            value = Optional.empty();
+        }
+
+        @Override
+        public InitializerField build() {
+            return new InitializerField(
+                require(sourceRange, "Source range"),
+                require(name, "Initializer field name"),
+                require(value, "Initializer field value")
+            );
+        }
+
+        public Builder withName(String name) {
+            this.name = Optional.of(name);
+            return this;
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withValue(Value value) {
+            this.value = Optional.of(value);
+            return this;
+        }
     }
 }

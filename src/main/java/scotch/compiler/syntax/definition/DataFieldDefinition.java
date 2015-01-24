@@ -4,8 +4,13 @@ import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.Objects;
 import java.util.Optional;
+import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
+import scotch.compiler.syntax.scope.Scope;
+import scotch.compiler.syntax.value.Argument;
+import scotch.compiler.syntax.value.Identifier;
+import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
 public class DataFieldDefinition {
@@ -46,9 +51,25 @@ public class DataFieldDefinition {
         return Objects.hash(name, type);
     }
 
+    public Argument toArgument(Scope scope) {
+        return Argument.builder()
+            .withName(name)
+            .withSourceRange(sourceRange)
+            .withType(scope.reserveType())
+            .build();
+    }
+
     @Override
     public String toString() {
         return name + " " + type;
+    }
+
+    public Value toValue(Scope scope) {
+        return Identifier.builder()
+            .withSymbol(Symbol.fromString(name))
+            .withType(scope.reserveType())
+            .withSourceRange(sourceRange)
+            .build();
     }
 
     public static final class Builder implements SyntaxBuilder<DataFieldDefinition> {

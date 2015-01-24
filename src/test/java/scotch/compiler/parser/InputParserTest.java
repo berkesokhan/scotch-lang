@@ -17,6 +17,8 @@ import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
 import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.conditional;
+import static scotch.compiler.util.TestUtil.constant;
+import static scotch.compiler.util.TestUtil.construct;
 import static scotch.compiler.util.TestUtil.ctorDef;
 import static scotch.compiler.util.TestUtil.dataDef;
 import static scotch.compiler.util.TestUtil.dataRef;
@@ -424,6 +426,51 @@ public class InputParserTest extends ParserTest {
                     ctorDef("scotch.test.Entry", asList(
                         fieldDef("key", var("a")),
                         fieldDef("value", var("b")))))));
+    }
+
+    @Test
+    public void shouldCreateDataConstructor() {
+        parse(
+            "module scotch.test",
+            "data Toast {",
+            "    type Bread,",
+            "    butter Verbool,",
+            "    jam Verbool",
+            "}"
+        );
+        shouldHaveValue("scotch.test.Toast", fn(
+            "scotch.test.(#0)",
+            asList(arg("type", t(0)), arg("butter", t(1)), arg("jam", t(2))),
+            construct("scotch.test.Toast", t(3), asList(
+                id("type", t(4)),
+                id("butter", t(5)),
+                id("jam", t(6))
+            ))
+        ));
+    }
+
+    @Test
+    public void shouldCreateConstantForNiladicConstructor() {
+        parse(
+            "module scotch.test",
+            "data Maybe a = Nothing | Just a"
+        );
+        shouldHaveValue("scotch.test.Nothing", constant("scotch.test.Nothing", t(0)));
+    }
+
+    @Test
+    public void shouldCreateDataConstructorWithAnonymousFields() {
+        parse(
+            "module scotch.test",
+            "data Maybe a = Nothing | Just a"
+        );
+        shouldHaveValue("scotch.test.Just", fn(
+            "scotch.test.(#0)",
+            asList(arg("_0", t(2))),
+            construct("scotch.test.Just", t(3), asList(
+                id("_0", t(4))
+            ))
+        ));
     }
 
     private void shouldHaveDataType(String name, DataTypeDefinition value) {

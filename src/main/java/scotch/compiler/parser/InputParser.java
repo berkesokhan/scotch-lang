@@ -46,10 +46,6 @@ import static scotch.compiler.symbol.Value.Fixity.PREFIX;
 import static scotch.compiler.symbol.Value.Fixity.RIGHT_INFIX;
 import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
 import static scotch.compiler.syntax.definition.DefinitionGraph.createGraph;
-import static scotch.compiler.syntax.scope.Scope.scope;
-import static scotch.compiler.syntax.value.InitializerField.field;
-import static scotch.compiler.syntax.value.Value.initializer;
-import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 import static scotch.data.tuple.TupleValues.tuple2;
 import static scotch.util.StringUtil.quote;
 
@@ -99,6 +95,7 @@ import scotch.compiler.syntax.value.Conditional;
 import scotch.compiler.syntax.value.EqualMatch.EqualMatchBuilder;
 import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.Identifier;
+import scotch.compiler.syntax.value.Initializer;
 import scotch.compiler.syntax.value.InitializerField;
 import scotch.compiler.syntax.value.Let;
 import scotch.compiler.syntax.value.Literal;
@@ -126,7 +123,7 @@ public class InputParser {
         this.definitions = new ArrayList<>();
         this.positions = new ArrayDeque<>();
         this.symbolGenerator = new SymbolGenerator();
-        this.scopes = new ArrayDeque<>(asList(scope(symbolGenerator, resolver)));
+        this.scopes = new ArrayDeque<>(asList(Scope.scope(symbolGenerator, resolver)));
         this.memberNames = new ArrayDeque<>(asList(ImmutableList.of()));
     }
 
@@ -138,12 +135,8 @@ public class InputParser {
     }
 
     private DefinitionReference collect(Definition definition) {
-        definitions.add(entry(currentScope(), definition));
+        definitions.add(entry(scope(), definition));
         return definition.getReference();
-    }
-
-    private Scope currentScope() {
-        return scopes.peek();
     }
 
     private <D extends Definition, B extends SyntaxBuilder<D>> DefinitionReference definition(B supplier, Consumer<B> consumer) {
@@ -252,6 +245,11 @@ public class InputParser {
         return builder.withSourceRange(getSourceRange()).build();
     }
 
+    private DataFieldDefinition parseAnonymousField(int offset) {
+        return node(DataFieldDefinition.builder(),
+            builder -> builder.withName("_" + offset).withType(parseType()));
+    }
+
     private Argument parseArgument() {
         return node(Argument.builder(), builder -> builder
             .withName(requireWord())
@@ -332,33 +330,8 @@ public class InputParser {
             .collect(toMap(Entry::getKey, entry -> var(entry.getKey(), entry.getValue())));
     }
 
-    private DefinitionReference parseDataDefinition() {
-        return definition(DataTypeDefinition.builder(), builder -> {
-            requireWord("data");
-            Symbol symbol = qualify(requireWord());
-            builder.withSymbol(symbol);
-            while (!expects(ASSIGN) && !expects(LCURLY)) {
-                builder.addParameter(parseType());
-            }
-            if (expects(LCURLY)) {
-                builder.addConstructor(parseDataConstructor(symbol));
-            } else {
-                require(ASSIGN);
-                builder.addConstructor(parseDataConstructor(symbol));
-                while (expects(PIPE)) {
-                    require(PIPE);
-                    builder.addConstructor(parseDataConstructor(symbol));
-                }
-            }
-        });
-    }
-
-    private Type parseType() {
-        return parseType(emptyMap());
-    }
-
-    private DataConstructorDefinition parseDataConstructor(Symbol dataType) {
-        return node(DataConstructorDefinition.builder(), builder -> {
+    private DataConstructorDefinition parseDataConstructor(List<DataConstructorDefinition> constructors, Symbol dataType) {
+        DataConstructorDefinition constructor = node(DataConstructorDefinition.builder(), builder -> {
             builder.withDataType(dataType);
             if (expects(LCURLY)) {
                 builder.withSymbol(dataType);
@@ -375,6 +348,37 @@ public class InputParser {
                 }
             }
         });
+        constructors.add(constructor);
+        return constructor;
+    }
+
+    private List<DefinitionReference> parseDataDefinition() {
+        List<DataConstructorDefinition> constructors = new ArrayList<>();
+        DefinitionReference definition = definition(DataTypeDefinition.builder(), builder -> {
+            requireWord("data");
+            Symbol symbol = qualify(requireWord());
+            builder.withSymbol(symbol);
+            while (!expects(ASSIGN) && !expects(LCURLY)) {
+                builder.addParameter(parseType());
+            }
+            if (expects(LCURLY)) {
+                builder.addConstructor(parseDataConstructor(constructors, symbol));
+            } else {
+                require(ASSIGN);
+                builder.addConstructor(parseDataConstructor(constructors, symbol));
+                while (expects(PIPE)) {
+                    require(PIPE);
+                    builder.addConstructor(parseDataConstructor(constructors, symbol));
+                }
+            }
+        });
+        return new ArrayList<DefinitionReference>() {{
+            add(definition);
+            constructors.stream()
+                .map(constructor -> constructor.createValue(scope()))
+                .map(InputParser.this::collect)
+                .forEach(this::add);
+        }};
     }
 
     private void parseDataFields(Builder builder) {
@@ -390,18 +394,6 @@ public class InputParser {
         require(RCURLY);
     }
 
-    private DataFieldDefinition parseNamedField() {
-        return node(DataFieldDefinition.builder(), builder -> {
-            builder.withName(requireWord());
-            builder.withType(parseType());
-        });
-    }
-
-    private DataFieldDefinition parseAnonymousField(int offset) {
-        return node(DataFieldDefinition.builder(),
-            builder -> builder.withName("_" + offset).withType(parseType()));
-    }
-
     private List<DefinitionReference> parseDefinitions() {
         List<DefinitionReference> definitions = new ArrayList<>();
         if (expectsClassDefinition()) {
@@ -409,7 +401,7 @@ public class InputParser {
         } else if (expectsOperatorDefinition()) {
             definitions.addAll(parseOperatorDefinition());
         } else if (expectsDataDefinition()) {
-            definitions.add(parseDataDefinition());
+            definitions.addAll(parseDataDefinition());
         } else if (expectsValueSignatures()) {
             definitions.addAll(parseValueSignatures());
         } else {
@@ -433,20 +425,22 @@ public class InputParser {
         });
     }
 
+    private InitializerField parseField() {
+        return node(InitializerField.builder(), builder -> {
+            builder.withName(requireWord());
+            require(ASSIGN);
+            builder.withValue(parseExpression().collapse());
+        });
+    }
+
     private List<InitializerField> parseFields() {
         List<InitializerField> fields = new ArrayList<>();
         require(LCURLY);
         if (expectsWord()) {
-            String name = requireWord();
-            require(ASSIGN);
-            Value value = parseExpression().collapse();
-            fields.add(field(NULL_SOURCE, name, value)); // TODO
+            fields.add(parseField());
             while (expects(COMMA) && expectsWordAt(1)) {
                 require(COMMA);
-                name = requireWord();
-                require(ASSIGN);
-                value = parseExpression().collapse();
-                fields.add(field(NULL_SOURCE, name, value)); // TODO
+                fields.add(parseField());
             }
             if (expects(COMMA)) {
                 require(COMMA);
@@ -484,6 +478,18 @@ public class InputParser {
             requireTerminator();
         }
         return imports;
+    }
+
+    private Value parseInitializer_(Value value) {
+        if (expects(LCURLY)) {
+            return node(Initializer.builder(), builder -> {
+                builder.withType(reserveType());
+                builder.withValue(value);
+                parseFields().forEach(builder::addField);
+            });
+        } else {
+            return value;
+        }
     }
 
     private Value parseLet() {
@@ -565,6 +571,13 @@ public class InputParser {
         return definitions;
     }
 
+    private DataFieldDefinition parseNamedField() {
+        return node(DataFieldDefinition.builder(), builder -> {
+            builder.withName(requireWord());
+            builder.withType(parseType());
+        });
+    }
+
     private List<DefinitionReference> parseOperatorDefinition() {
         Fixity fixity = parseOperatorFixity();
         int precedence = parseOperatorPrecedence();
@@ -639,19 +652,7 @@ public class InputParser {
         } else if (required) {
             throw unexpected(ImmutableList.<TokenKind>builder().add(WORD, LPAREN).addAll(literals).build());
         }
-        return ofNullable(value)
-            .map(v -> {
-                if (expects(LCURLY)) {
-                    return initializer(
-                        NULL_SOURCE, // TODO
-                        reserveType(),
-                        v,
-                        parseFields()
-                    );
-                } else {
-                    return v;
-                }
-            });
+        return ofNullable(value).map(this::parseInitializer_);
     }
 
     private String parseQualifiedName() {
@@ -721,6 +722,10 @@ public class InputParser {
             symbols.add(tuple2(parseSymbol(), getSourceRange()));
         }
         return symbols;
+    }
+
+    private Type parseType() {
+        return parseType(emptyMap());
     }
 
     private Type parseType(Map<String, Type> constraints) {
@@ -899,11 +904,15 @@ public class InputParser {
     }
 
     private Symbol reserveSymbol() {
-        return currentScope().reserveSymbol(memberNames.peek());
+        return scope().reserveSymbol(memberNames.peek());
     }
 
     private Type reserveType() {
-        return currentScope().reserveType();
+        return scope().reserveType();
+    }
+
+    private Scope scope() {
+        return scopes.peek();
     }
 
     private <T> T scoped(List<Import> imports, Supplier<T> supplier) {
@@ -916,8 +925,8 @@ public class InputParser {
 
     private <T> T scoped(Optional<List<Import>> optionalImports, Supplier<T> supplier) {
         scopes.push(optionalImports
-            .map(imports -> currentScope().enterScope(currentModule, imports))
-            .orElseGet(currentScope()::enterScope));
+            .map(imports -> scope().enterScope(currentModule, imports))
+            .orElseGet(scope()::enterScope));
         try {
             return supplier.get();
         } finally {

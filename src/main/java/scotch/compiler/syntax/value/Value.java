@@ -40,6 +40,14 @@ public abstract class Value {
         return new Conditional(sourceRange, condition, whenTrue, whenFalse, type);
     }
 
+    public static Constant constant(SourceRange sourceRange, Symbol symbol, Type type) {
+        return new Constant(sourceRange, symbol, type);
+    }
+
+    public static DataConstructor construct(SourceRange sourceRange, Symbol symbol, Type type, List<Value> arguments) {
+        return new DataConstructor(sourceRange, symbol, type, arguments);
+    }
+
     public static DefinitionEntry entry(Scope scope, FunctionValue function) {
         return new DefinitionEntry(scope, Definition.scopeDef(function.getSourceRange(), function.getSymbol()));
     }
@@ -54,6 +62,10 @@ public abstract class Value {
 
     public static Identifier id(SourceRange sourceRange, Symbol symbol, Type type) {
         return new Identifier(sourceRange, symbol, type);
+    }
+
+    public static Initializer initializer(SourceRange sourceRange, Type type, Value value, List<InitializerField> fields) {
+        return new Initializer(sourceRange, value, fields, type);
     }
 
     public static Instance instance(SourceRange sourceRange, InstanceReference reference, Type type) {
@@ -155,10 +167,6 @@ public abstract class Value {
 
     @Override
     public abstract int hashCode();
-
-    public static Initializer initializer(SourceRange sourceRange, Type type, Value value, List<InitializerField> fields) {
-        return new Initializer(sourceRange, value, fields, type);
-    }
 
     public boolean isOperator(Scope scope) {
         return false;

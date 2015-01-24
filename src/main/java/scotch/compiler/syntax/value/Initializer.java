@@ -1,10 +1,13 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.util.StringUtil.stringify;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.symbol.Type;
@@ -15,9 +18,14 @@ import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 
 public class Initializer extends Value {
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     private final SourceRange            sourceRange;
     private final Value                  value;
@@ -37,10 +45,6 @@ public class Initializer extends Value {
             .withFields(fields.stream()
                 .map(field -> field.accumulateDependencies(state))
                 .collect(toList()));
-    }
-
-    private Value withFields(List<InitializerField> fields) {
-        return new Initializer(sourceRange, value, fields, type);
     }
 
     @Override
@@ -132,10 +136,6 @@ public class Initializer extends Value {
                 .collect(toList()));
     }
 
-    private Initializer withValue(Value value) {
-        return new Initializer(sourceRange, value, fields, type);
-    }
-
     @Override
     public String toString() {
         return stringify(this) + "(" + value + " <- " + fields.stream().map(InitializerField::getName).collect(toList()) + ")";
@@ -144,5 +144,62 @@ public class Initializer extends Value {
     @Override
     public Value withType(Type type) {
         return new Initializer(sourceRange, value, fields, type);
+    }
+
+    private Value withFields(List<InitializerField> fields) {
+        return new Initializer(sourceRange, value, fields, type);
+    }
+
+    private Initializer withValue(Value value) {
+        return new Initializer(sourceRange, value, fields, type);
+    }
+
+    public static class Builder implements SyntaxBuilder<Initializer> {
+
+        private Optional<SourceRange>            sourceRange;
+        private Optional<Value>                  value;
+        private Optional<List<InitializerField>> fields;
+        private Optional<Type>                   type;
+
+        private Builder() {
+            sourceRange = Optional.empty();
+            value = Optional.empty();
+            fields = Optional.empty();
+            type = Optional.empty();
+        }
+
+        public Builder addField(InitializerField field) {
+            if (!fields.isPresent()) {
+                fields = Optional.of(new ArrayList<>());
+            }
+            fields.ifPresent(list -> list.add(field));
+            return this;
+        }
+
+        @Override
+        public Initializer build() {
+            return new Initializer(
+                require(sourceRange, "Source range"),
+                require(value, "Initializer value"),
+                require(fields, "Initializer fields"),
+                require(type, "Initializer type")
+            );
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withType(Type type) {
+            this.type = Optional.of(type);
+            return this;
+        }
+
+        public Builder withValue(Value value) {
+            this.value = Optional.of(value);
+            return this;
+        }
     }
 }

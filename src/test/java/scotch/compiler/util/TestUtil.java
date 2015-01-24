@@ -49,6 +49,7 @@ import scotch.compiler.syntax.value.BoolLiteral;
 import scotch.compiler.syntax.value.CaptureMatch;
 import scotch.compiler.syntax.value.CharLiteral;
 import scotch.compiler.syntax.value.Conditional;
+import scotch.compiler.syntax.value.DataConstructor;
 import scotch.compiler.syntax.value.DoubleLiteral;
 import scotch.compiler.syntax.value.EqualMatch;
 import scotch.compiler.syntax.value.FunctionValue;
@@ -95,6 +96,14 @@ public class TestUtil {
 
     public static Conditional conditional(Value condition, Value whenTrue, Value whenFalse, Type type) {
         return Value.conditional(NULL_SOURCE, condition, whenTrue, whenFalse, type);
+    }
+
+    public static Value constant(String name, Type type) {
+        return Value.constant(NULL_SOURCE, Symbol.fromString(name), type);
+    }
+
+    public static DataConstructor construct(String name, Type type, List<Value> arguments) {
+        return Value.construct(NULL_SOURCE, Symbol.fromString(name), type, arguments);
     }
 
     public static DataConstructorDescriptor constructor(String name, String dataType) {

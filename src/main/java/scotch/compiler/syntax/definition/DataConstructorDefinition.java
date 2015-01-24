@@ -1,7 +1,9 @@
 package scotch.compiler.syntax.definition;
 
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.value.Value.construct;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -11,6 +13,10 @@ import java.util.Objects;
 import java.util.Optional;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
+import scotch.compiler.syntax.scope.Scope;
+import scotch.compiler.syntax.value.Constant;
+import scotch.compiler.syntax.value.FunctionValue;
+import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
 public class DataConstructorDefinition {
@@ -28,6 +34,34 @@ public class DataConstructorDefinition {
         this.symbol = symbol;
         this.fields = new LinkedHashMap<>();
         fields.forEach(field -> this.fields.put(field.getName(), field));
+    }
+
+    public ValueDefinition createValue(Scope scope) {
+        Value body;
+        if (fields.isEmpty()) {
+            body = Constant.builder()
+                .withSourceRange(sourceRange)
+                .withSymbol(symbol)
+                .withType(scope.reserveType())
+                .build();
+        } else {
+            body = FunctionValue.builder()
+                .withSourceRange(sourceRange)
+                .withSymbol(scope.reserveSymbol())
+                .withArguments(fields.values().stream()
+                    .map(field -> field.toArgument(scope))
+                    .collect(toList()))
+                .withBody(construct(sourceRange, symbol, scope.reserveType(), fields.values().stream()
+                    .map(field -> field.toValue(scope))
+                    .collect(toList())))
+                .build();
+        }
+        return ValueDefinition.builder()
+            .withSourceRange(sourceRange)
+            .withSymbol(symbol)
+            .withType(scope.reserveType())
+            .withBody(body)
+            .build();
     }
 
     @Override
