@@ -12,16 +12,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.steps.BytecodeGenerator;
+import scotch.compiler.steps.DependencyAccumulator;
+import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameQualifier;
+import scotch.compiler.steps.OperatorAccumulator;
+import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Type;
-import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.DependencyAccumulator;
-import scotch.compiler.syntax.NameAccumulator;
-import scotch.compiler.syntax.NameQualifier;
-import scotch.compiler.syntax.OperatorDefinitionParser;
-import scotch.compiler.syntax.PrecedenceParser;
-import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
@@ -58,7 +58,7 @@ public class DataTypeDefinition extends Definition {
     }
 
     @Override
-    public Definition accumulateNames(NameAccumulator state) {
+    public Definition accumulateNames(NameAccumulatorState state) {
         return state.scoped(this, () -> {
             state.defineDataType(symbol, getDescriptor());
             constructors.values().forEach(constructor -> constructor.accumulateNames(state));
@@ -77,7 +77,7 @@ public class DataTypeDefinition extends Definition {
     }
 
     @Override
-    public Definition defineOperators(OperatorDefinitionParser state) {
+    public Definition defineOperators(OperatorAccumulator state) {
         return state.keep(this);
     }
 

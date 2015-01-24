@@ -7,14 +7,14 @@ import static scotch.util.StringUtil.stringify;
 import java.util.Objects;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.LambdaBlock;
-import scotch.compiler.symbol.Type;
-import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.DependencyAccumulator;
-import scotch.compiler.syntax.NameAccumulator;
-import scotch.compiler.syntax.NameQualifier;
-import scotch.compiler.syntax.OperatorDefinitionParser;
-import scotch.compiler.syntax.PrecedenceParser;
-import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.steps.BytecodeGenerator;
+import scotch.compiler.steps.DependencyAccumulator;
+import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameQualifier;
+import scotch.compiler.steps.OperatorAccumulator;
+import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.TypeChecker;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
@@ -35,7 +35,7 @@ public class LambdaValue extends Value {
     }
 
     @Override
-    public Value accumulateNames(NameAccumulator state) {
+    public Value accumulateNames(NameAccumulatorState state) {
         throw new UnsupportedOperationException();
     }
 
@@ -55,7 +55,7 @@ public class LambdaValue extends Value {
     }
 
     @Override
-    public Value defineOperators(OperatorDefinitionParser state) {
+    public Value defineOperators(OperatorAccumulator state) {
         throw new UnsupportedOperationException();
     }
 

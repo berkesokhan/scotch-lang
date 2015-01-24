@@ -10,7 +10,7 @@ import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.text.SourceRange;
 
 public final class InclusionImport extends Import {

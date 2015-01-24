@@ -10,14 +10,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.steps.BytecodeGenerator;
+import scotch.compiler.steps.DependencyAccumulator;
+import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameQualifier;
+import scotch.compiler.steps.OperatorAccumulator;
+import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.DependencyAccumulator;
-import scotch.compiler.syntax.NameAccumulator;
-import scotch.compiler.syntax.NameQualifier;
-import scotch.compiler.syntax.OperatorDefinitionParser;
-import scotch.compiler.syntax.PrecedenceParser;
-import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.PatternMatch;
@@ -50,7 +50,7 @@ public class UnshuffledDefinition extends Definition {
     }
 
     @Override
-    public Definition accumulateNames(NameAccumulator state) {
+    public Definition accumulateNames(NameAccumulatorState state) {
         return state.scoped(this, () -> withMatches(matches.stream().map(match -> match.accumulateNames(state)).collect(toList()))
             .withBody(body.accumulateNames(state)));
     }
@@ -72,7 +72,7 @@ public class UnshuffledDefinition extends Definition {
     }
 
     @Override
-    public Definition defineOperators(OperatorDefinitionParser state) {
+    public Definition defineOperators(OperatorAccumulator state) {
         return state.scoped(this, () -> withBody(body.defineOperators(state)));
     }
 

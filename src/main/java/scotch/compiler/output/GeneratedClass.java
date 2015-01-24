@@ -1,4 +1,4 @@
-package scotch.compiler;
+package scotch.compiler.output;
 
 public class GeneratedClass {
 

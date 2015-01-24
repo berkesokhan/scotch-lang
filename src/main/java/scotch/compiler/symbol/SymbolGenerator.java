@@ -1,14 +1,14 @@
 package scotch.compiler.symbol;
 
 import static scotch.compiler.symbol.Symbol.unqualified;
-import static scotch.compiler.symbol.Type.t;
+import static scotch.compiler.symbol.type.Type.t;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import scotch.compiler.symbol.Type.VariableType;
+import scotch.compiler.symbol.type.VariableType;
 
 public class SymbolGenerator {
 

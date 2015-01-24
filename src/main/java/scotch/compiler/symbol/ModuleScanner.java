@@ -9,7 +9,7 @@ import static scotch.compiler.symbol.DataFieldDescriptor.field;
 import static scotch.compiler.symbol.Operator.operator;
 import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.symbol.Symbol.qualified;
-import static scotch.compiler.symbol.Type.var;
+import static scotch.compiler.symbol.type.Type.var;
 import static scotch.compiler.symbol.TypeClassDescriptor.typeClass;
 import static scotch.compiler.symbol.TypeInstanceDescriptor.typeInstance;
 import static scotch.compiler.symbol.Value.Fixity.NONE;
@@ -31,6 +31,7 @@ import scotch.compiler.symbol.exception.IncompleteDataTypeError;
 import scotch.compiler.symbol.exception.IncompleteTypeInstanceError;
 import scotch.compiler.symbol.exception.InvalidMethodSignatureError;
 import scotch.compiler.symbol.exception.SymbolResolutionError;
+import scotch.compiler.symbol.type.Type;
 import scotch.data.tuple.Tuple2;
 
 public class ModuleScanner {

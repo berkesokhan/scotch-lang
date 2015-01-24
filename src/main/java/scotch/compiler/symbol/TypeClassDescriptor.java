@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import com.google.common.collect.ImmutableSet;
+import scotch.compiler.symbol.type.Type;
 
 public class TypeClassDescriptor {
 

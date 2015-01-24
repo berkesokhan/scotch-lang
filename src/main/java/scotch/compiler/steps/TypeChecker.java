@@ -1,4 +1,4 @@
-package scotch.compiler;
+package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.joining;
@@ -30,16 +30,16 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Type;
-import scotch.compiler.symbol.Type.FunctionType;
-import scotch.compiler.symbol.Type.InstanceType;
-import scotch.compiler.symbol.Type.TypeVisitor;
-import scotch.compiler.symbol.Type.VariableType;
+import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.FunctionType;
+import scotch.compiler.symbol.type.InstanceType;
+import scotch.compiler.symbol.type.Type.TypeVisitor;
+import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
+import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.syntax.Scoped;
-import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
 import scotch.compiler.syntax.definition.DefinitionGraph;
@@ -54,7 +54,7 @@ import scotch.compiler.syntax.value.Method;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
-public class TypeCheckerState implements TypeChecker {
+public class TypeChecker implements TypeScope {
 
     private static final Object mark = new Object();
 
@@ -74,7 +74,7 @@ public class TypeCheckerState implements TypeChecker {
     private final Deque<Map<Type, Argument>>                arguments;
     private final List<SyntaxError>                         errors;
 
-    public TypeCheckerState(DefinitionGraph graph) {
+    public TypeChecker(DefinitionGraph graph) {
         this.graph = graph;
         this.entries = new HashMap<>();
         this.scopes = new ArrayDeque<>();
@@ -84,24 +84,20 @@ public class TypeCheckerState implements TypeChecker {
         this.errors = new ArrayList<>();
     }
 
-    @Override
     public void addLocal(Symbol symbol) {
         closure().addLocal(symbol.getCanonicalName());
     }
 
-    @Override
     public Definition bind(ValueDefinition definition) {
         return bindMethods(definition
             .withType(scope().generate(definition.getType()))
             .withBody(definition.getBody().bindTypes(this)));
     }
 
-    @Override
     public void capture(Symbol symbol) {
         closure().capture(symbol.getCanonicalName());
     }
 
-    @Override
     public DefinitionGraph checkTypes() {
         map(graph.getSortedReferences(), Definition::checkTypes);
         return graph
@@ -110,7 +106,6 @@ public class TypeCheckerState implements TypeChecker {
             .build();
     }
 
-    @Override
     public <T extends Scoped> T enclose(T scoped, Supplier<T> supplier) {
         return scoped(scoped, () -> {
             enterNest();
@@ -122,12 +117,10 @@ public class TypeCheckerState implements TypeChecker {
         });
     }
 
-    @Override
     public void error(SyntaxError error) {
         errors.add(error);
     }
 
-    @Override
     public Optional<Value> findArgument(InstanceType type) {
         for (Map<Type, Argument> map : arguments) {
             if (map.containsKey(type)) {
@@ -137,7 +130,6 @@ public class TypeCheckerState implements TypeChecker {
         return Optional.empty();
     }
 
-    @Override
     public Value findInstance(Method method, InstanceType instanceType) {
         Set<TypeInstanceDescriptor> typeInstances = scope().getTypeInstances(
             instanceType.getSymbol(),
@@ -202,24 +194,20 @@ public class TypeCheckerState implements TypeChecker {
         return scope().isBound(variableType);
     }
 
-    @Override
     public Optional<Definition> getDefinition(DefinitionReference reference) {
         return graph.getDefinition(reference);
     }
 
-    @Override
     public Type getType(ValueDefinition definition) {
         return scope()
             .getSignature(definition.getSymbol())
             .orElseGet(() -> scope().getValue(definition.getSymbol()));
     }
 
-    @Override
     public Definition keep(Definition definition) {
         return scoped(definition, () -> definition);
     }
 
-    @Override
     public List<DefinitionReference> map(List<DefinitionReference> references, BiFunction<? super Definition, TypeChecker, ? extends Definition> function) {
         return references.stream()
             .map(this::getDefinition)
@@ -230,27 +218,22 @@ public class TypeCheckerState implements TypeChecker {
             .collect(toList());
     }
 
-    @Override
     public void redefine(ValueDefinition definition) {
         scope().redefineValue(definition.getSymbol(), definition.getType());
     }
 
-    @Override
     public void redefine(ValueSignature signature) {
         scope().redefineSignature(signature.getSymbol(), signature.getType());
     }
 
-    @Override
     public Type reserveType() {
         return scope().reserveType();
     }
 
-    @Override
     public Scope scope() {
         return scopes.peek();
     }
 
-    @Override
     public <T extends Scoped> T scoped(T scoped, Supplier<T> supplier) {
         enterScope(scoped);
         try {
@@ -382,6 +365,25 @@ public class TypeCheckerState implements TypeChecker {
 
     private void leaveScope() {
         scopes.pop();
+    }
+
+    public List<Value> bindMethods(List<Value> values) {
+        return values.stream()
+            .map(value -> value.bindMethods(this))
+            .collect(toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends Value> List<T> bindTypes(List<T> values) {
+        return (List<T>) values.stream()
+            .map(value -> ((T) value).bindTypes(this))
+            .collect(toList());
+    }
+
+    public List<Value> checkTypes(List<Value> values) {
+        return values.stream()
+            .map(value -> value.checkTypes(this))
+            .collect(toList());
     }
 
     public static class AmbiguousTypeInstanceError extends SyntaxError {

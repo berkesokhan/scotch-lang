@@ -6,6 +6,7 @@ import static scotch.util.StringUtil.stringify;
 import java.util.List;
 import java.util.Objects;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.type.Type;
 
 public class TypeInstanceDescriptor {
 

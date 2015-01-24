@@ -1,4 +1,4 @@
-package scotch.compiler;
+package scotch.compiler.steps;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -9,6 +9,8 @@ import static scotch.compiler.syntax.reference.DefinitionReference.operatorRef;
 
 import java.util.function.Function;
 import org.junit.Test;
+import scotch.compiler.*;
+import scotch.compiler.Compiler;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.StubResolver;
@@ -40,8 +42,8 @@ public class DefineOperatorsTest extends ParserTest {
     }
 
     @Override
-    protected Function<Compiler, DefinitionGraph> parse() {
-        return Compiler::defineOperators;
+    protected Function<scotch.compiler.Compiler, DefinitionGraph> parse() {
+        return Compiler::accumulateOperators;
     }
 
     @Override

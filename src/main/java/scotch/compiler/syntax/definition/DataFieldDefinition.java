@@ -8,12 +8,12 @@ import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.Objects;
 import java.util.Optional;
+import scotch.compiler.steps.BytecodeGenerator;
+import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.symbol.DataFieldDescriptor;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Type;
-import scotch.compiler.symbol.Type.FunctionType;
-import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.NameQualifier;
+import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.FunctionType;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;

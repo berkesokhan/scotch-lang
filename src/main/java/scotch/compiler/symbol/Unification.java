@@ -8,9 +8,11 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import com.google.common.collect.ImmutableSet;
-import scotch.compiler.symbol.Type.VariableType;
+import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.VariableType;
 
 public abstract class Unification {
 
@@ -47,6 +49,10 @@ public abstract class Unification {
 
     @Override
     public abstract int hashCode();
+
+    public void ifUnified(Consumer<Type> consumer) {
+        // intentionally empty
+    }
 
     public abstract boolean isUnified();
 
@@ -352,6 +358,11 @@ public abstract class Unification {
         @Override
         public int hashCode() {
             return Objects.hash(unifiedType);
+        }
+
+        @Override
+        public void ifUnified(Consumer<Type> consumer) {
+            consumer.accept(unifiedType);
         }
 
         @Override

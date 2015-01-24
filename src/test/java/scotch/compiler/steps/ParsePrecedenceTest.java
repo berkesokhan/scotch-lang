@@ -1,7 +1,7 @@
-package scotch.compiler;
+package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.symbol.Type.t;
+import static scotch.compiler.symbol.type.Type.t;
 import static scotch.compiler.syntax.value.Value.apply;
 import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
@@ -16,6 +16,7 @@ import static scotch.compiler.util.TestUtil.valueRef;
 
 import java.util.function.Function;
 import org.junit.Test;
+import scotch.compiler.*;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 
@@ -114,7 +115,7 @@ public class ParsePrecedenceTest extends ParserTest {
 
     @Override
     protected Function<scotch.compiler.Compiler, DefinitionGraph> parse() {
-        return Compiler::parsePrecedence;
+        return scotch.compiler.Compiler::parsePrecedence;
     }
 
     @Override

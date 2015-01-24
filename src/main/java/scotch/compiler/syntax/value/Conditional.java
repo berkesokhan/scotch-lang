@@ -2,7 +2,7 @@ package scotch.compiler.syntax.value;
 
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
-import static scotch.compiler.symbol.Type.sum;
+import static scotch.compiler.symbol.type.Type.sum;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.util.StringUtil.stringify;
@@ -12,14 +12,14 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import me.qmx.jitescript.CodeBlock;
 import org.objectweb.asm.tree.LabelNode;
-import scotch.compiler.symbol.Type;
-import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.DependencyAccumulator;
-import scotch.compiler.syntax.NameAccumulator;
-import scotch.compiler.syntax.NameQualifier;
-import scotch.compiler.syntax.OperatorDefinitionParser;
-import scotch.compiler.syntax.PrecedenceParser;
-import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.steps.BytecodeGenerator;
+import scotch.compiler.steps.DependencyAccumulator;
+import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameQualifier;
+import scotch.compiler.steps.OperatorAccumulator;
+import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.TypeChecker;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
@@ -50,7 +50,7 @@ public class Conditional extends Value {
     }
 
     @Override
-    public Value accumulateNames(NameAccumulator state) {
+    public Value accumulateNames(NameAccumulatorState state) {
         return parse(state, Value::accumulateNames);
     }
 
@@ -79,7 +79,7 @@ public class Conditional extends Value {
     }
 
     @Override
-    public Value defineOperators(OperatorDefinitionParser state) {
+    public Value defineOperators(OperatorAccumulator state) {
         return parse(state, Value::defineOperators);
     }
 

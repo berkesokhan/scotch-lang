@@ -1,12 +1,12 @@
-package scotch.compiler;
+package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
 import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.compiler.symbol.SymbolEntry.immutableEntry;
-import static scotch.compiler.symbol.Type.fn;
-import static scotch.compiler.symbol.Type.sum;
-import static scotch.compiler.symbol.Type.t;
-import static scotch.compiler.symbol.Type.var;
+import static scotch.compiler.symbol.type.Type.fn;
+import static scotch.compiler.symbol.type.Type.sum;
+import static scotch.compiler.symbol.type.Type.t;
+import static scotch.compiler.symbol.type.Type.var;
 import static scotch.compiler.syntax.StubResolver.defaultEq;
 import static scotch.compiler.syntax.StubResolver.defaultInt;
 import static scotch.compiler.syntax.StubResolver.defaultPlus;
@@ -25,6 +25,8 @@ import static scotch.compiler.util.TestUtil.valueRef;
 import java.util.function.Function;
 import org.junit.Ignore;
 import org.junit.Test;
+import scotch.compiler.*;
+import scotch.compiler.Compiler;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 
@@ -186,7 +188,7 @@ public class SyntaxParseIntegrationTest extends ParserTest {
     }
 
     @Override
-    protected Function<Compiler, DefinitionGraph> parse() {
+    protected Function<scotch.compiler.Compiler, DefinitionGraph> parse() {
         return Compiler::qualifyNames;
     }
 

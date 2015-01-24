@@ -19,11 +19,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
 import org.objectweb.asm.tree.LabelNode;
+import scotch.compiler.steps.BytecodeGenerator;
+import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.symbol.DataConstructorDescriptor;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.NameAccumulator;
-import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
@@ -47,7 +47,7 @@ public class DataConstructorDefinition {
         fields.forEach(field -> this.fields.put(field.getName(), field));
     }
 
-    public void accumulateNames(NameAccumulator state) {
+    public void accumulateNames(NameAccumulatorState state) {
         state.defineDataConstructor(symbol, getDescriptor());
     }
 

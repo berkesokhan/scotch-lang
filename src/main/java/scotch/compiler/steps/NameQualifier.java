@@ -1,4 +1,4 @@
-package scotch.compiler;
+package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
@@ -15,12 +15,13 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.error.SyntaxError;
+import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Symbol.QualifiedSymbol;
 import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
 import scotch.compiler.symbol.SymbolNotFoundError;
-import scotch.compiler.syntax.NameQualifier;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
@@ -28,9 +29,10 @@ import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.FunctionValue;
+import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
-public class NameQualifierState implements NameQualifier {
+public class NameQualifier {
 
     private final DefinitionGraph                           graph;
     private final Deque<Scope>                              scopes;
@@ -39,7 +41,7 @@ public class NameQualifierState implements NameQualifier {
     private final Deque<List<String>>                       memberNames;
     private final List<SyntaxError>                         errors;
 
-    public NameQualifierState(DefinitionGraph graph) {
+    public NameQualifier(DefinitionGraph graph) {
         this.graph = graph;
         this.scopes = new ArrayDeque<>();
         this.functionScopes = new HashMap<>();
@@ -48,39 +50,32 @@ public class NameQualifierState implements NameQualifier {
         this.errors = new ArrayList<>();
     }
 
-    @Override
     public Definition collect(Definition definition) {
         entries.put(definition.getReference(), entry(scope(), definition));
         return definition;
     }
 
-    @Override
     public void enterScope(Definition definition) {
         enterScope(definition.getReference());
     }
 
-    @Override
     public void error(SyntaxError error) {
         errors.add(error);
     }
 
-    @Override
     public Optional<Definition> getDefinition(DefinitionReference reference) {
         return graph.getDefinition(reference);
     }
 
     @SuppressWarnings("unchecked")
-    @Override
     public <T extends Scoped> T keep(Scoped scoped) {
         return (T) scoped(scoped, () -> scoped);
     }
 
-    @Override
     public void leaveScope() {
         scopes.pop();
     }
 
-    @Override
     public <T> T named(Symbol symbol, Supplier<T> supplier) {
         memberNames.push(symbol.getMemberNames());
         T result = supplier.get();
@@ -88,7 +83,6 @@ public class NameQualifierState implements NameQualifier {
         return result;
     }
 
-    @Override
     public DefinitionGraph qualifyNames() {
         Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
         scoped(root, () -> root.qualifyNames(this));
@@ -98,12 +92,10 @@ public class NameQualifierState implements NameQualifier {
             .build();
     }
 
-    @Override
     public void symbolNotFound(Symbol symbol, SourceRange sourceRange) {
         errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceRange));
     }
 
-    @Override
     public Optional<Symbol> qualify(Symbol symbol) {
         return symbol.accept(new SymbolVisitor<Optional<Symbol>>() {
             @Override
@@ -128,12 +120,10 @@ public class NameQualifierState implements NameQualifier {
         });
     }
 
-    @Override
     public Scope scope() {
         return scopes.peek();
     }
 
-    @Override
     public <T extends Definition> T scoped(T definition, Supplier<? extends T> supplier) {
         enterScope(definition);
         try {
@@ -145,7 +135,6 @@ public class NameQualifierState implements NameQualifier {
         }
     }
 
-    @Override
     public <T extends Scoped> T scoped(Scoped value, Supplier<? extends T> supplier) {
         enterScope(value.getReference());
         if (value instanceof FunctionValue) {
@@ -166,5 +155,40 @@ public class NameQualifierState implements NameQualifier {
 
     private Scope getScope(DefinitionReference reference) {
         return graph.tryGetScope(reference).orElseGet(() -> functionScopes.get(reference));
+    }
+
+    public void defineOperator(Symbol symbol, Operator operator) {
+        scope().defineOperator(symbol, operator);
+    }
+
+    public void defineValue(Symbol symbol, Type type) {
+        scope().defineValue(symbol, type);
+    }
+
+    public boolean isOperator(Symbol symbol) {
+        return scope().isOperator(symbol);
+    }
+
+    public List<DefinitionReference> qualifyDefinitionNames(List<DefinitionReference> references) {
+        return references.stream()
+            .map(this::getDefinition)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .map(definition -> definition.qualifyNames(this))
+            .map(Definition::getReference)
+            .collect(toList());
+    }
+
+    public List<Type> qualifyTypeNames(List<Type> types) {
+        return types.stream()
+            .map(type -> type.qualifyNames(this))
+            .collect(toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends Value> List<T> qualifyValueNames(List<T> values) {
+        return (List<T>) values.stream()
+            .map(value -> value.qualifyNames(this))
+            .collect(toList());
     }
 }

@@ -1,4 +1,4 @@
-package scotch.compiler;
+package scotch.compiler.steps;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -7,6 +7,7 @@ import static scotch.compiler.util.TestUtil.exec;
 import java.lang.reflect.Method;
 import org.junit.Ignore;
 import org.junit.Test;
+import scotch.compiler.error.CompileException;
 import scotch.runtime.Callable;
 
 public class BytecodeGeneratorTest {

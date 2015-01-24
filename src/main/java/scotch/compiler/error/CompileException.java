@@ -1,4 +1,4 @@
-package scotch.compiler;
+package scotch.compiler.error;
 
 import static java.util.stream.Collectors.joining;
 

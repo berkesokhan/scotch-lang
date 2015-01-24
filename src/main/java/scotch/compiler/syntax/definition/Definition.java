@@ -5,17 +5,17 @@ import static scotch.data.either.Either.left;
 import java.util.List;
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.steps.BytecodeGenerator;
+import scotch.compiler.steps.DependencyAccumulator;
+import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameQualifier;
+import scotch.compiler.steps.OperatorAccumulator;
+import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.Value.Fixity;
-import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.DependencyAccumulator;
-import scotch.compiler.syntax.NameAccumulator;
-import scotch.compiler.syntax.NameQualifier;
-import scotch.compiler.syntax.OperatorDefinitionParser;
-import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.Scoped;
-import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.PatternMatch;
 import scotch.compiler.syntax.value.Value;
@@ -62,7 +62,7 @@ public abstract class Definition implements Scoped {
 
     public abstract Definition accumulateDependencies(DependencyAccumulator state);
 
-    public abstract Definition accumulateNames(NameAccumulator state);
+    public abstract Definition accumulateNames(NameAccumulatorState state);
 
     public Either<Definition, ValueSignature> asSignature() {
         return left(this);
@@ -80,7 +80,7 @@ public abstract class Definition implements Scoped {
 
     public abstract Definition checkTypes(TypeChecker state);
 
-    public abstract Definition defineOperators(OperatorDefinitionParser state);
+    public abstract Definition defineOperators(OperatorAccumulator state);
 
     @Override
     public abstract boolean equals(Object o);

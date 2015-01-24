@@ -2,7 +2,7 @@ package scotch.compiler.syntax.reference;
 
 import java.util.List;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 
 public abstract class DefinitionReference {

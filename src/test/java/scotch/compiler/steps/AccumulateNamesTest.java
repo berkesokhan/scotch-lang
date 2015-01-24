@@ -1,10 +1,12 @@
-package scotch.compiler;
+package scotch.compiler.steps;
 
 import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
 import static scotch.compiler.util.TestUtil.scopeRef;
 
 import java.util.function.Function;
 import org.junit.Test;
+import scotch.compiler.*;
+import scotch.compiler.Compiler;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 
@@ -48,7 +50,7 @@ public class AccumulateNamesTest extends ParserTest {
     }
 
     @Override
-    protected Function<Compiler, DefinitionGraph> parse() {
+    protected Function<scotch.compiler.Compiler, DefinitionGraph> parse() {
         return Compiler::accumulateNames;
     }
 

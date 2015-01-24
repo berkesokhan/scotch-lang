@@ -1,12 +1,12 @@
 package scotch.function;
 
-import static scotch.compiler.symbol.Type.fn;
-import static scotch.compiler.symbol.Type.var;
+import static scotch.compiler.symbol.type.Type.fn;
+import static scotch.compiler.symbol.type.Type.var;
 import static scotch.compiler.symbol.Value.Fixity.RIGHT_INFIX;
 import static scotch.runtime.RuntimeUtil.applicable;
 import static scotch.runtime.RuntimeUtil.flatCallable;
 
-import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.Value;
 import scotch.compiler.symbol.ValueType;
 import scotch.runtime.Applicable;

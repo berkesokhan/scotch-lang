@@ -10,17 +10,17 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import me.qmx.jitescript.CodeBlock;
-import scotch.compiler.symbol.Type;
+import scotch.compiler.steps.BytecodeGenerator;
+import scotch.compiler.steps.DependencyAccumulator;
+import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameQualifier;
+import scotch.compiler.steps.OperatorAccumulator;
+import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.TypeChecker;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.symbol.Unification.UnificationVisitor;
 import scotch.compiler.symbol.Unification.Unified;
-import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.DependencyAccumulator;
-import scotch.compiler.syntax.NameAccumulator;
-import scotch.compiler.syntax.NameQualifier;
-import scotch.compiler.syntax.OperatorDefinitionParser;
-import scotch.compiler.syntax.PrecedenceParser;
-import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 
@@ -48,7 +48,7 @@ public class PatternMatchers extends Value {
     }
 
     @Override
-    public Value accumulateNames(NameAccumulator state) {
+    public Value accumulateNames(NameAccumulatorState state) {
         return withMatchers(matchers.stream()
             .map(matcher -> matcher.accumulateNames(state))
             .collect(toList()));
@@ -95,7 +95,7 @@ public class PatternMatchers extends Value {
     }
 
     @Override
-    public Value defineOperators(OperatorDefinitionParser state) {
+    public Value defineOperators(OperatorAccumulator state) {
         throw new UnsupportedOperationException();
     }
 

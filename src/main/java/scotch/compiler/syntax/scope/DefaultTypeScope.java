@@ -1,7 +1,7 @@
 package scotch.compiler.syntax.scope;
 
 import static java.util.Collections.emptySet;
-import static scotch.compiler.symbol.Type.fn;
+import static scotch.compiler.symbol.type.Type.fn;
 import static scotch.compiler.symbol.Unification.failedBinding;
 import static scotch.compiler.symbol.Unification.unified;
 
@@ -12,12 +12,12 @@ import java.util.Map;
 import java.util.Set;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolGenerator;
-import scotch.compiler.symbol.Type;
-import scotch.compiler.symbol.Type.FunctionType;
-import scotch.compiler.symbol.Type.InstanceType;
-import scotch.compiler.symbol.Type.SumType;
-import scotch.compiler.symbol.Type.TypeVisitor;
-import scotch.compiler.symbol.Type.VariableType;
+import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.FunctionType;
+import scotch.compiler.symbol.type.InstanceType;
+import scotch.compiler.symbol.type.SumType;
+import scotch.compiler.symbol.type.Type.TypeVisitor;
+import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.symbol.Unification.UnificationVisitor;
@@ -154,6 +154,11 @@ public class DefaultTypeScope implements TypeScope {
     @Override
     public boolean isBound(VariableType variableType) {
         return bindings.containsKey(variableType);
+    }
+
+    @Override
+    public Type reserveType() {
+        return symbolGenerator.reserveType();
     }
 
     @Override

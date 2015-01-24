@@ -1,4 +1,4 @@
-package scotch.compiler;
+package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.sort;
@@ -17,20 +17,25 @@ import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
 import org.objectweb.asm.tree.LabelNode;
+import scotch.compiler.error.CompileException;
+import scotch.compiler.output.GeneratedClass;
+import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Type;
-import scotch.compiler.symbol.Type.FunctionType;
-import scotch.compiler.syntax.BytecodeGenerator;
+import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.FunctionType;
+import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
+import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.DefinitionReference;
+import scotch.compiler.syntax.reference.ModuleReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 
-public class BytecodeGeneratorState implements BytecodeGenerator {
+public class BytecodeGenerator {
 
     private final DefinitionGraph      graph;
     private final Deque<JiteClass>     jiteClasses;
@@ -42,7 +47,7 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
     private       int                  lambdas;
     private       int                  applies;
 
-    public BytecodeGeneratorState(DefinitionGraph graph) {
+    public BytecodeGenerator(DefinitionGraph graph) {
         this.graph = graph;
         this.jiteClasses = new ArrayDeque<>();
         this.generatedClasses = new ArrayList<>();
@@ -52,39 +57,32 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
         this.cases = new ArrayDeque<>();
     }
 
-    @Override
     public void addMatch(String name) {
         matches.peek().add(name);
     }
 
-    @Override
     public LabelNode beginCase() {
         return cases.peek().beginCase();
     }
 
-    @Override
     public void beginCases(int size) {
         cases.push(new CaseEntry(size));
     }
 
-    @Override
     public void beginClass(String className, SourceRange sourceRange) {
         jiteClasses.push(new JiteClass(className));
         currentClass().setSourceFile(sourceRange.getSourceName());
     }
 
-    @Override
     public void beginClass(String className, String superClass, SourceRange sourceRange) {
         jiteClasses.push(new JiteClass(className, superClass, new String[0]));
         currentClass().setSourceFile(sourceRange.getSourceName());
     }
 
-    @Override
     public void beginMatches() {
         matches.push(new ArrayList<>());
     }
 
-    @Override
     public CodeBlock captureApply() {
         List<String> variables = getAllVariables();
         return variables.stream()
@@ -93,7 +91,6 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
             .reduce(new CodeBlock(), CodeBlock::append);
     }
 
-    @Override
     public CodeBlock captureLambda(String lambdaArgument) {
         List<String> variables = ImmutableList.<String>builder()
             .addAll(getCaptures())
@@ -108,17 +105,14 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
         return block;
     }
 
-    @Override
     public JiteClass currentClass() {
         return jiteClasses.peek();
     }
 
-    @Override
     public void defineDefaultConstructor(int access) {
         currentClass().defineDefaultConstructor(access);
     }
 
-    @Override
     public CodeBlock enclose(Scoped scoped, Supplier<CodeBlock> supplier) {
         return scoped(scoped, () -> {
             arguments.push(new ArrayList<>());
@@ -130,39 +124,32 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
         });
     }
 
-    @Override
     public LabelNode endCase() {
         return cases.peek().endCase();
     }
 
-    @Override
     public LabelNode endCases() {
         return cases.pop().endCase();
     }
 
-    @Override
     public void endClass() {
         JiteClass jiteClass = jiteClasses.pop();
         generatedClasses.add(new GeneratedClass(c(jiteClass.getClassName()), jiteClass.toBytes(V1_8)));
     }
 
-    @Override
     public void endMatches() {
         matches.pop();
     }
 
-    @Override
     public void field(String fieldName, int access, String type) {
         currentClass().defineField(fieldName, access, type, null);
     }
 
-    @Override
     public void fromRoot() {
         Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
         generate(root, () -> root.generateBytecode(this));
     }
 
-    @Override
     public <T extends Scoped> void generate(T scoped, Runnable runnable) {
         enterScope(scoped);
         try {
@@ -172,18 +159,16 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
         }
     }
 
-    @Override
     public List<GeneratedClass> generateBytecode() {
         if (graph.hasErrors()) {
             throw new CompileException(graph.getErrors());
         } else {
-            BytecodeGenerator state = new BytecodeGeneratorState(graph);
+            BytecodeGenerator state = new BytecodeGenerator(graph);
             state.fromRoot();
             return state.getClasses();
         }
     }
 
-    @Override
     public void generateBytecode(List<DefinitionReference> references) {
         references.stream()
             .map(this::getDefinition)
@@ -192,7 +177,6 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
             .forEach(definition -> definition.generateBytecode(this));
     }
 
-    @Override
     public Class<?>[] getCaptureAllTypes() {
         List<Class<?>> types = ImmutableList.<Class<?>>builder()
             .addAll(getCaptureTypes(getCaptures()))
@@ -203,7 +187,6 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
         return types.toArray(new Class<?>[types.size()]);
     }
 
-    @Override
     public List<GeneratedClass> getClasses() {
         sort(generatedClasses, (left, right) -> {
             // TODO should sort classes by dependency order, not naming BS
@@ -224,7 +207,6 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
         return ImmutableList.copyOf(generatedClasses);
     }
 
-    @Override
     public Class<?>[] getLambdaCaptureTypes() {
         List<Class<?>> types = ImmutableList.<Class<?>>builder()
             .addAll(getCaptureTypes(getCaptures()))
@@ -233,7 +215,6 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
         return types.toArray(new Class<?>[types.size()]);
     }
 
-    @Override
     public Class<?>[] getLambdaType() {
         List<Class<?>> types = ImmutableList.<Class<?>>builder()
             .addAll(getCaptureTypes(getCaptures()))
@@ -242,43 +223,35 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
         return types.toArray(new Class<?>[types.size()]);
     }
 
-    @Override
     public int getVariable(String name) {
         return getAllVariables()
             .indexOf(name);
     }
 
-    @Override
     public void method(String methodName, int access, String signature, CodeBlock body) {
         currentClass().defineMethod(methodName, access, signature, body);
     }
 
-    @Override
     public LabelNode nextCase() {
         return cases.peek().nextCase();
     }
 
-    @Override
     public void releaseLambda(String lambdaArgument) {
         getArguments().remove(lambdaArgument);
     }
 
-    @Override
     public String reserveApply() {
         return "apply$" + applies++;
     }
 
-    @Override
     public String reserveLambda() {
         return "lambda$" + lambdas++;
     }
 
-    @Override
     public Scope scope() {
         return scopes.peek();
     }
 
-    @Override
     public <T extends Scoped> CodeBlock scoped(T scoped, Supplier<CodeBlock> supplier) {
         enterScope(scoped);
         try {
@@ -288,7 +261,6 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
         }
     }
 
-    @Override
     public Class<? extends Callable> typeOf(Type type) {
         return type instanceof FunctionType ? Applicable.class : Callable.class;
     }
@@ -336,6 +308,20 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
 
     private void leaveScope() {
         scopes.pop();
+    }
+
+    public String getDataConstructorClass(Symbol symbol) {
+        return scope().getDataConstructorClass(symbol);
+    }
+
+    public TypeInstanceDescriptor getTypeInstance(ClassReference classRef, ModuleReference moduleRef, List<Type> parameters) {
+        return scope().getTypeInstance(classRef, moduleRef, parameters);
+    }
+
+    public MethodSignature getValueSignature(Symbol symbol) {
+        return scope()
+            .getValueSignature(symbol)
+            .orElseThrow(() -> new IllegalStateException("Could not get value method for " + symbol));
     }
 
     private static class CaseEntry {

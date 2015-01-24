@@ -8,8 +8,8 @@ import static scotch.compiler.symbol.DataFieldDescriptor.field;
 import static scotch.compiler.symbol.MethodSignature.methodSignature;
 import static scotch.compiler.symbol.Operator.operator;
 import static scotch.compiler.symbol.Symbol.fromString;
-import static scotch.compiler.symbol.Type.fn;
-import static scotch.compiler.symbol.Type.var;
+import static scotch.compiler.symbol.type.Type.fn;
+import static scotch.compiler.symbol.type.Type.var;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
 import static scotch.compiler.util.TestUtil.constructor;
 import static scotch.compiler.util.TestUtil.dataType;
@@ -19,6 +19,7 @@ import static scotch.compiler.util.TestUtil.typeInstance;
 
 import org.junit.Before;
 import org.junit.Test;
+import scotch.compiler.symbol.type.Type;
 import scotch.data.num.NumInt;
 
 public class ClasspathResolverTest {

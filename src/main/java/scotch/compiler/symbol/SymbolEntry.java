@@ -4,6 +4,7 @@ import static org.apache.commons.lang.StringUtils.capitalize;
 
 import java.util.Optional;
 import scotch.compiler.symbol.exception.SymbolNotFoundException;
+import scotch.compiler.symbol.type.Type;
 
 public abstract class SymbolEntry {
 

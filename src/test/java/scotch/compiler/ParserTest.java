@@ -19,7 +19,7 @@ import org.junit.Rule;
 import org.junit.rules.TestName;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.definition.ValueDefinition;

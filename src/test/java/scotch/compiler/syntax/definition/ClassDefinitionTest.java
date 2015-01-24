@@ -2,7 +2,7 @@ package scotch.compiler.syntax.definition;
 
 import static java.util.Arrays.asList;
 import static org.junit.rules.ExpectedException.none;
-import static scotch.compiler.symbol.Type.var;
+import static scotch.compiler.symbol.type.Type.var;
 import static scotch.compiler.util.TestUtil.classDef;
 
 import org.junit.Ignore;

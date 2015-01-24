@@ -1,12 +1,12 @@
 package scotch.data.num;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.symbol.Type.sum;
+import static scotch.compiler.symbol.type.Type.sum;
 import static scotch.runtime.RuntimeUtil.callable;
 
 import java.util.List;
 import scotch.compiler.symbol.InstanceGetter;
-import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.TypeInstance;
 import scotch.compiler.symbol.TypeParameters;
 import scotch.runtime.Callable;

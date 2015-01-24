@@ -1,7 +1,8 @@
 package scotch.compiler.symbol;
 
 import java.util.Set;
-import scotch.compiler.symbol.Type.VariableType;
+import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.VariableType;
 
 public interface TypeScope {
 
@@ -20,6 +21,8 @@ public interface TypeScope {
     Type getTarget(Type type);
 
     boolean isBound(VariableType variableType);
+
+    Type reserveType();
 
     void specialize(Type type);
 }

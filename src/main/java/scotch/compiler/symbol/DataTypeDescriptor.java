@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import scotch.compiler.symbol.type.Type;
 
 public class DataTypeDescriptor {
 

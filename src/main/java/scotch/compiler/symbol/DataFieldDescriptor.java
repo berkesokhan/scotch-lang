@@ -1,6 +1,7 @@
 package scotch.compiler.symbol;
 
 import java.util.Objects;
+import scotch.compiler.symbol.type.Type;
 
 public class DataFieldDescriptor {
 

@@ -1,6 +1,14 @@
 package scotch.compiler;
 
 import java.util.List;
+import scotch.compiler.steps.BytecodeGenerator;
+import scotch.compiler.steps.DependencyAccumulator;
+import scotch.compiler.output.GeneratedClass;
+import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameQualifier;
+import scotch.compiler.steps.OperatorAccumulator;
+import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.parser.InputParser;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.symbol.SymbolResolver;
@@ -25,30 +33,30 @@ public class Compiler {
     }
 
     public DefinitionGraph checkTypes() {
-        return new TypeCheckerState(accumulateDependencies()).checkTypes();
+        return new TypeChecker(accumulateDependencies()).checkTypes();
     }
 
     public List<GeneratedClass> generateBytecode() {
-        return new BytecodeGeneratorState(checkTypes()).generateBytecode();
+        return new BytecodeGenerator(checkTypes()).generateBytecode();
     }
 
     public DefinitionGraph accumulateDependencies() {
-        return new DependencyAccumulatorState(qualifyNames()).accumulateDependencies();
+        return new DependencyAccumulator(qualifyNames()).accumulateDependencies();
     }
 
     public DefinitionGraph parseInput() {
         return new InputParser(symbolResolver, scanner).parse();
     }
 
-    public DefinitionGraph defineOperators() {
-        return new OperatorDefinitionState(parseInput()).defineOperators();
+    public DefinitionGraph accumulateOperators() {
+        return new OperatorAccumulator(parseInput()).accumulateOperators();
     }
 
     public DefinitionGraph parsePrecedence() {
-        return new PrecedenceParserState(defineOperators()).parsePrecedence();
+        return new PrecedenceParser(accumulateOperators()).parsePrecedence();
     }
 
     public DefinitionGraph qualifyNames() {
-        return new NameQualifierState(accumulateNames()).qualifyNames();
+        return new NameQualifier(accumulateNames()).qualifyNames();
     }
 }

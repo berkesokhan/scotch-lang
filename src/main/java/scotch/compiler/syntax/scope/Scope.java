@@ -15,8 +15,8 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolEntry;
 import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.Type;
-import scotch.compiler.symbol.Type.FunctionType;
+import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.FunctionType;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.TypeScope;
@@ -84,8 +84,6 @@ public abstract class Scope implements TypeScope {
 
     public abstract Scope enterScope(String moduleName, List<Import> imports);
 
-    public abstract void generalize(Type type);
-
     public List<String> getCaptures() {
         throw new IllegalStateException();
     }
@@ -94,7 +92,7 @@ public abstract class Scope implements TypeScope {
         return getEntry(symbol)
             .map(SymbolEntry::getDataConstructor)
             .map(constructor -> constructor.getSymbol().getClassNameAsChildOf(constructor.getDataType()))
-            .orElseThrow(() -> new IllegalArgumentException("Can't get data constructor class for " + symbol.quote()));
+            .orElseThrow(() -> new SymbolNotFoundException("Can't get data constructor class for " + symbol.quote()));
     }
 
     public abstract Set<Symbol> getDependencies();
@@ -191,8 +189,6 @@ public abstract class Scope implements TypeScope {
     public Type reserveType() {
         return getParent().reserveType();
     }
-
-    public abstract void specialize(Type type);
 
     protected MethodSignature computeValueMethod(Symbol symbol, Type type) {
         return MethodSignature.staticMethod(

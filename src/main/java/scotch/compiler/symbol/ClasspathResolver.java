@@ -24,10 +24,11 @@ import com.google.common.collect.ImmutableSet;
 import scotch.compiler.symbol.Symbol.QualifiedSymbol;
 import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
-import scotch.compiler.symbol.Type.FunctionType;
-import scotch.compiler.symbol.Type.SumType;
-import scotch.compiler.symbol.Type.TypeVisitor;
-import scotch.compiler.symbol.Type.VariableType;
+import scotch.compiler.symbol.type.FunctionType;
+import scotch.compiler.symbol.type.SumType;
+import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.Type.TypeVisitor;
+import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.symbol.exception.SymbolResolutionError;
 import scotch.data.tuple.Tuple2;
 

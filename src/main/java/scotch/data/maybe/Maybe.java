@@ -1,8 +1,8 @@
 package scotch.data.maybe;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.symbol.Type.sum;
-import static scotch.compiler.symbol.Type.var;
+import static scotch.compiler.symbol.type.Type.sum;
+import static scotch.compiler.symbol.type.Type.var;
 import static scotch.runtime.RuntimeUtil.applicable;
 import static scotch.runtime.RuntimeUtil.callable;
 import static scotch.util.StringUtil.stringify;
@@ -13,7 +13,7 @@ import scotch.compiler.symbol.DataConstructor;
 import scotch.compiler.symbol.DataField;
 import scotch.compiler.symbol.DataFieldType;
 import scotch.compiler.symbol.DataType;
-import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.TypeParameter;
 import scotch.compiler.symbol.TypeParameters;
 import scotch.compiler.symbol.Value;

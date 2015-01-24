@@ -17,7 +17,7 @@ import java.util.stream.StreamSupport;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.SymbolGenerator;
-import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.scope.Scope;

@@ -1,13 +1,13 @@
-package scotch.compiler;
+package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.compiler.symbol.Type.fn;
-import static scotch.compiler.symbol.Type.instance;
-import static scotch.compiler.symbol.Type.sum;
-import static scotch.compiler.symbol.Type.t;
-import static scotch.compiler.symbol.Type.var;
+import static scotch.compiler.symbol.type.Type.fn;
+import static scotch.compiler.symbol.type.Type.instance;
+import static scotch.compiler.symbol.type.Type.sum;
+import static scotch.compiler.symbol.type.Type.t;
+import static scotch.compiler.symbol.type.Type.var;
 import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.syntax.StubResolver.defaultEq;
 import static scotch.compiler.syntax.StubResolver.defaultEqClass;
@@ -41,8 +41,10 @@ import static scotch.compiler.util.TestUtil.stringType;
 import java.util.List;
 import java.util.function.Function;
 import org.junit.Test;
-import scotch.compiler.symbol.Type;
-import scotch.compiler.symbol.Type.InstanceType;
+import scotch.compiler.*;
+import scotch.compiler.Compiler;
+import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.InstanceType;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.reference.DefinitionReference;
@@ -502,7 +504,7 @@ public class CheckTypesTest extends ParserTest {
     }
 
     @Override
-    protected Function<Compiler, DefinitionGraph> parse() {
+    protected Function<scotch.compiler.Compiler, DefinitionGraph> parse() {
         return Compiler::checkTypes;
     }
 

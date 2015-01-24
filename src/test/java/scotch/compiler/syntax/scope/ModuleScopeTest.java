@@ -14,7 +14,7 @@ import static org.mockito.Mockito.when;
 import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.compiler.symbol.Symbol.unqualified;
-import static scotch.compiler.symbol.Type.t;
+import static scotch.compiler.symbol.type.Type.t;
 import static scotch.compiler.syntax.scope.Scope.scope;
 import static scotch.compiler.util.TestUtil.intType;
 

@@ -1,4 +1,4 @@
-package scotch.compiler;
+package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
@@ -13,6 +13,8 @@ import static scotch.compiler.util.TestUtil.valueRef;
 import java.util.List;
 import java.util.function.Function;
 import org.junit.Test;
+import scotch.compiler.*;
+import scotch.compiler.Compiler;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
@@ -150,7 +152,7 @@ public class AccumulateDependenciesTest extends ParserTest {
     }
 
     @Override
-    protected Function<Compiler, DefinitionGraph> parse() {
+    protected Function<scotch.compiler.Compiler, DefinitionGraph> parse() {
         return Compiler::accumulateDependencies;
     }
 

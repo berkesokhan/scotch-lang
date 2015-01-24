@@ -1,4 +1,4 @@
-package scotch.compiler;
+package scotch.compiler.steps;
 
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
@@ -13,7 +13,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.symbol.Operator;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
@@ -23,7 +25,7 @@ import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.Value;
 
-public class NameAccumulatorState implements NameAccumulator {
+public class OperatorAccumulator {
 
     private final DefinitionGraph                           graph;
     private final Deque<Scope>                              scopes;
@@ -31,7 +33,7 @@ public class NameAccumulatorState implements NameAccumulator {
     private final Map<DefinitionReference, DefinitionEntry> entries;
     private final List<SyntaxError>                         errors;
 
-    public NameAccumulatorState(DefinitionGraph graph) {
+    public OperatorAccumulator(DefinitionGraph graph) {
         this.graph = graph;
         this.scopes = new ArrayDeque<>();
         this.functionScopes = new HashMap<>();
@@ -39,70 +41,49 @@ public class NameAccumulatorState implements NameAccumulator {
         this.errors = new ArrayList<>();
     }
 
-    @Override
-    public DefinitionGraph accumulateNames() {
+    public Definition collect(Definition definition) {
+        entries.put(definition.getReference(), entry(scope(), definition));
+        return definition;
+    }
+
+    public Definition collect(PatternMatcher pattern) {
+        return collect(Value.scopeDef(pattern));
+    }
+
+    public DefinitionGraph accumulateOperators() {
         Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
-        scoped(root, () -> root.accumulateNames(this));
+        scoped(root, () -> root.defineOperators(this));
         return graph
             .copyWith(entries.values())
             .appendErrors(errors)
             .build();
     }
 
-    @Override
-    public List<DefinitionReference> accumulateNames(List<DefinitionReference> references) {
-        return references.stream()
-            .map(this::getDefinition)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .map(definition -> definition.accumulateNames(this))
-            .map(Definition::getReference)
-            .collect(toList());
-    }
-
-    @Override
-    public Definition collect(Definition definition) {
-        entries.put(definition.getReference(), entry(scope(), definition));
-        return definition;
-    }
-
-    @Override
-    public Definition collect(PatternMatcher pattern) {
-        return collect(Value.scopeDef(pattern));
-    }
-
-    @Override
     public void enterScope(Definition definition) {
         enterScope(definition.getReference());
     }
 
-    @Override
     public void error(SyntaxError error) {
         errors.add(error);
     }
 
-    @Override
     public Optional<Definition> getDefinition(DefinitionReference reference) {
         return graph.getDefinition(reference);
     }
 
-    @Override
     @SuppressWarnings("unchecked")
     public <T extends Scoped> T keep(Scoped scoped) {
         return (T) scoped(scoped, () -> scoped);
     }
 
-    @Override
     public void leaveScope() {
         scopes.pop();
     }
 
-    @Override
     public Scope scope() {
         return scopes.peek();
     }
 
-    @Override
     public <T extends Definition> T scoped(T definition, Supplier<? extends T> supplier) {
         enterScope(definition);
         try {
@@ -114,7 +95,6 @@ public class NameAccumulatorState implements NameAccumulator {
         }
     }
 
-    @Override
     public <T extends Scoped> T scoped(Scoped value, Supplier<? extends T> supplier) {
         enterScope(value.getReference());
         try {
@@ -132,5 +112,33 @@ public class NameAccumulatorState implements NameAccumulator {
 
     private Scope getScope(DefinitionReference reference) {
         return graph.tryGetScope(reference).orElseGet(() -> functionScopes.get(reference));
+    }
+
+    public void defineOperator(Symbol symbol, Operator operator) {
+        scope().defineOperator(symbol, operator);
+    }
+
+    public void defineValue(Symbol symbol, Type type) {
+        scope().defineValue(symbol, type);
+    }
+
+    public boolean isOperator(Symbol symbol) {
+        return scope().isOperator(symbol);
+    }
+
+    public List<DefinitionReference> defineDefinitionOperators(List<DefinitionReference> references) {
+        return references.stream()
+            .map(this::getDefinition)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .map(definition -> definition.defineOperators(this))
+            .map(Definition::getReference)
+            .collect(toList());
+    }
+
+    public List<Value> defineValueOperators(List<Value> values) {
+        return values.stream()
+            .map(value -> value.defineOperators(this))
+            .collect(toList());
     }
 }

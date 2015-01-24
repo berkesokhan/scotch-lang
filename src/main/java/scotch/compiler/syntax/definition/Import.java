@@ -7,7 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.text.SourceRange;
 

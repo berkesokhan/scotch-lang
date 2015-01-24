@@ -1,4 +1,4 @@
-package scotch.compiler.symbol;
+package scotch.compiler.symbol.type;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
@@ -7,9 +7,9 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static scotch.compiler.symbol.Type.fn;
-import static scotch.compiler.symbol.Type.sum;
-import static scotch.compiler.symbol.Type.var;
+import static scotch.compiler.symbol.type.Type.fn;
+import static scotch.compiler.symbol.type.Type.sum;
+import static scotch.compiler.symbol.type.Type.var;
 import static scotch.compiler.symbol.Unification.circular;
 import static scotch.compiler.symbol.Unification.contextMismatch;
 import static scotch.compiler.symbol.Unification.failedBinding;
@@ -21,10 +21,11 @@ import static scotch.compiler.util.TestUtil.intType;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
-import scotch.compiler.symbol.Type.FunctionType;
-import scotch.compiler.symbol.Type.SumType;
-import scotch.compiler.symbol.Type.TypeVisitor;
-import scotch.compiler.symbol.Type.VariableType;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.SymbolGenerator;
+import scotch.compiler.symbol.TypeScope;
+import scotch.compiler.symbol.Unification;
+import scotch.compiler.symbol.type.Type.TypeVisitor;
 import scotch.compiler.syntax.scope.DefaultTypeScope;
 
 public class TypeTest {

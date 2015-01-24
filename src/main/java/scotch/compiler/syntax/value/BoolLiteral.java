@@ -2,7 +2,7 @@ package scotch.compiler.syntax.value;
 
 import static me.qmx.jitescript.util.CodegenUtils.ci;
 import static me.qmx.jitescript.util.CodegenUtils.p;
-import static scotch.compiler.symbol.Type.sum;
+import static scotch.compiler.symbol.type.Type.sum;
 
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.text.SourceRange;

@@ -15,16 +15,16 @@ import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.steps.BytecodeGenerator;
+import scotch.compiler.steps.DependencyAccumulator;
+import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameQualifier;
+import scotch.compiler.steps.OperatorAccumulator;
+import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Type;
-import scotch.compiler.syntax.BytecodeGenerator;
-import scotch.compiler.syntax.DependencyAccumulator;
-import scotch.compiler.syntax.NameAccumulator;
-import scotch.compiler.syntax.NameQualifier;
-import scotch.compiler.syntax.OperatorDefinitionParser;
-import scotch.compiler.syntax.PrecedenceParser;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
-import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.reference.ScopeReference;
@@ -56,7 +56,7 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
-    public Value accumulateNames(NameAccumulator state) {
+    public Value accumulateNames(NameAccumulatorState state) {
         return state.scoped(this, () -> withArguments(arguments.stream()
             .map(argument -> (Argument) argument.accumulateNames(state))
             .collect(toList()))
@@ -98,7 +98,7 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
-    public Value defineOperators(OperatorDefinitionParser state) {
+    public Value defineOperators(OperatorAccumulator state) {
         return state.scoped(this, () -> withBody(body.defineOperators(state)));
     }
 

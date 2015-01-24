@@ -5,7 +5,7 @@ import static scotch.util.StringUtil.stringify;
 import java.util.List;
 import java.util.Objects;
 import com.google.common.collect.ImmutableList;
-import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.type.Type;
 
 public class InstanceReference extends DefinitionReference {
 

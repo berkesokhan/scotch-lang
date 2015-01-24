@@ -1,4 +1,4 @@
-package scotch.compiler;
+package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
@@ -20,9 +20,10 @@ import scotch.compiler.error.SyntaxError;
 import scotch.compiler.parser.PatternShuffler;
 import scotch.compiler.parser.PatternShuffler.ResultVisitor;
 import scotch.compiler.parser.ValueShuffler;
+import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolNotFoundError;
-import scotch.compiler.syntax.PrecedenceParser;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
@@ -40,7 +41,7 @@ import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
-public class PrecedenceParserState implements PrecedenceParser {
+public class PrecedenceParser {
 
     private final DefinitionGraph                           graph;
     private final Deque<Scope>                              scopes;
@@ -49,7 +50,7 @@ public class PrecedenceParserState implements PrecedenceParser {
     private final Deque<List<String>>                       memberNames;
     private final List<SyntaxError>                         errors;
 
-    public PrecedenceParserState(DefinitionGraph graph) {
+    public PrecedenceParser(DefinitionGraph graph) {
         this.graph = graph;
         this.scopes = new ArrayDeque<>();
         this.functionScopes = new HashMap<>();
@@ -58,38 +59,31 @@ public class PrecedenceParserState implements PrecedenceParser {
         this.errors = new ArrayList<>();
     }
 
-    @Override
     public void addPattern(Symbol symbol, PatternMatcher matcher) {
         scope().getParent().addPattern(symbol, matcher);
     }
 
-    @Override
     public void enterScope(Definition definition) {
         enterScope(definition.getReference());
     }
 
-    @Override
     public void error(SyntaxError error) {
         errors.add(error);
     }
 
-    @Override
     public Optional<Definition> getDefinition(DefinitionReference reference) {
         return graph.getDefinition(reference);
     }
 
-    @Override
     @SuppressWarnings("unchecked")
     public <T extends Scoped> T keep(Scoped scoped) {
         return (T) scoped(scoped, () -> scoped);
     }
 
-    @Override
     public void leaveScope() {
         scopes.pop();
     }
 
-    @Override
     public List<DefinitionReference> map(List<DefinitionReference> references, BiFunction<? super Definition, PrecedenceParser, ? extends Definition> function) {
         return references.stream()
             .map(this::getDefinition)
@@ -100,7 +94,6 @@ public class PrecedenceParserState implements PrecedenceParser {
             .collect(toList());
     }
 
-    @Override
     public List<DefinitionReference> mapOptional(List<DefinitionReference> references, BiFunction<? super Definition, PrecedenceParser, Optional<? extends Definition>> function) {
         return references.stream()
             .map(this::getDefinition)
@@ -113,7 +106,6 @@ public class PrecedenceParserState implements PrecedenceParser {
             .collect(toList());
     }
 
-    @Override
     public <T> T named(Symbol symbol, Supplier<? extends T> supplier) {
         memberNames.push(symbol.getMemberNames());
         T result = supplier.get();
@@ -121,7 +113,6 @@ public class PrecedenceParserState implements PrecedenceParser {
         return result;
     }
 
-    @Override
     public DefinitionGraph parsePrecedence() {
         Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
         scopedOptional(root, () -> root.parsePrecedence(this));
@@ -131,7 +122,6 @@ public class PrecedenceParserState implements PrecedenceParser {
             .build();
     }
 
-    @Override
     public List<DefinitionReference> processPatterns() {
         List<DefinitionReference> members = new ArrayList<>();
         scope().getPatterns().forEach((symbol, patterns) -> {
@@ -163,22 +153,18 @@ public class PrecedenceParserState implements PrecedenceParser {
         return members;
     }
 
-    @Override
     public Optional<Symbol> qualify(Symbol symbol) {
         return scope().qualify(symbol);
     }
 
-    @Override
     public Symbol reserveSymbol() {
         return scope().reserveSymbol(memberNames.peek());
     }
 
-    @Override
     public Scope scope() {
         return scopes.peek();
     }
 
-    @Override
     public <T extends Definition> T scoped(T definition, Supplier<? extends T> supplier) {
         enterScope(definition);
         try {
@@ -190,7 +176,6 @@ public class PrecedenceParserState implements PrecedenceParser {
         }
     }
 
-    @Override
     public <T extends Scoped> T scoped(Scoped value, Supplier<? extends T> supplier) {
         enterScope(value.getReference());
         try {
@@ -202,7 +187,6 @@ public class PrecedenceParserState implements PrecedenceParser {
         }
     }
 
-    @Override
     public <T extends Definition> Optional<Definition> scopedOptional(T definition, Supplier<Optional<? extends T>> supplier) {
         enterScope(definition);
         try {
@@ -212,7 +196,6 @@ public class PrecedenceParserState implements PrecedenceParser {
         }
     }
 
-    @Override
     public Optional<Definition> shuffle(UnshuffledDefinition pattern) {
         return new PatternShuffler().shuffle(scope(), memberNames.peek(), pattern)
             .accept(new ResultVisitor<Optional<Definition>>() {
@@ -230,7 +213,6 @@ public class PrecedenceParserState implements PrecedenceParser {
             });
     }
 
-    @Override
     public Value shuffle(UnshuffledValue value) {
         return new ValueShuffler(v -> v.parsePrecedence(this))
             .shuffle(scope(), value.getValues()).getRightOr(left -> {
@@ -239,7 +221,6 @@ public class PrecedenceParserState implements PrecedenceParser {
             });
     }
 
-    @Override
     public void symbolNotFound(Symbol symbol, SourceRange sourceRange) {
         errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceRange));
     }
@@ -289,5 +270,17 @@ public class PrecedenceParserState implements PrecedenceParser {
 
     private Scope getScope(DefinitionReference reference) {
         return graph.tryGetScope(reference).orElseGet(() -> functionScopes.get(reference));
+    }
+
+    public void defineOperator(Symbol symbol, Operator operator) {
+        scope().defineOperator(symbol, operator);
+    }
+
+    public void defineValue(Symbol symbol, Type type) {
+        scope().defineValue(symbol, type);
+    }
+
+    public boolean isOperator(Symbol symbol) {
+        return scope().isOperator(symbol);
     }
 }
