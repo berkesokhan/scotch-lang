@@ -102,6 +102,15 @@ public class TypeCheckerState implements TypeChecker {
     }
 
     @Override
+    public DefinitionGraph checkTypes() {
+        map(graph.getSortedReferences(), Definition::checkTypes);
+        return graph
+            .copyWith(entries.values())
+            .appendErrors(errors)
+            .build();
+    }
+
+    @Override
     public <T extends Scoped> T enclose(T scoped, Supplier<T> supplier) {
         return scoped(scoped, () -> {
             enterNest();
@@ -154,11 +163,6 @@ public class TypeCheckerState implements TypeChecker {
     }
 
     @Override
-    public void fromSorted(BiFunction<? super Definition, TypeChecker, ? extends Definition> function) {
-        map(graph.getSortedReferences(), function);
-    }
-
-    @Override
     public Unification bind(VariableType variableType, Type targetType) {
         return scope().bind(variableType, targetType);
     }
@@ -201,14 +205,6 @@ public class TypeCheckerState implements TypeChecker {
     @Override
     public Optional<Definition> getDefinition(DefinitionReference reference) {
         return graph.getDefinition(reference);
-    }
-
-    @Override
-    public DefinitionGraph getGraph() {
-        return graph
-            .copyWith(entries.values())
-            .appendErrors(errors)
-            .build();
     }
 
     @Override

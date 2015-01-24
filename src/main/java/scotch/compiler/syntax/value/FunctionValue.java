@@ -75,9 +75,7 @@ public class FunctionValue extends Value implements Scoped {
 
     @Override
     public Value bindTypes(TypeChecker state) {
-        return withArguments(arguments.stream()
-            .map(argument -> (Argument) argument.bindTypes(state))
-            .collect(toList()))
+        return withArguments(state.bindTypes(arguments))
             .withBody(body.bindTypes(state))
             .withType(state.generate(getType()));
     }
@@ -85,17 +83,13 @@ public class FunctionValue extends Value implements Scoped {
     @Override
     public Value checkTypes(TypeChecker state) {
         return state.enclose(this, () -> {
-            List<Type> argumentTypes = arguments.stream()
+            arguments.stream()
                 .map(Argument::getType)
-                .collect(toList());
+                .forEach(state::specialize);
             arguments.stream()
                 .map(Argument::getSymbol)
                 .forEach(state::addLocal);
-            argumentTypes.forEach(state::specialize);
-            return withBody(body.checkTypes(state))
-                .withArguments(arguments.stream()
-                    .map(arg -> arg.withType(state.generate(arg.getType())))
-                    .collect(toList()));
+            return withBody(body.checkTypes(state));
         });
     }
 

@@ -56,7 +56,7 @@ public class RootDefinition extends Definition {
 
     @Override
     public Definition defineOperators(OperatorDefinitionParser state) {
-        return state.scoped(this, () -> withDefinitions(state.defineOperators(definitions)));
+        return state.scoped(this, () -> withDefinitions(state.defineDefinitionOperators(definitions)));
     }
 
     @Override
@@ -67,10 +67,6 @@ public class RootDefinition extends Definition {
     @Override
     public void generateBytecode(BytecodeGenerator state) {
         state.generate(this, () -> state.generateBytecode(definitions));
-    }
-
-    public List<DefinitionReference> getDefinitions() {
-        return definitions;
     }
 
     @Override
@@ -95,7 +91,7 @@ public class RootDefinition extends Definition {
 
     @Override
     public Definition qualifyNames(NameQualifier state) {
-        return state.scoped(this, () -> withDefinitions(state.qualifyNames(definitions)));
+        return state.scoped(this, () -> withDefinitions(state.qualifyDefinitionNames(definitions)));
     }
 
     @Override

@@ -69,14 +69,6 @@ public class NameQualifierState implements NameQualifier {
         return graph.getDefinition(reference);
     }
 
-    @Override
-    public DefinitionGraph getGraph() {
-        return graph
-            .copyWith(entries.values())
-            .appendErrors(errors)
-            .build();
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public <T extends Scoped> T keep(Scoped scoped) {
@@ -97,20 +89,13 @@ public class NameQualifierState implements NameQualifier {
     }
 
     @Override
-    public List<DefinitionReference> qualifyNames(List<DefinitionReference> references) {
-        return references.stream()
-            .map(this::getDefinition)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .map(definition -> definition.qualifyNames(this))
-            .map(Definition::getReference)
-            .collect(toList());
-    }
-
-    @Override
-    public void qualifyNames() {
+    public DefinitionGraph qualifyNames() {
         Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
         scoped(root, () -> root.qualifyNames(this));
+        return graph
+            .copyWith(entries.values())
+            .appendErrors(errors)
+            .build();
     }
 
     @Override

@@ -62,7 +62,7 @@ public class ModuleDefinition extends Definition {
 
     @Override
     public Definition defineOperators(OperatorDefinitionParser state) {
-        return state.scoped(this, () -> withDefinitions(state.defineOperators(definitions)));
+        return state.scoped(this, () -> withDefinitions(state.defineDefinitionOperators(definitions)));
     }
 
     @Override
@@ -127,7 +127,7 @@ public class ModuleDefinition extends Definition {
 
     @Override
     public Definition qualifyNames(NameQualifier state) {
-        return state.scoped(this, () -> withDefinitions(state.qualifyNames(definitions)));
+        return state.scoped(this, () -> withDefinitions(state.qualifyDefinitionNames(definitions)));
     }
 
     @Override

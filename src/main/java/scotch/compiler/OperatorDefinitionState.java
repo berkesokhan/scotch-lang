@@ -1,6 +1,5 @@
 package scotch.compiler;
 
-import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
 import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
 
@@ -51,20 +50,13 @@ public class OperatorDefinitionState implements OperatorDefinitionParser {
     }
 
     @Override
-    public void defineOperators() {
+    public DefinitionGraph defineOperators() {
         Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
         scoped(root, () -> root.defineOperators(this));
-    }
-
-    @Override
-    public List<DefinitionReference> defineOperators(List<DefinitionReference> references) {
-        return references.stream()
-            .map(this::getDefinition)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .map(definition -> definition.defineOperators(this))
-            .map(Definition::getReference)
-            .collect(toList());
+        return graph
+            .copyWith(entries.values())
+            .appendErrors(errors)
+            .build();
     }
 
     @Override
@@ -80,14 +72,6 @@ public class OperatorDefinitionState implements OperatorDefinitionParser {
     @Override
     public Optional<Definition> getDefinition(DefinitionReference reference) {
         return graph.getDefinition(reference);
-    }
-
-    @Override
-    public DefinitionGraph getGraph() {
-        return graph
-            .copyWith(entries.values())
-            .appendErrors(errors)
-            .build();
     }
 
     @Override

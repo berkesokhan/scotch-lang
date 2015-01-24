@@ -17,7 +17,7 @@ import scotch.compiler.syntax.value.PatternMatcher;
 
 public interface NameAccumulator {
 
-    void accumulateNames();
+    DefinitionGraph accumulateNames();
 
     List<DefinitionReference> accumulateNames(List<DefinitionReference> references);
 
@@ -50,8 +50,6 @@ public interface NameAccumulator {
     void error(SyntaxError error);
 
     Optional<Definition> getDefinition(DefinitionReference reference);
-
-    DefinitionGraph getGraph();
 
     default boolean isOperator(Symbol symbol) {
         return scope().isOperator(symbol);

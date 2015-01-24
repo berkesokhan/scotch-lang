@@ -40,9 +40,13 @@ public class NameAccumulatorState implements NameAccumulator {
     }
 
     @Override
-    public void accumulateNames() {
+    public DefinitionGraph accumulateNames() {
         Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
         scoped(root, () -> root.accumulateNames(this));
+        return graph
+            .copyWith(entries.values())
+            .appendErrors(errors)
+            .build();
     }
 
     @Override
@@ -80,14 +84,6 @@ public class NameAccumulatorState implements NameAccumulator {
     @Override
     public Optional<Definition> getDefinition(DefinitionReference reference) {
         return graph.getDefinition(reference);
-    }
-
-    @Override
-    public DefinitionGraph getGraph() {
-        return graph
-            .copyWith(entries.values())
-            .appendErrors(errors)
-            .build();
     }
 
     @Override

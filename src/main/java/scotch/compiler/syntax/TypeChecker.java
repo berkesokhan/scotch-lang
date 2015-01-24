@@ -1,5 +1,7 @@
 package scotch.compiler.syntax;
 
+import static java.util.stream.Collectors.toList;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -24,10 +26,27 @@ public interface TypeChecker extends TypeScope {
 
     Definition bind(ValueDefinition definition);
 
+    default List<Value> bindMethods(List<Value> values) {
+        return values.stream()
+            .map(value -> value.bindMethods(this))
+            .collect(toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    default <T extends Value> List<T> bindTypes(List<T> values) {
+        return (List<T>) values.stream()
+            .map(value -> ((T) value).bindTypes(this))
+            .collect(toList());
+    }
+
     void capture(Symbol symbol);
 
-    default List<DefinitionReference> checkTypes(List<DefinitionReference> references) {
-        return map(references, Definition::checkTypes);
+    DefinitionGraph checkTypes();
+
+    default List<Value> checkTypes(List<Value> values) {
+        return values.stream()
+            .map(value -> value.checkTypes(this))
+            .collect(toList());
     }
 
     <T extends Scoped> T enclose(T scoped, Supplier<T> supplier);
@@ -38,11 +57,7 @@ public interface TypeChecker extends TypeScope {
 
     Value findInstance(Method method, InstanceType instanceType);
 
-    void fromSorted(BiFunction<? super Definition, TypeChecker, ? extends Definition> function);
-
     Optional<Definition> getDefinition(DefinitionReference reference);
-
-    DefinitionGraph getGraph();
 
     Type getType(ValueDefinition definition);
 

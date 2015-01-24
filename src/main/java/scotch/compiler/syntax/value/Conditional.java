@@ -9,6 +9,7 @@ import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import me.qmx.jitescript.CodeBlock;
 import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.symbol.Type;
@@ -28,6 +29,7 @@ public class Conditional extends Value {
     public static Builder builder() {
         return new Builder();
     }
+
     private final SourceRange sourceRange;
     private final Value       condition;
     private final Value       whenTrue;
@@ -44,46 +46,22 @@ public class Conditional extends Value {
 
     @Override
     public Value accumulateDependencies(DependencyAccumulator state) {
-        return conditional(
-            sourceRange,
-            condition.accumulateDependencies(state),
-            whenTrue.accumulateDependencies(state),
-            whenFalse.accumulateDependencies(state),
-            type
-        );
+        return parse(state, Value::accumulateDependencies);
     }
 
     @Override
     public Value accumulateNames(NameAccumulator state) {
-        return conditional(
-            sourceRange,
-            condition.accumulateNames(state),
-            whenTrue.accumulateNames(state),
-            whenFalse.accumulateNames(state),
-            type
-        );
+        return parse(state, Value::accumulateNames);
     }
 
     @Override
     public Value bindMethods(TypeChecker state) {
-        return conditional(
-            sourceRange,
-            condition.bindMethods(state),
-            whenTrue.bindMethods(state),
-            whenFalse.bindMethods(state),
-            type
-        );
+        return parse(state, Value::bindMethods);
     }
 
     @Override
     public Value bindTypes(TypeChecker state) {
-        return conditional(
-            sourceRange,
-            condition.bindTypes(state),
-            whenTrue.bindTypes(state),
-            whenFalse.bindTypes(state),
-            type
-        );
+        return parse(state, Value::bindTypes);
     }
 
     @Override
@@ -102,13 +80,7 @@ public class Conditional extends Value {
 
     @Override
     public Value defineOperators(OperatorDefinitionParser state) {
-        return conditional(
-            sourceRange,
-            condition.defineOperators(state),
-            whenTrue.defineOperators(state),
-            whenFalse.defineOperators(state),
-            type
-        );
+        return parse(state, Value::defineOperators);
     }
 
     @Override
@@ -160,24 +132,13 @@ public class Conditional extends Value {
 
     @Override
     public Value parsePrecedence(PrecedenceParser state) {
-        return conditional(
-            sourceRange,
-            condition.parsePrecedence(state),
-            whenTrue.parsePrecedence(state),
-            whenFalse.parsePrecedence(state),
-            type
-        );
+        return parse(state, Value::parsePrecedence);
     }
 
     @Override
     public Value qualifyNames(NameQualifier state) {
-        return conditional(
-            sourceRange,
-            condition.qualifyNames(state),
-            whenTrue.qualifyNames(state),
-            whenFalse.qualifyNames(state),
-            type.qualifyNames(state)
-        );
+        return parse(state, Value::qualifyNames)
+            .withType(type.qualifyNames(state));
     }
 
     @Override
@@ -188,6 +149,16 @@ public class Conditional extends Value {
     @Override
     public Conditional withType(Type type) {
         return new Conditional(sourceRange, condition, whenTrue, whenFalse, type);
+    }
+
+    private <T> Value parse(T state, BiFunction<Value, T, Value> function) {
+        return builder()
+            .withSourceRange(sourceRange)
+            .withCondition(function.apply(condition, state))
+            .withWhenTrue(function.apply(whenTrue, state))
+            .withWhenFalse(function.apply(whenFalse, state))
+            .withType(type)
+            .build();
     }
 
     public static class Builder implements SyntaxBuilder<Conditional> {

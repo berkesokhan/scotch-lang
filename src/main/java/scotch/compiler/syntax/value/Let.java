@@ -71,7 +71,7 @@ public class Let extends Value implements Scoped {
 
     @Override
     public Value defineOperators(OperatorDefinitionParser state) {
-        return state.scoped(this, () -> withDefinitions(state.defineOperators(definitions))
+        return state.scoped(this, () -> withDefinitions(state.defineDefinitionOperators(definitions))
             .withBody(body.defineOperators(state)));
     }
 
@@ -143,7 +143,7 @@ public class Let extends Value implements Scoped {
 
     @Override
     public Value qualifyNames(NameQualifier state) {
-        return state.scoped(this, () -> withDefinitions(state.qualifyNames(definitions))
+        return state.scoped(this, () -> withDefinitions(state.qualifyDefinitionNames(definitions))
             .withBody(body.qualifyNames(state)));
     }
 

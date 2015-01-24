@@ -1,5 +1,7 @@
 package scotch.compiler.syntax;
 
+import static java.util.stream.Collectors.toList;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -11,6 +13,7 @@ import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
+import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
 public interface NameQualifier {
@@ -31,8 +34,6 @@ public interface NameQualifier {
 
     Optional<Definition> getDefinition(DefinitionReference reference);
 
-    DefinitionGraph getGraph();
-
     default boolean isOperator(Symbol symbol) {
         return scope().isOperator(symbol);
     }
@@ -44,9 +45,30 @@ public interface NameQualifier {
 
     <T> T named(Symbol symbol, Supplier<T> supplier);
 
-    void qualifyNames();
+    DefinitionGraph qualifyNames();
 
-    List<DefinitionReference> qualifyNames(List<DefinitionReference> references);
+    default List<DefinitionReference> qualifyDefinitionNames(List<DefinitionReference> references) {
+        return references.stream()
+            .map(this::getDefinition)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .map(definition -> definition.qualifyNames(this))
+            .map(Definition::getReference)
+            .collect(toList());
+    }
+
+    default List<Type> qualifyTypeNames(List<Type> types) {
+        return types.stream()
+            .map(type -> type.qualifyNames(this))
+            .collect(toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    default <T extends Value> List<T> qualifyValueNames(List<T> values) {
+        return (List<T>) values.stream()
+            .map(value -> value.qualifyNames(this))
+            .collect(toList());
+    }
 
     Scope scope();
 

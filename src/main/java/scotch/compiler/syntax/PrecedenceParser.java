@@ -36,8 +36,6 @@ public interface PrecedenceParser {
 
     Optional<Definition> getDefinition(DefinitionReference reference);
 
-    DefinitionGraph getGraph();
-
     default boolean isOperator(Symbol symbol) {
         return scope().isOperator(symbol);
     }
@@ -53,7 +51,7 @@ public interface PrecedenceParser {
 
     <T> T named(Symbol symbol, Supplier<? extends T> value);
 
-    void parsePrecedence();
+    DefinitionGraph parsePrecedence();
 
     List<DefinitionReference> processPatterns();
 

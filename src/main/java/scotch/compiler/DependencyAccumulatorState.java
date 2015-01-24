@@ -44,9 +44,14 @@ public class DependencyAccumulatorState implements DependencyAccumulator {
     }
 
     @Override
-    public void accumulateDependencies() {
+    public DefinitionGraph accumulateDependencies() {
         Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
         scoped(root, () -> root.accumulateDependencies(this));
+        return graph
+            .copyWith(entries.values())
+            .appendErrors(errors)
+            .build()
+            .sort();
     }
 
     @Override
@@ -95,14 +100,6 @@ public class DependencyAccumulatorState implements DependencyAccumulator {
     @Override
     public Optional<Definition> getDefinition(DefinitionReference reference) {
         return graph.getDefinition(reference);
-    }
-
-    @Override
-    public DefinitionGraph getGraph() {
-        return graph
-            .copyWith(entries.values())
-            .appendErrors(errors)
-            .build();
     }
 
     @SuppressWarnings("unchecked")

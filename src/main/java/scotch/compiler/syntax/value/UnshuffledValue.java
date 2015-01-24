@@ -83,9 +83,7 @@ public class UnshuffledValue extends Value {
 
     @Override
     public Value defineOperators(OperatorDefinitionParser state) {
-        return withValues(values.stream()
-            .map(value -> value.defineOperators(state))
-            .collect(toList()));
+        return withValues(state.defineValueOperators(values));
     }
 
     @Override
@@ -133,7 +131,7 @@ public class UnshuffledValue extends Value {
 
     @Override
     public Value qualifyNames(NameQualifier state) {
-        return withValues(values.stream().map(value -> value.qualifyNames(state)).collect(toList()));
+        return withValues(state.qualifyValueNames(values));
     }
 
     @Override

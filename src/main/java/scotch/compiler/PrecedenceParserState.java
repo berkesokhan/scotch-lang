@@ -79,14 +79,6 @@ public class PrecedenceParserState implements PrecedenceParser {
     }
 
     @Override
-    public DefinitionGraph getGraph() {
-        return graph
-            .copyWith(entries.values())
-            .appendErrors(errors)
-            .build();
-    }
-
-    @Override
     @SuppressWarnings("unchecked")
     public <T extends Scoped> T keep(Scoped scoped) {
         return (T) scoped(scoped, () -> scoped);
@@ -130,9 +122,13 @@ public class PrecedenceParserState implements PrecedenceParser {
     }
 
     @Override
-    public void parsePrecedence() {
+    public DefinitionGraph parsePrecedence() {
         Definition root = getDefinition(rootRef()).orElseThrow(() -> new IllegalStateException("No root found!"));
         scopedOptional(root, () -> root.parsePrecedence(this));
+        return graph
+            .copyWith(entries.values())
+            .appendErrors(errors)
+            .build();
     }
 
     @Override

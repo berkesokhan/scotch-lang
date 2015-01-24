@@ -132,9 +132,7 @@ public class DataTypeDefinition extends Definition {
 
     @Override
     public Definition qualifyNames(NameQualifier state) {
-        return state.scoped(this, () -> withParameters(parameters.stream()
-                .map(type -> type.qualifyNames(state))
-                .collect(toList()))
+        return state.scoped(this, () -> withParameters(state.qualifyTypeNames(parameters))
             .withConstructors(constructors.values().stream()
                 .map(constructor -> constructor.qualifyNames(state))
                 .collect(toList())));

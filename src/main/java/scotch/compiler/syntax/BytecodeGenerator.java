@@ -51,6 +51,8 @@ public interface BytecodeGenerator {
 
     <T extends Scoped> void generate(T scoped, Runnable runnable);
 
+    List<GeneratedClass> generateBytecode();
+
     void generateBytecode(List<DefinitionReference> references);
 
     Class<?>[] getCaptureAllTypes();

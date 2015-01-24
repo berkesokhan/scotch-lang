@@ -178,6 +178,17 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
     }
 
     @Override
+    public List<GeneratedClass> generateBytecode() {
+        if (graph.hasErrors()) {
+            throw new CompileException(graph.getErrors());
+        } else {
+            BytecodeGenerator state = new BytecodeGeneratorState(graph);
+            state.fromRoot();
+            return state.getClasses();
+        }
+    }
+
+    @Override
     public Class<?>[] getCaptureAllTypes() {
         List<Class<?>> types = ImmutableList.<Class<?>>builder()
             .addAll(getCaptureTypes(getCaptures()))

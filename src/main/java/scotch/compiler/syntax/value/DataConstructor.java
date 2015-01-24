@@ -52,30 +52,23 @@ public class DataConstructor extends Value {
 
     @Override
     public Value bindMethods(TypeChecker state) {
-        return withArguments(arguments.stream()
-            .map(argument -> argument.bindMethods(state))
-            .collect(toList()));
+        return withArguments(state.bindMethods(arguments));
     }
 
     @Override
     public Value bindTypes(TypeChecker state) {
-        return withType(state.generate(type)).withArguments(arguments.stream()
-            .map(argument -> argument.bindTypes(state))
-            .collect(toList()));
+        return withType(state.generate(type))
+            .withArguments(state.bindTypes(arguments));
     }
 
     @Override
     public Value checkTypes(TypeChecker state) {
-        return withArguments(arguments.stream()
-            .map(argument -> argument.checkTypes(state))
-            .collect(toList()));
+        return withArguments(state.checkTypes(arguments));
     }
 
     @Override
     public Value defineOperators(OperatorDefinitionParser state) {
-        return withArguments(arguments.stream()
-            .map(argument -> argument.defineOperators(state))
-            .collect(toList()));
+        return withArguments(state.defineValueOperators(arguments));
     }
 
     private DataConstructor withArguments(List<Value> arguments) {
@@ -135,10 +128,8 @@ public class DataConstructor extends Value {
 
     @Override
     public Value qualifyNames(NameQualifier state) {
-        return withArguments(arguments.stream()
-            .map(argument -> argument.qualifyNames(state))
-            .collect(toList()))
-        .withType(type.qualifyNames(state));
+        return withArguments(state.qualifyValueNames(arguments))
+            .withType(type.qualifyNames(state));
     }
 
     @Override

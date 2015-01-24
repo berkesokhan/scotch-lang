@@ -1,5 +1,7 @@
 package scotch.compiler.syntax;
 
+import static java.util.stream.Collectors.toList;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -12,6 +14,7 @@ import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.PatternMatcher;
+import scotch.compiler.syntax.value.Value;
 
 public interface OperatorDefinitionParser {
 
@@ -23,9 +26,7 @@ public interface OperatorDefinitionParser {
         scope().defineOperator(symbol, operator);
     }
 
-    void defineOperators();
-
-    List<DefinitionReference> defineOperators(List<DefinitionReference> references);
+    DefinitionGraph defineOperators();
 
     default void defineValue(Symbol symbol, Type type) {
         scope().defineValue(symbol, type);
@@ -37,8 +38,6 @@ public interface OperatorDefinitionParser {
 
     Optional<Definition> getDefinition(DefinitionReference reference);
 
-    DefinitionGraph getGraph();
-
     default boolean isOperator(Symbol symbol) {
         return scope().isOperator(symbol);
     }
@@ -47,6 +46,22 @@ public interface OperatorDefinitionParser {
     <T extends Scoped> T keep(Scoped scoped);
 
     void leaveScope();
+
+    default List<DefinitionReference> defineDefinitionOperators(List<DefinitionReference> references) {
+        return references.stream()
+            .map(this::getDefinition)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .map(definition -> definition.defineOperators(this))
+            .map(Definition::getReference)
+            .collect(toList());
+    }
+
+    default List<Value> defineValueOperators(List<Value> values) {
+        return values.stream()
+            .map(value -> value.defineOperators(this))
+            .collect(toList());
+    }
 
     Scope scope();
 
