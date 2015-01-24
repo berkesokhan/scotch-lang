@@ -11,7 +11,6 @@ import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
-import scotch.compiler.syntax.builder.SyntaxBuilderFactory;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 
@@ -60,7 +59,7 @@ public class Compiler {
     }
 
     public DefinitionGraph parseInput() {
-        return new InputParser(symbolResolver, scanner, new SyntaxBuilderFactory()).parse();
+        return new InputParser(symbolResolver, scanner).parse();
     }
 
     public DefinitionGraph defineOperators() {

@@ -4,6 +4,7 @@ import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_STATIC;
 import static scotch.compiler.syntax.TypeError.typeError;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.valueRef;
 import static scotch.data.either.Either.right;
 import static scotch.util.StringUtil.stringify;
@@ -23,12 +24,17 @@ import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 import scotch.data.either.Either;
 
 public class ValueDefinition extends Definition {
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     private final SourceRange sourceRange;
     private       Symbol      symbol;
@@ -59,6 +65,11 @@ public class ValueDefinition extends Definition {
         state.defineValue(symbol, type);
         state.specialize(type);
         return state.scoped(this, () -> withBody(body.accumulateNames(state)));
+    }
+
+    @Override
+    public Optional<Symbol> asSymbol() {
+        return Optional.of(symbol);
     }
 
     @Override
@@ -182,5 +193,51 @@ public class ValueDefinition extends Definition {
 
     public ValueDefinition withType(Type type) {
         return new ValueDefinition(sourceRange, symbol, body, type);
+    }
+
+    public static class Builder implements SyntaxBuilder<ValueDefinition> {
+
+        private Optional<Symbol>      symbol;
+        private Optional<Type>        type;
+        private Optional<Value>       body;
+        private Optional<SourceRange> sourceRange;
+
+        private Builder() {
+            symbol = Optional.empty();
+            type = Optional.empty();
+            body = Optional.empty();
+            sourceRange = Optional.empty();
+        }
+
+        @Override
+        public ValueDefinition build() {
+            return value(
+                require(sourceRange, "Source range"),
+                require(symbol, "Value symbol"),
+                require(type, "Value type"),
+                require(body, "Value body").collapse()
+            );
+        }
+
+        public Builder withBody(Value body) {
+            this.body = Optional.of(body);
+            return this;
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withSymbol(Symbol symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
+        }
+
+        public Builder withType(Type type) {
+            this.type = Optional.of(type);
+            return this;
+        }
     }
 }

@@ -5,21 +5,17 @@ import static scotch.util.StringUtil.stringify;
 import java.util.Objects;
 import scotch.compiler.symbol.Symbol;
 
-public class OperatorReference extends DefinitionReference {
+public class DataReference extends DefinitionReference {
 
     private final Symbol symbol;
 
-    OperatorReference(Symbol symbol) {
+    public DataReference(Symbol symbol) {
         this.symbol = symbol;
     }
 
     @Override
     public boolean equals(Object o) {
-        return o == this || o instanceof OperatorReference && Objects.equals(symbol, ((OperatorReference) o).symbol);
-    }
-
-    public Symbol getSymbol() {
-        return symbol;
+        return o == this || o instanceof DataReference && Objects.equals(symbol, ((DataReference) o).symbol);
     }
 
     @Override
@@ -29,6 +25,6 @@ public class OperatorReference extends DefinitionReference {
 
     @Override
     public String toString() {
-        return stringify(this) + "(" + symbol + ")";
+        return stringify(this) + "(" + symbol.toString() + ")";
     }
 }

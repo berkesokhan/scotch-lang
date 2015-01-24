@@ -1,9 +1,11 @@
 package scotch.compiler.syntax.value;
 
 import static scotch.compiler.symbol.Symbol.unqualified;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
+import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
@@ -14,9 +16,14 @@ import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 
 public class Argument extends Value {
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     private final SourceRange sourceRange;
     private final String      name;
@@ -122,5 +129,43 @@ public class Argument extends Value {
     @Override
     public Argument withType(Type type) {
         return arg(sourceRange, name, type);
+    }
+
+    public static class Builder implements SyntaxBuilder<Argument> {
+
+        private Optional<String>      name;
+        private Optional<Type>        type;
+        private Optional<SourceRange> sourceRange;
+
+        private Builder() {
+            name = Optional.empty();
+            type = Optional.empty();
+            sourceRange = Optional.empty();
+        }
+
+        @Override
+        public Argument build() {
+            return arg(
+                require(sourceRange, "Source range"),
+                require(name, "Argument name"),
+                require(type, "Argument type")
+            );
+        }
+
+        public Builder withName(String name) {
+            this.name = Optional.of(name);
+            return this;
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withType(Type type) {
+            this.type = Optional.of(type);
+            return this;
+        }
     }
 }

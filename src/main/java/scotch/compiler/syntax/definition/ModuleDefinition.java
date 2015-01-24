@@ -2,6 +2,7 @@ package scotch.compiler.syntax.definition;
 
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
 import static scotch.compiler.symbol.Symbol.fromString;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
 import static scotch.util.StringUtil.stringify;
 
@@ -17,10 +18,15 @@ import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
 
 public class ModuleDefinition extends Definition {
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     private final SourceRange               sourceRange;
     private final String                    symbol;
@@ -131,5 +137,51 @@ public class ModuleDefinition extends Definition {
 
     public ModuleDefinition withDefinitions(List<DefinitionReference> definitions) {
         return new ModuleDefinition(sourceRange, symbol, imports, definitions);
+    }
+
+    public static class Builder implements SyntaxBuilder<ModuleDefinition> {
+
+        private Optional<String>                    symbol;
+        private Optional<List<Import>>              imports;
+        private Optional<List<DefinitionReference>> definitions;
+        private Optional<SourceRange>               sourceRange;
+
+        private Builder() {
+            symbol = Optional.empty();
+            imports = Optional.empty();
+            definitions = Optional.empty();
+            sourceRange = Optional.empty();
+        }
+
+        @Override
+        public ModuleDefinition build() {
+            return module(
+                require(sourceRange, "Source range"),
+                require(symbol, "Module symbol"),
+                require(imports, "Imports are required"),
+                require(definitions, "Member definitions")
+            );
+        }
+
+        public Builder withDefinitions(List<DefinitionReference> definitions) {
+            this.definitions = Optional.of(definitions);
+            return this;
+        }
+
+        public Builder withImports(List<Import> imports) {
+            this.imports = Optional.of(imports);
+            return this;
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withSymbol(String symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
+        }
     }
 }

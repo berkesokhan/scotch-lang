@@ -1,6 +1,7 @@
 package scotch.compiler.symbol;
 
 import java.util.Optional;
+import scotch.compiler.symbol.DataTypeDescriptor.Builder;
 import scotch.compiler.symbol.Symbol.QualifiedSymbol;
 import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
@@ -20,11 +21,15 @@ public abstract class SymbolEntry {
         // intentionally empty
     }
 
+    public abstract void defineDataType(DataTypeDescriptor dataType);
+
     public abstract void defineOperator(Operator operator);
 
     public abstract void defineSignature(Type type);
 
     public abstract void defineValue(Type type);
+
+    public abstract DataTypeDescriptor getDataType();
 
     public abstract Symbol getMemberOf();
 
@@ -52,13 +57,14 @@ public abstract class SymbolEntry {
 
     public static final class ImmutableEntry extends SymbolEntry {
 
-        private final Symbol                        symbol;
-        private final Optional<Type>                optionalValue;
-        private final Optional<Operator>            optionalOperator;
-        private final Optional<Type>                optionalType;
-        private final Optional<MethodSignature>     optionalValueSignature;
-        private final Optional<TypeClassDescriptor> optionalTypeClass;
-        private final Optional<Symbol>              optionalMemberOf;
+        private final Symbol                              symbol;
+        private final Optional<Type>                      optionalValue;
+        private final Optional<Operator>                  optionalOperator;
+        private final Optional<Type>                      optionalType;
+        private final Optional<MethodSignature>           optionalValueSignature;
+        private final Optional<TypeClassDescriptor>       optionalTypeClass;
+        private final Optional<Symbol>                    optionalMemberOf;
+        private final Optional<DataTypeDescriptor>        optionalDataType;
 
         private ImmutableEntry(ImmutableEntryBuilder builder) {
             this.symbol = builder.symbol;
@@ -68,6 +74,12 @@ public abstract class SymbolEntry {
             this.optionalValueSignature = builder.optionalValueSignature;
             this.optionalTypeClass = builder.optionalTypeClass;
             this.optionalMemberOf = builder.optionalMemberOf;
+            this.optionalDataType = builder.dataTypeBuilder.map(Builder::build);
+        }
+
+        @Override
+        public void defineDataType(DataTypeDescriptor dataType) {
+            throw new IllegalStateException("Can't define data type for existing symbol " + symbol.quote());
         }
 
         @Override
@@ -83,6 +95,11 @@ public abstract class SymbolEntry {
         @Override
         public void defineValue(Type type) {
             throw new IllegalStateException("Can't define value for existing symbol " + symbol.quote());
+        }
+
+        @Override
+        public DataTypeDescriptor getDataType() {
+            return optionalDataType.orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not a data type"));
         }
 
         @Override
@@ -155,6 +172,7 @@ public abstract class SymbolEntry {
         private       Optional<MethodSignature>     optionalValueSignature;
         private       Optional<TypeClassDescriptor> optionalTypeClass;
         private       Optional<Symbol>              optionalMemberOf;
+        private       Optional<Builder>             dataTypeBuilder;
 
         private ImmutableEntryBuilder(Symbol symbol) {
             this.symbol = symbol;
@@ -164,10 +182,22 @@ public abstract class SymbolEntry {
             this.optionalValueSignature = Optional.empty();
             this.optionalTypeClass = Optional.empty();
             this.optionalMemberOf = Optional.empty();
+            this.dataTypeBuilder = Optional.empty();
         }
 
         public ImmutableEntry build() {
             return new ImmutableEntry(this);
+        }
+
+        public Builder dataType() {
+            if (!dataTypeBuilder.isPresent()) {
+                dataTypeBuilder = Optional.of(DataTypeDescriptor.builder(symbol));
+            }
+            return dataTypeBuilder.get();
+        }
+
+        public Symbol getSymbol() {
+            return symbol;
         }
 
         public ImmutableEntryBuilder withMemberOf(Symbol memberOf) {
@@ -210,6 +240,7 @@ public abstract class SymbolEntry {
         private       Optional<Type>                optionalSignature;
         private       Optional<TypeClassDescriptor> optionalTypeClass;
         private       Optional<Symbol>              optionalMemberOf;
+        private       Optional<DataTypeDescriptor>  optionalDataType;
 
         private MutableEntry(Symbol symbol) {
             this.symbol = symbol;
@@ -219,6 +250,16 @@ public abstract class SymbolEntry {
             this.optionalSignature = Optional.empty();
             this.optionalTypeClass = Optional.empty();
             this.optionalMemberOf = Optional.empty();
+            this.optionalDataType = Optional.empty();
+        }
+
+        @Override
+        public void defineDataType(DataTypeDescriptor dataType) {
+            if (optionalDataType.isPresent()) {
+                throw new IllegalStateException("Data type has already been defined for " + symbol.quote());
+            } else {
+                this.optionalDataType = Optional.of(dataType);
+            }
         }
 
         @Override
@@ -248,6 +289,11 @@ public abstract class SymbolEntry {
             } else {
                 optionalValue = Optional.of(type);
             }
+        }
+
+        @Override
+        public DataTypeDescriptor getDataType() {
+            return optionalDataType.orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not a data type"));
         }
 
         @Override

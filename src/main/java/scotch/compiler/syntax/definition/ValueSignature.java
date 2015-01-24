@@ -1,5 +1,6 @@
 package scotch.compiler.syntax.definition;
 
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.signatureRef;
 import static scotch.data.either.Either.right;
 import static scotch.util.StringUtil.stringify;
@@ -15,11 +16,16 @@ import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
 import scotch.data.either.Either;
 
 public class ValueSignature extends Definition {
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     private final SourceRange sourceRange;
     private final Symbol      symbol;
@@ -126,5 +132,43 @@ public class ValueSignature extends Definition {
 
     public ValueSignature withType(Type type) {
         return new ValueSignature(sourceRange, symbol, type);
+    }
+
+    public static class Builder implements SyntaxBuilder<ValueSignature> {
+
+        private Optional<Symbol>      symbol;
+        private Optional<Type>        type;
+        private Optional<SourceRange> sourceRange;
+
+        private Builder() {
+            type = Optional.empty();
+            symbol = Optional.empty();
+            sourceRange = Optional.empty();
+        }
+
+        @Override
+        public ValueSignature build() {
+            return signature(
+                require(sourceRange, "Source range"),
+                require(symbol, "Signature symbol"),
+                require(type, "Signature type")
+            );
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withSymbol(Symbol symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
+        }
+
+        public Builder withType(Type type) {
+            this.type = Optional.of(type);
+            return this;
+        }
     }
 }

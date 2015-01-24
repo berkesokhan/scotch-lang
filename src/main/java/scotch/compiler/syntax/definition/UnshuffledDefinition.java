@@ -1,6 +1,7 @@
 package scotch.compiler.syntax.definition;
 
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
 import static scotch.compiler.syntax.value.PatternMatcher.pattern;
 import static scotch.util.StringUtil.stringify;
@@ -17,20 +18,25 @@ import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.PatternMatch;
 import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
-public class UnshuffledPattern extends Definition {
+public class UnshuffledDefinition extends Definition {
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     private final SourceRange        sourceRange;
     private final Symbol             symbol;
     private final List<PatternMatch> matches;
     private final Value              body;
 
-    UnshuffledPattern(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
+    UnshuffledDefinition(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
         this.sourceRange = sourceRange;
         this.symbol = symbol;
         this.matches = ImmutableList.copyOf(matches);
@@ -74,8 +80,8 @@ public class UnshuffledPattern extends Definition {
     public boolean equals(Object o) {
         if (o == this) {
             return true;
-        } else if (o instanceof UnshuffledPattern) {
-            UnshuffledPattern other = (UnshuffledPattern) o;
+        } else if (o instanceof UnshuffledDefinition) {
+            UnshuffledDefinition other = (UnshuffledDefinition) o;
             return Objects.equals(symbol, other.symbol)
                 && Objects.equals(matches, other.matches)
                 && Objects.equals(body, other.body);
@@ -131,11 +137,57 @@ public class UnshuffledPattern extends Definition {
         return stringify(this) + "(" + symbol + ")";
     }
 
-    public UnshuffledPattern withBody(Value body) {
-        return new UnshuffledPattern(sourceRange, symbol, matches, body);
+    public UnshuffledDefinition withBody(Value body) {
+        return new UnshuffledDefinition(sourceRange, symbol, matches, body);
     }
 
-    public UnshuffledPattern withMatches(List<PatternMatch> matches) {
-        return new UnshuffledPattern(sourceRange, symbol, matches, body);
+    public UnshuffledDefinition withMatches(List<PatternMatch> matches) {
+        return new UnshuffledDefinition(sourceRange, symbol, matches, body);
+    }
+
+    public static class Builder implements SyntaxBuilder<UnshuffledDefinition> {
+
+        private Optional<Symbol>             symbol;
+        private Optional<List<PatternMatch>> matches;
+        private Optional<Value>              body;
+        private Optional<SourceRange>        sourceRange;
+
+        private Builder() {
+            symbol = Optional.empty();
+            matches = Optional.empty();
+            body = Optional.empty();
+            sourceRange = Optional.empty();
+        }
+
+        @Override
+        public UnshuffledDefinition build() {
+            return unshuffled(
+                require(sourceRange, "Source range"),
+                require(symbol, "Unshuffled pattern symbol"),
+                require(matches, "Unshuffled pattern matches"),
+                require(body, "Unshuffled pattern body")
+            );
+        }
+
+        public Builder withBody(Value body) {
+            this.body = Optional.of(body);
+            return this;
+        }
+
+        public Builder withMatches(List<PatternMatch> matches) {
+            this.matches = Optional.of(matches);
+            return this;
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withSymbol(Symbol symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
+        }
     }
 }

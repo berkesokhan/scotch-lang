@@ -466,7 +466,7 @@ public class CheckTypesTest extends ParserTest {
     public void shouldBindMethodsInEqualMatch() {
         parse(
             "module scotch.test",
-            "import scotch.data.eq", // TODO why does this require an import?
+            "import scotch.data.eq", // TODO this should not require an import
             "fib 0 = 0"
         );
         InstanceType instance = instance("scotch.data.eq.Eq", intType);

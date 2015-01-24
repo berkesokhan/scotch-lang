@@ -12,7 +12,7 @@ import java.util.List;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.syntax.definition.UnshuffledPattern;
+import scotch.compiler.syntax.definition.UnshuffledDefinition;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.CaptureMatch;
 import scotch.compiler.syntax.value.PatternMatch;
@@ -39,7 +39,7 @@ public class PatternShuffler {
         };
     }
 
-    public ShuffleResult shuffle(Scope scope, List<String> memberNames, UnshuffledPattern pattern) {
+    public ShuffleResult shuffle(Scope scope, List<String> memberNames, UnshuffledDefinition pattern) {
         return new Shuffler(scope, memberNames, pattern).splitPattern();
     }
 
@@ -67,11 +67,11 @@ public class PatternShuffler {
 
     private final class Shuffler {
 
-        private final Scope        scope;
-        private final List<String> memberNames;
-        private final UnshuffledPattern pattern;
+        private final Scope                scope;
+        private final List<String>         memberNames;
+        private final UnshuffledDefinition pattern;
 
-        private Shuffler(Scope scope, List<String> memberNames, UnshuffledPattern pattern) {
+        private Shuffler(Scope scope, List<String> memberNames, UnshuffledDefinition pattern) {
             this.scope = scope;
             this.memberNames = ImmutableList.copyOf(memberNames);
             this.pattern = pattern;

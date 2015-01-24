@@ -1,9 +1,9 @@
 package scotch.compiler.util;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.Compiler.compiler;
-import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.symbol.Type.sum;
 import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
@@ -16,6 +16,9 @@ import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
 import scotch.compiler.symbol.ClasspathResolver;
+import scotch.compiler.symbol.DataConstructorDescriptor;
+import scotch.compiler.symbol.DataFieldDescriptor;
+import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
@@ -23,14 +26,18 @@ import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.definition.ClassDefinition;
+import scotch.compiler.syntax.definition.DataConstructorDefinition;
+import scotch.compiler.syntax.definition.DataFieldDefinition;
+import scotch.compiler.syntax.definition.DataTypeDefinition;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.definition.ModuleImport;
 import scotch.compiler.syntax.definition.OperatorDefinition;
 import scotch.compiler.syntax.definition.RootDefinition;
-import scotch.compiler.syntax.definition.UnshuffledPattern;
+import scotch.compiler.syntax.definition.UnshuffledDefinition;
 import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.reference.ClassReference;
+import scotch.compiler.syntax.reference.DataReference;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.reference.InstanceReference;
 import scotch.compiler.syntax.reference.OperatorReference;
@@ -46,6 +53,8 @@ import scotch.compiler.syntax.value.DoubleLiteral;
 import scotch.compiler.syntax.value.EqualMatch;
 import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.Identifier;
+import scotch.compiler.syntax.value.Initializer;
+import scotch.compiler.syntax.value.InitializerField;
 import scotch.compiler.syntax.value.Instance;
 import scotch.compiler.syntax.value.IntLiteral;
 import scotch.compiler.syntax.value.Let;
@@ -69,23 +78,51 @@ public class TestUtil {
     }
 
     public static CaptureMatch capture(String name, Type type) {
-        return PatternMatch.capture(NULL_SOURCE, Optional.empty(), fromString(name), type);
+        return PatternMatch.capture(NULL_SOURCE, Optional.empty(), Symbol.fromString(name), type);
     }
 
     public static CaptureMatch capture(String argument, String name, Type type) {
-        return PatternMatch.capture(NULL_SOURCE, Optional.of(argument), fromString(name), type);
+        return PatternMatch.capture(NULL_SOURCE, Optional.of(argument), Symbol.fromString(name), type);
     }
 
     public static ClassDefinition classDef(String name, List<Type> arguments, List<DefinitionReference> members) {
-        return Definition.classDef(NULL_SOURCE, fromString(name), arguments, members);
+        return Definition.classDef(NULL_SOURCE, Symbol.fromString(name), arguments, members);
     }
 
     public static ClassReference classRef(String className) {
-        return DefinitionReference.classRef(fromString(className));
+        return DefinitionReference.classRef(Symbol.fromString(className));
     }
 
     public static Conditional conditional(Value condition, Value whenTrue, Value whenFalse, Type type) {
         return Value.conditional(NULL_SOURCE, condition, whenTrue, whenFalse, type);
+    }
+
+    public static DataConstructorDescriptor constructor(String name, String dataType) {
+        return constructor(name, dataType, emptyList());
+    }
+
+    public static DataConstructorDescriptor constructor(String name, String dataType, List<DataFieldDescriptor> fields) {
+        return new DataConstructorDescriptor(Symbol.fromString(name), Symbol.fromString(dataType), fields);
+    }
+
+    public static DataConstructorDefinition ctorDef(String name) {
+        return ctorDef(name, emptyList());
+    }
+
+    public static DataConstructorDefinition ctorDef(String name, List<DataFieldDefinition> fields) {
+        return new DataConstructorDefinition(NULL_SOURCE, Symbol.fromString(name), fields);
+    }
+
+    public static DataTypeDefinition dataDef(String name, List<Type> parameters, List<DataConstructorDefinition> constructors) {
+        return new DataTypeDefinition(NULL_SOURCE, Symbol.fromString(name), parameters, constructors);
+    }
+
+    public static DataReference dataRef(String name) {
+        return DefinitionReference.dataRef(Symbol.fromString(name));
+    }
+
+    public static DataTypeDescriptor dataType(String name, List<Type> parameters, List<DataConstructorDescriptor> constructors) {
+        return new DataTypeDescriptor(Symbol.fromString(name), parameters, constructors);
     }
 
     public static Type doubleType() {
@@ -112,12 +149,24 @@ public class TestUtil {
         }
     }
 
+    public static InitializerField field(String name, Value value) {
+        return InitializerField.field(NULL_SOURCE, name, value);
+    }
+
+    public static DataFieldDescriptor field(String name, Type type) {
+        return new DataFieldDescriptor(name, type);
+    }
+
+    public static DataFieldDefinition fieldDef(String name, Type type) {
+        return new DataFieldDefinition(NULL_SOURCE, name, type);
+    }
+
     public static FunctionValue fn(String name, Argument argument, Value body) {
         return fn(name, asList(argument), body);
     }
 
     public static FunctionValue fn(String name, List<Argument> arguments, Value body) {
-        return Value.fn(NULL_SOURCE, fromString(name), arguments, body);
+        return Value.fn(NULL_SOURCE, Symbol.fromString(name), arguments, body);
     }
 
     public static List<GeneratedClass> generateBytecode(ClasspathResolver resolver, String... lines) {
@@ -125,7 +174,11 @@ public class TestUtil {
     }
 
     public static Identifier id(String name, Type type) {
-        return Value.id(NULL_SOURCE, fromString(name), type);
+        return Value.id(NULL_SOURCE, Symbol.fromString(name), type);
+    }
+
+    public static Initializer initializer(Type type, Value value, List<InitializerField> fields) {
+        return Value.initializer(NULL_SOURCE, type, value, fields);
     }
 
     public static Instance instance(InstanceReference reference, Type type) {
@@ -173,15 +226,15 @@ public class TestUtil {
     }
 
     public static OperatorDefinition operatorDef(String name, Fixity fixity, int precedence) {
-        return Definition.operatorDef(NULL_SOURCE, fromString(name), fixity, precedence);
+        return Definition.operatorDef(NULL_SOURCE, Symbol.fromString(name), fixity, precedence);
     }
 
     public static OperatorReference operatorRef(String name) {
-        return DefinitionReference.operatorRef(fromString(name));
+        return DefinitionReference.operatorRef(Symbol.fromString(name));
     }
 
     public static PatternMatcher pattern(String name, List<PatternMatch> matches, Value body) {
-        return PatternMatcher.pattern(NULL_SOURCE, fromString(name), matches, body);
+        return PatternMatcher.pattern(NULL_SOURCE, Symbol.fromString(name), matches, body);
     }
 
     public static PatternMatchers patterns(Type type, PatternMatcher... matchers) {
@@ -217,29 +270,29 @@ public class TestUtil {
     }
 
     public static TypeClassDescriptor typeClass(String name, List<Type> parameters, List<String> members) {
-        return TypeClassDescriptor.typeClass(fromString(name), parameters, members.stream()
+        return TypeClassDescriptor.typeClass(Symbol.fromString(name), parameters, members.stream()
             .map(Symbol::fromString)
             .collect(toList()));
     }
 
     public static TypeInstanceDescriptor typeInstance(String moduleName, String typeClass, List<Type> parameters, MethodSignature instanceGetter) {
-        return TypeInstanceDescriptor.typeInstance(moduleName, fromString(typeClass), parameters, instanceGetter);
+        return TypeInstanceDescriptor.typeInstance(moduleName, Symbol.fromString(typeClass), parameters, instanceGetter);
     }
 
     public static UnshuffledValue unshuffled(Value... members) {
         return Value.unshuffled(NULL_SOURCE, asList(members));
     }
 
-    public static UnshuffledPattern unshuffled(String name, List<PatternMatch> matches, Value body) {
-        return Definition.unshuffled(NULL_SOURCE, fromString(name), matches, body);
+    public static UnshuffledDefinition unshuffled(String name, List<PatternMatch> matches, Value body) {
+        return Definition.unshuffled(NULL_SOURCE, Symbol.fromString(name), matches, body);
     }
 
     public static ValueDefinition value(String name, Type type, Value value) {
-        return Definition.value(NULL_SOURCE, fromString(name), type, value);
+        return Definition.value(NULL_SOURCE, Symbol.fromString(name), type, value);
     }
 
     public static ValueReference valueRef(String name) {
-        return DefinitionReference.valueRef(fromString(name));
+        return DefinitionReference.valueRef(Symbol.fromString(name));
     }
 
     private TestUtil() {

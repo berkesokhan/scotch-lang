@@ -2,6 +2,7 @@ package scotch.compiler.parser;
 
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
+import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -16,8 +17,14 @@ import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
 import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.conditional;
+import static scotch.compiler.util.TestUtil.ctorDef;
+import static scotch.compiler.util.TestUtil.dataDef;
+import static scotch.compiler.util.TestUtil.dataRef;
+import static scotch.compiler.util.TestUtil.field;
+import static scotch.compiler.util.TestUtil.fieldDef;
 import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
+import static scotch.compiler.util.TestUtil.initializer;
 import static scotch.compiler.util.TestUtil.let;
 import static scotch.compiler.util.TestUtil.literal;
 import static scotch.compiler.util.TestUtil.operatorDef;
@@ -36,6 +43,7 @@ import scotch.compiler.Compiler;
 import scotch.compiler.ParserTest;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.StubResolver;
+import scotch.compiler.syntax.definition.DataTypeDefinition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.PatternMatch;
@@ -143,19 +151,19 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldThrowException_whenModuleNameNotTerminatedWithSemicolonOrNewline() {
-        expectParseException("Unexpected token COMMA; wanted SEMICOLON");
+        expectParseException("Unexpected COMMA; wanted SEMICOLON");
         parse("module scotch.test,");
     }
 
     @Test
     public void shouldThrowException_whenNotBeginningWithModule() {
-        expectParseException("Unexpected token WORD with value 'length'; wanted WORD with value 'module'");
+        expectParseException("Unexpected WORD with value 'length'; wanted WORD with value 'module'");
         parse("length s = jStrlen s");
     }
 
     @Test
     public void shouldThrowException_whenOperatorIsMissingPrecedence() {
-        expectParseException("Unexpected token WORD; wanted INT");
+        expectParseException("Unexpected WORD; wanted INT");
         parse(
             "module scotch.test",
             "left infix =="
@@ -164,7 +172,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldThrowException_whenOperatorSymbolEnclosedByParensDoesNotContainWord() {
-        expectParseException("Unexpected token INT; wanted WORD");
+        expectParseException("Unexpected INT; wanted WORD");
         parse(
             "module scotch.test",
             "left infix 7 (42)"
@@ -173,7 +181,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldThrowException_whenOperatorSymbolIsNotWord() {
-        expectParseException("Unexpected token BOOL; wanted one of [WORD, LPAREN]");
+        expectParseException("Unexpected BOOL; wanted one of [WORD, LPAREN]");
         parse(
             "module scotch.test",
             "left infix 7 True"
@@ -182,7 +190,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldThrowException_whenOperatorSymbolsNotSeparatedByCommas() {
-        expectParseException("Unexpected token WORD; wanted SEMICOLON");
+        expectParseException("Unexpected WORD; wanted SEMICOLON");
         parse(
             "module scotch.test",
             "left infix 7 + -"
@@ -191,7 +199,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldThrowException_whenSignatureHasStuffBetweenNameAndDoubleColon() {
-        expectParseException("Unexpected token SEMICOLON; wanted ASSIGN");
+        expectParseException("Unexpected SEMICOLON; wanted ASSIGN");
         parse(
             "module scotch.test",
             "length ; :: String -> Int"
@@ -351,6 +359,75 @@ public class InputParserTest extends ParserTest {
             literal("Nope"),
             t(2)
         ));
+    }
+
+    @Test
+    public void shouldParseInitializer() {
+        parse(
+            "module scotch.test",
+            "toast = Toast {",
+            "    type = Rye, butter = Yes, jam = No",
+            "}"
+        );
+        shouldHaveValue("scotch.test.toast", initializer(t(2), id("Toast", t(1)), asList(
+            field("type", id("Rye", t(3))),
+            field("butter", id("Yes", t(4))),
+            field("jam", id("No", t(5)))
+        )));
+    }
+
+    @Test
+    public void shouldParseUnaryDataDeclarationWithNamedFields() {
+        parse(
+            "module scotch.test",
+            "data Toast {",
+            "    type Bread,",
+            "    butter Verbool,",
+            "    jam Verbool",
+            "}"
+        );
+        shouldHaveDataType("scotch.test.Toast", dataDef("scotch.test.Toast", emptyList(), asList(
+            ctorDef("scotch.test.Toast", asList(
+                fieldDef("type", sum("Bread")),
+                fieldDef("butter", sum("Verbool")),
+                fieldDef("jam", sum("Verbool"))
+            ))
+        )));
+    }
+
+    @Test
+    public void shouldParseDataDeclarationWithAnonymousField() {
+        parse(
+            "module scotch.test",
+            "data Maybe a = Nothing | Just a"
+        );
+        shouldHaveDataType("scotch.test.Maybe", dataDef("scotch.test.Maybe", asList(var("a")), asList(
+            ctorDef("scotch.test.Nothing"),
+            ctorDef("scotch.test.Just",
+                asList(fieldDef("_0", var("a")))
+            )
+        )));
+    }
+
+    @Test
+    public void shouldParseDataDeclarationWithNamedField() {
+        parse(
+            "module scotch.test",
+            "data Map a b = Empty | Entry { key a, value b }"
+        );
+        shouldHaveDataType(
+            "scotch.test.Map",
+            dataDef("scotch.test.Map",
+                asList(var("a"), var("b")),
+                asList(
+                    ctorDef("scotch.test.Empty"),
+                    ctorDef("scotch.test.Entry", asList(
+                        fieldDef("key", var("a")),
+                        fieldDef("value", var("b")))))));
+    }
+
+    private void shouldHaveDataType(String name, DataTypeDefinition value) {
+        assertThat(graph.getDefinition(dataRef(name)).get(), is(value));
     }
 
     private void expectParseException(String message) {

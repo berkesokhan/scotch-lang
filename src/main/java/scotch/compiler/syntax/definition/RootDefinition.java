@@ -1,8 +1,10 @@
 package scotch.compiler.syntax.definition;
 
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
 import static scotch.util.StringUtil.stringify;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -14,10 +16,15 @@ import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
 
 public class RootDefinition extends Definition {
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     private final SourceRange               sourceRange;
     private final List<DefinitionReference> definitions;
@@ -98,5 +105,32 @@ public class RootDefinition extends Definition {
 
     public RootDefinition withDefinitions(List<DefinitionReference> definitions) {
         return new RootDefinition(sourceRange, definitions);
+    }
+
+    public static class Builder implements SyntaxBuilder<RootDefinition> {
+
+        private List<DefinitionReference> definitions;
+        private Optional<SourceRange>     sourceRange;
+
+        private Builder() {
+            definitions = new ArrayList<>();
+            sourceRange = Optional.empty();
+        }
+
+        @Override
+        public RootDefinition build() {
+            return root(require(sourceRange, "Source range"), definitions);
+        }
+
+        public Builder withModule(DefinitionReference module) {
+            definitions.add(module);
+            return this;
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
     }
 }

@@ -1,11 +1,13 @@
 package scotch.compiler.syntax.value;
 
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.symbol.Symbol;
@@ -18,12 +20,16 @@ import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
 
 public class Let extends Value implements Scoped {
 
+    public static Builder builder() {
+        return new Builder();
+    }
     private final SourceRange               sourceRange;
     private final Symbol                    symbol;
     private final List<DefinitionReference> definitions;
@@ -157,5 +163,51 @@ public class Let extends Value implements Scoped {
     @Override
     public Value withType(Type type) {
         return new Let(sourceRange, symbol, definitions, body.withType(type));
+    }
+
+    public static class Builder implements SyntaxBuilder<Let> {
+
+        private Optional<SourceRange>               sourceRange;
+        private Optional<Symbol>                    symbol;
+        private Optional<List<DefinitionReference>> definitions;
+        private Optional<Value>                     body;
+
+        private Builder() {
+            sourceRange = Optional.empty();
+            symbol = Optional.empty();
+            definitions = Optional.empty();
+            body = Optional.empty();
+        }
+
+        @Override
+        public Let build() {
+            return let(
+                require(sourceRange, "Source range"),
+                require(symbol, "Let symbol"),
+                require(definitions, "Let definitions"),
+                require(body, "Let body")
+            );
+        }
+
+        public Builder withBody(Value body) {
+            this.body = Optional.of(body);
+            return this;
+        }
+
+        public Builder withDefinitions(List<DefinitionReference> definitions) {
+            this.definitions = Optional.of(definitions);
+            return this;
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withSymbol(Symbol symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
+        }
     }
 }

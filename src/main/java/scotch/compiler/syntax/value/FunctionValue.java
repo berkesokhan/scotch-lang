@@ -2,6 +2,7 @@ package scotch.compiler.syntax.value;
 
 import static java.util.Collections.reverse;
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
 import static scotch.data.either.Either.right;
 import static scotch.util.StringUtil.stringify;
@@ -24,6 +25,7 @@ import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.reference.ScopeReference;
 import scotch.compiler.text.SourceRange;
@@ -31,6 +33,9 @@ import scotch.data.either.Either;
 
 public class FunctionValue extends Value implements Scoped {
 
+    public static Builder builder() {
+        return new Builder();
+    }
     private final SourceRange    sourceRange;
     private final Symbol         symbol;
     private final List<Argument> arguments;
@@ -171,10 +176,6 @@ public class FunctionValue extends Value implements Scoped {
         return state.named(s, () -> state.scoped(this, () -> withSymbol(s).withBody(body.parsePrecedence(state))));
     }
 
-    private FunctionValue withSymbol(Symbol symbol) {
-        return fn(sourceRange, symbol, arguments, body);
-    }
-
     @Override
     public Value qualifyNames(NameQualifier state) {
         return state.named(symbol, () -> state.scoped(this, () -> withBody(body.qualifyNames(state))));
@@ -203,6 +204,56 @@ public class FunctionValue extends Value implements Scoped {
             return body;
         } else {
             return new LambdaValue(args.pop(), curry_(args));
+        }
+    }
+
+    private FunctionValue withSymbol(Symbol symbol) {
+        return fn(sourceRange, symbol, arguments, body);
+    }
+
+    public static class Builder implements SyntaxBuilder<FunctionValue> {
+
+        private Optional<Symbol>         symbol;
+        private Optional<List<Argument>> arguments;
+        private Optional<Value>          body;
+        private Optional<SourceRange>    sourceRange;
+
+        private Builder() {
+            symbol = Optional.empty();
+            arguments = Optional.empty();
+            body = Optional.empty();
+            sourceRange = Optional.empty();
+        }
+
+        @Override
+        public FunctionValue build() {
+            return fn(
+                require(sourceRange, "Source range"),
+                require(symbol, "Function symbol"),
+                require(arguments, "Function arguments"),
+                require(body, "Function body").collapse()
+            );
+        }
+
+        public Builder withArguments(List<Argument> arguments) {
+            this.arguments = Optional.of(arguments);
+            return this;
+        }
+
+        public Builder withBody(Value body) {
+            this.body = Optional.of(body);
+            return this;
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withSymbol(Symbol symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
         }
     }
 }

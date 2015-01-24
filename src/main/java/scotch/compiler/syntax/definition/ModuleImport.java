@@ -1,6 +1,7 @@
 package scotch.compiler.syntax.definition;
 
 import static scotch.compiler.symbol.Symbol.qualified;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
@@ -9,9 +10,14 @@ import java.util.Set;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.Type;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 
 public final class ModuleImport extends Import {
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     private final SourceRange sourceRange;
     private final String      moduleName;
@@ -57,5 +63,35 @@ public final class ModuleImport extends Import {
 
     public ModuleImport withSourceRange(SourceRange sourceRange) {
         return new ModuleImport(sourceRange, moduleName);
+    }
+
+    public static class Builder implements SyntaxBuilder<ModuleImport> {
+
+        private Optional<SourceRange> sourceRange;
+        private Optional<String>      moduleName;
+
+        private Builder() {
+            moduleName = Optional.empty();
+            sourceRange = Optional.empty();
+        }
+
+        @Override
+        public ModuleImport build() {
+            return moduleImport(
+                require(sourceRange, "Source range"),
+                require(moduleName, "Module name")
+            );
+        }
+
+        public Builder withModuleName(String moduleName) {
+            this.moduleName = Optional.of(moduleName);
+            return this;
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
     }
 }

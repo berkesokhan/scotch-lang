@@ -24,17 +24,18 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolNotFoundError;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.Scoped;
-import scotch.compiler.syntax.builder.SyntaxBuilderFactory;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
 import scotch.compiler.syntax.definition.DefinitionGraph;
-import scotch.compiler.syntax.definition.UnshuffledPattern;
+import scotch.compiler.syntax.definition.UnshuffledDefinition;
+import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.PatternMatch;
 import scotch.compiler.syntax.value.PatternMatcher;
+import scotch.compiler.syntax.value.PatternMatchers;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
@@ -42,7 +43,6 @@ import scotch.compiler.text.SourceRange;
 public class PrecedenceParserState implements PrecedenceParser {
 
     private final DefinitionGraph                           graph;
-    private final SyntaxBuilderFactory                      builderFactory;
     private final Deque<Scope>                              scopes;
     private final Map<DefinitionReference, Scope>           functionScopes;
     private final Map<DefinitionReference, DefinitionEntry> entries;
@@ -51,7 +51,6 @@ public class PrecedenceParserState implements PrecedenceParser {
 
     public PrecedenceParserState(DefinitionGraph graph) {
         this.graph = graph;
-        this.builderFactory = new SyntaxBuilderFactory();
         this.scopes = new ArrayDeque<>();
         this.functionScopes = new HashMap<>();
         this.entries = new HashMap<>();
@@ -154,7 +153,7 @@ public class PrecedenceParserState implements PrecedenceParser {
             Scope scope = scope().enterScope();
             functionScopes.put(valueRef(symbol), scope);
             getScope(function.getReference()).bind(scope);
-            builderFactory.valueDefBuilder()
+            ValueDefinition.builder()
                 .withSourceRange(sourceRange)
                 .withSymbol(symbol)
                 .withType(scope().reserveType())
@@ -218,7 +217,7 @@ public class PrecedenceParserState implements PrecedenceParser {
     }
 
     @Override
-    public Optional<Definition> shuffle(UnshuffledPattern pattern) {
+    public Optional<Definition> shuffle(UnshuffledDefinition pattern) {
         return new PatternShuffler().shuffle(scope(), memberNames.peek(), pattern)
             .accept(new ResultVisitor<Optional<Definition>>() {
                 @Override
@@ -252,11 +251,11 @@ public class PrecedenceParserState implements PrecedenceParser {
     private FunctionValue buildFunction(List<PatternMatcher> patterns, SourceRange sourceRange) {
         Symbol functionSymbol = scope().reserveSymbol(ImmutableList.of());
         List<Argument> arguments = buildFunctionArguments(patterns, sourceRange);
-        FunctionValue function = builderFactory.functionBuilder()
+        FunctionValue function = FunctionValue.builder()
             .withSourceRange(sourceRange)
             .withSymbol(functionSymbol)
             .withArguments(arguments)
-            .withBody(builderFactory.patternsBuilder()
+            .withBody(PatternMatchers.builder()
                 .withSourceRange(sourceRange)
                 .withType(scope().reserveType())
                 .withPatterns(patterns)
@@ -270,7 +269,7 @@ public class PrecedenceParserState implements PrecedenceParser {
         int arity = patterns.get(0).getArity();
         List<Argument> arguments = new ArrayList<>();
         for (int i = 0; i < arity; i++) {
-            arguments.add(builderFactory.argumentBuilder()
+            arguments.add(Argument.builder()
                 .withSourceRange(sourceRange)
                 .withName("#" + i)
                 .withType(scope().reserveType())

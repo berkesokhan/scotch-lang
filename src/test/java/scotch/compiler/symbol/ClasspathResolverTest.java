@@ -1,6 +1,7 @@
 package scotch.compiler.symbol;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -9,6 +10,9 @@ import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.symbol.Type.fn;
 import static scotch.compiler.symbol.Type.var;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.compiler.util.TestUtil.constructor;
+import static scotch.compiler.util.TestUtil.dataType;
+import static scotch.compiler.util.TestUtil.field;
 import static scotch.compiler.util.TestUtil.intType;
 import static scotch.compiler.util.TestUtil.typeClass;
 import static scotch.compiler.util.TestUtil.typeInstance;
@@ -83,17 +87,28 @@ public class ClasspathResolverTest {
     }
 
     @Test
-    public void shouldResolveJavaTypeInstanceByClassAndTypeAndModule() {
-
-    }
-
-    @Test
     public void shouldResolveJavaTypeInstanceByModuleName() {
         assertThat(resolver.getTypeInstancesByModule("scotch.data.num"), hasItem(typeInstance(
             "scotch.data.num",
             "scotch.data.num.Num",
             asList(intType()),
             MethodSignature.fromMethod(NumInt.class, "instance")
+        )));
+    }
+
+    @Test
+    public void shouldResolveDataType() {
+        assertThat(resolver.getEntry(fromString("scotch.data.maybe.Maybe")).get().getDataType(), is(dataType(
+            "scotch.data.maybe.Maybe",
+            asList(var("a")),
+            asList(
+                constructor("scotch.data.maybe.Nothing", "scotch.data.maybe.Maybe", emptyList()),
+                constructor(
+                    "scotch.data.maybe.Just",
+                    "scotch.data.maybe.Maybe",
+                    asList(field("value", var("a")))
+                )
+            )
         )));
     }
 }

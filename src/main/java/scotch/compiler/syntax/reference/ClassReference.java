@@ -14,11 +14,6 @@ public class ClassReference extends DefinitionReference {
     }
 
     @Override
-    public <T> T accept(DefinitionReferenceVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
     public boolean equals(Object o) {
         return o == this || o instanceof ClassReference && Objects.equals(symbol, ((ClassReference) o).symbol);
     }

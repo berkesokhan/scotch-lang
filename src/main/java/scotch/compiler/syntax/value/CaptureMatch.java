@@ -2,10 +2,13 @@ package scotch.compiler.syntax.value;
 
 import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.syntax.TypeError.typeError;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.definition.Definition.classDef;
 import static scotch.data.either.Either.right;
 import static scotch.data.tuple.TupleValues.tuple2;
 import static scotch.util.StringUtil.stringify;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
@@ -20,6 +23,9 @@ import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
 import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
+import scotch.compiler.syntax.definition.ClassDefinition;
+import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
 import scotch.data.either.Either;
@@ -174,5 +180,84 @@ public class CaptureMatch extends PatternMatch {
     @Override
     public PatternMatch withType(Type type) {
         return new CaptureMatch(sourceRange, argument, symbol, type);
+    }
+
+    public static class CaptureMatchBuilder implements SyntaxBuilder<CaptureMatch> {
+
+        private Optional<SourceRange> sourceRange = Optional.empty();
+        private Optional<Symbol>      symbol      = Optional.empty();
+        private Optional<Type>        type        = Optional.empty();
+
+        public CaptureMatchBuilder() {
+            // intentionally empty
+        }
+
+        @Override
+        public CaptureMatch build() {
+            return capture(
+                require(sourceRange, "Source range"),
+                Optional.empty(),
+                require(symbol, "Capture symbol"),
+                require(type, "Capture type")
+            );
+        }
+
+        public CaptureMatchBuilder withIdentifier(Identifier identifier) {
+            this.symbol = Optional.of(identifier.getSymbol());
+            this.type = Optional.of(identifier.getType());
+            return this;
+        }
+
+        @Override
+        public CaptureMatchBuilder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+    }
+
+    public static class ClassDefinitionBuilder implements SyntaxBuilder<ClassDefinition> {
+
+        private Optional<Symbol>                    symbol;
+        private Optional<List<Type>>                arguments;
+        private Optional<List<DefinitionReference>> members;
+        private Optional<SourceRange>               sourceRange;
+
+        public ClassDefinitionBuilder() {
+            symbol = Optional.empty();
+            arguments = Optional.empty();
+            members = Optional.empty();
+            sourceRange = Optional.empty();
+        }
+
+        @Override
+        public ClassDefinition build() {
+            return classDef(
+                require(sourceRange, "Source range"),
+                require(symbol, "Class symbol"),
+                require(arguments, "Class arguments"),
+                require(members, "Class member definitions")
+            );
+        }
+
+        public ClassDefinitionBuilder withArguments(List<Type> arguments) {
+            this.arguments = Optional.of(arguments);
+            return this;
+        }
+
+        public ClassDefinitionBuilder withMembers(List<DefinitionReference> members) {
+            this.members = Optional.of(members);
+            return this;
+        }
+
+        @Override
+        public ClassDefinitionBuilder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public ClassDefinitionBuilder withSymbol(Symbol symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
+        }
     }
 }

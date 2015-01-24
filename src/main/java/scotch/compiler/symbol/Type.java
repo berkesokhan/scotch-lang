@@ -16,9 +16,11 @@ import static scotch.compiler.symbol.Unification.unified;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 import static scotch.data.tuple.TupleValues.tuple2;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -53,11 +55,15 @@ public abstract class Type {
     }
 
     public static SumType sum(String name, List<Type> arguments) {
-        return sum(fromString(name));
+        return sum(fromString(name), arguments);
+    }
+
+    public static SumType sum(Symbol name, List<Type> arguments) {
+        return new SumType(NULL_SOURCE, name, arguments);
     }
 
     public static SumType sum(Symbol symbol) {
-        return new SumType(NULL_SOURCE, symbol);
+        return sum(symbol, ImmutableList.of());
     }
 
     public static VariableType t(int id) {
@@ -325,9 +331,9 @@ public abstract class Type {
 
         @Override
         protected Unification unifyWith(FunctionType target, TypeScope scope) {
-            return target.argument.unify(argument, scope).flatMap(
+            return target.argument.unify(argument, scope).map(
                 argumentResult -> target.result.unify(result, scope).map(
-                    resultResult -> fn(argumentResult, resultResult)
+                    resultResult -> unified(fn(argumentResult, resultResult))
                 )
             );
         }
@@ -341,7 +347,7 @@ public abstract class Type {
     public static class InstanceType extends Type {
 
         private final Symbol symbol;
-        private final Type binding;
+        private final Type   binding;
 
         private InstanceType(Symbol symbol, Type binding) {
             this.symbol = symbol;
@@ -377,17 +383,13 @@ public abstract class Type {
             throw new UnsupportedOperationException(); // TODO
         }
 
+        public Symbol getSymbol() {
+            return symbol;
+        }
+
         @Override
         public boolean hasContext() {
             return binding instanceof VariableType;
-        }
-
-        public boolean isBound() {
-            return !(binding instanceof VariableType);
-        }
-
-        public Symbol getSymbol() {
-            return symbol;
         }
 
         @Override
@@ -395,13 +397,17 @@ public abstract class Type {
             return Objects.hash(symbol);
         }
 
+        public boolean is(Type type) {
+            return binding.simplify().equals(type.simplify());
+        }
+
+        public boolean isBound() {
+            return !(binding instanceof VariableType);
+        }
+
         @Override
         public Type qualifyNames(NameQualifier qualifier) {
             throw new UnsupportedOperationException(); // TODO
-        }
-
-        public boolean is(Type type) {
-            return binding.simplify().equals(type.simplify());
         }
 
         @Override
@@ -461,13 +467,24 @@ public abstract class Type {
 
     public static class SumType extends Type {
 
+        private static List<Tuple2<Type, Type>> zip(List<Type> left, List<Type> right) {
+            List<Tuple2<Type, Type>> result = new ArrayList<>();
+            Iterator<Type> leftIterator = left.iterator();
+            Iterator<Type> rightIterator = right.iterator();
+            while (leftIterator.hasNext()) {
+                result.add(tuple2(leftIterator.next(), rightIterator.next()));
+            }
+            return result;
+        }
         private final SourceRange sourceRange;
         private final Symbol      symbol;
+        private final List<Type>  arguments;
 
-        private SumType(SourceRange sourceRange, Symbol symbol) {
+        private SumType(SourceRange sourceRange, Symbol symbol, List<Type> arguments) {
             shouldBeUpperCase(symbol.getSimpleName());
             this.sourceRange = sourceRange;
             this.symbol = symbol;
+            this.arguments = ImmutableList.copyOf(arguments);
         }
 
         @Override
@@ -481,7 +498,8 @@ public abstract class Type {
                 return true;
             } else if (o instanceof SumType) {
                 SumType other = (SumType) o;
-                return Objects.equals(symbol, other.symbol);
+                return Objects.equals(symbol, other.symbol)
+                    && Objects.equals(arguments, other.arguments);
             } else {
                 return false;
             }
@@ -513,10 +531,14 @@ public abstract class Type {
 
         @Override
         public Type qualifyNames(NameQualifier qualifier) {
-            return withSymbol(qualifier.qualify(symbol).orElseGet(() -> {
-                qualifier.symbolNotFound(symbol, sourceRange);
-                return symbol;
-            }));
+            return withSymbol(qualifier.qualify(symbol)
+                .orElseGet(() -> {
+                    qualifier.symbolNotFound(symbol, sourceRange);
+                    return symbol;
+                }))
+                .withArguments(arguments.stream()
+                    .map(argument -> argument.qualifyNames(qualifier))
+                    .collect(toList()));
         }
 
         @Override
@@ -530,17 +552,21 @@ public abstract class Type {
         }
 
         public SumType withSourceRange(SourceRange sourceRange) {
-            return new SumType(sourceRange, symbol);
+            return new SumType(sourceRange, symbol, arguments);
         }
 
         public SumType withSymbol(Symbol symbol) {
-            return new SumType(sourceRange, symbol);
+            return new SumType(sourceRange, symbol, arguments);
         }
 
         private void shouldBeUpperCase(String name) {
             if (!isUpperCase(name.charAt(0))) {
                 throw new IllegalArgumentException("Sum type should have upper-case name: got '" + name + "'");
             }
+        }
+
+        private Type withArguments(List<Type> arguments) {
+            return new SumType(sourceRange, symbol, arguments);
         }
 
         @Override
@@ -570,8 +596,19 @@ public abstract class Type {
 
         @Override
         protected Unification unifyWith(SumType target, TypeScope scope) {
-            if (equals(target)) {
-                return unified(this);
+            if (symbol.equals(target.symbol)) {
+                if (arguments.size() == target.arguments.size()) {
+                    List<Tuple2<Type, Type>> zip = zip(target.arguments, arguments);
+                    for (Tuple2<Type, Type> pair : zip) {
+                        Unification result = pair.into((left, right) -> left.unify(right, scope));
+                        if (!result.isUnified()) {
+                            return result;
+                        }
+                    }
+                    return unified(target);
+                } else {
+                    return mismatch(target, this);
+                }
             } else {
                 return mismatch(target, this);
             }
@@ -663,6 +700,10 @@ public abstract class Type {
             return Objects.hash(name, context);
         }
 
+        public boolean is(String variable) {
+            return Objects.equals(name, variable);
+        }
+
         @Override
         public Type qualifyNames(NameQualifier qualifier) {
             return withContext(context.stream()
@@ -672,10 +713,6 @@ public abstract class Type {
                     return symbol;
                 })))
                 .collect(toSet()));
-        }
-
-        public boolean is(String variable) {
-            return Objects.equals(name, variable);
         }
 
         @Override

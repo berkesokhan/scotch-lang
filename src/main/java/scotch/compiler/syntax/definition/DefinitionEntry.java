@@ -3,8 +3,6 @@ package scotch.compiler.syntax.definition;
 import java.util.Set;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.syntax.reference.DefinitionReference.DefinitionReferenceVisitor;
-import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
 
@@ -43,15 +41,6 @@ public class DefinitionEntry {
     }
 
     public Symbol getSymbol() {
-        return definition.getReference().accept(new DefinitionReferenceVisitor<Symbol>() {
-            @Override
-            public Symbol visit(ValueReference reference) {
-                return reference.getSymbol();
-            }
-        });
-    }
-
-    public DefinitionEntry withScope(Scope scope) {
-        return new DefinitionEntry(scope, definition);
+        return definition.asSymbol().orElseThrow(() -> new IllegalStateException("Definition " + definition.getReference() + " has no symbol"));
     }
 }

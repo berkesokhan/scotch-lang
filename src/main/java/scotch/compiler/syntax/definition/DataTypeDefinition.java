@@ -1,0 +1,171 @@
+package scotch.compiler.syntax.definition;
+
+import static java.util.stream.Collectors.joining;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.reference.DefinitionReference.dataRef;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import com.google.common.collect.ImmutableList;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Type;
+import scotch.compiler.syntax.BytecodeGenerator;
+import scotch.compiler.syntax.DependencyAccumulator;
+import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.NameQualifier;
+import scotch.compiler.syntax.OperatorDefinitionParser;
+import scotch.compiler.syntax.PrecedenceParser;
+import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
+import scotch.compiler.syntax.reference.DefinitionReference;
+import scotch.compiler.text.SourceRange;
+
+public class DataTypeDefinition extends Definition {
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    private final SourceRange                            sourceRange;
+    private final Symbol                                 symbol;
+    private final List<Type>                             parameters;
+    private final Map<Symbol, DataConstructorDefinition> constructors;
+
+    public DataTypeDefinition(SourceRange sourceRange, Symbol symbol, List<Type> parameters, List<DataConstructorDefinition> constructors) {
+        this.sourceRange = sourceRange;
+        this.symbol = symbol;
+        this.parameters = ImmutableList.copyOf(parameters);
+        this.constructors = new LinkedHashMap<>();
+        constructors.forEach(constructor -> this.constructors.put(constructor.getSymbol(), constructor));
+    }
+
+    @Override
+    public Definition accumulateDependencies(DependencyAccumulator state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Definition accumulateNames(NameAccumulator state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Definition bindTypes(TypeChecker state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Definition checkTypes(TypeChecker state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Definition defineOperators(OperatorDefinitionParser state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        } else if (o instanceof DataTypeDefinition) {
+            DataTypeDefinition other = (DataTypeDefinition) o;
+            return Objects.equals(sourceRange, other.sourceRange)
+                && Objects.equals(symbol, other.symbol)
+                && Objects.equals(parameters, other.parameters)
+                && Objects.equals(constructors, other.constructors);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public void generateBytecode(BytecodeGenerator state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public DefinitionReference getReference() {
+        return dataRef(symbol);
+    }
+
+    @Override
+    public SourceRange getSourceRange() {
+        return sourceRange;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(symbol, parameters, constructors);
+    }
+
+    @Override
+    public Optional<Definition> parsePrecedence(PrecedenceParser state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Definition qualifyNames(NameQualifier state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public String toString() {
+        return symbol.getSimpleName()
+            + (parameters.isEmpty() ? "" : " " + parameters.stream().map(Object::toString).collect(joining(", ")))
+            + " = " + constructors.values().stream().map(Object::toString).collect(joining(" | "));
+    }
+
+    public static class Builder implements SyntaxBuilder<DataTypeDefinition> {
+
+        private Optional<SourceRange>                     sourceRange;
+        private Optional<Symbol>                          symbol;
+        private List<Type>                         parameters;
+        private Optional<List<DataConstructorDefinition>> constructors;
+
+        private Builder() {
+            sourceRange = Optional.empty();
+            symbol = Optional.empty();
+            parameters = new ArrayList<>();
+            constructors = Optional.empty();
+        }
+
+        public Builder addConstructor(DataConstructorDefinition constructor) {
+            if (!constructors.isPresent()) {
+                constructors = Optional.of(new ArrayList<>());
+            }
+            constructors.map(list -> list.add(constructor));
+            return this;
+        }
+
+        public Builder addParameter(Type type) {
+            this.parameters.add(type);
+            return this;
+        }
+
+        @Override
+        public DataTypeDefinition build() {
+            return new DataTypeDefinition(
+                require(sourceRange, "Source range"),
+                require(symbol, "Data type symbol"),
+                parameters,
+                require(constructors, "No constructors defined")
+            );
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withSymbol(Symbol symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
+        }
+    }
+}

@@ -1,6 +1,7 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.Arrays.asList;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.valueRef;
 import static scotch.data.tuple.TupleValues.tuple2;
 import static scotch.util.StringUtil.stringify;
@@ -21,6 +22,7 @@ import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
 import scotch.data.tuple.Tuple2;
@@ -57,6 +59,10 @@ public class Identifier extends Value {
     @Override
     public Value bindMethods(TypeChecker state) {
         return this;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     @Override
@@ -173,5 +179,43 @@ public class Identifier extends Value {
 
     public Identifier withType(Type type) {
         return new Identifier(sourceRange, symbol, type);
+    }
+
+    public static class Builder implements SyntaxBuilder<Identifier> {
+
+        private Optional<Symbol>      symbol;
+        private Optional<Type>        type;
+        private Optional<SourceRange> sourceRange;
+
+        private Builder() {
+            symbol = Optional.empty();
+            type = Optional.empty();
+            sourceRange = Optional.empty();
+        }
+
+        @Override
+        public Identifier build() {
+            return id(
+                require(sourceRange, "Source range"),
+                require(symbol, "Identifier symbol"),
+                require(type, "Identifier type")
+            );
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withSymbol(Symbol symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
+        }
+
+        public Builder withType(Type type) {
+            this.type = Optional.of(type);
+            return this;
+        }
     }
 }

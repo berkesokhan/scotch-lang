@@ -156,6 +156,10 @@ public abstract class Value {
     @Override
     public abstract int hashCode();
 
+    public static Initializer initializer(SourceRange sourceRange, Type type, Value value, List<InitializerField> fields) {
+        return new Initializer(sourceRange, value, fields, type);
+    }
+
     public boolean isOperator(Scope scope) {
         return false;
     }

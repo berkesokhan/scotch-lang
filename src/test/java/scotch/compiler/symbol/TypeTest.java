@@ -15,11 +15,14 @@ import static scotch.compiler.symbol.Unification.contextMismatch;
 import static scotch.compiler.symbol.Unification.failedBinding;
 import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.symbol.Unification.unified;
+import static scotch.compiler.util.TestUtil.boolType;
+import static scotch.compiler.util.TestUtil.intType;
 
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import scotch.compiler.symbol.Type.FunctionType;
+import scotch.compiler.symbol.Type.SumType;
 import scotch.compiler.symbol.Type.TypeVisitor;
 import scotch.compiler.symbol.Type.VariableType;
 import scotch.compiler.syntax.scope.DefaultTypeScope;
@@ -148,6 +151,20 @@ public class TypeTest {
         VariableType target = var("a", asList("Eq"));
         Type function = fn(var("b"), var("c"));
         shouldBeContextMismatch(unify(target, function), target, function, asList("Eq"), asList());
+    }
+
+    @Test
+    public void shouldUnifySums() {
+        SumType list1 = sum("List", asList(intType()));
+        SumType list2 = sum("List", asList(intType()));
+        shouldBeUnified(unify(list1, list2), sum("List", asList(intType())));
+    }
+
+    @Test
+    public void shouldNotUnifySumsWhenArgumentsDiffer() {
+        SumType list1 = sum("List", asList(intType()));
+        SumType list2 = sum("List", asList(boolType()));
+        shouldBeMismatch(unify(list1, list2), intType(), boolType());
     }
 
     private void addContext(Type type, String... context) {

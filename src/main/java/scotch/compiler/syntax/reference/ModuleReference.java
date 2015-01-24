@@ -13,11 +13,6 @@ public class ModuleReference extends DefinitionReference {
     }
 
     @Override
-    public <T> T accept(DefinitionReferenceVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
     public boolean equals(Object o) {
         return o == this || o instanceof ModuleReference && Objects.equals(name, ((ModuleReference) o).name);
     }

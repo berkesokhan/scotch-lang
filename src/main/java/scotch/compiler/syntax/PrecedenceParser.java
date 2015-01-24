@@ -10,7 +10,7 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
-import scotch.compiler.syntax.definition.UnshuffledPattern;
+import scotch.compiler.syntax.definition.UnshuffledDefinition;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.PatternMatcher;
@@ -69,7 +69,7 @@ public interface PrecedenceParser {
 
     <T extends Definition> Optional<Definition> scopedOptional(T definition, Supplier<Optional<? extends T>> supplier);
 
-    Optional<Definition> shuffle(UnshuffledPattern pattern);
+    Optional<Definition> shuffle(UnshuffledDefinition pattern);
 
     Value shuffle(UnshuffledValue value);
 

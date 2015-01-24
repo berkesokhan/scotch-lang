@@ -48,8 +48,8 @@ public abstract class Definition implements Scoped {
         return new ValueSignature(sourceRange, symbol, type);
     }
 
-    public static UnshuffledPattern unshuffled(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
-        return new UnshuffledPattern(sourceRange, symbol, matches, body);
+    public static UnshuffledDefinition unshuffled(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
+        return new UnshuffledDefinition(sourceRange, symbol, matches, body);
     }
 
     public static ValueDefinition value(SourceRange sourceRange, Symbol symbol, Type type, Value value) {
@@ -66,6 +66,10 @@ public abstract class Definition implements Scoped {
 
     public Either<Definition, ValueSignature> asSignature() {
         return left(this);
+    }
+
+    public Optional<Symbol> asSymbol() {
+        return Optional.empty();
     }
 
     public Either<Definition, ValueDefinition> asValue() {

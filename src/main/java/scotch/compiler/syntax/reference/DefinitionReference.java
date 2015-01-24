@@ -13,6 +13,10 @@ public abstract class DefinitionReference {
         return new ClassReference(symbol);
     }
 
+    public static DataReference dataRef(Symbol symbol) {
+        return new DataReference(symbol);
+    }
+
     public static InstanceReference instanceRef(ClassReference classReference, ModuleReference moduleReference, List<Type> types) {
         return new InstanceReference(classReference, moduleReference, types);
     }
@@ -49,8 +53,6 @@ public abstract class DefinitionReference {
         // intentionally empty
     }
 
-    public abstract <T> T accept(DefinitionReferenceVisitor<T> visitor);
-
     @Override
     public abstract boolean equals(Object o);
 
@@ -59,43 +61,4 @@ public abstract class DefinitionReference {
 
     @Override
     public abstract String toString();
-
-    public interface DefinitionReferenceVisitor<T> {
-
-        default T visit(ClassReference reference) {
-            return visitOtherwise(reference);
-        }
-
-        default T visit(InstanceReference reference) {
-            return visitOtherwise(reference);
-        }
-
-        default T visit(ModuleReference reference) {
-            return visitOtherwise(reference);
-        }
-
-        default T visit(OperatorReference reference) {
-            return visitOtherwise(reference);
-        }
-
-        default T visit(RootReference reference) {
-            return visitOtherwise(reference);
-        }
-
-        default T visit(ScopeReference reference) {
-            return visitOtherwise(reference);
-        }
-
-        default T visit(SignatureReference reference) {
-            return visitOtherwise(reference);
-        }
-
-        default T visit(ValueReference reference) {
-            return visitOtherwise(reference);
-        }
-
-        default T visitOtherwise(DefinitionReference reference) {
-            throw new UnsupportedOperationException("Can't visit " + reference);
-        }
-    }
 }

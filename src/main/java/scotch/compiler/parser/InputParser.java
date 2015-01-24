@@ -26,6 +26,7 @@ import static scotch.compiler.scanner.Token.TokenKind.LAMBDA;
 import static scotch.compiler.scanner.Token.TokenKind.LCURLY;
 import static scotch.compiler.scanner.Token.TokenKind.LET;
 import static scotch.compiler.scanner.Token.TokenKind.LPAREN;
+import static scotch.compiler.scanner.Token.TokenKind.PIPE;
 import static scotch.compiler.scanner.Token.TokenKind.RCURLY;
 import static scotch.compiler.scanner.Token.TokenKind.RPAREN;
 import static scotch.compiler.scanner.Token.TokenKind.SEMICOLON;
@@ -44,7 +45,11 @@ import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
 import static scotch.compiler.symbol.Value.Fixity.PREFIX;
 import static scotch.compiler.symbol.Value.Fixity.RIGHT_INFIX;
 import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
+import static scotch.compiler.syntax.definition.DefinitionGraph.createGraph;
 import static scotch.compiler.syntax.scope.Scope.scope;
+import static scotch.compiler.syntax.value.InitializerField.field;
+import static scotch.compiler.syntax.value.Value.initializer;
+import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 import static scotch.data.tuple.TupleValues.tuple2;
 import static scotch.util.StringUtil.quote;
 
@@ -69,17 +74,36 @@ import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.syntax.builder.SyntaxBuilderFactory;
+import scotch.compiler.syntax.definition.DataConstructorDefinition;
+import scotch.compiler.syntax.definition.DataConstructorDefinition.Builder;
+import scotch.compiler.syntax.definition.DataFieldDefinition;
+import scotch.compiler.syntax.definition.DataTypeDefinition;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.definition.Import;
+import scotch.compiler.syntax.definition.ModuleDefinition;
+import scotch.compiler.syntax.definition.ModuleImport;
+import scotch.compiler.syntax.definition.OperatorDefinition;
+import scotch.compiler.syntax.definition.RootDefinition;
+import scotch.compiler.syntax.definition.ScopeDefinition;
+import scotch.compiler.syntax.definition.UnshuffledDefinition;
+import scotch.compiler.syntax.definition.ValueDefinition;
+import scotch.compiler.syntax.definition.ValueSignature;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
+import scotch.compiler.syntax.value.CaptureMatch.CaptureMatchBuilder;
+import scotch.compiler.syntax.value.CaptureMatch.ClassDefinitionBuilder;
+import scotch.compiler.syntax.value.Conditional;
+import scotch.compiler.syntax.value.EqualMatch.EqualMatchBuilder;
 import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.Identifier;
+import scotch.compiler.syntax.value.InitializerField;
+import scotch.compiler.syntax.value.Let;
+import scotch.compiler.syntax.value.Literal;
 import scotch.compiler.syntax.value.PatternMatch;
+import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.NamedSourcePoint;
 import scotch.compiler.text.SourceRange;
@@ -92,14 +116,12 @@ public class InputParser {
     private final LookAheadScanner        scanner;
     private final List<DefinitionEntry>   definitions;
     private final Deque<NamedSourcePoint> positions;
-    private final SyntaxBuilderFactory    builderFactory;
     private final SymbolGenerator         symbolGenerator;
     private final Deque<Scope>            scopes;
     private final Deque<List<String>>     memberNames;
     private       String                  currentModule;
 
-    public InputParser(SymbolResolver resolver, Scanner scanner, SyntaxBuilderFactory builderFactory) {
-        this.builderFactory = builderFactory;
+    public InputParser(SymbolResolver resolver, Scanner scanner) {
         this.scanner = new LookAheadScanner(scanner);
         this.definitions = new ArrayList<>();
         this.positions = new ArrayDeque<>();
@@ -110,7 +132,7 @@ public class InputParser {
 
     public DefinitionGraph parse() {
         parseRoot();
-        return builderFactory.definitionGraphBuilder(definitions)
+        return createGraph(definitions)
             .withSequence(symbolGenerator)
             .build();
     }
@@ -124,7 +146,7 @@ public class InputParser {
         return scopes.peek();
     }
 
-    private <D extends Definition, B extends SyntaxBuilder<D>> DefinitionReference definition(Supplier<B> supplier, Consumer<B> consumer) {
+    private <D extends Definition, B extends SyntaxBuilder<D>> DefinitionReference definition(B supplier, Consumer<B> consumer) {
         return collect(node(supplier, consumer));
     }
 
@@ -138,6 +160,10 @@ public class InputParser {
 
     private boolean expectsClassDefinition() {
         return expectsWord("class");
+    }
+
+    private boolean expectsDataDefinition() {
+        return expectsWord("data");
     }
 
     private boolean expectsDefinitions() {
@@ -215,9 +241,8 @@ public class InputParser {
         scanner.nextToken();
     }
 
-    private <N, B extends SyntaxBuilder<N>> N node(Supplier<B> supplier, Consumer<B> consumer) {
+    private <N, B extends SyntaxBuilder<N>> N node(B builder, Consumer<B> consumer) {
         markPosition();
-        B builder = supplier.get();
         try {
             consumer.accept(builder);
         } catch (RuntimeException exception) {
@@ -228,7 +253,7 @@ public class InputParser {
     }
 
     private Argument parseArgument() {
-        return node(builderFactory::argumentBuilder, builder -> builder
+        return node(Argument.builder(), builder -> builder
             .withName(requireWord())
             .withType(reserveType()));
     }
@@ -251,9 +276,9 @@ public class InputParser {
     }
 
     private DefinitionReference parseClassDefinition() {
-        return definition(builderFactory::classBuilder, builder -> {
+        return definition(new ClassDefinitionBuilder(), builder -> {
             requireWord("class");
-            builder.withSymbol(qualified(currentModule, requireWord()))
+            builder.withSymbol(qualify(requireWord()))
                 .withArguments(parseClassArguments())
                 .withMembers(parseClassMembers());
         });
@@ -273,6 +298,18 @@ public class InputParser {
         }
         require(RCURLY);
         return members;
+    }
+
+    private Value parseConditional() {
+        return node(Conditional.builder(), conditional -> {
+            require(IF);
+            conditional.withCondition(parseExpression().collapse());
+            require(THEN);
+            conditional.withWhenTrue(parseExpression().collapse());
+            require(ELSE);
+            conditional.withWhenFalse(parseExpression().collapse());
+            conditional.withType(reserveType());
+        });
     }
 
     private void parseConstraint(Map<String, List<Symbol>> constraints) {
@@ -295,12 +332,84 @@ public class InputParser {
             .collect(toMap(Entry::getKey, entry -> var(entry.getKey(), entry.getValue())));
     }
 
+    private DefinitionReference parseDataDefinition() {
+        return definition(DataTypeDefinition.builder(), builder -> {
+            requireWord("data");
+            Symbol symbol = qualify(requireWord());
+            builder.withSymbol(symbol);
+            while (!expects(ASSIGN) && !expects(LCURLY)) {
+                builder.addParameter(parseType());
+            }
+            if (expects(LCURLY)) {
+                builder.addConstructor(parseDataConstructor(symbol));
+            } else {
+                require(ASSIGN);
+                builder.addConstructor(parseDataConstructor(symbol));
+                while (expects(PIPE)) {
+                    require(PIPE);
+                    builder.addConstructor(parseDataConstructor(symbol));
+                }
+            }
+        });
+    }
+
+    private Type parseType() {
+        return parseType(emptyMap());
+    }
+
+    private DataConstructorDefinition parseDataConstructor(Symbol dataType) {
+        return node(DataConstructorDefinition.builder(), builder -> {
+            builder.withDataType(dataType);
+            if (expects(LCURLY)) {
+                builder.withSymbol(dataType);
+                parseDataFields(builder);
+            } else {
+                builder.withSymbol(qualify(requireWord()));
+                if (expects(LCURLY)) {
+                    parseDataFields(builder);
+                } else {
+                    int offset = 0;
+                    while (expectsWord()) {
+                        builder.addField(parseAnonymousField(offset++));
+                    }
+                }
+            }
+        });
+    }
+
+    private void parseDataFields(Builder builder) {
+        require(LCURLY);
+        builder.addField(parseNamedField());
+        while (expects(COMMA) && expectsWordAt(1)) {
+            require(COMMA);
+            builder.addField(parseNamedField());
+        }
+        if (expects(COMMA)) {
+            require(COMMA);
+        }
+        require(RCURLY);
+    }
+
+    private DataFieldDefinition parseNamedField() {
+        return node(DataFieldDefinition.builder(), builder -> {
+            builder.withName(requireWord());
+            builder.withType(parseType());
+        });
+    }
+
+    private DataFieldDefinition parseAnonymousField(int offset) {
+        return node(DataFieldDefinition.builder(),
+            builder -> builder.withName("_" + offset).withType(parseType()));
+    }
+
     private List<DefinitionReference> parseDefinitions() {
         List<DefinitionReference> definitions = new ArrayList<>();
         if (expectsClassDefinition()) {
             definitions.add(parseClassDefinition());
         } else if (expectsOperatorDefinition()) {
             definitions.addAll(parseOperatorDefinition());
+        } else if (expectsDataDefinition()) {
+            definitions.add(parseDataDefinition());
         } else if (expectsValueSignatures()) {
             definitions.addAll(parseValueSignatures());
         } else {
@@ -313,22 +422,56 @@ public class InputParser {
         throw new ParseException(message + "; in " + peekSourceRange().prettyPrint());
     }
 
+    private Value parseExpression() {
+        return node(UnshuffledValue.builder(), builder -> {
+            builder.withMember(parseRequiredPrimary());
+            Optional<Value> argument = parseOptionalPrimary();
+            while (argument.isPresent()) {
+                builder.withMember(argument.get());
+                argument = parseOptionalPrimary();
+            }
+        });
+    }
+
+    private List<InitializerField> parseFields() {
+        List<InitializerField> fields = new ArrayList<>();
+        require(LCURLY);
+        if (expectsWord()) {
+            String name = requireWord();
+            require(ASSIGN);
+            Value value = parseExpression().collapse();
+            fields.add(field(NULL_SOURCE, name, value)); // TODO
+            while (expects(COMMA) && expectsWordAt(1)) {
+                require(COMMA);
+                name = requireWord();
+                require(ASSIGN);
+                value = parseExpression().collapse();
+                fields.add(field(NULL_SOURCE, name, value)); // TODO
+            }
+            if (expects(COMMA)) {
+                require(COMMA);
+            }
+        }
+        require(RCURLY);
+        return fields;
+    }
+
     private FunctionValue parseFunction() {
-        return scoped(() -> node(builderFactory::functionBuilder,
-            function -> definition(builderFactory::scopeBuilder, scope -> {
+        return scoped(() -> node(FunctionValue.builder(),
+            function -> definition(ScopeDefinition.builder(), scope -> {
                 Symbol symbol = reserveSymbol();
                 require(LAMBDA);
                 function.withSymbol(symbol);
                 function.withArguments(parseArguments());
                 require(ARROW);
-                function.withBody(parseMessage());
+                function.withBody(parseExpression());
                 scope.withSymbol(symbol);
             })
         ));
     }
 
     private Import parseImport() {
-        return node(builderFactory::moduleImportBuilder, builder -> {
+        return node(ModuleImport.builder(), builder -> {
             requireWord("import");
             builder.withModuleName(parseQualifiedName());
         });
@@ -343,8 +486,33 @@ public class InputParser {
         return imports;
     }
 
+    private Value parseLet() {
+        return scoped(() -> node(Let.builder(),
+            let -> definition(ScopeDefinition.builder(), scope -> {
+                Symbol symbol = reserveSymbol();
+                List<DefinitionReference> definitions = new ArrayList<>();
+                require(LET);
+                require(LCURLY);
+                while (!expects(RCURLY)) {
+                    if (expectsValueSignatures()) {
+                        definitions.addAll(parseValueSignatures());
+                    } else {
+                        definitions.add(parseValueDefinition());
+                    }
+                    require(SEMICOLON);
+                }
+                require(RCURLY);
+                require(IN);
+                scope.withSymbol(symbol);
+                let.withSymbol(symbol)
+                    .withDefinitions(definitions)
+                    .withBody(parseExpression());
+            })
+        ));
+    }
+
     private Value parseLiteral() {
-        return node(builderFactory::literalBuilder, builder -> {
+        return node(Literal.builder(), builder -> {
             if (expects(STRING)) {
                 builder.withValue(requireString());
             } else if (expects(INT)) {
@@ -364,24 +532,13 @@ public class InputParser {
     private Optional<PatternMatch> parseMatch(boolean required) {
         PatternMatch match = null;
         if (expectsWord()) {
-            match = node(builderFactory::captureMatchBuilder, builder -> builder.withIdentifier(parseWordReference()));
+            match = node(new CaptureMatchBuilder(), builder -> builder.withIdentifier(parseWordReference()));
         } else if (expectsLiteral()) {
-            match = node(builderFactory::equalMatchBuilder, builder -> builder.withValue(parseLiteral()));
+            match = node(new EqualMatchBuilder(), builder -> builder.withValue(parseLiteral()));
         } else if (required) {
             throw unexpected(WORD);
         }
         return ofNullable(match);
-    }
-
-    private Value parseMessage() {
-        return node(builderFactory::messageBuilder, builder -> {
-            builder.withMember(parseRequiredPrimary());
-            Optional<Value> argument = parseOptionalPrimary();
-            while (argument.isPresent()) {
-                builder.withMember(argument.get());
-                argument = parseOptionalPrimary();
-            }
-        });
     }
 
     @SuppressWarnings("unchecked")
@@ -391,7 +548,7 @@ public class InputParser {
         requireTerminator();
         List<Import> imports = parseImports();
         return scoped(imports, () -> definition(
-            builderFactory::moduleBuilder,
+            ModuleDefinition.builder(),
             builder -> builder
                 .withSymbol(currentModule)
                 .withImports(imports)
@@ -413,7 +570,7 @@ public class InputParser {
         int precedence = parseOperatorPrecedence();
         return parseSymbols().stream()
             .map(pair -> pair.into(
-                (symbol, sourceRange) -> builderFactory.operatorBuilder()
+                (symbol, sourceRange) -> OperatorDefinition.builder()
                     .withSourceRange(sourceRange)
                     .withSymbol(symbol)
                     .withFixity(fixity)
@@ -471,7 +628,7 @@ public class InputParser {
             value = parseLiteral();
         } else if (expects(LPAREN)) {
             nextToken();
-            value = parseMessage();
+            value = parseExpression();
             require(RPAREN);
         } else if (expects(LAMBDA)) {
             value = parseFunction();
@@ -482,44 +639,19 @@ public class InputParser {
         } else if (required) {
             throw unexpected(ImmutableList.<TokenKind>builder().add(WORD, LPAREN).addAll(literals).build());
         }
-        return ofNullable(value);
-    }
-
-    private Value parseConditional() {
-        return node(builderFactory::conditionalBuilder, conditional -> {
-            require(IF);
-            conditional.withCondition(parseMessage().collapse());
-            require(THEN);
-            conditional.withWhenTrue(parseMessage().collapse());
-            require(ELSE);
-            conditional.withWhenFalse(parseMessage().collapse());
-            conditional.withType(reserveType());
-        });
-    }
-
-    private Value parseLet() {
-        return scoped(() -> node(builderFactory::letBuilder,
-            let -> definition(builderFactory::scopeBuilder, scope -> {
-                Symbol symbol = reserveSymbol();
-                List<DefinitionReference> definitions = new ArrayList<>();
-                require(LET);
-                require(LCURLY);
-                while (!expects(RCURLY)) {
-                    if (expectsValueSignatures()) {
-                        definitions.addAll(parseValueSignatures());
-                    } else {
-                        definitions.add(parseValueDefinition());
-                    }
-                    require(SEMICOLON);
+        return ofNullable(value)
+            .map(v -> {
+                if (expects(LCURLY)) {
+                    return initializer(
+                        NULL_SOURCE, // TODO
+                        reserveType(),
+                        v,
+                        parseFields()
+                    );
+                } else {
+                    return v;
                 }
-                require(RCURLY);
-                require(IN);
-                scope.withSymbol(symbol);
-                let.withSymbol(symbol)
-                    .withDefinitions(definitions)
-                    .withBody(parseMessage());
-            })
-        ));
+            });
     }
 
     private String parseQualifiedName() {
@@ -541,7 +673,7 @@ public class InputParser {
     }
 
     private void parseRoot() {
-        definition(builderFactory::rootBuilder, builder -> {
+        definition(RootDefinition.builder(), builder -> {
             if (!expects(EOF)) {
                 builder.withModule(parseModule());
                 while (expectsModule()) {
@@ -568,12 +700,12 @@ public class InputParser {
 
     private Symbol parseSymbol() {
         if (expects(WORD)) {
-            return qualified(currentModule, requireMemberName());
+            return qualify(requireMemberName());
         } else if (expects(LPAREN)) {
             nextToken();
             List<String> memberName = requireMemberName();
             require(RPAREN);
-            return qualified(currentModule, memberName);
+            return qualify(memberName);
         } else {
             throw unexpected(asList(WORD, LPAREN));
         }
@@ -604,7 +736,6 @@ public class InputParser {
                 if (optionalModuleName.isPresent()) {
                     throw parseException("Type name must be uppercase; in " + peekSourceRange().prettyPrint());
                 } else {
-
                     Type type = var(memberName);
                     return constraints.getOrDefault(memberName, type);
                 }
@@ -620,34 +751,23 @@ public class InputParser {
 
     private DefinitionReference parseValueDefinition() {
         if (expectsAt(1, ASSIGN)) {
-            return scoped(() -> definition(builderFactory::valueDefBuilder, builder -> {
-                Symbol symbol = qualified(currentModule, requireMemberName());
+            return scoped(() -> definition(ValueDefinition.builder(), builder -> {
+                Symbol symbol = qualify(requireMemberName());
                 builder.withSymbol(symbol);
                 memberNames.push(symbol.getMemberNames());
                 require(ASSIGN);
                 builder.withType(reserveType())
-                    .withBody(parseMessage());
+                    .withBody(parseExpression());
                 memberNames.pop();
             }));
         } else {
-            return scoped(() -> definition(builderFactory::unshuffledBuilder, builder -> {
+            return scoped(() -> definition(UnshuffledDefinition.builder(), builder -> {
                 builder.withMatches(parsePatternMatches());
                 require(ASSIGN);
                 builder.withSymbol(reserveSymbol())
-                    .withBody(parseMessage());
+                    .withBody(parseExpression());
             }));
         }
-    }
-
-    private List<String> requireMemberName() {
-        return ImmutableList.<String>builder()
-            .addAll(memberNames.peek())
-            .add(requireWord())
-            .build();
-    }
-
-    private Symbol reserveSymbol() {
-        return currentScope().reserveSymbol(memberNames.peek());
     }
 
     private Type parseValueSignature() {
@@ -669,7 +789,7 @@ public class InputParser {
         Type type = parseValueSignature();
         return symbolList.stream()
             .map(pair -> pair.into(
-                (symbol, sourceRange) -> builderFactory.signatureBuilder()
+                (symbol, sourceRange) -> ValueSignature.builder()
                     .withSymbol(symbol)
                     .withType(type)
                     .withSourceRange(sourceRange)
@@ -679,7 +799,7 @@ public class InputParser {
     }
 
     private Identifier parseWordReference() {
-        return node(builderFactory::idBuilder, builder -> builder
+        return node(Identifier.builder(), builder -> builder
                 .withSymbol(unqualified(requireWord()))
                 .withType(reserveType())
         );
@@ -691,6 +811,14 @@ public class InputParser {
 
     private SourceRange peekSourceRange() {
         return positions.peek().to(scanner.getPosition());
+    }
+
+    private Symbol qualify(String memberName) {
+        return qualified(currentModule, memberName);
+    }
+
+    private Symbol qualify(List<String> memberName) {
+        return qualified(currentModule, memberName);
     }
 
     private Token require(TokenKind kind) {
@@ -721,6 +849,13 @@ public class InputParser {
 
     private int requireInt() {
         return require(INT).getValueAs(Integer.class);
+    }
+
+    private List<String> requireMemberName() {
+        return ImmutableList.<String>builder()
+            .addAll(memberNames.peek())
+            .add(requireWord())
+            .build();
     }
 
     private String requireString() {
@@ -763,6 +898,10 @@ public class InputParser {
         }
     }
 
+    private Symbol reserveSymbol() {
+        return currentScope().reserveSymbol(memberNames.peek());
+    }
+
     private Type reserveType() {
         return currentScope().reserveType();
     }
@@ -788,31 +927,31 @@ public class InputParser {
 
     private ParseException unexpected(TokenKind wantedKind) {
         return new ParseException(
-            "Unexpected token " + scanner.peekAt(0).getKind()
-                + "; wanted " + wantedKind + " in " + scanner.getPosition().prettyPrint()
+            "Unexpected " + scanner.peekAt(0).getKind()
+                + "; wanted " + wantedKind + " " + scanner.getPosition().prettyPrint()
         );
     }
 
     private ParseException unexpected(TokenKind wantedKind, Object wantedValue) {
         return new ParseException(
-            "Unexpected token " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
-                + "; wanted " + wantedKind + " with value " + quote(wantedValue) + " in " + scanner.getPosition().prettyPrint()
+            "Unexpected " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
+                + "; wanted " + wantedKind + " with value " + quote(wantedValue) + " " + scanner.getPosition().prettyPrint()
         );
     }
 
     private ParseException unexpected(TokenKind wantedKind, Object... wantedValues) {
         return new ParseException(
-            "Unexpected token " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
+            "Unexpected " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
                 + "; wanted " + wantedKind + " with one value of"
-                + " [" + join(", ", stream(wantedValues).map(StringUtil::quote).collect(toList())) + "] in " + scanner.getPosition().prettyPrint()
+                + " [" + join(", ", stream(wantedValues).map(StringUtil::quote).collect(toList())) + "] " + scanner.getPosition().prettyPrint()
         );
     }
 
     private ParseException unexpected(List<TokenKind> wantedKinds) {
         return new ParseException(
-            "Unexpected token " + scanner.peekAt(0).getKind()
+            "Unexpected " + scanner.peekAt(0).getKind()
                 + "; wanted one of [" + join(", ", wantedKinds.stream().map(Object::toString).collect(toList())) + "]"
-                + " at " + scanner.getPosition().prettyPrint()
+                + " " + scanner.getPosition().prettyPrint()
         );
     }
 

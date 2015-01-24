@@ -1,25 +1,32 @@
 package scotch.compiler.syntax.definition;
 
 import static scotch.compiler.symbol.Operator.operator;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.operatorRef;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
 import java.util.Optional;
-import scotch.compiler.syntax.NameQualifier;
+import java.util.OptionalInt;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.BytecodeGenerator;
 import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
+import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
 
 public class OperatorDefinition extends Definition {
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     private final SourceRange sourceRange;
     private final Symbol      symbol;
@@ -116,5 +123,51 @@ public class OperatorDefinition extends Definition {
     @Override
     public String toString() {
         return stringify(this) + "(" + symbol + " :: " + fixity + ", " + precedence + ")";
+    }
+
+    public static class Builder implements SyntaxBuilder<OperatorDefinition> {
+
+        private Optional<Symbol>      symbol;
+        private Optional<Fixity>      fixity;
+        private OptionalInt           precedence;
+        private Optional<SourceRange> sourceRange;
+
+        private Builder() {
+            symbol = Optional.empty();
+            fixity = Optional.empty();
+            precedence = OptionalInt.empty();
+            sourceRange = Optional.empty();
+        }
+
+        @Override
+        public OperatorDefinition build() {
+            return operatorDef(
+                require(sourceRange, "Source range"),
+                require(symbol, "Operator symbol"),
+                require(fixity, "Operator fixity"),
+                require(precedence, "Operator precedence")
+            );
+        }
+
+        public Builder withFixity(Fixity fixity) {
+            this.fixity = Optional.of(fixity);
+            return this;
+        }
+
+        public Builder withPrecedence(int precedence) {
+            this.precedence = OptionalInt.of(precedence);
+            return this;
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withSymbol(Symbol symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
+        }
     }
 }

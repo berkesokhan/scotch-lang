@@ -2,6 +2,7 @@ package scotch.compiler.syntax.value;
 
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.value.Value.apply;
 import static scotch.compiler.syntax.value.Value.id;
 import static scotch.util.StringUtil.stringify;
@@ -16,6 +17,7 @@ import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
 import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
@@ -138,5 +140,35 @@ public class EqualMatch extends PatternMatch {
 
     public EqualMatch withValue(Value value) {
         return new EqualMatch(sourceRange, argument, value);
+    }
+
+    public static class EqualMatchBuilder implements SyntaxBuilder<EqualMatch> {
+
+        private Optional<Value>       value;
+        private Optional<SourceRange> sourceRange;
+
+        public EqualMatchBuilder() {
+            // intentionally empty
+        }
+
+        @Override
+        public EqualMatch build() {
+            return equal(
+                require(sourceRange, "Source range"),
+                Optional.empty(),
+                require(value, "Capture value")
+            );
+        }
+
+        @Override
+        public EqualMatchBuilder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public EqualMatchBuilder withValue(Value value) {
+            this.value = Optional.of(value);
+            return this;
+        }
     }
 }

@@ -2,10 +2,12 @@ package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.TypeError.typeError;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.symbol.Type;
@@ -19,9 +21,14 @@ import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 
 public class PatternMatchers extends Value {
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     private final SourceRange          sourceRange;
     private final List<PatternMatcher> matchers;
@@ -172,5 +179,43 @@ public class PatternMatchers extends Value {
     @Override
     public PatternMatchers withType(Type type) {
         return new PatternMatchers(sourceRange, matchers, type);
+    }
+
+    public static class Builder implements SyntaxBuilder<PatternMatchers> {
+
+        private Optional<SourceRange>          sourceRange;
+        private Optional<List<PatternMatcher>> patterns;
+        private Optional<Type>                 type;
+
+        private Builder() {
+            sourceRange = Optional.empty();
+            patterns = Optional.empty();
+            type = Optional.empty();
+        }
+
+        @Override
+        public PatternMatchers build() {
+            return patterns(
+                require(sourceRange, "Source range"),
+                require(type, "Pattern type"),
+                require(patterns, "Patterns")
+            );
+        }
+
+        public Builder withPatterns(List<PatternMatcher> patterns) {
+            this.patterns = Optional.of(patterns);
+            return this;
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withType(Type type) {
+            this.type = Optional.of(type);
+            return this;
+        }
     }
 }

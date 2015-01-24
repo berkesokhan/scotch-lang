@@ -1,18 +1,14 @@
 package scotch.runtime;
 
-import java.util.concurrent.locks.ReentrantLock;
-
 public abstract class Thunk<A> implements Callable<A> {
 
-    private final ReentrantLock lock = new ReentrantLock();
     private volatile A value;
 
     @SuppressWarnings("unchecked")
     @Override
     public A call() {
         if (value == null) {
-            lock.lock();
-            try {
+            synchronized (this) {
                 if (value == null) {
                     value = evaluate();
                     while (value instanceof Callable) {
@@ -22,8 +18,6 @@ public abstract class Thunk<A> implements Callable<A> {
                         value = ((Callable<A>) value).call();
                     }
                 }
-            } finally {
-                lock.unlock();
             }
         }
         return value;

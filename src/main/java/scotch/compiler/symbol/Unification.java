@@ -40,10 +40,6 @@ public abstract class Unification {
 
     public abstract <T> T accept(UnificationVisitor<T> visitor);
 
-    public Unification flatMap(Function<Type, Unification> function) {
-        return this;
-    }
-
     @Override
     public abstract boolean equals(Object o);
 
@@ -54,7 +50,7 @@ public abstract class Unification {
 
     public abstract boolean isUnified();
 
-    public Unification map(Function<Type, Type> function) {
+    public Unification map(Function<? super Type, ? extends Unification> function) {
         return this;
     }
 
@@ -340,11 +336,6 @@ public abstract class Unification {
         }
 
         @Override
-        public Unification flatMap(Function<Type, Unification> function) {
-            return function.apply(unifiedType);
-        }
-
-        @Override
         public boolean equals(Object o) {
             return o == this || o instanceof Unified && Objects.equals(unifiedType, ((Unified) o).unifiedType);
         }
@@ -369,8 +360,8 @@ public abstract class Unification {
         }
 
         @Override
-        public Unification map(Function<Type, Type> function) {
-            return unified(function.apply(unifiedType));
+        public Unification map(Function<? super Type, ? extends Unification> function) {
+            return function.apply(unifiedType);
         }
 
         @Override

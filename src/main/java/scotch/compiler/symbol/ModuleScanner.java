@@ -24,7 +24,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableSet;
+import scotch.compiler.symbol.DataTypeDescriptor.Builder;
 import scotch.compiler.symbol.SymbolEntry.ImmutableEntryBuilder;
+import scotch.compiler.symbol.exception.IncompleteDataTypeError;
 import scotch.compiler.symbol.exception.IncompleteTypeInstanceError;
 import scotch.compiler.symbol.exception.InvalidMethodSignatureError;
 import scotch.compiler.symbol.exception.SymbolResolutionError;
@@ -49,6 +51,8 @@ public class ModuleScanner {
             processValues(clazz);
             processTypeClasses(clazz);
             processTypeInstances(clazz);
+            processDataTypes(clazz);
+            processDataConstructors(clazz);
         });
         return tuple2(
             builders.values().stream().map(ImmutableEntryBuilder::build).collect(toSet()),
@@ -85,10 +89,24 @@ public class ModuleScanner {
         return builders.computeIfAbsent(memberSymbol, SymbolEntry::immutableEntry);
     }
 
+    private IncompleteDataTypeError incompleteDataType(Class<?> clazz, Class<? extends Annotation> missingAnnotation) {
+        return new IncompleteDataTypeError("Data type definition for class " + quote(clazz) + " in module "
+            + quote(moduleName) + " is incomplete: missing method annotated with " + pp(missingAnnotation));
+    }
+
     private IncompleteTypeInstanceError incompleteTypeInstance(TypeInstance typeInstance, Class<? extends Annotation> missingAnnotation) {
         return new IncompleteTypeInstanceError("Type instance definition for class " + quote(typeInstance.typeClass())
             + " in module " + quote(moduleName) + " is incomplete"
             + ": missing method annotated with " + pp(missingAnnotation));
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T invoke(Method method) {
+        try {
+            return (T) method.invoke(null);
+        } catch (ReflectiveOperationException exception) {
+            throw new SymbolResolutionError(exception);
+        }
     }
 
     private String pp(Class<?> clazz) {
@@ -97,6 +115,50 @@ public class ModuleScanner {
 
     private String pp(Method method) {
         return pp(method.getDeclaringClass()) + "#" + method.getName();
+    }
+
+    private void processDataConstructors(Class<?> clazz) {
+        Optional.ofNullable(clazz.getAnnotation(DataConstructor.class)).ifPresent(annotation -> {
+            DataConstructorDescriptor.Builder constructor = DataConstructorDescriptor.builder(qualify(annotation.memberName()));
+
+            Map<String, Type> fieldTypes = stream(clazz.getDeclaredMethods())
+                .filter(method -> method.isAnnotationPresent(DataFieldType.class))
+                .map(method -> tuple2(method.getAnnotation(DataFieldType.class).forMember(), method))
+                .collect(
+                    HashMap::new,
+                    (map, tuple) -> tuple.into((name, method) -> {
+                        map.put(name, invoke(method));
+                        return map;
+                    }),
+                    HashMap::putAll
+                );
+
+            stream(clazz.getDeclaredMethods())
+                .filter(method -> method.isAnnotationPresent(DataField.class))
+                .map(method -> method.getAnnotation(DataField.class))
+                .forEach(field -> constructor.addField(new DataFieldDescriptor(
+                    field.memberName(),
+                    Optional.ofNullable(fieldTypes.get(field.memberName()))
+                        .orElseThrow(() -> incompleteDataType(clazz, DataFieldType.class))
+                )));
+
+            Symbol dataType = qualify(annotation.dataType());
+            constructor.withDataType(dataType);
+            getBuilder(dataType).dataType()
+                .addConstructor(constructor.build());
+        });
+    }
+
+    private void processDataTypes(Class<?> clazz) {
+        Optional.ofNullable(clazz.getAnnotation(DataType.class)).ifPresent(annotation -> {
+            Builder builder = getBuilder(annotation.memberName()).dataType();
+            Method parametersGetter = findMethod(clazz, TypeParameters.class).orElseThrow(() -> incompleteDataType(clazz, TypeParameters.class));
+            validateParametersGetter(parametersGetter);
+            List<Type> parametersList = invoke(parametersGetter);
+            for (int i = 0; i < annotation.parameters().length; i++) {
+                builder.addParameter(parametersList.get(i));
+            }
+        });
     }
 
     private void processTypeClasses(Class<?> clazz) {
@@ -109,22 +171,17 @@ public class ModuleScanner {
         });
     }
 
-    @SuppressWarnings("unchecked")
     private void processTypeInstances(Class<?> clazz) {
         Optional.ofNullable(clazz.getAnnotation(TypeInstance.class)).ifPresent(typeInstance -> {
             Method parametersGetter = findMethod(clazz, TypeParameters.class).orElseThrow(() -> incompleteTypeInstance(typeInstance, TypeParameters.class));
             Method instanceGetter = findMethod(clazz, InstanceGetter.class).orElseThrow(() -> incompleteTypeInstance(typeInstance, InstanceGetter.class));
             validateParametersGetter(parametersGetter);
-            try {
-                typeInstances.add(typeInstance(
-                    moduleName,
-                    fromString(typeInstance.typeClass()),
-                    (List<Type>) parametersGetter.invoke(null),
-                    MethodSignature.fromMethod(instanceGetter)
-                ));
-            } catch (ReflectiveOperationException exception) {
-                throw new SymbolResolutionError(exception);
-            }
+            typeInstances.add(typeInstance(
+                moduleName,
+                fromString(typeInstance.typeClass()),
+                invoke(parametersGetter),
+                MethodSignature.fromMethod(instanceGetter)
+            ));
         });
     }
 
