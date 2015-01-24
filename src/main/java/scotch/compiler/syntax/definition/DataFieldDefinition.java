@@ -3,6 +3,7 @@ package scotch.compiler.syntax.definition;
 import static me.qmx.jitescript.util.CodegenUtils.ci;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
+import static scotch.compiler.symbol.DataFieldDescriptor.field;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.Objects;
@@ -32,7 +33,7 @@ public class DataFieldDefinition {
     private final String      name;
     private final Type        type;
 
-    public DataFieldDefinition(SourceRange sourceRange, String name, Type type) {
+    private DataFieldDefinition(SourceRange sourceRange, String name, Type type) {
         this.sourceRange = sourceRange;
         this.name = name;
         this.type = type;
@@ -53,6 +54,10 @@ public class DataFieldDefinition {
 
     public void generateBytecode(BytecodeGenerator state) {
         state.field(Symbol.toJavaName(name), ACC_PRIVATE | ACC_FINAL, ci(getJavaType()));
+    }
+
+    public DataFieldDescriptor getDescriptor() {
+        return field(name, type);
     }
 
     public String getJavaName() {
@@ -80,20 +85,12 @@ public class DataFieldDefinition {
         return withType(type.qualifyNames(state));
     }
 
-    private DataFieldDefinition withType(Type type) {
-        return new DataFieldDefinition(sourceRange, name, type);
-    }
-
     public Argument toArgument(Scope scope) {
         return Argument.builder()
             .withName(name)
             .withSourceRange(sourceRange)
             .withType(scope.reserveType())
             .build();
-    }
-
-    public DataFieldDescriptor toDescriptor() {
-        return new DataFieldDescriptor(name, type);
     }
 
     @Override
@@ -107,6 +104,10 @@ public class DataFieldDefinition {
             .withType(scope.reserveType())
             .withSourceRange(sourceRange)
             .build();
+    }
+
+    private DataFieldDefinition withType(Type type) {
+        return new DataFieldDefinition(sourceRange, name, type);
     }
 
     public static final class Builder implements SyntaxBuilder<DataFieldDefinition> {
@@ -134,7 +135,7 @@ public class DataFieldDefinition {
         }
 
         @Override
-        public SyntaxBuilder<DataFieldDefinition> withSourceRange(SourceRange sourceRange) {
+        public Builder withSourceRange(SourceRange sourceRange) {
             this.sourceRange = Optional.of(sourceRange);
             return this;
         }

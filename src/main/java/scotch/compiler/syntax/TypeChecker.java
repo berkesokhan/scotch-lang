@@ -53,7 +53,7 @@ public interface TypeChecker extends TypeScope {
 
     void error(SyntaxError error);
 
-    Value findArgument(InstanceType type);
+    Optional<Value> findArgument(InstanceType type);
 
     Value findInstance(Method method, InstanceType instanceType);
 

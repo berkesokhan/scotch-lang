@@ -89,7 +89,7 @@ public class ValueSignature extends Definition {
 
     @Override
     public void generateBytecode(BytecodeGenerator state) {
-        throw new UnsupportedOperationException(); // TODO
+        // intentionally empty
     }
 
     @Override

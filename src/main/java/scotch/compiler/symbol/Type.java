@@ -349,7 +349,11 @@ public abstract class Type {
 
         @Override
         protected Unification unifyWith(VariableType target, TypeScope scope) {
-            return unifyVariable(this, target, scope);
+            if (contains(target)) {
+                return circular(target, this);
+            } else {
+                return unifyVariable(this, target, scope);
+            }
         }
     }
 
@@ -590,7 +594,7 @@ public abstract class Type {
 
         @Override
         protected boolean contains(VariableType type) {
-            return false;
+            return arguments.stream().map(Type::simplify).anyMatch(argument -> argument.equals(type));
         }
 
         @Override
@@ -640,7 +644,11 @@ public abstract class Type {
 
         @Override
         protected Unification unifyWith(VariableType target, TypeScope scope) {
-            return unifyVariable(this, target, scope);
+            if (contains(target)) {
+                return circular(target, this);
+            } else {
+                return unifyVariable(this, target, scope);
+            }
         }
     }
 
@@ -812,7 +820,11 @@ public abstract class Type {
 
         @Override
         protected Unification unifyWith(FunctionType target, TypeScope scope) {
-            return unify_(target, scope).orElseGet(() -> bind(target, scope));
+            if (target.contains(this)) {
+                return circular(target, this);
+            } else {
+                return unify_(target, scope).orElseGet(() -> bind(target, scope));
+            }
         }
 
         @Override

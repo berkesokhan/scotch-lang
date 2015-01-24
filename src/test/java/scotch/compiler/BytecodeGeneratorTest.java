@@ -149,6 +149,49 @@ public class BytecodeGeneratorTest {
         assertThat(((Callable) getter.invoke(result)).call(), is("Waffles"));
     }
 
+    @Test
+    public void equivalentDataShouldBeEqual() {
+        boolean result = exec(
+            "module scotch.test",
+            "import scotch.java",
+            "data Thing a { value a }",
+            "run = Thing 2 `javaEq?!` Thing 2"
+        );
+        assertThat(result, is(true));
+    }
+
+    @Test
+    public void equivalentDataShouldHaveSameHashCode() {
+        boolean result = exec(
+            "module scotch.test",
+            "import scotch.function",
+            "import scotch.java",
+            "import scotch.data.eq",
+            "",
+            "data Thing a { value a }",
+            "",
+            "run = (javaHash! $ Thing 2) == (javaHash! $ Thing 2)"
+        );
+        assertThat(result, is(true));
+    }
+
+    @Test
+    public void shouldCompileParenthesizedSignature() {
+        exec(
+            "module scotch.test",
+            "import scotch.java",
+            "import scotch.data.eq",
+            "",
+            "data Thing a { value a }",
+            "",
+            "($) :: (a -> b) -> a -> b",
+            "right infix 0 ($)",
+            "fn $ arg = fn arg",
+            "",
+            "run = (javaHash! $ Thing 2) == (javaHash! $ Thing 2)"
+        );
+    }
+
     @Ignore
     @Test
     public void shouldCompileShow() {

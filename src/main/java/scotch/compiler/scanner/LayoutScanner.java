@@ -6,9 +6,9 @@ import static scotch.compiler.scanner.LayoutScanner.State.SCAN_DEFAULT;
 import static scotch.compiler.scanner.LayoutScanner.State.SCAN_DISABLED;
 import static scotch.compiler.scanner.LayoutScanner.State.SCAN_LAYOUT;
 import static scotch.compiler.scanner.LayoutScanner.State.SCAN_LET;
-import static scotch.compiler.scanner.Token.TokenKind.IN;
-import static scotch.compiler.scanner.Token.TokenKind.LCURLY;
-import static scotch.compiler.scanner.Token.TokenKind.RCURLY;
+import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_IN;
+import static scotch.compiler.scanner.Token.TokenKind.LEFT_CURLY_BRACE;
+import static scotch.compiler.scanner.Token.TokenKind.RIGHT_CURLY_BRACE;
 import static scotch.compiler.scanner.Token.TokenKind.SEMICOLON;
 import static scotch.compiler.scanner.Token.token;
 
@@ -77,14 +77,14 @@ public final class LayoutScanner implements Scanner {
     }
 
     private void buffer() {
-        if (tokens.isEmpty() || !lastToken().is(TokenKind.EOF) && tokens.size() < LOOK_AHEAD) {
+        if (tokens.isEmpty() || !lastToken().is(TokenKind.END_OF_FILE) && tokens.size() < LOOK_AHEAD) {
             buffer_();
         }
     }
 
     private void buffer_() {
         Token token = delegate.nextToken();
-        if (token.is(TokenKind.EOF) && !lastToken().is(SEMICOLON)) {
+        if (token.is(TokenKind.END_OF_FILE) && !lastToken().is(SEMICOLON)) {
             tokens.add(token(SEMICOLON, ";", token.getSourceRange()));
         }
         tokens.add(token);
@@ -120,7 +120,7 @@ public final class LayoutScanner implements Scanner {
         if (secondToken().is(TokenKind.NEWLINE)) {
             exciseNewLine();
             enterLayout();
-        } else if (secondToken().is(LCURLY)) {
+        } else if (secondToken().is(LEFT_CURLY_BRACE)) {
             disableScan();
         } else {
             indent(secondToken().getColumn());
@@ -134,7 +134,7 @@ public final class LayoutScanner implements Scanner {
         if (secondToken().is(TokenKind.NEWLINE)) {
             exciseNewLine();
             enterLet();
-        } else if (secondToken().is(LCURLY)) {
+        } else if (secondToken().is(LEFT_CURLY_BRACE)) {
             disableScan();
         } else {
             letIndent();
@@ -177,15 +177,15 @@ public final class LayoutScanner implements Scanner {
     }
 
     private void insertIn() {
-        insertToken(token(IN, "in", firstToken().getSourceRange()));
+        insertToken(token(KEYWORD_IN, "in", firstToken().getSourceRange()));
     }
 
     private void insertLCurly() {
-        tokens.add(1, token(LCURLY, "{", tokens.get(2).getSourceRange()));
+        tokens.add(1, token(LEFT_CURLY_BRACE, "{", tokens.get(2).getSourceRange()));
     }
 
     private void insertRCurly() {
-        insertToken(token(RCURLY, "}", firstToken().getSourceRange()));
+        insertToken(token(RIGHT_CURLY_BRACE, "}", firstToken().getSourceRange()));
     }
 
     private void insertSemicolon() {
@@ -207,22 +207,22 @@ public final class LayoutScanner implements Scanner {
 
     private void layout_() {
         switch (firstToken().getKind()) {
-            case EOF:
+            case END_OF_FILE:
                 if (in(SCAN_LAYOUT)) {
                     leaveLayout();
                 }
                 return;
             case SEMICOLON:
-            case LSQUARE:
-            case RSQUARE:
-            case LCURLY:
-            case RCURLY:
+            case LEFT_SQUARE_BRACE:
+            case RIGHT_SQUARE_BRACE:
+            case LEFT_CURLY_BRACE:
+            case RIGHT_CURLY_BRACE:
                 return;
-            case WHERE:
-            case ON:
+            case KEYWORD_WHERE:
+            case KEYWORD_ON:
                 enterLayout();
                 return;
-            case LET:
+            case KEYWORD_LET:
                 if (in(SCAN_LET) && currentColumn() == currentLetIndent()) {
                     advance();
                     layout();
@@ -251,7 +251,7 @@ public final class LayoutScanner implements Scanner {
                 if (currentColumn() == currentIndent()) {
                     insertSemicolon();
                     accept();
-                } else if (firstToken().is(IN)) {
+                } else if (firstToken().is(KEYWORD_IN)) {
                     leaveLet();
                 } else if (currentColumn() < currentIndent()) {
                     insertIn();
@@ -259,9 +259,9 @@ public final class LayoutScanner implements Scanner {
                 }
                 break;
             case SCAN_DISABLED:
-                if (firstToken().is(LCURLY) || firstToken().is(TokenKind.LSQUARE)) {
+                if (firstToken().is(LEFT_CURLY_BRACE) || firstToken().is(TokenKind.LEFT_SQUARE_BRACE)) {
                     bracesUp();
-                } else if (firstToken().is(RCURLY) || secondToken().is(TokenKind.RSQUARE)) {
+                } else if (firstToken().is(RIGHT_CURLY_BRACE) || secondToken().is(TokenKind.RIGHT_SQUARE_BRACE)) {
                     if (hasBraces()) {
                         bracesDown();
                     } else {

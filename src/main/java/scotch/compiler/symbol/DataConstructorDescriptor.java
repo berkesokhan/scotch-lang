@@ -18,7 +18,7 @@ public class DataConstructorDescriptor {
     private final Symbol                           symbol;
     private final Map<String, DataFieldDescriptor> fields;
 
-    public DataConstructorDescriptor(Symbol dataType, Symbol symbol, List<DataFieldDescriptor> fields) {
+    private DataConstructorDescriptor(Symbol dataType, Symbol symbol, List<DataFieldDescriptor> fields) {
         this.dataType = dataType;
         this.symbol = symbol;
         this.fields = new LinkedHashMap<>();
@@ -80,6 +80,11 @@ public class DataConstructorDescriptor {
 
         public Builder addField(DataFieldDescriptor field) {
             this.fields.add(field);
+            return this;
+        }
+
+        public Builder withFields(List<DataFieldDescriptor> fields) {
+            fields.forEach(this::addField);
             return this;
         }
     }

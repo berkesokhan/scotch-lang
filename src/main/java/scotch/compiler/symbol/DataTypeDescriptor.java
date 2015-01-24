@@ -19,7 +19,7 @@ public class DataTypeDescriptor {
     private final List<Type>                             parameters;
     private final Map<Symbol, DataConstructorDescriptor> constructors;
 
-    public DataTypeDescriptor(Symbol symbol, List<Type> parameters, List<DataConstructorDescriptor> constructors) {
+    private DataTypeDescriptor(Symbol symbol, List<Type> parameters, List<DataConstructorDescriptor> constructors) {
         this.symbol = symbol;
         this.parameters = new ArrayList<>(parameters);
         this.constructors = new LinkedHashMap<>();
@@ -90,6 +90,16 @@ public class DataTypeDescriptor {
 
         public Builder withClassName(String className) {
             this.className = Optional.of(className);
+            return this;
+        }
+
+        public Builder withConstructors(List<DataConstructorDescriptor> constructors) {
+            constructors.forEach(this::addConstructor);
+            return this;
+        }
+
+        public Builder withParameters(List<Type> parameters) {
+            parameters.forEach(this::addParameter);
             return this;
         }
     }

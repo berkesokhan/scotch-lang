@@ -6,8 +6,10 @@ import static scotch.util.StringUtil.stringify;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.Type.FunctionType;
@@ -23,6 +25,10 @@ import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.text.SourceRange;
 
 public class Method extends Value {
+
+    private static SyntaxError noBinding(Method method) {
+        return new NoBindingError(method);
+    }
 
     private final SourceRange    sourceRange;
     private final ValueReference reference;
@@ -60,7 +66,13 @@ public class Method extends Value {
             if (instanceType.isBound()) {
                 typeArgument = state.findInstance(this, instanceType);
             } else {
-                typeArgument = state.findArgument(instanceType);
+                Optional<Value> optionalTypeArgument = state.findArgument(instanceType);
+                if (optionalTypeArgument.isPresent()) {
+                    typeArgument = optionalTypeArgument.get();
+                } else {
+                    state.error(noBinding(this));
+                    return this;
+                }
             }
             result = apply(result, typeArgument, ((FunctionType) result.getType()).getResult());
         }
@@ -143,5 +155,34 @@ public class Method extends Value {
     @Override
     public Method withType(Type type) {
         return new Method(sourceRange, reference, instances, type);
+    }
+
+    private static class NoBindingError extends SyntaxError {
+
+        private final Method method;
+
+        public NoBindingError(Method method) {
+            this.method = method;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o == this || o instanceof NoBindingError && Objects.equals(method, ((NoBindingError) o).method);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(method);
+        }
+
+        @Override
+        public String prettyPrint() {
+            return "No binding found for method " + method.getSymbol() + " " + method.getSourceRange().prettyPrint();
+        }
+
+        @Override
+        public String toString() {
+            return prettyPrint();
+        }
     }
 }

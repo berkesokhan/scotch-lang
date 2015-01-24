@@ -15,7 +15,6 @@ import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Identifier;
-import scotch.compiler.syntax.value.PatternMatch;
 import scotch.compiler.syntax.value.Value;
 import scotch.data.either.Either;
 
@@ -90,16 +89,12 @@ public class ValueShuffler {
             return shuffleMessageApply(output);
         }
 
-        private boolean expectsArgument(Deque input) {
+        private boolean expectsArgument(Deque<Value> input) {
             return !input.isEmpty() && expectsArgument_(input);
         }
 
-        private boolean expectsArgument_(Deque input) {
-            if (input.peek() instanceof PatternMatch) {
-                return !isOperator((PatternMatch) input.peek());
-            } else {
-                return !isOperator((Value) input.peek());
-            }
+        private boolean expectsArgument_(Deque<Value> input) {
+            return !isOperator(input.peek());
         }
 
         private OperatorPair<Identifier> getOperator(Value value, boolean expectsPrefix) {
@@ -112,10 +107,6 @@ public class ValueShuffler {
                     }
                 }))
                 .orElseThrow(() -> new ShuffleException(parseError("Value " + value.prettyPrint() + " is not an operator", value.getSourceRange())));
-        }
-
-        private boolean isOperator(PatternMatch match) {
-            return match.isOperator(scope);
         }
 
         private boolean isOperator(Value value) {

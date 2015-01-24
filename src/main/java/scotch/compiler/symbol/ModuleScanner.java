@@ -5,6 +5,7 @@ import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static me.qmx.jitescript.util.CodegenUtils.p;
+import static scotch.compiler.symbol.DataFieldDescriptor.field;
 import static scotch.compiler.symbol.Operator.operator;
 import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.symbol.Symbol.qualified;
@@ -38,14 +39,12 @@ public class ModuleScanner {
     private final List<Class<?>>                     classes;
     private final Map<Symbol, ImmutableEntryBuilder> builders;
     private final Set<TypeInstanceDescriptor>        typeInstances;
-    private final Map<Symbol, String>                dataTypes;
 
     public ModuleScanner(String moduleName, List<Class<?>> classes) {
         this.moduleName = moduleName;
         this.classes = classes;
         this.builders = new HashMap<>();
         this.typeInstances = new HashSet<>();
-        this.dataTypes = new HashMap<>();
     }
 
     public Tuple2<Set<SymbolEntry>, Set<TypeInstanceDescriptor>> scan() {
@@ -141,7 +140,7 @@ public class ModuleScanner {
             stream(clazz.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(DataField.class))
                 .map(method -> method.getAnnotation(DataField.class))
-                .forEach(field -> constructor.addField(new DataFieldDescriptor(
+                .forEach(field -> constructor.addField(field(
                     field.memberName(),
                     Optional.ofNullable(fieldTypes.get(field.memberName()))
                         .orElseThrow(() -> incompleteDataType(clazz, DataFieldType.class))
@@ -164,7 +163,6 @@ public class ModuleScanner {
                 builder.addParameter(parametersList.get(i));
             }
             builder.withClassName(p(clazz));
-            dataTypes.put(symbol, p(clazz));
         });
     }
 

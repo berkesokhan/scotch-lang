@@ -128,13 +128,13 @@ public class TypeCheckerState implements TypeChecker {
     }
 
     @Override
-    public Value findArgument(InstanceType type) {
+    public Optional<Value> findArgument(InstanceType type) {
         for (Map<Type, Argument> map : arguments) {
             if (map.containsKey(type)) {
-                return map.get(type);
+                return Optional.of(map.get(type));
             }
         }
-        throw new UnsupportedOperationException();
+        return Optional.empty();
     }
 
     @Override

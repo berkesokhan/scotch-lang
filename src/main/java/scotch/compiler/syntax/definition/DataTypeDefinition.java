@@ -37,7 +37,7 @@ public class DataTypeDefinition extends Definition {
     private final List<Type>                             parameters;
     private final Map<Symbol, DataConstructorDefinition> constructors;
 
-    public DataTypeDefinition(SourceRange sourceRange, Symbol symbol, List<Type> parameters, List<DataConstructorDefinition> constructors) {
+    private DataTypeDefinition(SourceRange sourceRange, Symbol symbol, List<Type> parameters, List<DataConstructorDefinition> constructors) {
         this.sourceRange = sourceRange;
         this.symbol = symbol;
         this.parameters = ImmutableList.copyOf(parameters);
@@ -60,16 +60,10 @@ public class DataTypeDefinition extends Definition {
     @Override
     public Definition accumulateNames(NameAccumulator state) {
         return state.scoped(this, () -> {
-            state.defineDataType(symbol, toDescriptor());
+            state.defineDataType(symbol, getDescriptor());
             constructors.values().forEach(constructor -> constructor.accumulateNames(state));
             return this;
         });
-    }
-
-    private DataTypeDescriptor toDescriptor() {
-        return new DataTypeDescriptor(symbol, parameters, constructors.values().stream()
-            .map(DataConstructorDefinition::toDescriptor)
-            .collect(toList()));
     }
 
     @Override
@@ -138,19 +132,28 @@ public class DataTypeDefinition extends Definition {
                 .collect(toList())));
     }
 
+    @Override
+    public String toString() {
+        return symbol.getSimpleName()
+            + (parameters.isEmpty() ? "" : " " + parameters.stream().map(Object::toString).collect(joining(", ")))
+            + " = " + constructors.values().stream().map(Object::toString).collect(joining(" | "));
+    }
+
+    private DataTypeDescriptor getDescriptor() {
+        return DataTypeDescriptor.builder(symbol)
+            .withParameters(parameters)
+            .withConstructors(constructors.values().stream()
+                .map(DataConstructorDefinition::getDescriptor)
+                .collect(toList()))
+            .build();
+    }
+
     private DataTypeDefinition withConstructors(List<DataConstructorDefinition> constructors) {
         return new DataTypeDefinition(sourceRange, symbol, parameters, constructors);
     }
 
     private DataTypeDefinition withParameters(List<Type> parameters) {
         return new DataTypeDefinition(sourceRange, symbol, parameters, constructors);
-    }
-
-    @Override
-    public String toString() {
-        return symbol.getSimpleName()
-            + (parameters.isEmpty() ? "" : " " + parameters.stream().map(Object::toString).collect(joining(", ")))
-            + " = " + constructors.values().stream().map(Object::toString).collect(joining(" | "));
     }
 
     public static class Builder implements SyntaxBuilder<DataTypeDefinition> {
@@ -188,6 +191,16 @@ public class DataTypeDefinition extends Definition {
                 parameters,
                 require(constructors, "No constructors defined")
             );
+        }
+
+        public Builder withConstructors(List<DataConstructorDefinition> constructors) {
+            constructors.forEach(this::addConstructor);
+            return this;
+        }
+
+        public Builder withParameters(List<Type> parameters) {
+            parameters.forEach(this::addParameter);
+            return this;
         }
 
         @Override

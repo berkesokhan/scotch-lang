@@ -43,6 +43,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import scotch.compiler.Compiler;
 import scotch.compiler.ParserTest;
+import scotch.compiler.symbol.Type.VariableType;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DataTypeDefinition;
@@ -159,13 +160,13 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldThrowException_whenNotBeginningWithModule() {
-        expectParseException("Unexpected WORD with value 'length'; wanted WORD with value 'module'");
+        expectParseException("Unexpected IDENTIFIER with value 'length'; wanted IDENTIFIER with value 'module'");
         parse("length s = jStrlen s");
     }
 
     @Test
     public void shouldThrowException_whenOperatorIsMissingPrecedence() {
-        expectParseException("Unexpected WORD; wanted INT");
+        expectParseException("Unexpected IDENTIFIER; wanted INT_LITERAL");
         parse(
             "module scotch.test",
             "left infix =="
@@ -174,7 +175,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldThrowException_whenOperatorSymbolEnclosedByParensDoesNotContainWord() {
-        expectParseException("Unexpected INT; wanted WORD");
+        expectParseException("Unexpected INT_LITERAL; wanted IDENTIFIER");
         parse(
             "module scotch.test",
             "left infix 7 (42)"
@@ -183,7 +184,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldThrowException_whenOperatorSymbolIsNotWord() {
-        expectParseException("Unexpected BOOL; wanted one of [WORD, LPAREN]");
+        expectParseException("Unexpected BOOL_LITERAL; wanted one of [IDENTIFIER, LEFT_PARENTHESIS]");
         parse(
             "module scotch.test",
             "left infix 7 True"
@@ -192,7 +193,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldThrowException_whenOperatorSymbolsNotSeparatedByCommas() {
-        expectParseException("Unexpected WORD; wanted SEMICOLON");
+        expectParseException("Unexpected IDENTIFIER; wanted SEMICOLON");
         parse(
             "module scotch.test",
             "left infix 7 + -"
@@ -395,10 +396,7 @@ public class InputParserTest extends ParserTest {
                 asList(
                     fieldDef("type", sum("Bread")),
                     fieldDef("butter", sum("Verbool")),
-                    fieldDef("jam", sum("Verbool"))
-                )
-            )
-        )));
+                    fieldDef("jam", sum("Verbool")))))));
     }
 
     @Test
@@ -412,9 +410,7 @@ public class InputParserTest extends ParserTest {
             ctorDef(
                 "scotch.test.Maybe",
                 "scotch.test.Just",
-                asList(fieldDef("_0", var("a")))
-            )
-        )));
+                asList(fieldDef("_0", var("a")))))));
     }
 
     @Test
@@ -453,9 +449,7 @@ public class InputParserTest extends ParserTest {
             construct("scotch.test.Toast", t(3), asList(
                 id("type", t(4)),
                 id("butter", t(5)),
-                id("jam", t(6))
-            ))
-        ));
+                id("jam", t(6))))));
     }
 
     @Test
@@ -477,9 +471,56 @@ public class InputParserTest extends ParserTest {
             "scotch.test.(#0)",
             asList(arg("_0", t(2))),
             construct("scotch.test.Just", t(3), asList(
-                id("_0", t(4))
-            ))
-        ));
+                id("_0", t(4))))));
+    }
+
+    @Test
+    public void shouldParseParenthesizedSignature() {
+        parse(
+            "module scotch.test",
+            "($) :: (a -> b) -> a -> b"
+        );
+        shouldHaveSignature("scotch.test.($)", fn(fn(var("a"), var("b")), fn(var("a"), var("b"))));
+    }
+
+    @Test
+    public void shouldParseDataConstructorWithTypeConstraints() {
+        parse(
+            "module scotch.test",
+            "data (Eq a) => List a = Empty | Node a (List a)"
+        );
+        VariableType var = var("a", asList("Eq"));
+        shouldHaveDataType("scotch.test.List", dataDef(
+            "scotch.test.List",
+            asList(var),
+            asList(
+                ctorDef("scotch.test.List", "scotch.test.Empty"),
+                ctorDef(
+                    "scotch.test.List",
+                    "scotch.test.Node",
+                    asList(
+                        fieldDef("_0", var),
+                        fieldDef("_1", sum("List", asList(var))))))));
+    }
+
+    @Test
+    public void shouldParseDataDeclarationWithNamedFieldAndTypeConstraints() {
+        parse(
+            "module scotch.test",
+            "data (Eq a, Eq b) => Map a b = Empty | Entry { key a, value b }"
+        );
+        shouldHaveDataType(
+            "scotch.test.Map",
+            dataDef("scotch.test.Map",
+                asList(var("a", asList("Eq")), var("b", asList("Eq"))),
+                asList(
+                    ctorDef("scotch.test.Map", "scotch.test.Empty"),
+                    ctorDef(
+                        "scotch.test.Map",
+                        "scotch.test.Entry",
+                        asList(
+                            fieldDef("key", var("a", asList("Eq"))),
+                            fieldDef("value", var("b", asList("Eq"))))))));
     }
 
     private void shouldHaveDataType(String name, DataTypeDefinition value) {

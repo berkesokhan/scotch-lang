@@ -111,7 +111,9 @@ public class TestUtil {
     }
 
     public static DataConstructorDescriptor constructor(String dataType, String name, List<DataFieldDescriptor> fields) {
-        return new DataConstructorDescriptor(Symbol.fromString(dataType), Symbol.fromString(name), fields);
+        return DataConstructorDescriptor.builder(Symbol.fromString(dataType), Symbol.fromString(name))
+            .withFields(fields)
+            .build();
     }
 
     public static DataConstructorDefinition ctorDef(String dataType, String name) {
@@ -119,11 +121,21 @@ public class TestUtil {
     }
 
     public static DataConstructorDefinition ctorDef(String dataType, String name, List<DataFieldDefinition> fields) {
-        return new DataConstructorDefinition(NULL_SOURCE, Symbol.fromString(dataType), Symbol.fromString(name), fields);
+        return DataConstructorDefinition.builder()
+            .withSourceRange(NULL_SOURCE)
+            .withDataType(Symbol.fromString(dataType))
+            .withSymbol(Symbol.fromString(name))
+            .withFields(fields)
+            .build();
     }
 
     public static DataTypeDefinition dataDef(String name, List<Type> parameters, List<DataConstructorDefinition> constructors) {
-        return new DataTypeDefinition(NULL_SOURCE, Symbol.fromString(name), parameters, constructors);
+        return DataTypeDefinition.builder()
+            .withSourceRange(NULL_SOURCE)
+            .withSymbol(Symbol.fromString(name))
+            .withParameters(parameters)
+            .withConstructors(constructors)
+            .build();
     }
 
     public static DataReference dataRef(String name) {
@@ -131,7 +143,10 @@ public class TestUtil {
     }
 
     public static DataTypeDescriptor dataType(String name, List<Type> parameters, List<DataConstructorDescriptor> constructors) {
-        return new DataTypeDescriptor(Symbol.fromString(name), parameters, constructors);
+        return DataTypeDescriptor.builder(Symbol.fromString(name))
+            .withParameters(parameters)
+            .withConstructors(constructors)
+            .build();
     }
 
     public static Type doubleType() {
@@ -162,12 +177,12 @@ public class TestUtil {
         return InitializerField.field(NULL_SOURCE, name, value);
     }
 
-    public static DataFieldDescriptor field(String name, Type type) {
-        return new DataFieldDescriptor(name, type);
-    }
-
     public static DataFieldDefinition fieldDef(String name, Type type) {
-        return new DataFieldDefinition(NULL_SOURCE, name, type);
+        return DataFieldDefinition.builder()
+            .withSourceRange(NULL_SOURCE)
+            .withName(name)
+            .withType(type)
+            .build();
     }
 
     public static FunctionValue fn(String name, Argument argument, Value body) {

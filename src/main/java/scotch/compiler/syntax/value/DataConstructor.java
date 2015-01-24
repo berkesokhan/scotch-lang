@@ -1,5 +1,6 @@
 package scotch.compiler.syntax.value;
 
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
@@ -134,7 +135,7 @@ public class DataConstructor extends Value {
 
     @Override
     public String toString() {
-        return symbol.toString();
+        return symbol.toString() + "(" + arguments.stream().map(Object::toString).collect(joining(", ")) + ")";
     }
 
     @Override

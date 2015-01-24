@@ -4,10 +4,14 @@ import java.util.Objects;
 
 public class DataFieldDescriptor {
 
+    public static DataFieldDescriptor field(String name, Type type) {
+        return new DataFieldDescriptor(name, type);
+    }
+
     private final String name;
     private final Type   type;
 
-    public DataFieldDescriptor(String name, Type type) {
+    private DataFieldDescriptor(String name, Type type) {
         this.name = name;
         this.type = type;
     }

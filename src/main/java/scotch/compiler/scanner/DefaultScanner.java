@@ -48,16 +48,16 @@ public final class DefaultScanner implements Scanner {
         .put("->", take(TokenKind.ARROW))
         .put("=>", take(TokenKind.DOUBLE_ARROW))
         .put("=", take(TokenKind.ASSIGN))
-        .put("let", take(TokenKind.LET))
-        .put("in", take(TokenKind.IN))
+        .put("let", take(TokenKind.KEYWORD_LET))
+        .put("in", take(TokenKind.KEYWORD_IN))
         .put("False", takeBool())
         .put("True", takeBool())
-        .put("if", take(TokenKind.IF))
-        .put("else", take(TokenKind.ELSE))
-        .put("then", take(TokenKind.THEN))
-        .put("where", take(TokenKind.WHERE))
-        .put("match", take(TokenKind.MATCH))
-        .put("on", take(TokenKind.ON))
+        .put("if", take(TokenKind.KEYWORD_IF))
+        .put("else", take(TokenKind.KEYWORD_ELSE))
+        .put("then", take(TokenKind.KEYWORD_THEN))
+        .put("where", take(TokenKind.KEYWORD_WHERE))
+        .put("match", take(TokenKind.KEYWORD_MATCH))
+        .put("on", take(TokenKind.KEYWORD_ON))
         .build();
 
     private static Acceptor take(TokenKind kind) {
@@ -65,7 +65,7 @@ public final class DefaultScanner implements Scanner {
     }
 
     private static Acceptor takeBool() {
-        return new Acceptor(TokenKind.BOOL, Boolean::valueOf);
+        return new Acceptor(TokenKind.BOOL_LITERAL, Boolean::valueOf);
     }
 
     private final String                  sourceName;
@@ -146,11 +146,11 @@ public final class DefaultScanner implements Scanner {
     }
 
     private void acceptChar() {
-        accept(TokenKind.CHAR, unescapeJava(getText()).charAt(0));
+        accept(TokenKind.CHAR_LITERAL, unescapeJava(getText()).charAt(0));
     }
 
     private void acceptInt() {
-        accept(TokenKind.INT, Integer::valueOf);
+        accept(TokenKind.INT_LITERAL, Integer::valueOf);
     }
 
     private void begin() {
@@ -249,13 +249,13 @@ public final class DefaultScanner implements Scanner {
     }
 
     private String nameOf(int c) {
-        return isEOF() ? "<EOF>" : "<" + getName(c) + "> " + quote((char) c);
+        return isEOF() ? "<END_OF_FILE>" : "<" + getName(c) + "> " + quote((char) c);
     }
 
     private void nextToken_() {
         setAction(ERROR);
         if (isEOF()) {
-            accept(TokenKind.EOF);
+            accept(TokenKind.END_OF_FILE);
         } else if (state() == SCAN_DEFAULT) {
             skipIgnored();
             if (isDoubleQuote(peek())) {
@@ -266,39 +266,39 @@ public final class DefaultScanner implements Scanner {
                 scanQuotedWord();
             } else if (isBackslash(peek())) {
                 read();
-                accept(TokenKind.LAMBDA);
+                accept(TokenKind.BACKSLASH);
             } else if (peek() == '|' && !isLetterOrDigit(peekAt(1)) && !isSymbol(peekAt(1))) {
                 read();
                 accept(TokenKind.PIPE);
             } else if (peek() == -1) {
                 read();
-                accept(TokenKind.EOF);
+                accept(TokenKind.END_OF_FILE);
             } else if (peek() == '@') {
                 read();
-                accept(TokenKind.WORD);
+                accept(TokenKind.IDENTIFIER);
             } else if (peek() == '(') {
                 scanParentheses();
             } else if (peek() == ')') {
                 read();
-                accept(TokenKind.RPAREN);
+                accept(TokenKind.RIGHT_PARENTHESIS);
             } else if (peek() == '[') {
                 read();
                 if (peek() == ']') {
                     read();
-                    accept(TokenKind.WORD);
+                    accept(TokenKind.IDENTIFIER);
                 } else {
-                    accept(TokenKind.LSQUARE);
+                    accept(TokenKind.LEFT_SQUARE_BRACE);
                 }
             } else if (peek() == ']') {
                 read();
-                accept(TokenKind.RSQUARE);
+                accept(TokenKind.RIGHT_SQUARE_BRACE);
             } else if (peek() == '\n') {
                 read();
                 accept(TokenKind.NEWLINE);
             } else if (peek() == '.') {
                 if (!isIdentifier(peekAt(-1)) && !isIdentifier(peekAt(1))) {
                     read();
-                    accept(TokenKind.WORD);
+                    accept(TokenKind.IDENTIFIER);
                 } else {
                     read();
                     accept(TokenKind.DOT);
@@ -315,7 +315,7 @@ public final class DefaultScanner implements Scanner {
                     read();
                     accept(TokenKind.DOUBLE_COLON);
                 } else {
-                    accept(TokenKind.WORD);
+                    accept(TokenKind.IDENTIFIER);
                 }
             } else {
                 scanDefault();
@@ -409,14 +409,14 @@ public final class DefaultScanner implements Scanner {
             scanNumber();
         } else if (peek() == '{') {
             read();
-            accept(TokenKind.LCURLY);
+            accept(TokenKind.LEFT_CURLY_BRACE);
         } else if (peek() == '}') {
             read();
-            accept(TokenKind.RCURLY);
+            accept(TokenKind.RIGHT_CURLY_BRACE);
         } else if (isIdentifier(peek())) {
             if (isPrefix()) {
                 read();
-                accept(TokenKind.WORD);
+                accept(TokenKind.IDENTIFIER);
             } else {
                 scanWord();
             }
@@ -484,7 +484,7 @@ public final class DefaultScanner implements Scanner {
                     acceptInt();
                 } else {
                     end();
-                    accept(TokenKind.DOUBLE, Double::valueOf);
+                    accept(TokenKind.DOUBLE_LITERAL, Double::valueOf);
                 }
             } else {
                 acceptInt();
@@ -502,7 +502,7 @@ public final class DefaultScanner implements Scanner {
             if (peek() == ',' || peek() == ')') {
                 scanParentheses_();
             } else {
-                accept(TokenKind.LPAREN);
+                accept(TokenKind.LEFT_PARENTHESIS);
             }
         } else {
             unexpected();
@@ -515,7 +515,7 @@ public final class DefaultScanner implements Scanner {
             scanParentheses_();
         } else if (peek() == ')') {
             read();
-            accept(TokenKind.WORD);
+            accept(TokenKind.IDENTIFIER);
         } else {
             unexpected();
         }
@@ -531,7 +531,7 @@ public final class DefaultScanner implements Scanner {
                     throw new ScanException("Cannot quote reserved word " + quote(word) + " " + getMarkedPosition().prettyPrint());
                 } else {
                     read();
-                    accept(TokenKind.OPERATOR, word);
+                    accept(TokenKind.DEFAULT_OPERATOR, word);
                 }
             } else {
                 error();
@@ -545,7 +545,7 @@ public final class DefaultScanner implements Scanner {
         if (isDoubleQuote(peek())) {
             read();
             leaveState();
-            accept(TokenKind.STRING, unescapeJava(getText()));
+            accept(TokenKind.STRING_LITERAL, unescapeJava(getText()));
         } else if (isNewLineOrEOF(peek())) {
             unterminatedString();
         } else if (isBackslash(peek())) {
@@ -560,7 +560,7 @@ public final class DefaultScanner implements Scanner {
 
     private void scanWord() {
         readWord();
-        accept(dictionary.getOrDefault(getText(), take(TokenKind.WORD)));
+        accept(dictionary.getOrDefault(getText(), take(TokenKind.IDENTIFIER)));
     }
 
     private void setAction(Action action) {
