@@ -7,21 +7,20 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 public class DataConstructorDescriptor {
 
-    public static Builder builder(Symbol symbol) {
-        return new Builder(symbol);
+    public static Builder builder(Symbol dataType, Symbol symbol) {
+        return new Builder(dataType, symbol);
     }
 
-    private final Symbol                           symbol;
     private final Symbol                           dataType;
+    private final Symbol                           symbol;
     private final Map<String, DataFieldDescriptor> fields;
 
-    public DataConstructorDescriptor(Symbol symbol, Symbol dataType, List<DataFieldDescriptor> fields) {
-        this.symbol = symbol;
+    public DataConstructorDescriptor(Symbol dataType, Symbol symbol, List<DataFieldDescriptor> fields) {
         this.dataType = dataType;
+        this.symbol = symbol;
         this.fields = new LinkedHashMap<>();
         fields.forEach(field -> this.fields.put(field.getName(), field));
     }
@@ -32,12 +31,16 @@ public class DataConstructorDescriptor {
             return true;
         } else if (o instanceof DataConstructorDescriptor) {
             DataConstructorDescriptor other = (DataConstructorDescriptor) o;
-            return Objects.equals(symbol, other.symbol)
-                && Objects.equals(dataType, other.dataType)
+            return Objects.equals(dataType, other.dataType)
+                && Objects.equals(symbol, other.symbol)
                 && Objects.equals(fields, other.fields);
         } else {
             return false;
         }
+    }
+
+    public Symbol getDataType() {
+        return dataType;
     }
 
     public Symbol getSymbol() {
@@ -46,7 +49,7 @@ public class DataConstructorDescriptor {
 
     @Override
     public int hashCode() {
-        return Objects.hash(symbol, dataType, fields);
+        return Objects.hash(dataType, symbol, fields);
     }
 
     @Override
@@ -57,27 +60,22 @@ public class DataConstructorDescriptor {
 
     public static final class Builder {
 
-        private Symbol                    symbol;
-        private Optional<Symbol>          dataType;
-        private List<DataFieldDescriptor> fields;
+        private final Symbol                    dataType;
+        private final Symbol                    symbol;
+        private       List<DataFieldDescriptor> fields;
 
-        private Builder(Symbol symbol) {
+        private Builder(Symbol dataType, Symbol symbol) {
+            this.dataType = dataType;
             this.symbol = symbol;
-            this.dataType = Optional.empty();
             this.fields = new ArrayList<>();
         }
 
         public DataConstructorDescriptor build() {
             return new DataConstructorDescriptor(
+                dataType,
                 symbol,
-                dataType.orElseThrow(() -> new IllegalStateException("No data type given for " + symbol.quote())),
                 fields
             );
-        }
-
-        public Builder withDataType(Symbol dataType) {
-            this.dataType = Optional.of(dataType);
-            return this;
         }
 
         public Builder addField(DataFieldDescriptor field) {

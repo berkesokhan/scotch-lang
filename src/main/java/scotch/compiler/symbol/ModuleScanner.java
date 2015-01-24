@@ -4,6 +4,7 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static me.qmx.jitescript.util.CodegenUtils.p;
 import static scotch.compiler.symbol.Operator.operator;
 import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.symbol.Symbol.qualified;
@@ -24,7 +25,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableSet;
-import scotch.compiler.symbol.DataTypeDescriptor.Builder;
 import scotch.compiler.symbol.SymbolEntry.ImmutableEntryBuilder;
 import scotch.compiler.symbol.exception.IncompleteDataTypeError;
 import scotch.compiler.symbol.exception.IncompleteTypeInstanceError;
@@ -38,21 +38,23 @@ public class ModuleScanner {
     private final List<Class<?>>                     classes;
     private final Map<Symbol, ImmutableEntryBuilder> builders;
     private final Set<TypeInstanceDescriptor>        typeInstances;
+    private final Map<Symbol, String>                dataTypes;
 
     public ModuleScanner(String moduleName, List<Class<?>> classes) {
         this.moduleName = moduleName;
         this.classes = classes;
         this.builders = new HashMap<>();
         this.typeInstances = new HashSet<>();
+        this.dataTypes = new HashMap<>();
     }
 
     public Tuple2<Set<SymbolEntry>, Set<TypeInstanceDescriptor>> scan() {
+        classes.forEach(this::processDataTypes);
+        classes.forEach(this::processDataConstructors);
         classes.forEach(clazz -> {
-            processValues(clazz);
             processTypeClasses(clazz);
             processTypeInstances(clazz);
-            processDataTypes(clazz);
-            processDataConstructors(clazz);
+            processValues(clazz);
         });
         return tuple2(
             builders.values().stream().map(ImmutableEntryBuilder::build).collect(toSet()),
@@ -119,7 +121,10 @@ public class ModuleScanner {
 
     private void processDataConstructors(Class<?> clazz) {
         Optional.ofNullable(clazz.getAnnotation(DataConstructor.class)).ifPresent(annotation -> {
-            DataConstructorDescriptor.Builder constructor = DataConstructorDescriptor.builder(qualify(annotation.memberName()));
+            DataConstructorDescriptor.Builder constructor = DataConstructorDescriptor.builder(
+                qualify(annotation.dataType()),
+                qualify(annotation.memberName())
+            );
 
             Map<String, Type> fieldTypes = stream(clazz.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(DataFieldType.class))
@@ -143,7 +148,6 @@ public class ModuleScanner {
                 )));
 
             Symbol dataType = qualify(annotation.dataType());
-            constructor.withDataType(dataType);
             getBuilder(dataType).dataType()
                 .addConstructor(constructor.build());
         });
@@ -151,13 +155,16 @@ public class ModuleScanner {
 
     private void processDataTypes(Class<?> clazz) {
         Optional.ofNullable(clazz.getAnnotation(DataType.class)).ifPresent(annotation -> {
-            Builder builder = getBuilder(annotation.memberName()).dataType();
+            Symbol symbol = qualify(annotation.memberName());
+            DataTypeDescriptor.Builder builder = getBuilder(symbol).dataType();
             Method parametersGetter = findMethod(clazz, TypeParameters.class).orElseThrow(() -> incompleteDataType(clazz, TypeParameters.class));
             validateParametersGetter(parametersGetter);
             List<Type> parametersList = invoke(parametersGetter);
             for (int i = 0; i < annotation.parameters().length; i++) {
                 builder.addParameter(parametersList.get(i));
             }
+            builder.withClassName(p(clazz));
+            dataTypes.put(symbol, p(clazz));
         });
     }
 
@@ -189,7 +196,7 @@ public class ModuleScanner {
         stream(clazz.getDeclaredMethods()).forEach(method -> {
             Optional.ofNullable(method.getAnnotation(Value.class)).ifPresent(value -> {
                 ImmutableEntryBuilder builder = getBuilder(value.memberName());
-                builder.withValueSignature(MethodSignature.fromMethod(method));
+                builder.withValueMethod(MethodSignature.fromMethod(method));
                 if (value.fixity() != NONE && value.precedence() != -1) {
                     builder.withOperator(operator(value.fixity(), value.precedence()));
                 }
@@ -198,7 +205,7 @@ public class ModuleScanner {
                 ImmutableEntryBuilder builder = getBuilder(valueType.forMember());
                 if (Type.class.isAssignableFrom(method.getReturnType())) {
                     try {
-                        builder.withValue((Type) method.invoke(null));
+                        builder.withValueType((Type) method.invoke(null));
                     } catch (ReflectiveOperationException exception) {
                         throw new SymbolResolutionError(exception);
                     }

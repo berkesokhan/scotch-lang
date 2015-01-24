@@ -92,6 +92,8 @@ import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.CaptureMatch.CaptureMatchBuilder;
 import scotch.compiler.syntax.value.CaptureMatch.ClassDefinitionBuilder;
 import scotch.compiler.syntax.value.Conditional;
+import scotch.compiler.syntax.value.Constant;
+import scotch.compiler.syntax.value.DataConstructor;
 import scotch.compiler.syntax.value.EqualMatch.EqualMatchBuilder;
 import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.Identifier;
@@ -137,6 +139,46 @@ public class InputParser {
     private DefinitionReference collect(Definition definition) {
         definitions.add(entry(scope(), definition));
         return definition.getReference();
+    }
+
+    private DefinitionReference createConstructor(DataConstructorDefinition constructor) {
+        return scoped(() -> definition(ValueDefinition.builder(),
+            value -> value
+                .withSymbol(constructor.getSymbol())
+                .withBody(createConstructorBody(constructor))
+                .withType(reserveType())
+        ));
+    }
+
+    private Value createConstructorBody(DataConstructorDefinition constructor) {
+        if (constructor.isNiladic()) {
+            return node(Constant.builder(),
+                constant -> constant
+                    .withDataType(constructor.getDataType())
+                    .withSymbol(constructor.getSymbol())
+                    .withType(reserveType()));
+        } else {
+            return scoped(() -> node(
+                FunctionValue.builder(),
+                function -> definition(
+                    ScopeDefinition.builder(),
+                    scope -> {
+                        Symbol symbol = reserveSymbol();
+                        scope.withSymbol(symbol);
+                        function
+                            .withSymbol(symbol)
+                            .withArguments(constructor.getFields().stream()
+                                .map(field -> field.toArgument(scope()))
+                                .collect(toList()))
+                            .withBody(node(DataConstructor.builder(),
+                                ctor -> ctor
+                                    .withSymbol(constructor.getSymbol())
+                                    .withType(reserveType())
+                                    .withArguments(constructor.getFields().stream()
+                                        .map(field -> field.toValue(scope()))
+                                        .collect(toList()))));
+                    })));
+        }
     }
 
     private <D extends Definition, B extends SyntaxBuilder<D>> DefinitionReference definition(B supplier, Consumer<B> consumer) {
@@ -330,14 +372,17 @@ public class InputParser {
             .collect(toMap(Entry::getKey, entry -> var(entry.getKey(), entry.getValue())));
     }
 
-    private DataConstructorDefinition parseDataConstructor(List<DataConstructorDefinition> constructors, Symbol dataType) {
-        DataConstructorDefinition constructor = node(DataConstructorDefinition.builder(), builder -> {
-            builder.withDataType(dataType);
+    private DataConstructorDefinition parseDataConstructor(Symbol dataType) {
+        return node(DataConstructorDefinition.builder(), builder -> {
             if (expects(LCURLY)) {
-                builder.withSymbol(dataType);
+                builder
+                    .withSymbol(dataType)
+                    .withDataType(dataType);
                 parseDataFields(builder);
             } else {
-                builder.withSymbol(qualify(requireWord()));
+                builder
+                    .withSymbol(qualify(requireWord()))
+                    .withDataType(dataType);
                 if (expects(LCURLY)) {
                     parseDataFields(builder);
                 } else {
@@ -348,37 +393,6 @@ public class InputParser {
                 }
             }
         });
-        constructors.add(constructor);
-        return constructor;
-    }
-
-    private List<DefinitionReference> parseDataDefinition() {
-        List<DataConstructorDefinition> constructors = new ArrayList<>();
-        DefinitionReference definition = definition(DataTypeDefinition.builder(), builder -> {
-            requireWord("data");
-            Symbol symbol = qualify(requireWord());
-            builder.withSymbol(symbol);
-            while (!expects(ASSIGN) && !expects(LCURLY)) {
-                builder.addParameter(parseType());
-            }
-            if (expects(LCURLY)) {
-                builder.addConstructor(parseDataConstructor(constructors, symbol));
-            } else {
-                require(ASSIGN);
-                builder.addConstructor(parseDataConstructor(constructors, symbol));
-                while (expects(PIPE)) {
-                    require(PIPE);
-                    builder.addConstructor(parseDataConstructor(constructors, symbol));
-                }
-            }
-        });
-        return new ArrayList<DefinitionReference>() {{
-            add(definition);
-            constructors.stream()
-                .map(constructor -> constructor.createValue(scope()))
-                .map(InputParser.this::collect)
-                .forEach(this::add);
-        }};
     }
 
     private void parseDataFields(Builder builder) {
@@ -394,6 +408,35 @@ public class InputParser {
         require(RCURLY);
     }
 
+    private List<DefinitionReference> parseDataType() {
+        List<DataConstructorDefinition> constructors = new ArrayList<>();
+        DefinitionReference definition = definition(DataTypeDefinition.builder(), builder -> {
+            requireWord("data");
+            Symbol symbol = qualify(requireWord());
+            builder.withSymbol(symbol);
+            while (!expects(ASSIGN) && !expects(LCURLY)) {
+                builder.addParameter(parseType());
+            }
+            if (expects(LCURLY)) {
+                constructors.add(parseDataConstructor(symbol));
+            } else {
+                require(ASSIGN);
+                constructors.add(parseDataConstructor(symbol));
+                while (expects(PIPE)) {
+                    require(PIPE);
+                    constructors.add(parseDataConstructor(symbol));
+                }
+            }
+            constructors.forEach(builder::addConstructor);
+        });
+        return new ArrayList<DefinitionReference>() {{
+            add(definition);
+            constructors.stream()
+                .map(InputParser.this::createConstructor)
+                .forEach(this::add);
+        }};
+    }
+
     private List<DefinitionReference> parseDefinitions() {
         List<DefinitionReference> definitions = new ArrayList<>();
         if (expectsClassDefinition()) {
@@ -401,7 +444,7 @@ public class InputParser {
         } else if (expectsOperatorDefinition()) {
             definitions.addAll(parseOperatorDefinition());
         } else if (expectsDataDefinition()) {
-            definitions.addAll(parseDataDefinition());
+            definitions.addAll(parseDataType());
         } else if (expectsValueSignatures()) {
             definitions.addAll(parseValueSignatures());
         } else {

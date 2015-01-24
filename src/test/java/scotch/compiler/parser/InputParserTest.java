@@ -389,11 +389,15 @@ public class InputParserTest extends ParserTest {
             "}"
         );
         shouldHaveDataType("scotch.test.Toast", dataDef("scotch.test.Toast", emptyList(), asList(
-            ctorDef("scotch.test.Toast", asList(
-                fieldDef("type", sum("Bread")),
-                fieldDef("butter", sum("Verbool")),
-                fieldDef("jam", sum("Verbool"))
-            ))
+            ctorDef(
+                "scotch.test.Toast",
+                "scotch.test.Toast",
+                asList(
+                    fieldDef("type", sum("Bread")),
+                    fieldDef("butter", sum("Verbool")),
+                    fieldDef("jam", sum("Verbool"))
+                )
+            )
         )));
     }
 
@@ -404,8 +408,10 @@ public class InputParserTest extends ParserTest {
             "data Maybe a = Nothing | Just a"
         );
         shouldHaveDataType("scotch.test.Maybe", dataDef("scotch.test.Maybe", asList(var("a")), asList(
-            ctorDef("scotch.test.Nothing"),
-            ctorDef("scotch.test.Just",
+            ctorDef("scotch.test.Maybe", "scotch.test.Nothing"),
+            ctorDef(
+                "scotch.test.Maybe",
+                "scotch.test.Just",
                 asList(fieldDef("_0", var("a")))
             )
         )));
@@ -422,10 +428,13 @@ public class InputParserTest extends ParserTest {
             dataDef("scotch.test.Map",
                 asList(var("a"), var("b")),
                 asList(
-                    ctorDef("scotch.test.Empty"),
-                    ctorDef("scotch.test.Entry", asList(
-                        fieldDef("key", var("a")),
-                        fieldDef("value", var("b")))))));
+                    ctorDef("scotch.test.Map", "scotch.test.Empty"),
+                    ctorDef(
+                        "scotch.test.Map",
+                        "scotch.test.Entry",
+                        asList(
+                            fieldDef("key", var("a")),
+                            fieldDef("value", var("b")))))));
     }
 
     @Test
@@ -455,7 +464,7 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "data Maybe a = Nothing | Just a"
         );
-        shouldHaveValue("scotch.test.Nothing", constant("scotch.test.Nothing", t(0)));
+        shouldHaveValue("scotch.test.Nothing", constant("scotch.test.Nothing", "scotch.test.Maybe", t(0)));
     }
 
     @Test

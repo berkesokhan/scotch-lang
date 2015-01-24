@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class DataTypeDescriptor {
 
@@ -39,6 +40,10 @@ public class DataTypeDescriptor {
         }
     }
 
+    public Optional<DataConstructorDescriptor> getConstructor(Symbol symbol) {
+        return Optional.ofNullable(constructors.get(symbol));
+    }
+
     public Symbol getSymbol() {
         return symbol;
     }
@@ -58,11 +63,13 @@ public class DataTypeDescriptor {
     public static final class Builder {
 
         private final Symbol                          symbol;
+        private       Optional<String>                className;
         private       List<Type>                      parameters;
         private       List<DataConstructorDescriptor> constructors;
 
         private Builder(Symbol symbol) {
             this.symbol = symbol;
+            this.className = Optional.empty();
             this.parameters = new ArrayList<>();
             this.constructors = new ArrayList<>();
         }
@@ -79,6 +86,11 @@ public class DataTypeDescriptor {
 
         public DataTypeDescriptor build() {
             return new DataTypeDescriptor(symbol, parameters, constructors);
+        }
+
+        public Builder withClassName(String className) {
+            this.className = Optional.of(className);
+            return this;
         }
     }
 }

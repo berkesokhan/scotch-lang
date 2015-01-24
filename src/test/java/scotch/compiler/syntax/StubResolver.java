@@ -29,7 +29,6 @@ import scotch.compiler.symbol.SymbolEntry.ImmutableEntry;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
-import scotch.data.eq.Eq;
 import scotch.data.tuple.Tuple2;
 
 public class StubResolver implements SymbolResolver {
@@ -38,8 +37,7 @@ public class StubResolver implements SymbolResolver {
         Symbol symbol = fromString("scotch.data.eq.(==)");
         Type a = var("a", asList("scotch.data.eq.Eq"));
         return immutableEntry(symbol)
-            .withValue(fn(a, fn(a, sum("scotch.data.bool.Bool"))))
-            .withValueSignature(MethodSignature.fromMethod(Eq.class, "eq"))
+            .withValueType(fn(a, fn(a, sum("scotch.data.bool.Bool"))))
             .withMemberOf(fromString("scotch.data.eq.Eq"))
             .withOperator(operator(LEFT_INFIX, 5))
             .build();
@@ -74,7 +72,7 @@ public class StubResolver implements SymbolResolver {
         Type a = var("a", asList("scotch.data.num.Num"));
         return immutableEntry(qualified("scotch.data.num", "-"))
             .withOperator(operator(LEFT_INFIX, 6))
-            .withValue(fn(a, fn(a, a)))
+            .withValueType(fn(a, fn(a, a)))
             .withMemberOf(fromString("scotch.data.num.Num"))
             .build();
     }
@@ -83,7 +81,7 @@ public class StubResolver implements SymbolResolver {
         Type a = var("a", asList("scotch.data.num.Num"));
         return immutableEntry(qualified("scotch.data.num", "+"))
             .withOperator(operator(LEFT_INFIX, 6))
-            .withValue(fn(a, fn(a, a)))
+            .withValueType(fn(a, fn(a, a)))
             .withMemberOf(fromString("scotch.data.num.Num"))
             .build();
     }

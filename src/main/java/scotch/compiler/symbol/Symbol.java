@@ -21,10 +21,7 @@ import java.util.regex.Pattern;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import scotch.compiler.symbol.Type.FunctionType;
 import scotch.data.tuple.Tuple2;
-import scotch.runtime.Applicable;
-import scotch.runtime.Callable;
 import scotch.util.StringUtil;
 
 public abstract class Symbol implements Comparable<Symbol> {
@@ -191,13 +188,36 @@ public abstract class Symbol implements Comparable<Symbol> {
 
     public abstract String getCanonicalName();
 
+    public String getClassId() {
+        return "L" + getClassName() + ";";
+    }
+
     public abstract String getClassName();
+
+    public String getClassNameAsChildOf(Symbol dataType) {
+        return dataType.getClassName() + "$" + getSimpleName();
+    }
+
+    public String getJavaMember() {
+        return toJavaName(getMemberName());
+    }
+
+    public String getMemberName() {
+        String memberName = getMemberNames().stream().collect(joining("#"));
+        if (memberName.matches("^\\d+.*")) {
+            return "#" + memberName;
+        } else {
+            return memberName;
+        }
+    }
 
     public abstract List<String> getMemberNames();
 
     public String getMethodName() {
-        return toJavaName_(getSimpleName());
+        return toJavaName(getSimpleName());
     }
+
+    public abstract String getModuleClass();
 
     public String getSimpleName() {
         String simpleName = getMemberNames().get(getMemberNames().size() - 1);
@@ -233,7 +253,7 @@ public abstract class Symbol implements Comparable<Symbol> {
 
     public abstract Symbol unqualify();
 
-    protected String toJavaName_(String memberName) {
+    public static String toJavaName(String memberName) {
         return memberName.chars()
             .mapToObj(i -> javaSymbolMap.getOrDefault(i, String.valueOf(Character.toChars(i))))
             .collect(joining());
@@ -304,7 +324,7 @@ public abstract class Symbol implements Comparable<Symbol> {
         @Override
         public String getClassName() {
             return Optional.ofNullable(javaTypeMap.get(this))
-                .orElseGet(() -> getPackagePath() + "/ScotchModule");
+                .orElseGet(() -> getPackagePath() + "/" + toJavaName(getMemberName()));
         }
 
         @Override
@@ -312,12 +332,10 @@ public abstract class Symbol implements Comparable<Symbol> {
             return memberNames;
         }
 
-        public MethodSignature getMethodSignature(Type type) {
-            return MethodSignature.staticFromSymbol(
-                this,
-                ImmutableList.of(),
-                ClassSignature.fromClass(type instanceof FunctionType ? Applicable.class : Callable.class)
-            );
+        @Override
+        public String getModuleClass() {
+            return Optional.ofNullable(javaTypeMap.get(this))
+                .orElseGet(() -> getPackagePath() + "/ScotchModule");
         }
 
         public String getModuleName() {
@@ -400,6 +418,11 @@ public abstract class Symbol implements Comparable<Symbol> {
         @Override
         public List<String> getMemberNames() {
             return memberNames;
+        }
+
+        @Override
+        public String getModuleClass() {
+            throw new IllegalStateException();
         }
 
         @Override

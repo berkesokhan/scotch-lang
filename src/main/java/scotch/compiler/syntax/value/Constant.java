@@ -1,10 +1,14 @@
 package scotch.compiler.syntax.value;
 
+import static me.qmx.jitescript.util.CodegenUtils.p;
+import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 import me.qmx.jitescript.CodeBlock;
+import me.qmx.jitescript.LambdaBlock;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
@@ -16,50 +20,55 @@ import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
+import scotch.runtime.Callable;
+import scotch.runtime.SuppliedThunk;
 
 public class Constant extends Value {
 
     public static Builder builder() {
         return new Builder();
     }
+
     private final SourceRange sourceRange;
     private final Symbol      symbol;
-    private final Type type;
+    private final Symbol      dataType;
+    private final Type        type;
 
-    Constant(SourceRange sourceRange, Symbol symbol, Type type) {
+    Constant(SourceRange sourceRange, Symbol dataType, Symbol symbol, Type type) {
         this.sourceRange = sourceRange;
+        this.dataType = dataType;
         this.symbol = symbol;
         this.type = type;
     }
 
     @Override
     public Value accumulateDependencies(DependencyAccumulator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
     public Value accumulateNames(NameAccumulator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
     public Value bindMethods(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
     public Value bindTypes(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+        return withType(state.generate(type));
     }
 
     @Override
     public Value checkTypes(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
     public Value defineOperators(OperatorDefinitionParser state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
@@ -70,6 +79,7 @@ public class Constant extends Value {
             Constant other = (Constant) o;
             return Objects.equals(sourceRange, other.sourceRange)
                 && Objects.equals(symbol, other.symbol)
+                && Objects.equals(dataType, other.dataType)
                 && Objects.equals(type, other.type);
         } else {
             return false;
@@ -78,7 +88,23 @@ public class Constant extends Value {
 
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return new CodeBlock() {{
+            String className = state.getDataConstructorClass(symbol);
+            newobj(p(SuppliedThunk.class));
+            dup();
+            lambda(state.currentClass(), new LambdaBlock("$$constant$" + symbol.getMemberName()) {{
+                function(p(Supplier.class), "get", sig(Object.class));
+                specialize(sig(Callable.class));
+                capture(new Class<?>[0]);
+                delegateTo(ACC_STATIC | ACC_PRIVATE, sig(Callable.class), new CodeBlock() {{
+                    newobj(className);
+                    dup();
+                    invokespecial(className, "<init>", sig(void.class));
+                    areturn();
+                }});
+            }});
+            invokespecial(p(SuppliedThunk.class), "<init>", sig(void.class, Supplier.class));
+        }};
     }
 
     @Override
@@ -93,17 +119,17 @@ public class Constant extends Value {
 
     @Override
     public int hashCode() {
-        return Objects.hash(symbol, type);
+        return Objects.hash(symbol, dataType, type);
     }
 
     @Override
     public Value parsePrecedence(PrecedenceParser state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
     public Value qualifyNames(NameQualifier state) {
-        throw new UnsupportedOperationException(); // TODO
+        return withType(type.qualifyNames(state));
     }
 
     @Override
@@ -113,17 +139,19 @@ public class Constant extends Value {
 
     @Override
     public Value withType(Type type) {
-        throw new UnsupportedOperationException(); // TODO
+        return new Constant(sourceRange, dataType, symbol, type);
     }
 
     public static class Builder implements SyntaxBuilder<Constant> {
 
         private Optional<SourceRange> sourceRange;
+        private Optional<Symbol>      dataType;
         private Optional<Symbol>      symbol;
         private Optional<Type>        type;
 
         private Builder() {
             sourceRange = Optional.empty();
+            dataType = Optional.empty();
             symbol = Optional.empty();
             type = Optional.empty();
         }
@@ -132,9 +160,15 @@ public class Constant extends Value {
         public Constant build() {
             return new Constant(
                 require(sourceRange, "Source range"),
+                require(dataType, "Data type"),
                 require(symbol, "Constant symbol"),
                 require(type, "Constant type")
             );
+        }
+
+        public Builder withDataType(Symbol dataType) {
+            this.dataType = Optional.of(dataType);
+            return this;
         }
 
         @Override

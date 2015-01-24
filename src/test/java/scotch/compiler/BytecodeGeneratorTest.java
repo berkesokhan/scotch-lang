@@ -4,8 +4,10 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.compiler.util.TestUtil.exec;
 
+import java.lang.reflect.Method;
 import org.junit.Ignore;
 import org.junit.Test;
+import scotch.runtime.Callable;
 
 public class BytecodeGeneratorTest {
 
@@ -134,6 +136,17 @@ public class BytecodeGeneratorTest {
             "fib n = fib (n - 1) + fib (n - 2)"
         );
         assertThat(result, is(6765));
+    }
+
+    @Test
+    public void shouldCompileDataDeclaration() throws ReflectiveOperationException {
+        Object result = exec(
+            "module scotch.test",
+            "data Maybe a = Nothing | Just a",
+            "run = Just \"Waffles\""
+        );
+        Method getter = result.getClass().getMethod("get_0");
+        assertThat(((Callable) getter.invoke(result)).call(), is("Waffles"));
     }
 
     @Ignore

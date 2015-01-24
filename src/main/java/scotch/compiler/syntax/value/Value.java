@@ -40,8 +40,8 @@ public abstract class Value {
         return new Conditional(sourceRange, condition, whenTrue, whenFalse, type);
     }
 
-    public static Constant constant(SourceRange sourceRange, Symbol symbol, Type type) {
-        return new Constant(sourceRange, symbol, type);
+    public static Constant constant(SourceRange sourceRange, Symbol symbol, Symbol dataType, Type type) {
+        return new Constant(sourceRange, dataType, symbol, type);
     }
 
     public static DataConstructor construct(SourceRange sourceRange, Symbol symbol, Type type, List<Value> arguments) {

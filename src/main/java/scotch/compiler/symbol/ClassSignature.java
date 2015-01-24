@@ -9,8 +9,8 @@ public abstract class ClassSignature {
         return new JavaClassSignature(clazz);
     }
 
-    public static ClassSignature fromString(String path) {
-        return new ComputedClassSignature(path);
+    public static ClassSignature fromSymbol(Symbol symbol) {
+        return new ComputedClassSignature(symbol.getClassName());
     }
 
     private ClassSignature() {

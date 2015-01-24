@@ -1,17 +1,26 @@
 package scotch.compiler.syntax.definition;
 
+import static me.qmx.jitescript.util.CodegenUtils.ci;
+import static org.objectweb.asm.Opcodes.ACC_FINAL;
+import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.Objects;
 import java.util.Optional;
+import scotch.compiler.symbol.DataFieldDescriptor;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.Type.FunctionType;
+import scotch.compiler.syntax.BytecodeGenerator;
+import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
+import scotch.runtime.Applicable;
+import scotch.runtime.Callable;
 
 public class DataFieldDefinition {
 
@@ -42,13 +51,37 @@ public class DataFieldDefinition {
         }
     }
 
+    public void generateBytecode(BytecodeGenerator state) {
+        state.field(Symbol.toJavaName(name), ACC_PRIVATE | ACC_FINAL, ci(getJavaType()));
+    }
+
+    public String getJavaName() {
+        return Symbol.toJavaName(name);
+    }
+
+    public Class<?> getJavaType() {
+        return type instanceof FunctionType ? Applicable.class : Callable.class;
+    }
+
     public String getName() {
         return name;
+    }
+
+    public Type getType() {
+        return type;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(name, type);
+    }
+
+    public DataFieldDefinition qualifyNames(NameQualifier state) {
+        return withType(type.qualifyNames(state));
+    }
+
+    private DataFieldDefinition withType(Type type) {
+        return new DataFieldDefinition(sourceRange, name, type);
     }
 
     public Argument toArgument(Scope scope) {
@@ -57,6 +90,10 @@ public class DataFieldDefinition {
             .withSourceRange(sourceRange)
             .withType(scope.reserveType())
             .build();
+    }
+
+    public DataFieldDescriptor toDescriptor() {
+        return new DataFieldDescriptor(name, type);
     }
 
     @Override

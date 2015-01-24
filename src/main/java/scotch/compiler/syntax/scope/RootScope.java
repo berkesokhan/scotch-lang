@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import scotch.compiler.symbol.DataConstructorDescriptor;
+import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
@@ -44,6 +46,16 @@ public class RootScope extends Scope {
 
     @Override
     public void addPattern(Symbol symbol, PatternMatcher pattern) {
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public void defineDataType(Symbol symbol, DataTypeDescriptor descriptor) {
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public void defineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor) {
         throw new IllegalStateException();
     }
 
@@ -156,7 +168,7 @@ public class RootScope extends Scope {
 
     @Override
     public Optional<MethodSignature> getValueSignature(Symbol symbol) {
-        return resolver.getEntry(symbol).map(SymbolEntry::getValueSignature);
+        return resolver.getEntry(symbol).map(SymbolEntry::getValueMethod);
     }
 
     @Override
@@ -214,6 +226,11 @@ public class RootScope extends Scope {
     }
 
     @Override
+    protected String getModuleName() {
+        throw new IllegalStateException();
+    }
+
+    @Override
     public Symbol reserveSymbol() {
         return symbolGenerator.reserveSymbol();
     }
@@ -246,6 +263,11 @@ public class RootScope extends Scope {
                 return Optional.empty();
             }
         });
+    }
+
+    @Override
+    protected boolean isDataConstructor(Symbol symbol) {
+        return false;
     }
 
     @Override

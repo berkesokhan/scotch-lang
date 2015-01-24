@@ -37,9 +37,9 @@ public class ValueDefinition extends Definition {
     }
 
     private final SourceRange sourceRange;
-    private       Symbol      symbol;
-    private       Value       body;
-    private       Type        type;
+    private final Symbol      symbol;
+    private final Value       body;
+    private final Type        type;
 
     ValueDefinition(SourceRange sourceRange, Symbol symbol, Value body, Type type) {
         this.sourceRange = sourceRange;

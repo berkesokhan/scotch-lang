@@ -6,6 +6,7 @@ import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
 import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.GeneratedClass;
+import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
@@ -21,6 +22,8 @@ public interface BytecodeGenerator {
     void beginCases(int size);
 
     void beginClass(String className, SourceRange sourceRange);
+
+    void beginClass(String className, String superClass, SourceRange sourceRange);
 
     void beginMatches();
 
@@ -42,6 +45,8 @@ public interface BytecodeGenerator {
 
     void endMatches();
 
+    void field(String fieldName, int access, String type);
+
     void fromRoot();
 
     <T extends Scoped> void generate(T scoped, Runnable runnable);
@@ -51,6 +56,10 @@ public interface BytecodeGenerator {
     Class<?>[] getCaptureAllTypes();
 
     List<GeneratedClass> getClasses();
+
+    default String getDataConstructorClass(Symbol symbol) {
+        return scope().getDataConstructorClass(symbol);
+    }
 
     Class<?>[] getLambdaCaptureTypes();
 

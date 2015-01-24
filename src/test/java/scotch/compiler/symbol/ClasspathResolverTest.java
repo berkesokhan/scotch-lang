@@ -1,10 +1,10 @@
 package scotch.compiler.symbol;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static scotch.compiler.symbol.MethodSignature.methodSignature;
 import static scotch.compiler.symbol.Operator.operator;
 import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.symbol.Type.fn;
@@ -37,7 +37,7 @@ public class ClasspathResolverTest {
 
         assertThat(entry.getValue(), is(fn(a, fn(a, a))));
         assertThat(entry.getOperator(), is(operator(LEFT_INFIX, 7)));
-        assertThat(entry.getValueSignature().toString(), is("scotch/data/num/Num:add:()Lscotch/runtime/Applicable;"));
+        assertThat(entry.getValueMethod(), is(methodSignature("scotch/data/num/Num:add:()Lscotch/runtime/Applicable;")));
         assertThat(entry.getMemberOf(), is(fromString("scotch.data.num.Num")));
     }
 
@@ -102,10 +102,13 @@ public class ClasspathResolverTest {
             "scotch.data.maybe.Maybe",
             asList(var("a")),
             asList(
-                constructor("scotch.data.maybe.Nothing", "scotch.data.maybe.Maybe", emptyList()),
                 constructor(
-                    "scotch.data.maybe.Just",
                     "scotch.data.maybe.Maybe",
+                    "scotch.data.maybe.Nothing"
+                ),
+                constructor(
+                    "scotch.data.maybe.Maybe",
+                    "scotch.data.maybe.Just",
                     asList(field("value", var("a")))
                 )
             )

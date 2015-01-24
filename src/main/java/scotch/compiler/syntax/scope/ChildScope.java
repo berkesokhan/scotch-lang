@@ -13,6 +13,8 @@ import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import scotch.compiler.symbol.DataConstructorDescriptor;
+import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
@@ -99,6 +101,16 @@ public class ChildScope extends Scope {
     }
 
     @Override
+    public void defineDataType(Symbol symbol, DataTypeDescriptor descriptor) {
+        define(symbol).defineDataType(descriptor);
+    }
+
+    @Override
+    public void defineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor) {
+        define(symbol).defineDataConstructor(descriptor);
+    }
+
+    @Override
     public void defineOperator(Symbol symbol, Operator operator) {
         throw new IllegalStateException("Can't define operator " + symbol.quote() + " in this scope");
     }
@@ -110,7 +122,12 @@ public class ChildScope extends Scope {
 
     @Override
     public void defineValue(Symbol symbol, Type type) {
-        define(symbol).defineValue(type);
+        define(symbol).defineValue(type, computeValueMethod(symbol, type));
+    }
+
+    @Override
+    protected boolean isDataConstructor(Symbol symbol) {
+        return requireEntry(symbol).isDataConstructor() || parent.isDataConstructor(symbol);
     }
 
     @Override
@@ -215,7 +232,7 @@ public class ChildScope extends Scope {
     @Override
     public Optional<MethodSignature> getValueSignature(Symbol symbol) {
         if (entries.containsKey(symbol)) {
-            return Optional.of(entries.get(symbol).getValueSignature());
+            return Optional.of(entries.get(symbol).getValueMethod());
         } else {
             return parent.getValueSignature(symbol);
         }
@@ -292,6 +309,11 @@ public class ChildScope extends Scope {
     }
 
     @Override
+    protected String getModuleName() {
+        return moduleName;
+    }
+
+    @Override
     public Symbol reserveSymbol() {
         return parent.reserveSymbol();
     }
@@ -299,11 +321,6 @@ public class ChildScope extends Scope {
     @Override
     public Symbol reserveSymbol(List<String> nestings) {
         return parent.reserveSymbol(nestings);
-    }
-
-    @Override
-    public void setParent(Scope parent) {
-        this.parent = parent;
     }
 
     @Override

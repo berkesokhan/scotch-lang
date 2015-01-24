@@ -1,5 +1,7 @@
 package scotch.compiler.syntax.value;
 
+import static java.util.stream.Collectors.toList;
+import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.ArrayList;
@@ -40,32 +42,44 @@ public class DataConstructor extends Value {
 
     @Override
     public Value accumulateDependencies(DependencyAccumulator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
     public Value accumulateNames(NameAccumulator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
     public Value bindMethods(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+        return withArguments(arguments.stream()
+            .map(argument -> argument.bindMethods(state))
+            .collect(toList()));
     }
 
     @Override
     public Value bindTypes(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+        return withType(state.generate(type)).withArguments(arguments.stream()
+            .map(argument -> argument.bindTypes(state))
+            .collect(toList()));
     }
 
     @Override
     public Value checkTypes(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+        return withArguments(arguments.stream()
+            .map(argument -> argument.checkTypes(state))
+            .collect(toList()));
     }
 
     @Override
     public Value defineOperators(OperatorDefinitionParser state) {
-        throw new UnsupportedOperationException(); // TODO
+        return withArguments(arguments.stream()
+            .map(argument -> argument.defineOperators(state))
+            .collect(toList()));
+    }
+
+    private DataConstructor withArguments(List<Value> arguments) {
+        return new DataConstructor(sourceRange, symbol, type, arguments);
     }
 
     @Override
@@ -85,7 +99,16 @@ public class DataConstructor extends Value {
 
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return new CodeBlock() {{
+            newobj(state.getDataConstructorClass(symbol));
+            dup();
+            arguments.forEach(argument -> append(argument.generateBytecode(state)));
+            List<Class<?>> parameters = arguments.stream()
+                .map(Value::getType)
+                .map(Type::getJavaType)
+                .collect(toList());
+            invokespecial(state.getDataConstructorClass(symbol), "<init>", sig(void.class, parameters.toArray(new Class<?>[parameters.size()])));
+        }};
     }
 
     @Override
@@ -95,7 +118,7 @@ public class DataConstructor extends Value {
 
     @Override
     public Type getType() {
-        throw new UnsupportedOperationException(); // TODO
+        return type;
     }
 
     @Override
@@ -105,12 +128,17 @@ public class DataConstructor extends Value {
 
     @Override
     public Value parsePrecedence(PrecedenceParser state) {
-        throw new UnsupportedOperationException(); // TODO
+        return withArguments(arguments.stream()
+            .map(argument -> argument.parsePrecedence(state))
+            .collect(toList()));
     }
 
     @Override
     public Value qualifyNames(NameQualifier state) {
-        throw new UnsupportedOperationException(); // TODO
+        return withArguments(arguments.stream()
+            .map(argument -> argument.qualifyNames(state))
+            .collect(toList()))
+        .withType(type.qualifyNames(state));
     }
 
     @Override
@@ -119,8 +147,8 @@ public class DataConstructor extends Value {
     }
 
     @Override
-    public Value withType(Type type) {
-        throw new UnsupportedOperationException(); // TODO
+    public DataConstructor withType(Type type) {
+        return new DataConstructor(sourceRange, symbol, type, arguments);
     }
 
     public static class Builder implements SyntaxBuilder<DataConstructor> {

@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 import scotch.compiler.error.SyntaxError;
+import scotch.compiler.symbol.DataConstructorDescriptor;
+import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
@@ -22,6 +24,14 @@ public interface NameAccumulator {
     Definition collect(Definition definition);
 
     Definition collect(PatternMatcher pattern);
+
+    default void defineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor) {
+        scope().defineDataConstructor(symbol, descriptor);
+    }
+
+    default void defineDataType(Symbol symbol, DataTypeDescriptor descriptor) {
+        scope().defineDataType(symbol, descriptor);
+    }
 
     default void defineOperator(Symbol symbol, Operator operator) {
         scope().defineOperator(symbol, operator);

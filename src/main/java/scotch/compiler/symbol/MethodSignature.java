@@ -1,20 +1,42 @@
 package scotch.compiler.symbol;
 
-import static java.lang.reflect.Modifier.isStatic;
 import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.joining;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
-import java.util.List;
+import java.lang.reflect.Modifier;
 import java.util.Objects;
 import me.qmx.jitescript.CodeBlock;
 
-public abstract class MethodSignature {
+public class MethodSignature {
+
+    public static MethodSignature constructor(String descriptor) {
+        String[] parts = descriptor.split(":");
+        return new MethodSignature(MethodType.SPECIAL, parts[0], parts[1], parts[2]);
+    }
+
+    public static MethodSignature fromConstructor(Constructor constructor) {
+        return new MethodSignature(
+            MethodType.SPECIAL,
+            p(constructor.getDeclaringClass()),
+            "<init>",
+            sig(void.class, constructor.getParameterTypes())
+        );
+    }
+
+    public static MethodSignature staticMethod(String className, String methodName, String signature) {
+        return new MethodSignature(MethodType.STATIC, className, methodName, signature);
+    }
 
     public static MethodSignature fromMethod(Method method) {
-        return new JavaMethodSignature(method);
+        return new MethodSignature(
+            MethodType.fromAccess(method),
+            p(method.getDeclaringClass()),
+            method.getName(),
+            sig(method.getReturnType(), method.getParameterTypes())
+        );
     }
 
     public static MethodSignature fromMethod(Class<?> clazz, String methodName) {
@@ -29,124 +51,100 @@ public abstract class MethodSignature {
         }
     }
 
-    public static MethodSignature interfaceFromSymbol(Symbol symbol, List<ClassSignature> parameterTypes, ClassSignature returnType) {
-        return fromSymbol(MethodType.INTERFACE, symbol, parameterTypes, returnType);
+    public static MethodSignature methodSignature(String string) {
+        String[] parts = string.split(":");
+        return new MethodSignature(MethodType.STATIC, parts[0], parts[1], parts[2]);
     }
 
-    public static MethodSignature staticFromSymbol(Symbol symbol, List<ClassSignature> parameterTypes, ClassSignature returnType) {
-        return fromSymbol(MethodType.STATIC, symbol, parameterTypes, returnType);
-    }
+    private final MethodType methodType;
+    private final String     className;
+    private final String     methodName;
+    private final String     signature;
 
-    public static MethodSignature virtualFromSymbol(Symbol symbol, List<ClassSignature> parameterTypes, ClassSignature returnType) {
-        return fromSymbol(MethodType.VIRTUAL, symbol, parameterTypes, returnType);
-    }
-
-    private static MethodSignature fromSymbol(MethodType methodType, Symbol symbol, List<ClassSignature> parameterTypes, ClassSignature returnType) {
-        return new ScotchMethodSignature(methodType, symbol, parameterTypes, returnType);
+    private MethodSignature(MethodType methodType, String className, String methodName, String signature) {
+        this.methodType = methodType;
+        this.className = className;
+        this.methodName = methodName;
+        this.signature = signature;
     }
 
     @Override
     public boolean equals(Object o) {
-        return o == this || o instanceof MethodSignature && toString().equals(o.toString());
+        if (o == this) {
+            return true;
+        } else if (o instanceof MethodSignature) {
+            MethodSignature other = (MethodSignature) o;
+            return Objects.equals(methodType, other.methodType)
+                && Objects.equals(className, other.className)
+                && Objects.equals(methodName, other.methodName)
+                && Objects.equals(signature, other.signature);
+        } else {
+            return false;
+        }
+    }
+
+    public String getClassName() {
+        return className;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(toString());
+        return Objects.hash(methodType, className, methodName, signature);
     }
 
-    public abstract CodeBlock reference();
-
-    private interface Generator {
-
-        CodeBlock generate(String target, String method, String signature);
+    public CodeBlock reference() {
+        return methodType.generate(this);
     }
 
-    private static enum MethodType {
+    @Override
+    public String toString() {
+        return className + ":" + methodName + ":" + signature;
+    }
 
+    private enum MethodType {
         STATIC {
             @Override
-            public CodeBlock generate(ScotchMethodSignature signature) {
-                return signature.generate(new CodeBlock()::invokestatic);
+            public CodeBlock generate(MethodSignature signature) {
+                return new CodeBlock() {{
+                    invokestatic(signature.className, signature.methodName, signature.signature);
+                }};
             }
         },
         VIRTUAL {
             @Override
-            public CodeBlock generate(ScotchMethodSignature signature) {
-                return signature.generate(new CodeBlock()::invokevirtual);
+            public CodeBlock generate(MethodSignature signature) {
+                return new CodeBlock() {{
+                    invokevirtual(signature.className, signature.methodName, signature.signature);
+                }};
             }
         },
         INTERFACE {
             @Override
-            public CodeBlock generate(ScotchMethodSignature signature) {
-                return signature.generate(new CodeBlock()::invokeinterface);
+            public CodeBlock generate(MethodSignature signature) {
+                return new CodeBlock() {{
+                    invokeinterface(signature.className, signature.methodName, signature.signature);
+                }};
+            }
+        },
+        SPECIAL {
+            @Override
+            public CodeBlock generate(MethodSignature signature) {
+                return new CodeBlock() {{
+                    invokespecial(signature.className, signature.methodName, signature.signature);
+                }};
             }
         };
 
-        public abstract CodeBlock generate(ScotchMethodSignature signature);
-    }
-
-    private static final class JavaMethodSignature extends MethodSignature {
-
-        private final Method method;
-
-        public JavaMethodSignature(Method method) {
-            this.method = method;
-        }
-
-        @Override
-        public CodeBlock reference() {
-            if (isStatic(method.getModifiers())) {
-                return generate(new CodeBlock()::invokestatic);
-            } else if (method.getDeclaringClass().isInterface()) {
-                return generate(new CodeBlock()::invokeinterface);
-            } else if ("<init>".equals(method.getName())) {
-                return generate(new CodeBlock()::invokespecial);
+        public static MethodType fromAccess(Method method) {
+            if (Modifier.isStatic(method.getModifiers())) {
+                return STATIC;
+            } else if (Modifier.isInterface(method.getModifiers())) {
+                return INTERFACE;
             } else {
-                return generate(new CodeBlock()::invokevirtual);
+                return VIRTUAL;
             }
         }
 
-        @Override
-        public String toString() {
-            return p(method.getDeclaringClass()) + ":" + method.getName() + ":" + sig(method.getReturnType(), method.getParameterTypes());
-        }
-
-        private CodeBlock generate(Generator generator) {
-            return generator.generate(p(method.getDeclaringClass()), method.getName(), sig(method.getReturnType(), method.getParameterTypes()));
-        }
-    }
-
-    private static final class ScotchMethodSignature extends MethodSignature {
-
-        private final MethodType           methodType;
-        private final Symbol               symbol;
-        private final List<ClassSignature> parameterTypes;
-        private final ClassSignature       returnType;
-
-        private ScotchMethodSignature(MethodType methodType, Symbol symbol, List<ClassSignature> parameterTypes, ClassSignature returnType) {
-            this.methodType = methodType;
-            this.symbol = symbol;
-            this.parameterTypes = parameterTypes;
-            this.returnType = returnType;
-        }
-
-        @Override
-        public CodeBlock reference() {
-            return methodType.generate(this);
-        }
-
-        @Override
-        public String toString() {
-            return symbol.getClassName() + ":" + symbol.getMethodName() + ":" + getSignature();
-        }
-
-        private CodeBlock generate(Generator generator) {
-            return generator.generate(symbol.getClassName(), symbol.getMethodName(), getSignature());
-        }
-
-        private String getSignature() {
-            return "(" + parameterTypes.stream().map(ClassSignature::getClassId).collect(joining("")) + ")" + returnType.getClassId();
-        }
+        public abstract CodeBlock generate(MethodSignature signature);
     }
 }

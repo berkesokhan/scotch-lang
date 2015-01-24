@@ -1,6 +1,7 @@
 package scotch.compiler.syntax.definition;
 
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.dataRef;
 
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
 import scotch.compiler.syntax.BytecodeGenerator;
@@ -43,29 +45,46 @@ public class DataTypeDefinition extends Definition {
         constructors.forEach(constructor -> this.constructors.put(constructor.getSymbol(), constructor));
     }
 
+    private DataTypeDefinition(SourceRange sourceRange, Symbol symbol, List<Type> parameters, Map<Symbol, DataConstructorDefinition> constructors) {
+        this.sourceRange = sourceRange;
+        this.symbol = symbol;
+        this.parameters = ImmutableList.copyOf(parameters);
+        this.constructors = new LinkedHashMap<>(constructors);
+    }
+
     @Override
     public Definition accumulateDependencies(DependencyAccumulator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return state.keep(this);
     }
 
     @Override
     public Definition accumulateNames(NameAccumulator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return state.scoped(this, () -> {
+            state.defineDataType(symbol, toDescriptor());
+            constructors.values().forEach(constructor -> constructor.accumulateNames(state));
+            return this;
+        });
+    }
+
+    private DataTypeDescriptor toDescriptor() {
+        return new DataTypeDescriptor(symbol, parameters, constructors.values().stream()
+            .map(DataConstructorDefinition::toDescriptor)
+            .collect(toList()));
     }
 
     @Override
     public Definition bindTypes(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+        return state.keep(this);
     }
 
     @Override
     public Definition checkTypes(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+        return state.keep(this);
     }
 
     @Override
     public Definition defineOperators(OperatorDefinitionParser state) {
-        throw new UnsupportedOperationException(); // TODO
+        return state.keep(this);
     }
 
     @Override
@@ -85,7 +104,10 @@ public class DataTypeDefinition extends Definition {
 
     @Override
     public void generateBytecode(BytecodeGenerator state) {
-        throw new UnsupportedOperationException(); // TODO
+        state.beginClass(symbol.getClassName(), sourceRange);
+        state.currentClass().defineDefaultConstructor();
+        constructors.values().forEach(constructor -> constructor.generateBytecode(state));
+        state.endClass();
     }
 
     @Override
@@ -105,12 +127,25 @@ public class DataTypeDefinition extends Definition {
 
     @Override
     public Optional<Definition> parsePrecedence(PrecedenceParser state) {
-        throw new UnsupportedOperationException(); // TODO
+        return Optional.of(state.keep(this));
     }
 
     @Override
     public Definition qualifyNames(NameQualifier state) {
-        throw new UnsupportedOperationException(); // TODO
+        return state.scoped(this, () -> withParameters(parameters.stream()
+                .map(type -> type.qualifyNames(state))
+                .collect(toList()))
+            .withConstructors(constructors.values().stream()
+                .map(constructor -> constructor.qualifyNames(state))
+                .collect(toList())));
+    }
+
+    private DataTypeDefinition withConstructors(List<DataConstructorDefinition> constructors) {
+        return new DataTypeDefinition(sourceRange, symbol, parameters, constructors);
+    }
+
+    private DataTypeDefinition withParameters(List<Type> parameters) {
+        return new DataTypeDefinition(sourceRange, symbol, parameters, constructors);
     }
 
     @Override

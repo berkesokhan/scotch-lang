@@ -35,6 +35,8 @@ import com.google.common.collect.ImmutableSortedSet;
 import scotch.compiler.syntax.NameQualifier;
 import scotch.compiler.text.SourceRange;
 import scotch.data.tuple.Tuple2;
+import scotch.runtime.Applicable;
+import scotch.runtime.Callable;
 
 public abstract class Type {
 
@@ -125,6 +127,8 @@ public abstract class Type {
     }
 
     public abstract Map<String, Type> getContexts(Type type, TypeScope scope);
+
+    public abstract Class<?> getJavaType();
 
     public abstract String getSignature();
 
@@ -250,6 +254,11 @@ public abstract class Type {
             return map;
         }
 
+        @Override
+        public Class<?> getJavaType() {
+            return Applicable.class;
+        }
+
         public Type getResult() {
             return result;
         }
@@ -371,6 +380,11 @@ public abstract class Type {
         @Override
         public Map<String, Type> getContexts(Type type, TypeScope scope) {
             return ImmutableMap.of();
+        }
+
+        @Override
+        public Class<?> getJavaType() {
+            throw new UnsupportedOperationException(); // TODO
         }
 
         @Override
@@ -508,6 +522,11 @@ public abstract class Type {
         @Override
         public Map<String, Type> getContexts(Type type, TypeScope scope) {
             return ImmutableMap.of();
+        }
+
+        @Override
+        public Class<?> getJavaType() {
+            return Callable.class;
         }
 
         @Override
@@ -679,6 +698,11 @@ public abstract class Type {
                 }));
             }
             return map;
+        }
+
+        @Override
+        public Class<?> getJavaType() {
+            return Callable.class;
         }
 
         public String getName() {

@@ -1,9 +1,14 @@
 package scotch.compiler.syntax.scope;
 
+import static me.qmx.jitescript.util.CodegenUtils.sig;
+
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import scotch.compiler.symbol.DataConstructorDescriptor;
+import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
@@ -11,6 +16,7 @@ import scotch.compiler.symbol.SymbolEntry;
 import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.Type.FunctionType;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.TypeScope;
@@ -20,6 +26,8 @@ import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ModuleReference;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.value.PatternMatcher;
+import scotch.runtime.Applicable;
+import scotch.runtime.Callable;
 
 public abstract class Scope implements TypeScope {
 
@@ -33,6 +41,13 @@ public abstract class Scope implements TypeScope {
 
     public static ChildScope scope(String moduleName, Scope parent, TypeScope types) {
         return new ChildScope(moduleName, parent, types);
+    }
+
+    protected static boolean isConstructor_(Collection<SymbolEntry> entries, Symbol symbol) {
+        return entries.stream()
+            .filter(entry -> entry.getConstructor(symbol).isPresent())
+            .findFirst()
+            .isPresent();
     }
 
     Scope() {
@@ -55,6 +70,10 @@ public abstract class Scope implements TypeScope {
         throw new IllegalStateException();
     }
 
+    public abstract void defineDataType(Symbol symbol, DataTypeDescriptor descriptor);
+
+    public abstract void defineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor);
+
     public abstract void defineOperator(Symbol symbol, Operator operator);
 
     public abstract void defineSignature(Symbol symbol, Type type);
@@ -69,6 +88,13 @@ public abstract class Scope implements TypeScope {
 
     public List<String> getCaptures() {
         throw new IllegalStateException();
+    }
+
+    public String getDataConstructorClass(Symbol symbol) {
+        return getEntry(symbol)
+            .map(SymbolEntry::getDataConstructor)
+            .map(constructor -> constructor.getSymbol().getClassNameAsChildOf(constructor.getDataType()))
+            .orElseThrow(() -> new IllegalArgumentException("Can't get data constructor class for " + symbol.quote()));
     }
 
     public abstract Set<Symbol> getDependencies();
@@ -150,7 +176,7 @@ public abstract class Scope implements TypeScope {
     public void redefineValue(Symbol symbol, Type type) {
         Optional<SymbolEntry> optionalEntry = getEntry(symbol);
         if (optionalEntry.isPresent()) {
-            optionalEntry.get().redefineValue(type);
+            optionalEntry.get().redefineValue(type, computeValueMethod(symbol, type));
         } else {
             throw new SymbolNotFoundException("Can't redefine non-existent value " + symbol.quote());
         }
@@ -166,13 +192,21 @@ public abstract class Scope implements TypeScope {
         return getParent().reserveType();
     }
 
-    public void setParent(Scope parent) {
-        throw new IllegalStateException();
-    }
-
     public abstract void specialize(Type type);
 
+    protected MethodSignature computeValueMethod(Symbol symbol, Type type) {
+        return MethodSignature.staticMethod(
+            symbol.qualifyWith(getModuleName()).getModuleClass(),
+            symbol.getMethodName(),
+            type instanceof FunctionType ? sig(Applicable.class) : sig(Callable.class)
+        );
+    }
+
     protected abstract Optional<SymbolEntry> getEntry(Symbol symbol);
+
+    protected abstract String getModuleName();
+
+    protected abstract boolean isDataConstructor(Symbol symbol);
 
     protected abstract boolean isDefinedLocally(Symbol symbol);
 

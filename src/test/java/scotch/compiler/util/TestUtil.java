@@ -98,28 +98,28 @@ public class TestUtil {
         return Value.conditional(NULL_SOURCE, condition, whenTrue, whenFalse, type);
     }
 
-    public static Value constant(String name, Type type) {
-        return Value.constant(NULL_SOURCE, Symbol.fromString(name), type);
+    public static Value constant(String name, String dataType, Type type) {
+        return Value.constant(NULL_SOURCE, Symbol.fromString(name), Symbol.fromString(dataType), type);
     }
 
     public static DataConstructor construct(String name, Type type, List<Value> arguments) {
         return Value.construct(NULL_SOURCE, Symbol.fromString(name), type, arguments);
     }
 
-    public static DataConstructorDescriptor constructor(String name, String dataType) {
-        return constructor(name, dataType, emptyList());
+    public static DataConstructorDescriptor constructor(String dataType, String name) {
+        return constructor(dataType, name, emptyList());
     }
 
-    public static DataConstructorDescriptor constructor(String name, String dataType, List<DataFieldDescriptor> fields) {
-        return new DataConstructorDescriptor(Symbol.fromString(name), Symbol.fromString(dataType), fields);
+    public static DataConstructorDescriptor constructor(String dataType, String name, List<DataFieldDescriptor> fields) {
+        return new DataConstructorDescriptor(Symbol.fromString(dataType), Symbol.fromString(name), fields);
     }
 
-    public static DataConstructorDefinition ctorDef(String name) {
-        return ctorDef(name, emptyList());
+    public static DataConstructorDefinition ctorDef(String dataType, String name) {
+        return ctorDef(dataType, name, emptyList());
     }
 
-    public static DataConstructorDefinition ctorDef(String name, List<DataFieldDefinition> fields) {
-        return new DataConstructorDefinition(NULL_SOURCE, Symbol.fromString(name), fields);
+    public static DataConstructorDefinition ctorDef(String dataType, String name, List<DataFieldDefinition> fields) {
+        return new DataConstructorDefinition(NULL_SOURCE, Symbol.fromString(dataType), Symbol.fromString(name), fields);
     }
 
     public static DataTypeDefinition dataDef(String name, List<Type> parameters, List<DataConstructorDefinition> constructors) {

@@ -1,7 +1,5 @@
 package scotch.compiler.symbol;
 
-import static scotch.util.StringUtil.stringify;
-
 import java.util.Objects;
 
 public class DataFieldDescriptor {
@@ -38,6 +36,6 @@ public class DataFieldDescriptor {
 
     @Override
     public String toString() {
-        return stringify(this) + "(" + name + " :: " + type + ")";
+        return name + " " + type;
     }
 }
