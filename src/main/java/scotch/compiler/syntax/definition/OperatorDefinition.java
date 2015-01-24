@@ -84,7 +84,7 @@ public class OperatorDefinition extends Definition {
 
     @Override
     public void generateBytecode(BytecodeGenerator state) {
-        throw new UnsupportedOperationException(); // TODO
+        // intentionally empty
     }
 
     public Operator getOperator() {

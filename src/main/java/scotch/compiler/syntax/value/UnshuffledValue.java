@@ -98,7 +98,7 @@ public class UnshuffledValue extends Value {
 
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        throw new UnsupportedOperationException();
+        throw new IllegalStateException("Can't generate bytecode for unshuffled value");
     }
 
     @Override

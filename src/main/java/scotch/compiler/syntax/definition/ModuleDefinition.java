@@ -1,7 +1,6 @@
 package scotch.compiler.syntax.definition;
 
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
-import static scotch.compiler.symbol.Symbol.fromString;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
 import static scotch.util.StringUtil.stringify;
@@ -11,6 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.BytecodeGenerator;
 import scotch.compiler.syntax.DependencyAccumulator;
 import scotch.compiler.syntax.NameAccumulator;
@@ -82,20 +82,12 @@ public class ModuleDefinition extends Definition {
     @Override
     public void generateBytecode(BytecodeGenerator state) {
         state.scoped(this, () -> {
-            state.beginClass(getClassName(), sourceRange);
+            state.beginClass(Symbol.moduleClass(symbol), sourceRange);
             state.defineDefaultConstructor(ACC_PRIVATE);
             state.generateBytecode(definitions);
             state.endClass();
             return null;
         });
-    }
-
-    public String getClassName() {
-        return fromString(symbol + ".ScotchModule").getClassName();
-    }
-
-    public List<DefinitionReference> getDefinitions() {
-        return definitions;
     }
 
     public List<Import> getImports() {

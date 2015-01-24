@@ -105,10 +105,6 @@ public class Let extends Value implements Scoped {
         return scopeDef(this);
     }
 
-    public List<DefinitionReference> getDefinitions() {
-        return definitions;
-    }
-
     public DefinitionReference getReference() {
         return scopeRef(symbol);
     }

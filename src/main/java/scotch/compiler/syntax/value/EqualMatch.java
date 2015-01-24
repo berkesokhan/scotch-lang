@@ -93,9 +93,7 @@ public class EqualMatch extends PatternMatch {
     public CodeBlock generateBytecode(BytecodeGenerator state) {
         return new CodeBlock() {{
             append(value.generateBytecode(state));
-            invokeinterface(p(Callable.class), "call", sig(Object.class));
-            checkcast(p(Boolean.class));
-            invokevirtual(p(Boolean.class), "booleanValue", sig(boolean.class));
+            invokestatic(p(Callable.class), "unboxBool", sig(boolean.class, Callable.class));
             iffalse(state.nextCase());
         }};
     }

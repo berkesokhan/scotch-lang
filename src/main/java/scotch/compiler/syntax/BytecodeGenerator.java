@@ -6,9 +6,13 @@ import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
 import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.GeneratedClass;
+import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Type;
+import scotch.compiler.symbol.TypeInstanceDescriptor;
+import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.DefinitionReference;
+import scotch.compiler.syntax.reference.ModuleReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
@@ -66,6 +70,16 @@ public interface BytecodeGenerator {
     Class<?>[] getLambdaCaptureTypes();
 
     Class<?>[] getLambdaType();
+
+    default TypeInstanceDescriptor getTypeInstance(ClassReference classRef, ModuleReference moduleRef, List<Type> parameters) {
+        return scope().getTypeInstance(classRef, moduleRef, parameters);
+    }
+
+    default MethodSignature getValueSignature(Symbol symbol) {
+        return scope()
+            .getValueSignature(symbol)
+            .orElseThrow(() -> new IllegalStateException("Could not get value method for " + symbol));
+    }
 
     int getVariable(String name);
 

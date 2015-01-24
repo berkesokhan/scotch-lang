@@ -79,7 +79,7 @@ public class UnboundMethod extends Value {
 
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        throw new UnsupportedOperationException();
+        throw new IllegalStateException("Can't generate bytecode for unbound method");
     }
 
     public Type getMethodType(List<Type> instances) {

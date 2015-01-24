@@ -93,6 +93,10 @@ public abstract class Symbol implements Comparable<Symbol> {
         return getPackageFor(moduleName, "/");
     }
 
+    public static String moduleClass(String symbol) {
+        return getPackagePath(symbol) + "/ScotchModule";
+    }
+
     public static String normalizeQualified(String moduleName, String memberName) {
         if (memberName.matches("^\\d$")) {
             return moduleName + ".(#" + memberName + ")";
@@ -130,6 +134,12 @@ public abstract class Symbol implements Comparable<Symbol> {
         } else {
             return tuple2(Optional.empty(), name);
         }
+    }
+
+    public static String toJavaName(String memberName) {
+        return memberName.chars()
+            .mapToObj(i -> javaSymbolMap.getOrDefault(i, String.valueOf(Character.toChars(i))))
+            .collect(joining());
     }
 
     public static Symbol unqualified(String memberName) {
@@ -174,6 +184,13 @@ public abstract class Symbol implements Comparable<Symbol> {
         return memberNames.stream().collect(joining("#"));
     }
 
+    private static List<String> normalize(List<String> memberNames) {
+        return ImmutableList.copyOf(memberNames.stream()
+            .filter(name -> !name.isEmpty())
+            .map(name -> name.startsWith("#") ? name.substring(1) : name)
+            .collect(toList()));
+    }
+
     private Symbol() {
         // intentionally empty
     }
@@ -188,18 +205,10 @@ public abstract class Symbol implements Comparable<Symbol> {
 
     public abstract String getCanonicalName();
 
-    public String getClassId() {
-        return "L" + getClassName() + ";";
-    }
-
     public abstract String getClassName();
 
     public String getClassNameAsChildOf(Symbol dataType) {
         return dataType.getClassName() + "$" + getSimpleName();
-    }
-
-    public String getJavaMember() {
-        return toJavaName(getMemberName());
     }
 
     public String getMemberName() {
@@ -252,12 +261,6 @@ public abstract class Symbol implements Comparable<Symbol> {
     }
 
     public abstract Symbol unqualify();
-
-    public static String toJavaName(String memberName) {
-        return memberName.chars()
-            .mapToObj(i -> javaSymbolMap.getOrDefault(i, String.valueOf(Character.toChars(i))))
-            .collect(joining());
-    }
 
     protected abstract Symbol withMemberNames(List<String> memberNames);
 
@@ -449,12 +452,5 @@ public abstract class Symbol implements Comparable<Symbol> {
         protected Symbol withMemberNames(List<String> memberNames) {
             return new UnqualifiedSymbol(memberNames);
         }
-    }
-
-    private static List<String> normalize(List<String> memberNames) {
-        return ImmutableList.copyOf(memberNames.stream()
-            .filter(name -> !name.isEmpty())
-            .map(name -> name.startsWith("#") ? name.substring(1) : name)
-            .collect(toList()));
     }
 }

@@ -13,8 +13,7 @@ import me.qmx.jitescript.CodeBlock;
 public class MethodSignature {
 
     public static MethodSignature constructor(String descriptor) {
-        String[] parts = descriptor.split(":");
-        return new MethodSignature(MethodType.SPECIAL, parts[0], parts[1], parts[2]);
+        return fromString(MethodType.SPECIAL, descriptor);
     }
 
     public static MethodSignature fromConstructor(Constructor constructor) {
@@ -24,10 +23,6 @@ public class MethodSignature {
             "<init>",
             sig(void.class, constructor.getParameterTypes())
         );
-    }
-
-    public static MethodSignature staticMethod(String className, String methodName, String signature) {
-        return new MethodSignature(MethodType.STATIC, className, methodName, signature);
     }
 
     public static MethodSignature fromMethod(Method method) {
@@ -51,11 +46,18 @@ public class MethodSignature {
         }
     }
 
-    public static MethodSignature methodSignature(String string) {
-        String[] parts = string.split(":");
-        return new MethodSignature(MethodType.STATIC, parts[0], parts[1], parts[2]);
+    public static MethodSignature methodSignature(String descriptor) {
+        return fromString(MethodType.STATIC, descriptor);
     }
 
+    public static MethodSignature staticMethod(String className, String methodName, String signature) {
+        return new MethodSignature(MethodType.STATIC, className, methodName, signature);
+    }
+
+    private static MethodSignature fromString(MethodType methodType, String descriptor) {
+        String[] parts = descriptor.split(":");
+        return new MethodSignature(methodType, parts[0], parts[1], parts[2]);
+    }
     private final MethodType methodType;
     private final String     className;
     private final String     methodName;

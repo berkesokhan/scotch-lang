@@ -92,7 +92,7 @@ public class UnshuffledDefinition extends Definition {
 
     @Override
     public void generateBytecode(BytecodeGenerator state) {
-        // intentionally empty
+        throw new IllegalStateException("Can't generate bytecode from unshuffled definition");
     }
 
     public Value getBody() {

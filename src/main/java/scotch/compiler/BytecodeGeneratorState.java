@@ -86,12 +86,7 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
 
     @Override
     public CodeBlock captureApply() {
-        List<String> variables = ImmutableList.<String>builder()
-            .addAll(getCaptures())
-            .addAll(getLocals())
-            .addAll(getArguments())
-            .addAll(getMatches())
-            .build();
+        List<String> variables = getAllVariables();
         return variables.stream()
             .map(variables::indexOf)
             .map(new CodeBlock()::aload)
@@ -189,6 +184,15 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
     }
 
     @Override
+    public void generateBytecode(List<DefinitionReference> references) {
+        references.stream()
+            .map(this::getDefinition)
+            .filter(Optional::isPresent)
+            .map(Optional::get)
+            .forEach(definition -> definition.generateBytecode(this));
+    }
+
+    @Override
     public Class<?>[] getCaptureAllTypes() {
         List<Class<?>> types = ImmutableList.<Class<?>>builder()
             .addAll(getCaptureTypes(getCaptures()))
@@ -240,22 +244,8 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
 
     @Override
     public int getVariable(String name) {
-        return ImmutableList.<String>builder()
-            .addAll(getCaptures())
-            .addAll(getLocals())
-            .addAll(getArguments())
-            .addAll(getMatches())
-            .build()
+        return getAllVariables()
             .indexOf(name);
-    }
-
-    @Override
-    public void generateBytecode(List<DefinitionReference> references) {
-        references.stream()
-            .map(this::getDefinition)
-            .filter(Optional::isPresent)
-            .map(Optional::get)
-            .forEach(definition -> definition.generateBytecode(this));
     }
 
     @Override
@@ -305,6 +295,15 @@ public class BytecodeGeneratorState implements BytecodeGenerator {
 
     private <T extends Scoped> void enterScope(T scoped) {
         scopes.push(graph.getScope(scoped.getReference()));
+    }
+
+    private ImmutableList<String> getAllVariables() {
+        return ImmutableList.<String>builder()
+            .addAll(getCaptures())
+            .addAll(getLocals())
+            .addAll(getArguments())
+            .addAll(getMatches())
+            .build();
     }
 
     private List<String> getArguments() {

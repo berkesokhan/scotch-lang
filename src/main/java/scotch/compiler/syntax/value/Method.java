@@ -20,7 +20,6 @@ import scotch.compiler.syntax.OperatorDefinitionParser;
 import scotch.compiler.syntax.PrecedenceParser;
 import scotch.compiler.syntax.TypeChecker;
 import scotch.compiler.syntax.reference.ValueReference;
-import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
 
 public class Method extends Value {
@@ -100,7 +99,7 @@ public class Method extends Value {
 
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        return reference(state.scope());
+        return state.getValueSignature(reference.getSymbol()).reference();
     }
 
     public ValueReference getReference() {
@@ -134,10 +133,6 @@ public class Method extends Value {
     @Override
     public Value qualifyNames(NameQualifier state) {
         throw new UnsupportedOperationException();
-    }
-
-    public CodeBlock reference(Scope scope) {
-        return scope.getValueSignature(reference.getSymbol()).get().reference();
     }
 
     @Override
