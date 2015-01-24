@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.type.Type;
@@ -130,6 +131,11 @@ public class DefaultTypeScope implements TypeScope {
                 return contexts.getOrDefault(type, emptySet());
             }
         });
+    }
+
+    @Override
+    public DataTypeDescriptor getDataType(Symbol symbol) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

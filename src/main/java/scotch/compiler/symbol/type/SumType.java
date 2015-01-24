@@ -1,6 +1,7 @@
 package scotch.compiler.symbol.type;
 
 import static java.lang.Character.isUpperCase;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.symbol.Unification.circular;
 import static scotch.compiler.symbol.Unification.mismatch;
@@ -54,7 +55,15 @@ public class SumType extends Type {
 
     @Override
     public Unification apply(SumType sum, TypeScope scope) {
-        throw new UnsupportedOperationException(); // TODO
+        List<Type> unifiedParameters = new ArrayList<>();
+        for (Type parameter : parameters) {
+            Unification result = parameter.apply(sum, scope);
+            result.ifUnified(unifiedParameters::add);
+            if (!result.isUnified()) {
+                return result;
+            }
+        }
+        return rebind(scope).map(type -> unified(((SumType) type).withParameters(unifiedParameters)));
     }
 
     @Override
@@ -115,10 +124,16 @@ public class SumType extends Type {
                 .collect(toList()));
     }
 
-    public SumType rebind(TypeScope scope) {
-        return withParameters(parameters.stream()
-            .map(argument -> argument.rebind(scope))
-            .collect(toList()));
+    public Unification rebind(TypeScope scope) {
+        List<Type> resultParams = new ArrayList<>();
+        for (Type parameter : parameters) {
+            Unification result = parameter.rebind(scope);
+            result.ifUnified(resultParams::add);
+            if (!result.isUnified()) {
+                return result;
+            }
+        }
+        return unified(withParameters(resultParams));
     }
 
     @Override
@@ -173,7 +188,11 @@ public class SumType extends Type {
 
     @Override
     protected String toString_() {
-        return symbol.getSimpleName();
+        if (parameters.isEmpty()) {
+            return symbol.getSimpleName();
+        } else {
+            return symbol.getSimpleName() + " " + parameters.stream().map(Type::toString).collect(joining(" "));
+        }
     }
 
     @Override

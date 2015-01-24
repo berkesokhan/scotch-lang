@@ -6,6 +6,7 @@ import static java.util.stream.Collectors.toSet;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.symbol.Unification.circular;
+import static scotch.compiler.symbol.Unification.unified;
 import static scotch.data.tuple.TupleValues.tuple2;
 
 import java.util.Collection;
@@ -47,15 +48,15 @@ public class VariableType extends Type {
 
     @Override
     public Unification apply(SumType sum, TypeScope scope) {
-        return unify(sum, scope);
+        return unified(this);
     }
 
     @Override
     public boolean equals(Object o) {
         if (o == this) {
             return true;
-        } else if (o instanceof scotch.compiler.symbol.type.VariableType) {
-            scotch.compiler.symbol.type.VariableType other = (scotch.compiler.symbol.type.VariableType) o;
+        } else if (o instanceof VariableType) {
+            VariableType other = (VariableType) o;
             return Objects.equals(name, other.name)
                 && Objects.equals(context, other.context);
         } else {
@@ -73,8 +74,8 @@ public class VariableType extends Type {
         if (!context.isEmpty() && context.containsAll(scope.getContext(type))) {
             map.put(name, type.accept(new TypeVisitor<Type>() {
                 @Override
-                public Type visit(scotch.compiler.symbol.type.VariableType type) {
-                    return scotch.compiler.symbol.type.VariableType.this;
+                public Type visit(VariableType type) {
+                    return VariableType.this;
                 }
 
                 @Override
@@ -126,12 +127,12 @@ public class VariableType extends Type {
     }
 
     @Override
-    public Type rebind(TypeScope scope) {
-        return scope.reserveType();
+    public Unification rebind(TypeScope scope) {
+        return scope.bind((VariableType) scope.reserveType(), this);
     }
 
     @Override
-    public scotch.compiler.symbol.type.VariableType simplify() {
+    public VariableType simplify() {
         if (context.isEmpty()) {
             return this;
         } else {
@@ -149,12 +150,12 @@ public class VariableType extends Type {
         return type.unifyWith(this, scope);
     }
 
-    public scotch.compiler.symbol.type.VariableType withContext(Collection<Symbol> context) {
-        return new scotch.compiler.symbol.type.VariableType(sourceRange, name, context);
+    public VariableType withContext(Collection<Symbol> context) {
+        return new VariableType(sourceRange, name, context);
     }
 
-    public scotch.compiler.symbol.type.VariableType withSourceRange(SourceRange sourceRange) {
-        return new scotch.compiler.symbol.type.VariableType(sourceRange, name, context);
+    public VariableType withSourceRange(SourceRange sourceRange) {
+        return new VariableType(sourceRange, name, context);
     }
 
     private Unification bind(Type target, TypeScope scope) {
@@ -172,12 +173,12 @@ public class VariableType extends Type {
     }
 
     @Override
-    protected boolean contains(scotch.compiler.symbol.type.VariableType type) {
+    protected boolean contains(VariableType type) {
         return equals(type);
     }
 
     @Override
-    protected Set<Tuple2<scotch.compiler.symbol.type.VariableType, Symbol>> gatherContext_() {
+    protected Set<Tuple2<VariableType, Symbol>> gatherContext_() {
         return ImmutableSortedSet.copyOf(Type::sort, context.stream().map(s -> tuple2(this, s)).collect(toList()));
     }
 
@@ -211,7 +212,7 @@ public class VariableType extends Type {
     }
 
     @Override
-    protected Unification unifyWith(scotch.compiler.symbol.type.VariableType target, TypeScope scope) {
+    protected Unification unifyWith(VariableType target, TypeScope scope) {
         if (scope.isBound(this)) {
             return target.unify(scope.getTarget(this), scope);
         } else {

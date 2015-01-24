@@ -45,6 +45,10 @@ public class DataTypeDescriptor {
         return Optional.ofNullable(constructors.get(symbol));
     }
 
+    public List<Type> getParameters() {
+        return parameters;
+    }
+
     public Symbol getSymbol() {
         return symbol;
     }

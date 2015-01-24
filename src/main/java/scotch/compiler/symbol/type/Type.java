@@ -70,6 +70,14 @@ public abstract class Type {
         return new VariableType(NULL_SOURCE, name, toSymbols(context));
     }
 
+    public static VariableSum varSum(String name, VariableType... parameters) {
+        return varSum(name, asList(parameters));
+    }
+
+    private static VariableSum varSum(String name, List<VariableType> parameters) {
+        return new VariableSum(name, parameters);
+    }
+
     protected static int sort(Tuple2<VariableType, Symbol> left, Tuple2<VariableType, Symbol> right) {
         return left.into((t1, s1) -> right.into((t2, s2) -> {
             int result = t1.getName().compareTo(t2.getName());
@@ -131,7 +139,7 @@ public abstract class Type {
 
     public abstract Type qualifyNames(NameQualifier qualifier);
 
-    public abstract Type rebind(TypeScope scope);
+    public abstract Unification rebind(TypeScope scope);
 
     public Type simplify() {
         return this;

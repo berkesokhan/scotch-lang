@@ -95,6 +95,13 @@ public abstract class Scope implements TypeScope {
             .orElseThrow(() -> new SymbolNotFoundException("Can't get data constructor class for " + symbol.quote()));
     }
 
+    @Override
+    public DataTypeDescriptor getDataType(Symbol symbol) {
+        return getEntry(symbol)
+            .map(SymbolEntry::getDataType)
+            .orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol + " is not a data constructor"));
+    }
+
     public abstract Set<Symbol> getDependencies();
 
     public List<String> getLocals() {

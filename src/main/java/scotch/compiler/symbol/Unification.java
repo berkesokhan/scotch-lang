@@ -56,12 +56,17 @@ public abstract class Unification {
 
     public abstract boolean isUnified();
 
+    @SuppressWarnings("unchecked")
     public Unification map(Function<? super Type, ? extends Unification> function) {
         return this;
     }
 
     public Type orElseGet(Function<Unification, Type> function) {
         return function.apply(this);
+    }
+
+    public <T extends Throwable> Type orElseThrow(Function<Unification, T> function) throws T {
+        throw function.apply(this);
     }
 
     public abstract String prettyPrint();
@@ -377,6 +382,11 @@ public abstract class Unification {
 
         @Override
         public Type orElseGet(Function<Unification, Type> function) {
+            return unifiedType;
+        }
+
+        @Override
+        public <T extends Throwable> Type orElseThrow(Function<Unification, T> function) throws T {
             return unifiedType;
         }
 

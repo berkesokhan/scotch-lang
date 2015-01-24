@@ -29,6 +29,7 @@ import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import scotch.compiler.error.SyntaxError;
+import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.type.FunctionType;
@@ -182,6 +183,11 @@ public class TypeChecker implements TypeScope {
     @Override
     public Set<Symbol> getContext(Type type) {
         return scope().getContext(type);
+    }
+
+    @Override
+    public DataTypeDescriptor getDataType(Symbol symbol) {
+        return null;
     }
 
     @Override

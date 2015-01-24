@@ -39,6 +39,10 @@ public class FunctionType extends Type {
 
     @Override
     public Unification apply(SumType sum, TypeScope scope) {
+        return rebind(scope).map(type -> ((FunctionType) type).apply_(sum, scope));
+    }
+
+    private Unification apply_(SumType sum, TypeScope scope) {
         return argument.apply(sum, scope)
             .map(argResult -> result.apply(sum, scope)
                 .map(resultResult -> unified(withArgument(argResult).withResult(resultResult))));
@@ -109,9 +113,10 @@ public class FunctionType extends Type {
     }
 
     @Override
-    public Type rebind(TypeScope scope) {
-        return withArgument(argument.rebind(scope))
-            .withResult(argument.rebind(scope));
+    public Unification rebind(TypeScope scope) {
+        return argument.rebind(scope).map(
+            argResult -> result.rebind(scope).map(
+                resultResult -> unified(withArgument(argResult).withResult(resultResult))));
     }
 
     @Override

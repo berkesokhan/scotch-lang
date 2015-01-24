@@ -89,7 +89,7 @@ public class InstanceType extends Type {
     }
 
     @Override
-    public Type rebind(TypeScope scope) {
+    public Unification rebind(TypeScope scope) {
         throw new UnsupportedOperationException(); // TODO
     }
 
