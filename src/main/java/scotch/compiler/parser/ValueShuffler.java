@@ -76,7 +76,7 @@ public class ValueShuffler {
                     output.push(right(shuffleNext(input)));
                     while (expectsArgument(input)) {
                         output.push(right(apply(
-                            output.pop().getRightOr(OperatorPair::getValue),
+                            output.pop().orElseGet(OperatorPair::getValue),
                             shuffleNext(input),
                             reserveType()
                         )));
@@ -120,7 +120,7 @@ public class ValueShuffler {
         private Value shuffleMessageApply(Deque<Either<OperatorPair<Identifier>, Value>> message) {
             Deque<Value> stack = new ArrayDeque<>();
             while (!message.isEmpty()) {
-                stack.push(message.pollLast().getRightOr(pair -> {
+                stack.push(message.pollLast().orElseGet(pair -> {
                     if (pair.isPrefix()) {
                         return apply(pair.getValue(), stack.pop(), reserveType());
                     } else {

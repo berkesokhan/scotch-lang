@@ -37,11 +37,11 @@ public abstract class Either<A, B> {
 
     public abstract boolean isRight();
 
-    public abstract <C> Either<A, C> map(Function<? super B, ? extends C> function);
+    public abstract <C> Either<A, C> map(Function<B, C> function);
 
     public abstract B orElseGet(Function<A, B> function);
 
-    public abstract <T extends RuntimeException> B orElseThrow(Function<? super A, ? extends T> function) throws T;
+    public abstract <T extends RuntimeException> B orElseThrow(Function<A, T> function) throws T;
 
     @Override
     public abstract String toString();
@@ -86,7 +86,7 @@ public abstract class Either<A, B> {
 
         @SuppressWarnings("unchecked")
         @Override
-        public <C> Either<A, C> map(Function<? super B, ? extends C> function) {
+        public <C> Either<A, C> map(Function<B, C> function) {
             return (Either<A, C>) this;
         }
 
@@ -96,7 +96,7 @@ public abstract class Either<A, B> {
         }
 
         @Override
-        public <T extends RuntimeException> B orElseThrow(Function<? super A, ? extends T> function) throws T {
+        public <T extends RuntimeException> B orElseThrow(Function<A, T> function) throws T {
             throw function.apply(value);
         }
 
@@ -145,7 +145,7 @@ public abstract class Either<A, B> {
         }
 
         @Override
-        public <C> Either<A, C> map(Function<? super B, ? extends C> function) {
+        public <C> Either<A, C> map(Function<B, C> function) {
             return right(function.apply(value));
         }
 
@@ -155,7 +155,7 @@ public abstract class Either<A, B> {
         }
 
         @Override
-        public <T extends RuntimeException> B orElseThrow(Function<? super A, ? extends T> function) throws T {
+        public <T extends RuntimeException> B orElseThrow(Function<A, T> function) throws T {
             return value;
         }
 

@@ -18,7 +18,6 @@ import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.parser.PatternShuffler;
-import scotch.compiler.parser.PatternShuffler.ResultVisitor;
 import scotch.compiler.parser.ValueShuffler;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
@@ -34,7 +33,6 @@ import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.FunctionValue;
-import scotch.compiler.syntax.value.PatternMatch;
 import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.PatternMatchers;
 import scotch.compiler.syntax.value.UnshuffledValue;
@@ -198,24 +196,19 @@ public class PrecedenceParser {
 
     public Optional<Definition> shuffle(UnshuffledDefinition pattern) {
         return new PatternShuffler().shuffle(scope(), memberNames.peek(), pattern)
-            .accept(new ResultVisitor<Optional<Definition>>() {
-                @Override
-                public Optional<Definition> error(SyntaxError error) {
-                    errors.add(error);
-                    return Optional.of(pattern);
-                }
-
-                @Override
-                public Optional<Definition> success(Symbol symbol, List<PatternMatch> matches) {
-                    addPattern(symbol, pattern.asPatternMatcher(matches));
-                    return Optional.empty();
-                }
+            .map(r -> {
+                addPattern(r.getSymbol(), pattern.asPatternMatcher(r.getMatches()));
+                return Optional.<Definition>empty();
+            })
+            .orElseGet(error -> {
+                errors.add(error);
+                return Optional.of((Definition) pattern);
             });
     }
 
     public Value shuffle(UnshuffledValue value) {
         return new ValueShuffler(v -> v.parsePrecedence(this))
-            .shuffle(scope(), value.getValues()).getRightOr(left -> {
+            .shuffle(scope(), value.getValues()).orElseGet(left -> {
                 error(left);
                 return value;
             });

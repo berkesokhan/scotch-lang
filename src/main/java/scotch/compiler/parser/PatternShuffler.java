@@ -20,33 +20,12 @@ import scotch.data.either.Either;
 
 public class PatternShuffler {
 
-    private static ShuffleResult error(SyntaxError error) {
-        return new ShuffleResult() {
-            @Override
-            public <T> T accept(ResultVisitor<T> visitor) {
-                return visitor.error(error);
-            }
-        };
+    private static Either<SyntaxError, ShuffledPattern> success(Symbol symbol, List<PatternMatch> matches) {
+        return right(new ShuffledPattern(symbol, matches));
     }
 
-    private static ShuffleResult success(Symbol symbol, List<PatternMatch> matches) {
-        return new ShuffleResult() {
-            @Override
-            public <T> T accept(ResultVisitor<T> visitor) {
-                return visitor.success(symbol, matches);
-            }
-        };
-    }
-
-    public ShuffleResult shuffle(Scope scope, List<String> memberNames, UnshuffledDefinition pattern) {
+    public Either<SyntaxError, ShuffledPattern> shuffle(Scope scope, List<String> memberNames, UnshuffledDefinition pattern) {
         return new Shuffler(scope, memberNames, pattern).splitPattern();
-    }
-
-    public interface ResultVisitor<T> {
-
-        T error(SyntaxError error);
-
-        T success(Symbol symbol, List<PatternMatch> matches);
     }
 
     private static final class ShuffleException extends RuntimeException {
@@ -57,11 +36,6 @@ public class PatternShuffler {
             super(syntaxError.prettyPrint());
             this.syntaxError = syntaxError;
         }
-    }
-
-    public static abstract class ShuffleResult {
-
-        public abstract <T> T accept(ResultVisitor<T> visitor);
     }
 
     private final class Shuffler {
@@ -76,14 +50,14 @@ public class PatternShuffler {
             this.pattern = pattern;
         }
 
-        public ShuffleResult splitPattern() {
+        public Either<SyntaxError, ShuffledPattern> splitPattern() {
             try {
                 List<PatternMatch> matches = shufflePattern(pattern.getMatches());
                 return matches.remove(0).asCapture()
                     .map(match -> success(scope.qualifyCurrent(match.getSymbol()).nest(memberNames), matches))
-                    .orElseGet(match -> error(parseError("Illegal start of pattern", match.getSourceRange())));
+                    .orElseGet(match -> left(parseError("Illegal start of pattern", match.getSourceRange())));
             } catch (ShuffleException exception) {
-                return error(exception.syntaxError);
+                return left(exception.syntaxError);
             }
         }
 
