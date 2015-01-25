@@ -17,7 +17,6 @@ import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.CaptureMatch;
 import scotch.compiler.syntax.value.PatternMatch;
 import scotch.data.either.Either;
-import scotch.data.either.Either.EitherVisitor;
 
 public class PatternShuffler {
 
@@ -137,9 +136,12 @@ public class PatternShuffler {
         private List<PatternMatch> shufflePatternApply(Deque<Either<OperatorPair<CaptureMatch>, PatternMatch>> input) {
             Deque<PatternMatch> output = new ArrayDeque<>();
             while (!input.isEmpty()) {
-                input.pollLast().accept(new EitherVisitor<OperatorPair<CaptureMatch>, PatternMatch, Void>() {
-                    @Override
-                    public Void visitLeft(OperatorPair<CaptureMatch> left) {
+                input.pollLast()
+                    .map(right -> {
+                        output.push(right);
+                        return null;
+                    })
+                    .orElseGet(left -> {
                         if (left.isPrefix()) {
                             PatternMatch head = output.pop();
                             output.push(left.getValue());
@@ -152,14 +154,7 @@ public class PatternShuffler {
                             output.push(l);
                         }
                         return null;
-                    }
-
-                    @Override
-                    public Void visitRight(PatternMatch right) {
-                        output.push(right);
-                        return null;
-                    }
-                });
+                    });
             }
             List<PatternMatch> matches = new ArrayList<>(output);
             reverse(matches);

@@ -5,8 +5,10 @@ import static scotch.compiler.symbol.Unification.circular;
 import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.symbol.Unification.unified;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -33,19 +35,8 @@ public class FunctionType extends Type {
     }
 
     @Override
-    public <T> T accept(TypeVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
     public Unification apply(SumType sum, TypeScope scope) {
         return rebind(scope).map(type -> ((FunctionType) type).apply_(sum, scope));
-    }
-
-    private Unification apply_(SumType sum, TypeScope scope) {
-        return argument.apply(sum, scope)
-            .map(argResult -> result.apply(sum, scope)
-                .map(resultResult -> unified(withArgument(argResult).withResult(resultResult))));
     }
 
     @Override
@@ -60,6 +51,12 @@ public class FunctionType extends Type {
         }
     }
 
+    @Override
+    public Type genericCopy(TypeScope scope) {
+        return withArgument(argument.genericCopy(scope))
+            .withResult(result.genericCopy(scope));
+    }
+
     public Type getArgument() {
         return argument;
     }
@@ -67,20 +64,19 @@ public class FunctionType extends Type {
     @Override
     public Map<String, Type> getContexts(Type type, TypeScope scope) {
         Map<String, Type> map = new HashMap<>();
-        type.accept(new TypeVisitor<Void>() {
-            @Override
-            public Void visit(FunctionType type) {
-                map.putAll(argument.getContexts(type.getArgument(), scope));
-                map.putAll(result.getContexts(type.getResult(), scope));
-                return null;
-            }
-
-            @Override
-            public Void visitOtherwise(Type type) {
-                return null;
-            }
-        });
+        if (type instanceof FunctionType) {
+            map.putAll(argument.getContexts(((FunctionType) type).getArgument(), scope));
+            map.putAll(result.getContexts(((FunctionType) type).getResult(), scope));
+        }
         return map;
+    }
+
+    @Override
+    public List<Tuple2<VariableType, Symbol>> getInstanceMap() {
+        List<Tuple2<VariableType, Symbol>> instances = new ArrayList<>();
+        instances.addAll(argument.getInstanceMap());
+        instances.addAll(result.getInstanceMap());
+        return instances;
     }
 
     @Override
@@ -141,6 +137,12 @@ public class FunctionType extends Type {
         return new FunctionType(sourceRange, argument, result);
     }
 
+    private Unification apply_(SumType sum, TypeScope scope) {
+        return argument.apply(sum, scope)
+            .map(argResult -> result.apply(sum, scope)
+                .map(resultResult -> unified(withArgument(argResult).withResult(resultResult))));
+    }
+
     @Override
     protected boolean contains(VariableType type) {
         return argument.contains(type) || result.contains(type);
@@ -152,6 +154,11 @@ public class FunctionType extends Type {
         context.addAll(argument.gatherContext_());
         context.addAll(result.gatherContext_());
         return ImmutableSortedSet.copyOf(Type::sort, context);
+    }
+
+    @Override
+    protected Type generate(TypeScope scope, Set<Type> visited) {
+        return fn(argument.generate(scope), result.generate(scope));
     }
 
     @Override

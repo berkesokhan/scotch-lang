@@ -23,11 +23,6 @@ public class InstanceType extends Type {
     }
 
     @Override
-    public <T> T accept(TypeVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
     public Unification apply(SumType sum, TypeScope scope) {
         throw new UnsupportedOperationException(); // TODO
     }
@@ -35,6 +30,16 @@ public class InstanceType extends Type {
     @Override
     public boolean equals(Object o) {
         return o == this || o instanceof InstanceType && Objects.equals(symbol, ((InstanceType) o).symbol);
+    }
+
+    @Override
+    public Type generate(TypeScope scope, Set<Type> visited) {
+        return withBinding(binding.generate(scope, visited));
+    }
+
+    @Override
+    public Type genericCopy(TypeScope scope) {
+        return this;
     }
 
     public Type getBinding() {

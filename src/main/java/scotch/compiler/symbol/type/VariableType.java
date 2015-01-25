@@ -9,9 +9,11 @@ import static scotch.compiler.symbol.Unification.circular;
 import static scotch.compiler.symbol.Unification.unified;
 import static scotch.data.tuple.TupleValues.tuple2;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -42,11 +44,6 @@ public class VariableType extends Type {
     }
 
     @Override
-    public <T> T accept(TypeVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
     public Unification apply(SumType sum, TypeScope scope) {
         return unified(this);
     }
@@ -64,27 +61,29 @@ public class VariableType extends Type {
         }
     }
 
+    @Override
+    public Type genericCopy(TypeScope scope) {
+        return scope.genericVariable(this);
+    }
+
     public Set<Symbol> getContext() {
-        return ImmutableSet.copyOf(context);
+        return context;
     }
 
     @Override
     public Map<String, Type> getContexts(Type type, TypeScope scope) {
         Map<String, Type> map = new HashMap<>();
         if (!context.isEmpty() && context.containsAll(scope.getContext(type))) {
-            map.put(name, type.accept(new TypeVisitor<Type>() {
-                @Override
-                public Type visit(VariableType type) {
-                    return VariableType.this;
-                }
-
-                @Override
-                public Type visitOtherwise(Type type) {
-                    return type;
-                }
-            }));
+            map.put(name, type instanceof VariableType ? this : type);
         }
         return map;
+    }
+
+    @Override
+    public List<Tuple2<VariableType, Symbol>> getInstanceMap() {
+        List<Tuple2<VariableType, Symbol>> instances = new ArrayList<>();
+        getContext().forEach(className -> instances.add(tuple2(this, className)));
+        return instances;
     }
 
     @Override
@@ -180,6 +179,16 @@ public class VariableType extends Type {
     @Override
     protected Set<Tuple2<VariableType, Symbol>> gatherContext_() {
         return ImmutableSortedSet.copyOf(Type::sort, context.stream().map(s -> tuple2(this, s)).collect(toList()));
+    }
+
+    @Override
+    protected Type generate(TypeScope scope, Set<Type> visited) {
+        if (visited.contains(this)) {
+            return this;
+        } else {
+            visited.add(this);
+            return scope.getTarget(this).generate(scope, visited);
+        }
     }
 
     @Override

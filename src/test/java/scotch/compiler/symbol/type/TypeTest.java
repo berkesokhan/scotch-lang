@@ -7,14 +7,14 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static scotch.compiler.symbol.type.Type.fn;
-import static scotch.compiler.symbol.type.Type.sum;
-import static scotch.compiler.symbol.type.Type.var;
 import static scotch.compiler.symbol.Unification.circular;
 import static scotch.compiler.symbol.Unification.contextMismatch;
 import static scotch.compiler.symbol.Unification.failedBinding;
 import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.symbol.Unification.unified;
+import static scotch.compiler.symbol.type.Type.fn;
+import static scotch.compiler.symbol.type.Type.sum;
+import static scotch.compiler.symbol.type.Type.var;
 import static scotch.compiler.util.TestUtil.boolType;
 import static scotch.compiler.util.TestUtil.intType;
 
@@ -25,7 +25,6 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.Unification;
-import scotch.compiler.symbol.type.Type.TypeVisitor;
 import scotch.compiler.syntax.scope.DefaultTypeScope;
 
 public class TypeTest {
@@ -182,17 +181,11 @@ public class TypeTest {
     }
 
     private Type argumentOf(Type type) {
-        return type.accept(new TypeVisitor<Type>() {
-            @Override
-            public Type visit(FunctionType type) {
-                return type.getArgument();
-            }
-
-            @Override
-            public Type visitOtherwise(Type type) {
-                throw new UnsupportedOperationException("Can't get argument from " + type.getClass().getSimpleName());
-            }
-        });
+        if (type instanceof FunctionType) {
+            return ((FunctionType) type).getArgument();
+        } else {
+            throw new UnsupportedOperationException("Can't get argument from " + type.getClass().getSimpleName());
+        }
     }
 
     private void shouldBeBound(Type variable, Type target) {

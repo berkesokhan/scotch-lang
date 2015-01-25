@@ -15,12 +15,12 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolEntry;
 import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.type.FunctionType;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.exception.SymbolNotFoundException;
+import scotch.compiler.symbol.type.FunctionType;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ModuleReference;
@@ -140,7 +140,7 @@ public abstract class Scope implements TypeScope {
     }
 
     public Type getValue(Symbol symbol) {
-        return genericCopy(getRawValue(symbol));
+        return getRawValue(symbol).genericCopy(this);
     }
 
     public abstract Optional<MethodSignature> getValueSignature(Symbol symbol);

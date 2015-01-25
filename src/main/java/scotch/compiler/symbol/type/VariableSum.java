@@ -39,15 +39,81 @@ public class VariableSum extends Type {
     }
 
     @Override
-    public <T> T accept(TypeVisitor<T> visitor) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
     public Unification apply(SumType sum, TypeScope scope) {
         return rebind(scope).map(
             varResult -> sum.rebind(scope).map(
                 sumResult -> ((VariableSum) varResult).apply_(sum, scope)));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        } else if (o instanceof VariableSum) {
+            VariableSum other = (VariableSum) o;
+            return Objects.equals(name, other.name)
+                && Objects.equals(parameters, other.parameters);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public Type genericCopy(TypeScope scope) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Map<String, Type> getContexts(Type type, TypeScope scope) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Class<?> getJavaType() {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public String getSignature() {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public SourceRange getSourceRange() {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public int hashCode() {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Type qualifyNames(NameQualifier qualifier) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Unification rebind(TypeScope scope) {
+        List<VariableType> resultParams = new ArrayList<>();
+        for (VariableType parameter : parameters) {
+            Unification result = parameter.rebind(scope);
+            result.ifUnified(type -> resultParams.add((VariableType) type));
+            if (!result.isUnified()) {
+                return result;
+            }
+        }
+        return unified(withParameters(resultParams));
+    }
+
+    @Override
+    public String toString() {
+        return toString_();
+    }
+
+    @Override
+    public Unification unify(Type type, TypeScope scope) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     private Unification apply_(SumType sum, TypeScope scope) {
@@ -112,74 +178,8 @@ public class VariableSum extends Type {
         return right(resultParams);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof VariableSum) {
-            VariableSum other = (VariableSum) o;
-            return Objects.equals(name, other.name)
-                && Objects.equals(parameters, other.parameters);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public Map<String, Type> getContexts(Type type, TypeScope scope) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
-    public Class<?> getJavaType() {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
-    public String getSignature() {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
-    public SourceRange getSourceRange() {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
-    public int hashCode() {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
-    public Type qualifyNames(NameQualifier qualifier) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
-    public Unification rebind(TypeScope scope) {
-        List<VariableType> resultParams = new ArrayList<>();
-        for (VariableType parameter : parameters) {
-            Unification result = parameter.rebind(scope);
-            result.ifUnified(type -> resultParams.add((VariableType) type));
-            if (!result.isUnified()) {
-                return result;
-            }
-        }
-        return unified(withParameters(resultParams));
-    }
-
     private VariableSum withParameters(List<VariableType> parameters) {
         return new VariableSum(name, parameters);
-    }
-
-    @Override
-    public String toString() {
-        return toString_();
-    }
-
-    @Override
-    public Unification unify(Type type, TypeScope scope) {
-        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override
@@ -192,6 +192,11 @@ public class VariableSum extends Type {
         Set<Tuple2<VariableType, Symbol>> context = new HashSet<>();
         parameters.forEach(parameter -> context.addAll(parameter.gatherContext_()));
         return ImmutableSortedSet.copyOf(Type::sort, context);
+    }
+
+    @Override
+    protected Type generate(TypeScope scope, Set<Type> visited) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override

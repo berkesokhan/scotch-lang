@@ -158,8 +158,8 @@ public class ChildScope extends Scope {
     }
 
     @Override
-    public Type genericCopy(Type type) {
-        return types.genericCopy(type);
+    public Type genericVariable(VariableType type) {
+        return types.genericVariable(type);
     }
 
     @Override
@@ -211,7 +211,7 @@ public class ChildScope extends Scope {
 
     @Override
     public Optional<Type> getSignature(Symbol symbol) {
-        return requireEntry(symbol).getSignature().map(this::genericCopy);
+        return requireEntry(symbol).getSignature().map(signature -> signature.genericCopy(types));
     }
 
     @Override

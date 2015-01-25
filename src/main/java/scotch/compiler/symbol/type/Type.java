@@ -8,11 +8,13 @@ import static scotch.compiler.symbol.Unification.contextMismatch;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeScope;
@@ -111,18 +113,30 @@ public abstract class Type {
         // intentionally Optional.empty
     }
 
-    public abstract <T> T accept(TypeVisitor<T> visitor);
-
     public abstract Unification apply(SumType sum, TypeScope scope);
 
     @Override
     public abstract boolean equals(Object o);
+
+    public Type generate(TypeScope scope) {
+        return generate(scope, new HashSet<>());
+    }
+
+    public abstract Type genericCopy(TypeScope scope);
+
+    public Set<Symbol> getContext() {
+        return ImmutableSet.of();
+    }
 
     public Set<Tuple2<VariableType, Symbol>> getContexts() {
         return gatherContext_();
     }
 
     public abstract Map<String, Type> getContexts(Type type, TypeScope scope);
+
+    public List<Tuple2<VariableType, Symbol>> getInstanceMap() {
+        return ImmutableList.of();
+    }
 
     public abstract Class<?> getJavaType();
 
@@ -165,6 +179,8 @@ public abstract class Type {
 
     protected abstract Set<Tuple2<VariableType, Symbol>> gatherContext_();
 
+    protected abstract Type generate(TypeScope scope, Set<Type> visited);
+
     protected abstract String getSignature_();
 
     protected abstract String toParenthesizedString();
@@ -176,27 +192,4 @@ public abstract class Type {
     protected abstract Unification unifyWith(VariableType target, TypeScope scope);
 
     protected abstract Unification unifyWith(SumType target, TypeScope scope);
-
-    public interface TypeVisitor<T> {
-
-        default T visit(FunctionType type) {
-            return visitOtherwise(type);
-        }
-
-        default T visit(InstanceType type) {
-            return visitOtherwise(type);
-        }
-
-        default T visit(VariableType type) {
-            return visitOtherwise(type);
-        }
-
-        default T visit(SumType type) {
-            return visitOtherwise(type);
-        }
-
-        default T visitOtherwise(Type type) {
-            throw new UnsupportedOperationException("Can't visit " + type.getClass().getSimpleName());
-        }
-    }
 }

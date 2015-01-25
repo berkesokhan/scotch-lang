@@ -49,11 +49,6 @@ public class SumType extends Type {
     }
 
     @Override
-    public <T> T accept(TypeVisitor<T> visitor) {
-        return visitor.visit(this);
-    }
-
-    @Override
     public Unification apply(SumType sum, TypeScope scope) {
         List<Type> unifiedParameters = new ArrayList<>();
         for (Type parameter : parameters) {
@@ -77,6 +72,18 @@ public class SumType extends Type {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public Type genericCopy(TypeScope scope) {
+        return withParameters(parameters.stream()
+            .map(parameter -> parameter.genericCopy(scope))
+            .collect(toList()));
+    }
+
+    @Override
+    public Set<Symbol> getContext() {
+        return ImmutableSet.of(symbol);
     }
 
     @Override
@@ -174,6 +181,13 @@ public class SumType extends Type {
     @Override
     protected Set<Tuple2<VariableType, Symbol>> gatherContext_() {
         return ImmutableSet.of();
+    }
+
+    @Override
+    protected Type generate(TypeScope scope, Set<Type> visited) {
+        return withParameters(parameters.stream()
+            .map(parameter -> parameter.generate(scope, visited))
+            .collect(toList()));
     }
 
     @Override

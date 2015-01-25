@@ -129,8 +129,8 @@ public class ModuleScope extends Scope {
     }
 
     @Override
-    public Type genericCopy(Type type) {
-        return types.genericCopy(type);
+    public Type genericVariable(VariableType type) {
+        return types.genericVariable(type);
     }
 
     @Override
@@ -183,7 +183,7 @@ public class ModuleScope extends Scope {
 
     @Override
     public Optional<Type> getSignature(Symbol symbol) {
-        return getEntry(symbol).flatMap(SymbolEntry::getSignature).map(this::genericCopy);
+        return getEntry(symbol).flatMap(SymbolEntry::getSignature).map(signature -> signature.genericCopy(types));
     }
 
     @Override

@@ -24,12 +24,8 @@ import com.google.common.collect.ImmutableSet;
 import scotch.compiler.symbol.Symbol.QualifiedSymbol;
 import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
-import scotch.compiler.symbol.type.FunctionType;
-import scotch.compiler.symbol.type.SumType;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.type.Type.TypeVisitor;
-import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.symbol.exception.SymbolResolutionError;
+import scotch.compiler.symbol.type.Type;
 import scotch.data.tuple.Tuple2;
 
 public class ClasspathResolver implements SymbolResolver {
@@ -134,26 +130,7 @@ public class ClasspathResolver implements SymbolResolver {
     }
 
     private void search(List<Type> arguments) {
-        arguments.forEach(argument -> argument.accept(new TypeVisitor<Void>() {
-            @Override
-            public Void visit(FunctionType type) {
-                type.getArgument().accept(this);
-                type.getResult().accept(this);
-                return null;
-            }
-
-            @Override
-            public Void visit(VariableType type) {
-                type.getContext().forEach(ClasspathResolver.this::search);
-                return null;
-            }
-
-            @Override
-            public Void visit(SumType type) {
-                search(type.getSymbol());
-                return null;
-            }
-        }));
+        arguments.forEach(argument -> argument.getContext().forEach(this::search));
     }
 
     private void search(Symbol symbol) {

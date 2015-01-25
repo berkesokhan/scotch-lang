@@ -107,7 +107,7 @@ public class RootScope extends Scope {
     }
 
     @Override
-    public Type genericCopy(Type type) {
+    public Type genericVariable(VariableType type) {
         throw new IllegalStateException();
     }
 

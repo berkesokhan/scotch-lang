@@ -31,15 +31,13 @@ import com.google.common.collect.ImmutableMap;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.type.FunctionType;
-import scotch.compiler.symbol.type.InstanceType;
-import scotch.compiler.symbol.type.Type.TypeVisitor;
-import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.Unification;
+import scotch.compiler.symbol.type.InstanceType;
+import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
@@ -176,8 +174,8 @@ public class TypeChecker implements TypeScope {
     }
 
     @Override
-    public Type genericCopy(Type type) {
-        return scope().genericCopy(type);
+    public Type genericVariable(VariableType type) {
+        return scope().genericVariable(type);
     }
 
     @Override
@@ -309,25 +307,9 @@ public class TypeChecker implements TypeScope {
 
     private InstanceMap buildInstanceMap(ValueDefinition definition) {
         InstanceMap.Builder builder = InstanceMap.builder();
-        definition.getType().accept(new TypeVisitor<Void>() {
-            @Override
-            public Void visit(FunctionType type) {
-                type.getArgument().accept(this);
-                type.getResult().accept(this);
-                return null;
-            }
-
-            @Override
-            public Void visit(VariableType type) {
-                type.getContext().forEach(className -> builder.addInstance(type, classRef(className)));
-                return null;
-            }
-
-            @Override
-            public Void visitOtherwise(Type type) {
-                return null;
-            }
-        });
+        definition.getType().getInstanceMap().stream()
+            .map(tuple -> tuple.into((type, className) -> tuple2(type, classRef(className))))
+            .forEach(tuple -> tuple.into(builder::addInstance));
         return builder.build();
     }
 
@@ -381,8 +363,8 @@ public class TypeChecker implements TypeScope {
 
     @SuppressWarnings("unchecked")
     public <T extends Value> List<T> bindTypes(List<T> values) {
-        return (List<T>) values.stream()
-            .map(value -> ((T) value).bindTypes(this))
+        return values.stream()
+            .map(value -> (T) value.bindTypes(this))
             .collect(toList());
     }
 

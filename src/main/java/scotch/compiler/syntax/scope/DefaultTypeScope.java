@@ -1,7 +1,5 @@
 package scotch.compiler.syntax.scope;
 
-import static java.util.Collections.emptySet;
-import static scotch.compiler.symbol.type.Type.fn;
 import static scotch.compiler.symbol.Unification.failedBinding;
 import static scotch.compiler.symbol.Unification.unified;
 
@@ -10,19 +8,14 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import com.google.common.collect.ImmutableSet;
 import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolGenerator;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.type.FunctionType;
-import scotch.compiler.symbol.type.InstanceType;
-import scotch.compiler.symbol.type.SumType;
-import scotch.compiler.symbol.type.Type.TypeVisitor;
-import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.Unification;
-import scotch.compiler.symbol.Unification.UnificationVisitor;
-import scotch.compiler.symbol.Unification.Unified;
+import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.VariableType;
 
 public class DefaultTypeScope implements TypeScope {
 
@@ -57,80 +50,26 @@ public class DefaultTypeScope implements TypeScope {
 
     @Override
     public Type generate(Type type) {
-        Set<Type> visited = new HashSet<>();
-        return type.accept(new TypeVisitor<Type>() {
-            @Override
-            public Type visit(FunctionType type) {
-                return fn(generate(type.getArgument()), generate(type.getResult()));
-            }
-
-            @Override
-            public Type visit(InstanceType type) {
-                return type.withBinding(generate(type.getBinding()));
-            }
-
-            @Override
-            public Type visit(SumType type) {
-                return type;
-            }
-
-            @Override
-            public Type visit(VariableType type) {
-                if (visited.contains(type)) {
-                    return type;
-                } else {
-                    visited.add(type);
-                    return getTarget(type).accept(this);
-                }
-            }
-        });
+        return type.generate(this);
     }
 
     @Override
-    public Type genericCopy(Type type) {
-        return type.accept(new TypeVisitor<Type>() {
-            @Override
-            public Type visit(FunctionType type) {
-                return type
-                    .withArgument(genericCopy(type.getArgument()))
-                    .withResult(genericCopy(type.getResult()));
-            }
-
-            @Override
-            public Type visit(InstanceType type) {
-                return type;
-            }
-
-            @Override
-            public Type visit(SumType type) {
-                return type;
-            }
-
-            @Override
-            public Type visit(VariableType type) {
-                if (specializedTypes.contains(type.simplify())) {
-                    return type;
-                } else {
-                    return genericMappings.computeIfAbsent(type, k -> symbolGenerator.reserveType().withContext(type.getContext()));
-                }
-            }
-        });
+    public Type genericVariable(VariableType type) {
+        if (specializedTypes.contains(type.simplify())) {
+            return type;
+        } else {
+            return genericMappings.computeIfAbsent(type, k -> symbolGenerator.reserveType().withContext(type.getContext()));
+        }
     }
 
     @Override
     public Set<Symbol> getContext(Type type) {
-        return type.accept(new TypeVisitor<Set<Symbol>>() {
-            @Override
-            public Set<Symbol> visit(VariableType type) {
-                extendContext(type, type.getContext());
-                return contexts.get(type);
-            }
-
-            @Override
-            public Set<Symbol> visitOtherwise(Type type) {
-                return contexts.getOrDefault(type, emptySet());
-            }
-        });
+        if (type instanceof VariableType) {
+            extendContext(type, type.getContext());
+            return contexts.get(type);
+        } else {
+            return contexts.getOrDefault(type, ImmutableSet.of());
+        }
     }
 
     @Override
@@ -144,17 +83,11 @@ public class DefaultTypeScope implements TypeScope {
         while (bindings.containsKey(result.simplify())) {
             result = bindings.get(result.simplify());
         }
-        return result.accept(new TypeVisitor<Type>() {
-            @Override
-            public Type visit(VariableType type) {
-                return type.withContext(getContext(type));
-            }
-
-            @Override
-            public Type visitOtherwise(Type type) {
-                return type;
-            }
-        });
+        if (result instanceof VariableType) {
+            return ((VariableType) result).withContext(getContext(result));
+        } else {
+            return result;
+        }
     }
 
     @Override
@@ -174,33 +107,21 @@ public class DefaultTypeScope implements TypeScope {
 
     private Unification bind_(VariableType variableType, Type targetType) {
         if (isBound(variableType) && !getTarget(variableType).simplify().equals(targetType)) {
-            return targetType.accept(new TypeVisitor<Unification>() {
-                @Override
-                public Unification visit(VariableType type) {
-                    if (isBound(type)) {
-                        return type.unify(variableType, DefaultTypeScope.this).accept(new UnificationVisitor<Unification>() {
-                            @Override
-                            public Unification visit(Unified unified) {
-                                bindings.put(variableType, targetType);
-                                return unified;
-                            }
-
-                            @Override
-                            public Unification visitOtherwise(Unification unification) {
-                                return failedBinding(targetType, variableType, getTarget(variableType));
-                            }
-                        });
-                    } else {
-                        bindings.put(targetType, getTarget(variableType));
-                        return unified(variableType);
-                    }
+            if (targetType instanceof VariableType) {
+                if (isBound((VariableType) targetType)) {
+                    return targetType.unify(variableType, this)
+                        .map(unifiedType -> {
+                            bindings.put(variableType, targetType);
+                            return unified(unifiedType);
+                        })
+                        .orElseMap(unification -> failedBinding(targetType, variableType, getTarget(variableType)));
+                } else {
+                    bindings.put(targetType, getTarget(variableType));
+                    return unified(variableType);
                 }
-
-                @Override
-                public Unification visitOtherwise(Type type) {
-                    return failedBinding(targetType, variableType, getTarget(variableType));
-                }
-            });
+            } else {
+                return failedBinding(targetType, variableType, getTarget(variableType));
+            }
         } else if (!getTarget(targetType).simplify().equals(variableType)) {
             bindings.put(variableType, targetType);
         }

@@ -3,7 +3,6 @@ package scotch.data.either;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 public abstract class Either<A, B> {
@@ -20,8 +19,6 @@ public abstract class Either<A, B> {
         // intentionally empty
     }
 
-    public abstract <T> T accept(EitherVisitor<A, B, T> visitor);
-
     @Override
     public abstract boolean equals(Object o);
 
@@ -33,8 +30,6 @@ public abstract class Either<A, B> {
 
     @Override
     public abstract int hashCode();
-
-    public abstract void ifRight(Consumer<B> consumer);
 
     public boolean isLeft() {
         return !isRight();
@@ -51,24 +46,12 @@ public abstract class Either<A, B> {
     @Override
     public abstract String toString();
 
-    public interface EitherVisitor<L, R, T> {
-
-        T visitLeft(L left);
-
-        T visitRight(R right);
-    }
-
     public static class Left<A, B> extends Either<A, B> {
 
         private final A value;
 
         private Left(A value) {
             this.value = value;
-        }
-
-        @Override
-        public <T> T accept(EitherVisitor<A, B, T> visitor) {
-            return visitor.visitLeft(value);
         }
 
         @Override
@@ -94,11 +77,6 @@ public abstract class Either<A, B> {
         @Override
         public int hashCode() {
             return Objects.hash(value);
-        }
-
-        @Override
-        public void ifRight(Consumer<B> consumer) {
-            // intentionally empty
         }
 
         @Override
@@ -137,11 +115,6 @@ public abstract class Either<A, B> {
         }
 
         @Override
-        public <T> T accept(EitherVisitor<A, B, T> visitor) {
-            return visitor.visitRight(value);
-        }
-
-        @Override
         public boolean equals(Object o) {
             return o == this || o instanceof Right && Objects.equals(value, ((Right) o).value);
         }
@@ -164,11 +137,6 @@ public abstract class Either<A, B> {
         @Override
         public int hashCode() {
             return Objects.hash(value);
-        }
-
-        @Override
-        public void ifRight(Consumer<B> consumer) {
-            consumer.accept(value);
         }
 
         @Override

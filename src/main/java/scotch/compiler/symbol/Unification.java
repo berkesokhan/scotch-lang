@@ -65,6 +65,10 @@ public abstract class Unification {
         return function.apply(this);
     }
 
+    public Unification orElseMap(Function<Unification, Unification> function) {
+        return function.apply(this);
+    }
+
     public <T extends Throwable> Type orElseThrow(Function<Unification, T> function) throws T {
         throw function.apply(this);
     }
@@ -383,6 +387,11 @@ public abstract class Unification {
         @Override
         public Type orElseGet(Function<Unification, Type> function) {
             return unifiedType;
+        }
+
+        @Override
+        public Unification orElseMap(Function<Unification, Unification> function) {
+            return this;
         }
 
         @Override

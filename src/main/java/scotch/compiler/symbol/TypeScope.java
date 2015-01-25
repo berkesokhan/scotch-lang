@@ -16,7 +16,7 @@ public interface TypeScope {
 
     Type generate(Type type);
 
-    Type genericCopy(Type type);
+    Type genericVariable(VariableType type);
 
     Set<Symbol> getContext(Type type);
 
