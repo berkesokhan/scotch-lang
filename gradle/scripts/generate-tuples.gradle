@@ -1,59 +1,50 @@
-task generateTuples (type: GenerateTuples)
+def tuplesPath = project.file("${projectDir}/src/generated/tuples")
+
+task generateTuples (type: GenerateTuples) {
+    sourcePath tuplesPath
+    count 24
+}
+
+task cleanTuples (type: Delete) {
+    delete tuplesPath
+}
+
+project.sourceSets.main.java.srcDir tuplesPath
 compileJava.dependsOn << generateTuples
+clean.dependsOn << cleanTuples
 
 class GenerateTuples extends DefaultTask {
 
+    def generated = "@Generated(value = \"${project.group}:${project.name}:${project.version}:/gradle/scripts/generate-tuples.groovy\", date = \"${new Date()}\")"
+    def sourcePath
+    def packagePath
+    def tupleRange
+
+    def setSourcePath(sourcePath) {
+        this.sourcePath = sourcePath
+        this.packagePath = new File(sourcePath, "scotch/data/tuple")
+    }
+
+    def setCount(count) {
+        this.tupleRange = (1..count - 1)
+    }
+
+    def setUp() {
+        packagePath.deleteDir()
+        packagePath.mkdirs()
+    }
+
     @TaskAction
     def run() {
-        def tupleRange = (1..63)
-        def generated = "@Generated(value = \"${project.group}:${project.name}:/src/main/scripts/tuples.groovy\", date = \"${new Date()}\")"
-        def sourcePath = project.file("${project.buildDir}/generated-sources/scotch/data/tuple")
+        setUp()
+        generateTupleValues()
+        generateTupleConstructors()
+    }
 
-        project.sourceSets.main.java.srcDir "${project.buildDir}/generated-sources"
-
+    def generateTupleConstructors() {
         def tupleFiles = tupleRange.collect {
-            new File(sourcePath, "Tuple${it + 1}.java")
+            new File(packagePath, "Tuple${it + 1}.java")
         }
-
-        sourcePath.deleteDir()
-        sourcePath.mkdirs()
-
-        def util = [
-            'package scotch.data.tuple;',
-            '',
-            'import java.util.function.Function;',
-            'import javax.annotation.Generated;',
-            '',
-            generated,
-            '@SuppressWarnings({ "unused", "unchecked" })',
-            'public final class TupleValues {',
-        ]
-
-        tupleRange.each {
-            def size = it + 1
-            def range = (0..it)
-            def generics = ['<', range.collect { t -> "        T${t}" }.join(',\n'), '    >'].join('\n')
-
-            util << ''
-            util << "    public static ${generics} Tuple${size}${generics} tuple${size}("
-            util << range.collect { t -> "        T${t} _${t}" }.join(',\n')
-            util << '    ) {'
-            util << "        return new Tuple${size}<>("
-            util << range.collect { t -> "            _${t}" }.join(',\n')
-            util << "        );"
-            util << '    }'
-        }
-
-        util << ''
-        util << '    private TupleValues() {'
-        util << '        // intentionally empty'
-        util << '    }'
-        util << '}'
-        util << ''
-
-        def utilFile = new File(sourcePath, "TupleValues.java")
-        utilFile.delete()
-        utilFile.write(util.join('\n'))
 
         tupleRange.each {
             def size = it + 1;
@@ -63,14 +54,11 @@ class GenerateTuples extends DefaultTask {
                 '',
                 'import java.util.Objects;',
                 'import javax.annotation.Generated;',
-                'import org.apache.commons.lang.builder.EqualsBuilder;',
                 '',
             ]
 
             content << generated
-            content << "public final class Tuple${size}<"
-            content << range.collect { t -> "    T${t}" }.join(',\n')
-            content << "> {"
+            content << "public final class Tuple${size}<${range.collect { t -> "T${t}" }.join(', ')}> {"
 
             content << ''
             range.each { t ->
@@ -78,9 +66,7 @@ class GenerateTuples extends DefaultTask {
             }
 
             content << ''
-            content << "    public Tuple${size}("
-            content << range.collect { t -> "        T${t} _${t}" }.join(',\n')
-            content << '    ) {'
+            content << "    public Tuple${size}(${range.collect { t -> "T${t} _${t}" }.join(', ')}) {"
             range.each { t ->
                 content << "        this._${t} = _${t};"
             }
@@ -93,11 +79,7 @@ class GenerateTuples extends DefaultTask {
             content << '            return true;'
             content << "        } else if (o instanceof Tuple${size}) {"
             content << "            Tuple${size} other = (Tuple${size}) o;"
-            content << '            return new EqualsBuilder()'
-            range.each { t ->
-                content << "                .append(_${t}, other._${t})"
-            }
-            content << '                .isEquals();'
+            content << "            return ${range.collect { t -> "Objects.equals(_${t}, other._${t})"}.join("\n                && ")};"
             content << '        } else {'
             content << '            return false;'
             content << '        }'
@@ -113,54 +95,65 @@ class GenerateTuples extends DefaultTask {
             content << ''
             content << '    @Override'
             content << '    public int hashCode() {'
-            content << '        return Objects.hash('
-            content << range.collect { t -> "            _${t}" }.join(',\n')
-            content << '        );'
+            content << "        return Objects.hash(${range.collect { t -> "_${t}" }.join(', ')});"
             content << "    }"
             content << ''
 
-            if (it == 0) {
-                content << '    @Override'
-                content << '    public String toString() {'
-                content << '        return "(" + _0 + ",)";'
-                content << '    }'
-            } else {
-                content << '    @Override'
-                content << '    public String toString() {'
-                content << '        return "(" + '
-                content << range.collect { t -> "            _${t} +" }.join(' ", " +\n')
-                content << '        ")";'
-                content << '    }'
-            }
-
-            content << ''
-            content << "    public <T${size}> T${size} into("
-            content << "        Deconstruct${size}<"
-            content << range.collect { t -> "            T${t}" }.join(',\n') + ','
-            content << "            T${size}"
-            content << '        > deconstructor'
-            content << '    ) {'
-            content << '        return deconstructor.apply('
-            content << range.collect { t -> "            _${t}" }.join(',\n')
-            content << '        );'
+            content << "    public <U> U into(Deconstruct${size}<U, ${range.collect { t -> "T${t}" }.join(', ')}> deconstructor) {"
+            content << "        return deconstructor.apply(${range.collect { t -> "_${t}" }.join(', ')});"
             content << '    }'
-
             content << ''
+
+            content << '    @Override'
+            content << '    public String toString() {'
+            content << "        return \"(\" + ${range.collect { t -> "_${t} + " }.join(' ", " + ')} \")\";"
+            content << '    }'
+            content << ''
+
             content << '    @FunctionalInterface'
-            content << "    public interface Deconstruct${size}<"
-            content << range.collect { t -> "        T${t}" }.join(',\n') + ','
-            content << "        T${size}"
-            content << "    > {"
-            content << "        T${size} apply("
-            content << range.collect { t -> "            T${t} _${t}" }.join(',\n')
-            content << "        );"
+            content << "    public interface Deconstruct${size}<U, ${range.collect { t -> "T${t}" }.join(", ")}> {"
+            content << ''
+            content << "        U apply(${range.collect { t -> "T${t} _${t}" }.join(', ')});"
             content << '    }'
-
             content << '}'
             content << ''
 
             tupleFiles.get(it - 1).delete()
             tupleFiles.get(it - 1).write(content.join('\n'))
         }
+    }
+
+    def generateTupleValues() {
+        def util = [
+            'package scotch.data.tuple;',
+            '',
+            'import java.util.function.Function;',
+            'import javax.annotation.Generated;',
+            '',
+            generated,
+            '@SuppressWarnings({ "unused", "unchecked" })',
+            'public final class TupleValues {',
+        ]
+
+        tupleRange.each {
+            def size = it + 1
+            def range = (0..it)
+            def generics = "<${range.collect { t -> "T${t}" }.join(', ')}>"
+
+            util << ''
+            util << "    public static ${generics} Tuple${size}${generics} tuple${size}(${range.collect { t -> "T${t} _${t}" }.join(", ")}) {"
+            util << "        return new Tuple${size}<>(${range.collect { t -> "_${t}" }.join(', ')});"
+            util << '    }'
+        }
+
+        util << ''
+        util << '    private TupleValues() {'
+        util << '        // intentionally empty'
+        util << '    }'
+        util << '}'
+        util << ''
+
+        def utilFile = new File(packagePath, "TupleValues.java")
+        utilFile.write(util.join('\n'))
     }
 }
