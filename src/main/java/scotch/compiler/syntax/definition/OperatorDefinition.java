@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
@@ -46,7 +46,7 @@ public class OperatorDefinition extends Definition {
     }
 
     @Override
-    public Definition accumulateNames(NameAccumulatorState state) {
+    public Definition accumulateNames(NameAccumulator state) {
         return state.keep(this);
     }
 

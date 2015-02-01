@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
@@ -48,7 +48,7 @@ public class Initializer extends Value {
     }
 
     @Override
-    public Value accumulateNames(NameAccumulatorState state) {
+    public Value accumulateNames(NameAccumulator state) {
         return withValue(value.accumulateNames(state))
             .withFields(fields.stream()
                 .map(field -> field.accumulateNames(state))

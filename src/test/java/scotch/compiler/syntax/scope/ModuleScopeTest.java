@@ -11,7 +11,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static scotch.compiler.symbol.Symbol.fromString;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.symbol.type.Type.t;
@@ -111,9 +111,9 @@ public class ModuleScopeTest {
 
     @Test
     public void shouldGetContextFromImport() {
-        when(import_.getContext(intType(), resolver)).thenReturn(ImmutableSet.of(fromString("scotch.data.num.Num")));
+        when(import_.getContext(intType(), resolver)).thenReturn(ImmutableSet.of(symbol("scotch.data.num.Num")));
         assertThat(moduleScope.getContext(intType()), contains(
-            fromString("scotch.data.num.Num")
+            symbol("scotch.data.num.Num")
         ));
     }
 }

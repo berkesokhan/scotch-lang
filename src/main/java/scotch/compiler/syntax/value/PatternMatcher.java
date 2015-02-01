@@ -12,7 +12,7 @@ import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
@@ -46,7 +46,7 @@ public class PatternMatcher implements Scoped {
             .withBody(body.accumulateDependencies(state)));
     }
 
-    public PatternMatcher accumulateNames(NameAccumulatorState state) {
+    public PatternMatcher accumulateNames(NameAccumulator state) {
         return state.scoped(this, () -> withMatches(matches.stream().map(match -> match.accumulateNames(state)).collect(toList()))
             .withBody(body.accumulateNames(state)));
     }

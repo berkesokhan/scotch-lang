@@ -4,6 +4,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.Compiler.compiler;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.type.Type.sum;
 import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
@@ -79,19 +80,19 @@ public class TestUtil {
     }
 
     public static CaptureMatch capture(String name, Type type) {
-        return PatternMatch.capture(NULL_SOURCE, Optional.empty(), Symbol.fromString(name), type);
+        return PatternMatch.capture(NULL_SOURCE, Optional.empty(), symbol(name), type);
     }
 
     public static CaptureMatch capture(String argument, String name, Type type) {
-        return PatternMatch.capture(NULL_SOURCE, Optional.of(argument), Symbol.fromString(name), type);
+        return PatternMatch.capture(NULL_SOURCE, Optional.of(argument), symbol(name), type);
     }
 
     public static ClassDefinition classDef(String name, List<Type> arguments, List<DefinitionReference> members) {
-        return Definition.classDef(NULL_SOURCE, Symbol.fromString(name), arguments, members);
+        return Definition.classDef(NULL_SOURCE, symbol(name), arguments, members);
     }
 
     public static ClassReference classRef(String className) {
-        return DefinitionReference.classRef(Symbol.fromString(className));
+        return DefinitionReference.classRef(symbol(className));
     }
 
     public static Conditional conditional(Value condition, Value whenTrue, Value whenFalse, Type type) {
@@ -99,11 +100,11 @@ public class TestUtil {
     }
 
     public static Value constant(String name, String dataType, Type type) {
-        return Value.constant(NULL_SOURCE, Symbol.fromString(name), Symbol.fromString(dataType), type);
+        return Value.constant(NULL_SOURCE, symbol(name), symbol(dataType), type);
     }
 
     public static DataConstructor construct(String name, Type type, List<Value> arguments) {
-        return Value.construct(NULL_SOURCE, Symbol.fromString(name), type, arguments);
+        return Value.construct(NULL_SOURCE, symbol(name), type, arguments);
     }
 
     public static DataConstructorDescriptor constructor(String dataType, String name) {
@@ -111,7 +112,7 @@ public class TestUtil {
     }
 
     public static DataConstructorDescriptor constructor(String dataType, String name, List<DataFieldDescriptor> fields) {
-        return DataConstructorDescriptor.builder(Symbol.fromString(dataType), Symbol.fromString(name))
+        return DataConstructorDescriptor.builder(symbol(dataType), symbol(name))
             .withFields(fields)
             .build();
     }
@@ -123,8 +124,8 @@ public class TestUtil {
     public static DataConstructorDefinition ctorDef(String dataType, String name, List<DataFieldDefinition> fields) {
         return DataConstructorDefinition.builder()
             .withSourceRange(NULL_SOURCE)
-            .withDataType(Symbol.fromString(dataType))
-            .withSymbol(Symbol.fromString(name))
+            .withDataType(symbol(dataType))
+            .withSymbol(symbol(name))
             .withFields(fields)
             .build();
     }
@@ -132,18 +133,18 @@ public class TestUtil {
     public static DataTypeDefinition dataDef(String name, List<Type> parameters, List<DataConstructorDefinition> constructors) {
         return DataTypeDefinition.builder()
             .withSourceRange(NULL_SOURCE)
-            .withSymbol(Symbol.fromString(name))
+            .withSymbol(symbol(name))
             .withParameters(parameters)
             .withConstructors(constructors)
             .build();
     }
 
     public static DataReference dataRef(String name) {
-        return DefinitionReference.dataRef(Symbol.fromString(name));
+        return DefinitionReference.dataRef(symbol(name));
     }
 
     public static DataTypeDescriptor dataType(String name, List<Type> parameters, List<DataConstructorDescriptor> constructors) {
-        return DataTypeDescriptor.builder(Symbol.fromString(name))
+        return DataTypeDescriptor.builder(symbol(name))
             .withParameters(parameters)
             .withConstructors(constructors)
             .build();
@@ -190,7 +191,7 @@ public class TestUtil {
     }
 
     public static FunctionValue fn(String name, List<Argument> arguments, Value body) {
-        return Value.fn(NULL_SOURCE, Symbol.fromString(name), arguments, body);
+        return Value.fn(NULL_SOURCE, symbol(name), arguments, body);
     }
 
     public static List<GeneratedClass> generateBytecode(ClasspathResolver resolver, String... lines) {
@@ -198,7 +199,7 @@ public class TestUtil {
     }
 
     public static Identifier id(String name, Type type) {
-        return Value.id(NULL_SOURCE, Symbol.fromString(name), type);
+        return Value.id(NULL_SOURCE, symbol(name), type);
     }
 
     public static Initializer initializer(Type type, Value value, List<InitializerField> fields) {
@@ -218,7 +219,7 @@ public class TestUtil {
     }
 
     public static Let let(String name, List<DefinitionReference> definitions, Value body) {
-        return Value.let(NULL_SOURCE, Symbol.fromString(name), definitions, body);
+        return Value.let(NULL_SOURCE, symbol(name), definitions, body);
     }
 
     public static BoolLiteral literal(boolean value) {
@@ -250,15 +251,15 @@ public class TestUtil {
     }
 
     public static OperatorDefinition operatorDef(String name, Fixity fixity, int precedence) {
-        return Definition.operatorDef(NULL_SOURCE, Symbol.fromString(name), fixity, precedence);
+        return Definition.operatorDef(NULL_SOURCE, symbol(name), fixity, precedence);
     }
 
     public static OperatorReference operatorRef(String name) {
-        return DefinitionReference.operatorRef(Symbol.fromString(name));
+        return DefinitionReference.operatorRef(symbol(name));
     }
 
     public static PatternMatcher pattern(String name, List<PatternMatch> matches, Value body) {
-        return PatternMatcher.pattern(NULL_SOURCE, Symbol.fromString(name), matches, body);
+        return PatternMatcher.pattern(NULL_SOURCE, symbol(name), matches, body);
     }
 
     public static PatternMatchers patterns(Type type, PatternMatcher... matchers) {
@@ -270,11 +271,11 @@ public class TestUtil {
     }
 
     public static ScopeReference scopeRef(String name) {
-        return DefinitionReference.scopeRef(Symbol.fromString(name));
+        return DefinitionReference.scopeRef(symbol(name));
     }
 
     public static SignatureReference signatureRef(String name) {
-        return DefinitionReference.signatureRef(Symbol.fromString(name));
+        return DefinitionReference.signatureRef(symbol(name));
     }
 
     public static Type stringType() {
@@ -294,13 +295,13 @@ public class TestUtil {
     }
 
     public static TypeClassDescriptor typeClass(String name, List<Type> parameters, List<String> members) {
-        return TypeClassDescriptor.typeClass(Symbol.fromString(name), parameters, members.stream()
-            .map(Symbol::fromString)
+        return TypeClassDescriptor.typeClass(symbol(name), parameters, members.stream()
+            .map(Symbol::symbol)
             .collect(toList()));
     }
 
     public static TypeInstanceDescriptor typeInstance(String moduleName, String typeClass, List<Type> parameters, MethodSignature instanceGetter) {
-        return TypeInstanceDescriptor.typeInstance(moduleName, Symbol.fromString(typeClass), parameters, instanceGetter);
+        return TypeInstanceDescriptor.typeInstance(moduleName, symbol(typeClass), parameters, instanceGetter);
     }
 
     public static UnshuffledValue unshuffled(Value... members) {
@@ -308,15 +309,15 @@ public class TestUtil {
     }
 
     public static UnshuffledDefinition unshuffled(String name, List<PatternMatch> matches, Value body) {
-        return Definition.unshuffled(NULL_SOURCE, Symbol.fromString(name), matches, body);
+        return Definition.unshuffled(NULL_SOURCE, symbol(name), matches, body);
     }
 
     public static ValueDefinition value(String name, Type type, Value value) {
-        return Definition.value(NULL_SOURCE, Symbol.fromString(name), type, value);
+        return Definition.value(NULL_SOURCE, symbol(name), type, value);
     }
 
     public static ValueReference valueRef(String name) {
-        return DefinitionReference.valueRef(Symbol.fromString(name));
+        return DefinitionReference.valueRef(symbol(name));
     }
 
     private TestUtil() {

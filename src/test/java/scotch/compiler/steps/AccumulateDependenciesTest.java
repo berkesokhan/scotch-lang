@@ -6,6 +6,7 @@ import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.syntax.StubResolver.defaultPlus;
 import static scotch.compiler.syntax.definition.DefinitionGraph.cyclicDependency;
 import static scotch.compiler.util.TestUtil.valueRef;
@@ -114,8 +115,8 @@ public class AccumulateDependenciesTest extends ParserTest {
             "c = \\z -> a"
         );
         shouldHaveErrors(cyclicDependency(DependencyCycle.builder()
-            .addNode(Symbol.fromString("scotch.test1.b"), asList(Symbol.fromString("scotch.test2.fn2")))
-            .addNode(Symbol.fromString("scotch.test2.fn2"), asList(Symbol.fromString("scotch.test1.b")))
+            .addNode(symbol("scotch.test1.b"), asList(symbol("scotch.test2.fn2")))
+            .addNode(symbol("scotch.test2.fn2"), asList(symbol("scotch.test1.b")))
             .build()));
     }
 
@@ -135,7 +136,7 @@ public class AccumulateDependenciesTest extends ParserTest {
     }
 
     private void shouldHaveDependencies(String name, List<String> dependencies) {
-        assertThat(getScope(valueRef(name)).getDependencies(), is(dependencies.stream().map(Symbol::fromString).collect(toSet())));
+        assertThat(getScope(valueRef(name)).getDependencies(), is(dependencies.stream().map(Symbol::symbol).collect(toSet())));
     }
 
     private void shouldHaveDependencies(List<String> dependencies) {

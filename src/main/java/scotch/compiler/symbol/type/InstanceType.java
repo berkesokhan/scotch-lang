@@ -151,4 +151,9 @@ public class InstanceType extends Type {
     protected Unification unifyWith(SumType target, TypeScope scope) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    protected Unification unifyWith(VariableSum target, TypeScope scope) {
+        throw new UnsupportedOperationException(); // TODO
+    }
 }

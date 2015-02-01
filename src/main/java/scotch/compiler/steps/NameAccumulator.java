@@ -27,7 +27,7 @@ import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.Value;
 
-public class NameAccumulatorState {
+public class NameAccumulator {
 
     private final DefinitionGraph                           graph;
     private final Deque<Scope>                              scopes;
@@ -35,7 +35,7 @@ public class NameAccumulatorState {
     private final Map<DefinitionReference, DefinitionEntry> entries;
     private final List<SyntaxError>                         errors;
 
-    public NameAccumulatorState(DefinitionGraph graph) {
+    public NameAccumulator(DefinitionGraph graph) {
         this.graph = graph;
         this.scopes = new ArrayDeque<>();
         this.functionScopes = new HashMap<>();

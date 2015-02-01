@@ -4,8 +4,8 @@ import static java.util.Arrays.asList;
 import static scotch.compiler.parser.ParseError.parseError;
 import static scotch.compiler.syntax.value.Value.apply;
 import static scotch.compiler.syntax.value.Value.unshuffled;
-import static scotch.data.either.Either.left;
-import static scotch.data.either.Either.right;
+import static scotch.compiler.util.Either.left;
+import static scotch.compiler.util.Either.right;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -16,7 +16,7 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.Value;
-import scotch.data.either.Either;
+import scotch.compiler.util.Either;
 
 public class ValueShuffler {
 

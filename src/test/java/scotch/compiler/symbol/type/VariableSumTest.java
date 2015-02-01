@@ -4,6 +4,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.type.Type.fn;
 import static scotch.compiler.symbol.type.Type.sum;
 import static scotch.compiler.symbol.type.Type.var;
@@ -12,21 +13,15 @@ import static scotch.compiler.symbol.type.Type.varSum;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolGenerator;
+import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.syntax.scope.DefaultTypeScope;
 
-public class VariableSumTest {
-
-    private StubbedTypeScope scope;
-
-    @Before
-    public void setUp() {
-        scope = new StubbedTypeScope();
-    }
+public class VariableSumTest extends UnificationTest {
 
     @Test
     public void shouldApplyTypeHavingSameNumberOfParameters() {
@@ -56,15 +51,59 @@ public class VariableSumTest {
         );
     }
 
+    @Test
+    public void shouldUnifyWithVariable() {
+        Type varSum = varSum("m", var("a"));
+        Type var = var("b");
+        shouldBeUnified(unify(varSum, var), varSum);
+    }
+
+    @Test
+    public void variableShouldUnify() {
+        Type var = var("b");
+        Type varSum = varSum("m", var("a"));
+        shouldBeUnified(unify(var, varSum), varSum);
+    }
+
+    @Test
+    public void shouldNotUnifyWithCircularVariable() {
+        Type varSum = varSum("m", var("a"));
+        Type var = var("a");
+        shouldBeCircular(unify(varSum, var), varSum, var);
+    }
+
+    @Ignore("Bad type inference :(")
+    @Test
+    public void shouldUnifyWithSum() {
+        defineDescriptor("Maybe", asList(var("a")));
+        Type varSum = varSum("m", var("a"));
+        Type sum = sum("Maybe", var("b"));
+        shouldBeUnified(unify(varSum, sum), sum);
+    }
+
+    @Ignore("Bad type inference :(")
+    @Test
+    public void sumShouldUnify() {
+        defineDescriptor("Maybe", asList(var("a")));
+        Type sum = sum("Maybe", var("b"));
+        Type varSum = varSum("m", var("a"));
+        shouldBeUnified(unify(sum, varSum), sum);
+    }
+
     private DataTypeDescriptor defineDescriptor(String name, List<Type> parameters) {
-        Symbol symbol = Symbol.fromString(name);
+        Symbol symbol = symbol(name);
         DataTypeDescriptor descriptor = DataTypeDescriptor.builder(symbol)
             .withParameters(parameters)
             .withClassName("List")
             .withConstructors(emptyList())
             .build();
-        scope.define(descriptor);
+        ((StubbedTypeScope) scope).define(descriptor);
         return descriptor;
+    }
+
+    @Override
+    protected TypeScope createTypeScope() {
+        return new StubbedTypeScope();
     }
 
     private static class StubbedTypeScope extends DefaultTypeScope {

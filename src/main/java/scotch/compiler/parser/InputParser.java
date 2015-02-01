@@ -35,7 +35,7 @@ import static scotch.compiler.scanner.Token.TokenKind.RIGHT_CURLY_BRACE;
 import static scotch.compiler.scanner.Token.TokenKind.RIGHT_PARENTHESIS;
 import static scotch.compiler.scanner.Token.TokenKind.SEMICOLON;
 import static scotch.compiler.scanner.Token.TokenKind.STRING_LITERAL;
-import static scotch.compiler.symbol.Symbol.fromString;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.compiler.symbol.Symbol.splitQualified;
 import static scotch.compiler.symbol.Symbol.unqualified;
@@ -375,7 +375,7 @@ public class InputParser {
     }
 
     private void parseConstraint(Map<String, List<Symbol>> constraints) {
-        Symbol typeClass = fromString(parseQualifiedName());
+        Symbol typeClass = symbol(parseQualifiedName());
         String variable = requireWord();
         constraints.computeIfAbsent(variable, k -> new ArrayList<>()).add(typeClass);
     }

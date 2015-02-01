@@ -6,7 +6,7 @@ import static org.objectweb.asm.Opcodes.ACC_STATIC;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.valueRef;
-import static scotch.data.either.Either.right;
+import static scotch.compiler.util.Either.right;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
@@ -14,7 +14,7 @@ import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
@@ -28,7 +28,7 @@ import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
-import scotch.data.either.Either;
+import scotch.compiler.util.Either;
 
 public class ValueDefinition extends Definition {
 
@@ -61,7 +61,7 @@ public class ValueDefinition extends Definition {
     }
 
     @Override
-    public Definition accumulateNames(NameAccumulatorState state) {
+    public Definition accumulateNames(NameAccumulator state) {
         state.defineValue(symbol, type);
         state.specialize(type);
         return state.scoped(this, () -> withBody(body.accumulateNames(state)));

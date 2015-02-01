@@ -208,16 +208,25 @@ public class VariableType extends Type {
 
     @Override
     protected Unification unifyWith(SumType target, TypeScope scope) {
-        return unify_(target, scope).orElseGet(() -> bind(target, scope));
+        return unifyWith_(target, scope);
     }
 
     @Override
-    protected Unification unifyWith(FunctionType target, TypeScope scope) {
+    protected Unification unifyWith(VariableSum target, TypeScope scope) {
+        return unifyWith_(target, scope);
+    }
+
+    private Unification unifyWith_(Type target, TypeScope scope) {
         if (target.contains(this)) {
             return circular(target, this);
         } else {
             return unify_(target, scope).orElseGet(() -> bind(target, scope));
         }
+    }
+
+    @Override
+    protected Unification unifyWith(FunctionType target, TypeScope scope) {
+        return unifyWith_(target, scope);
     }
 
     @Override

@@ -20,7 +20,7 @@ import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
 import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.steps.BytecodeGenerator;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.symbol.DataConstructorDescriptor;
 import scotch.compiler.symbol.Symbol;
@@ -47,7 +47,7 @@ public class DataConstructorDefinition {
         fields.forEach(field -> this.fields.put(field.getName(), field));
     }
 
-    public void accumulateNames(NameAccumulatorState state) {
+    public void accumulateNames(NameAccumulator state) {
         state.defineDataConstructor(symbol, getDescriptor());
     }
 

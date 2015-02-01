@@ -7,7 +7,7 @@ import static org.junit.Assert.assertThat;
 import static scotch.compiler.symbol.DataFieldDescriptor.field;
 import static scotch.compiler.symbol.MethodSignature.methodSignature;
 import static scotch.compiler.symbol.Operator.operator;
-import static scotch.compiler.symbol.Symbol.fromString;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.type.Type.fn;
 import static scotch.compiler.symbol.type.Type.var;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
@@ -34,17 +34,17 @@ public class ClasspathResolverTest {
     @Test
     public void shouldResolveJavaSymbol() {
         Type a = var("a", asList("scotch.data.num.Num"));
-        SymbolEntry entry = resolver.getEntry(fromString("scotch.data.num.(+)")).get();
+        SymbolEntry entry = resolver.getEntry(symbol("scotch.data.num.(+)")).get();
 
         assertThat(entry.getValue(), is(fn(a, fn(a, a))));
         assertThat(entry.getOperator(), is(operator(LEFT_INFIX, 7)));
         assertThat(entry.getValueMethod(), is(methodSignature("scotch/data/num/Num:add:()Lscotch/runtime/Applicable;")));
-        assertThat(entry.getMemberOf(), is(fromString("scotch.data.num.Num")));
+        assertThat(entry.getMemberOf(), is(symbol("scotch.data.num.Num")));
     }
 
     @Test
     public void shouldResolveJavaTypeClass() {
-        SymbolEntry entry = resolver.getEntry(fromString("scotch.data.num.Num")).get();
+        SymbolEntry entry = resolver.getEntry(symbol("scotch.data.num.Num")).get();
         assertThat(entry.getTypeClass(), is(typeClass("scotch.data.num.Num", asList(var("a")), asList(
             "scotch.data.num.(+)",
             "scotch.data.num.(-)",
@@ -58,7 +58,7 @@ public class ClasspathResolverTest {
 
     @Test
     public void shouldResolveJavaTypeInstancesByClass() {
-        assertThat(resolver.getTypeInstancesByClass(fromString("scotch.data.num.Num")), hasItem(typeInstance(
+        assertThat(resolver.getTypeInstancesByClass(symbol("scotch.data.num.Num")), hasItem(typeInstance(
             "scotch.data.num",
             "scotch.data.num.Num",
             asList(intType()),
@@ -68,7 +68,7 @@ public class ClasspathResolverTest {
 
     @Test
     public void shouldResolveJavaTypeInstancesByType() {
-        resolver.getEntry(fromString("scotch.data.num.Num")); // force loading of module containing instance
+        resolver.getEntry(symbol("scotch.data.num.Num")); // force loading of module containing instance
         assertThat(resolver.getTypeInstancesByArguments(asList(intType())), hasItem(typeInstance(
             "scotch.data.num",
             "scotch.data.num.Num",
@@ -79,7 +79,7 @@ public class ClasspathResolverTest {
 
     @Test
     public void shouldResolveJavaTypeInstanceByClassAndType() {
-        assertThat(resolver.getTypeInstances(fromString("scotch.data.num.Num"), asList(intType())), hasItem(typeInstance(
+        assertThat(resolver.getTypeInstances(symbol("scotch.data.num.Num"), asList(intType())), hasItem(typeInstance(
             "scotch.data.num",
             "scotch.data.num.Num",
             asList(intType()),
@@ -99,7 +99,7 @@ public class ClasspathResolverTest {
 
     @Test
     public void shouldResolveDataType() {
-        assertThat(resolver.getEntry(fromString("scotch.data.maybe.Maybe")).get().getDataType(), is(dataType(
+        assertThat(resolver.getEntry(symbol("scotch.data.maybe.Maybe")).get().getDataType(), is(dataType(
             "scotch.data.maybe.Maybe",
             asList(var("a")),
             asList(

@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.compiler.Compiler.compiler;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.syntax.reference.DefinitionReference.signatureRef;
 import static scotch.compiler.util.TestUtil.classDef;
 import static scotch.compiler.util.TestUtil.classRef;
@@ -18,7 +19,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
@@ -64,7 +64,7 @@ public abstract class ParserTest {
     protected void shouldBeDefined(DefinitionReference reference, String name) {
         assertThat(
             "Symbol " + quote(name) + " is not defined in scope " + reference,
-            getScope(reference).isDefined(Symbol.fromString(name)),
+            getScope(reference).isDefined(symbol(name)),
             is(true)
         );
     }
@@ -81,7 +81,7 @@ public abstract class ParserTest {
     }
 
     protected void shouldHaveSignature(String name, Type type) {
-        assertThat(((ValueSignature) graph.getDefinition(signatureRef(Symbol.fromString(name))).get()).getType(), is(type));
+        assertThat(((ValueSignature) graph.getDefinition(signatureRef(symbol(name))).get()).getType(), is(type));
     }
 
     protected void shouldHaveValue(String name, Type type) {

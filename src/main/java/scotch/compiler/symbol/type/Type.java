@@ -3,7 +3,7 @@ package scotch.compiler.symbol.type;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.joining;
-import static scotch.compiler.symbol.Symbol.fromString;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Unification.contextMismatch;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 
@@ -33,7 +33,7 @@ public abstract class Type {
     }
 
     public static InstanceType instance(String name, Type binding) {
-        return instance(fromString(name), binding);
+        return instance(symbol(name), binding);
     }
 
     public static SumType sum(String name) {
@@ -45,7 +45,7 @@ public abstract class Type {
     }
 
     public static SumType sum(String name, List<Type> arguments) {
-        return sum(fromString(name), arguments);
+        return sum(symbol(name), arguments);
     }
 
     public static SumType sum(Symbol name, List<Type> arguments) {
@@ -72,12 +72,12 @@ public abstract class Type {
         return new VariableType(NULL_SOURCE, name, toSymbols(context));
     }
 
-    public static VariableSum varSum(String name, VariableType... parameters) {
+    public static VariableSum varSum(String name, Type... parameters) {
         return varSum(name, asList(parameters));
     }
 
-    private static VariableSum varSum(String name, List<VariableType> parameters) {
-        return new VariableSum(name, parameters);
+    private static VariableSum varSum(String name, List<Type> parameters) {
+        return new VariableSum(var(name), parameters);
     }
 
     protected static int sort(Tuple2<VariableType, Symbol> left, Tuple2<VariableType, Symbol> right) {
@@ -93,7 +93,7 @@ public abstract class Type {
     @SuppressWarnings("unchecked")
     protected static Set<Symbol> toSymbols(Collection<?> context) {
         return context.stream()
-            .map(item -> item instanceof String ? fromString((String) item) : (Symbol) item)
+            .map(item -> item instanceof String ? symbol((String) item) : (Symbol) item)
             .collect(Collectors.toSet());
     }
 
@@ -192,4 +192,6 @@ public abstract class Type {
     protected abstract Unification unifyWith(VariableType target, TypeScope scope);
 
     protected abstract Unification unifyWith(SumType target, TypeScope scope);
+
+    protected abstract Unification unifyWith(VariableSum target, TypeScope scope);
 }

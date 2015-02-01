@@ -14,7 +14,7 @@ import me.qmx.jitescript.CodeBlock;
 import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
@@ -50,7 +50,7 @@ public class Conditional extends Value {
     }
 
     @Override
-    public Value accumulateNames(NameAccumulatorState state) {
+    public Value accumulateNames(NameAccumulator state) {
         return parse(state, Value::accumulateNames);
     }
 

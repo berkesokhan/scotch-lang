@@ -5,6 +5,7 @@ import static scotch.compiler.symbol.type.Type.sum;
 import static scotch.compiler.symbol.type.Type.var;
 import static scotch.runtime.RuntimeUtil.applicable;
 import static scotch.runtime.RuntimeUtil.callable;
+import static scotch.runtime.RuntimeUtil.flatCallable;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
@@ -28,10 +29,10 @@ import scotch.runtime.Callable;
 public abstract class Maybe<A> {
 
     public static final Type TYPE = sum("scotch.data.maybe.Maybe");
-    private static final Callable<Nothing> NOTHING = callable(Nothing::new);
+    private static final Callable<Maybe> NOTHING = callable(Nothing::new);
 
     @Value(memberName = "Just")
-    public static <A> Applicable<A, Just<A>> just() {
+    public static <A> Applicable<A, Maybe<A>> just() {
         return applicable(value -> callable(() -> new Just<>(value)));
     }
 
@@ -40,9 +41,10 @@ public abstract class Maybe<A> {
         return TYPE;
     }
 
+    @SuppressWarnings("unchecked")
     @Value(memberName = "Nothing")
-    public static Callable<Nothing> nothing() {
-        return NOTHING;
+    public static <A> Callable<Maybe<A>> nothing() {
+        return (Callable) NOTHING;
     }
 
     @ValueType(forMember = "Nothing")
@@ -63,6 +65,8 @@ public abstract class Maybe<A> {
 
     public abstract int hashCode();
 
+    public abstract <B> Callable<Maybe<B>> map(Applicable<A, Maybe<B>> function);
+
     public abstract String toString();
 
     @DataConstructor(memberName = "Nothing", dataType = "Maybe")
@@ -76,6 +80,11 @@ public abstract class Maybe<A> {
         @Override
         public int hashCode() {
             return Objects.hash(17);
+        }
+
+        @Override
+        public <B> Callable<Maybe<B>> map(Applicable<A, Maybe<B>> function) {
+            return nothing();
         }
 
         @Override
@@ -113,6 +122,11 @@ public abstract class Maybe<A> {
         @Override
         public int hashCode() {
             return Objects.hash(value);
+        }
+
+        @Override
+        public <B> Callable<Maybe<B>> map(Applicable<A, Maybe<B>> function) {
+            return flatCallable(() -> function.apply(value));
         }
 
         @Override

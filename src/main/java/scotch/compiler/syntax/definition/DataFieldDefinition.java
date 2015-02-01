@@ -4,6 +4,7 @@ import static me.qmx.jitescript.util.CodegenUtils.ci;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
 import static scotch.compiler.symbol.DataFieldDescriptor.field;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.Objects;
@@ -100,7 +101,7 @@ public class DataFieldDefinition {
 
     public Value toValue(Scope scope) {
         return Identifier.builder()
-            .withSymbol(Symbol.fromString(name))
+            .withSymbol(symbol(name))
             .withType(scope.reserveType())
             .withSourceRange(sourceRange)
             .build();

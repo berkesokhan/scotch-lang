@@ -1,9 +1,10 @@
 package scotch.compiler.symbol.type;
 
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 import static scotch.compiler.symbol.Unification.unified;
-import static scotch.data.either.Either.left;
-import static scotch.data.either.Either.right;
+import static scotch.compiler.util.Either.left;
+import static scotch.compiler.util.Either.right;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -18,23 +19,23 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.text.SourceRange;
-import scotch.data.either.Either;
+import scotch.compiler.util.Either;
 import scotch.data.tuple.Tuple2;
 
 /**
  * Variable sum, where a sum can be applied and its parameters verified for compatibility.
- *
+ * <p>
  * <p>This class supports the concept of a <a href="http://en.wikipedia.org/wiki/Type_constructor">type constructor</a>
  * in simply typed lambda calculus, or a <a href="http://en.wikipedia.org/wiki/Kind_%28type_theory%29#Kinds_in_Haskell">kind</a>
  * in Haskell.</p>
  */
 public class VariableSum extends Type {
 
-    private final String             name;
-    private final List<VariableType> parameters;
+    private final Type       variable;
+    private final List<Type> parameters;
 
-    public VariableSum(String name, List<VariableType> parameters) {
-        this.name = name;
+    public VariableSum(Type variable, List<Type> parameters) {
+        this.variable = variable;
         this.parameters = ImmutableList.copyOf(parameters);
     }
 
@@ -51,7 +52,7 @@ public class VariableSum extends Type {
             return true;
         } else if (o instanceof VariableSum) {
             VariableSum other = (VariableSum) o;
-            return Objects.equals(name, other.name)
+            return Objects.equals(variable, other.variable)
                 && Objects.equals(parameters, other.parameters);
         } else {
             return false;
@@ -60,7 +61,9 @@ public class VariableSum extends Type {
 
     @Override
     public Type genericCopy(TypeScope scope) {
-        throw new UnsupportedOperationException(); // TODO
+        return withVariable(variable instanceof VariableType ? scope.genericVariable((VariableType) variable) : variable)
+            .withParameters(parameters.stream()
+                .collect(toList()));
     }
 
     @Override
@@ -85,7 +88,7 @@ public class VariableSum extends Type {
 
     @Override
     public int hashCode() {
-        throw new UnsupportedOperationException(); // TODO
+        return Objects.hash(variable, parameters);
     }
 
     @Override
@@ -95,10 +98,10 @@ public class VariableSum extends Type {
 
     @Override
     public Unification rebind(TypeScope scope) {
-        List<VariableType> resultParams = new ArrayList<>();
-        for (VariableType parameter : parameters) {
+        List<Type> resultParams = new ArrayList<>();
+        for (Type parameter : parameters) {
             Unification result = parameter.rebind(scope);
-            result.ifUnified(type -> resultParams.add((VariableType) type));
+            result.ifUnified(resultParams::add);
             if (!result.isUnified()) {
                 return result;
             }
@@ -113,7 +116,7 @@ public class VariableSum extends Type {
 
     @Override
     public Unification unify(Type type, TypeScope scope) {
-        throw new UnsupportedOperationException(); // TODO
+        return type.unifyWith(this, scope);
     }
 
     private Unification apply_(SumType sum, TypeScope scope) {
@@ -147,7 +150,8 @@ public class VariableSum extends Type {
                 if (unifiedParams.size() > scope.getDataParameters(sum).size()) {
                     throw new UnsupportedOperationException(); // TODO
                 } else {
-                    return unified(sum.withParameters(unifiedParams));
+                    return variable.unify(sum, scope)
+                        .map(unified -> unified(sum.withParameters(unifiedParams)));
                 }
             })
             .orElseGet(left -> left);
@@ -178,13 +182,17 @@ public class VariableSum extends Type {
         return right(resultParams);
     }
 
-    private VariableSum withParameters(List<VariableType> parameters) {
-        return new VariableSum(name, parameters);
+    private VariableSum withVariable(Type variable) {
+        return new VariableSum(variable, parameters);
+    }
+
+    private VariableSum withParameters(List<Type> parameters) {
+        return new VariableSum(variable, parameters);
     }
 
     @Override
     protected boolean contains(VariableType type) {
-        throw new UnsupportedOperationException(); // TODO
+        return parameters.stream().anyMatch(parameter -> parameter.contains(type));
     }
 
     @Override
@@ -196,7 +204,14 @@ public class VariableSum extends Type {
 
     @Override
     protected Type generate(TypeScope scope, Set<Type> visited) {
-        throw new UnsupportedOperationException(); // TODO
+        if (variable instanceof SumType) {
+            return variable.generate(scope, visited);
+        } else {
+            return withVariable(variable.generate(scope, visited))
+                .withParameters(parameters.stream()
+                    .map(parameter -> parameter.generate(scope, visited))
+                    .collect(toList()));
+        }
     }
 
     @Override
@@ -211,7 +226,7 @@ public class VariableSum extends Type {
 
     @Override
     protected String toString_() {
-        return name + " " + parameters.stream()
+        return variable + " " + parameters.stream()
             .map(Object::toString)
             .collect(joining(" "));
     }
@@ -223,11 +238,16 @@ public class VariableSum extends Type {
 
     @Override
     protected Unification unifyWith(VariableType target, TypeScope scope) {
-        throw new UnsupportedOperationException(); // TODO
+        return unifyVariable(this, target, scope);
     }
 
     @Override
     protected Unification unifyWith(SumType target, TypeScope scope) {
+        return apply(target, scope);
+    }
+
+    @Override
+    protected Unification unifyWith(VariableSum target, TypeScope scope) {
         throw new UnsupportedOperationException(); // TODO
     }
 }

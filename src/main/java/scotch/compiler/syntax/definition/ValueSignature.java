@@ -2,14 +2,14 @@ package scotch.compiler.syntax.definition;
 
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.signatureRef;
-import static scotch.data.either.Either.right;
+import static scotch.compiler.util.Either.right;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
 import java.util.Optional;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
@@ -19,7 +19,7 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
-import scotch.data.either.Either;
+import scotch.compiler.util.Either;
 
 public class ValueSignature extends Definition {
 
@@ -43,7 +43,7 @@ public class ValueSignature extends Definition {
     }
 
     @Override
-    public Definition accumulateNames(NameAccumulatorState state) {
+    public Definition accumulateNames(NameAccumulator state) {
         return state.scoped(this, () -> {
             state.defineSignature(symbol, type);
             state.specialize(type);

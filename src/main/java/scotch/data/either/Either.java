@@ -1,18 +1,54 @@
 package scotch.data.either;
 
-import static scotch.util.StringUtil.stringify;
+import static java.util.Arrays.asList;
+import static scotch.compiler.symbol.type.Type.fn;
+import static scotch.compiler.symbol.type.Type.sum;
+import static scotch.compiler.symbol.type.Type.var;
+import static scotch.runtime.RuntimeUtil.applicable;
+import static scotch.runtime.RuntimeUtil.callable;
 
+import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
+import scotch.compiler.symbol.DataConstructor;
+import scotch.compiler.symbol.DataType;
+import scotch.compiler.symbol.TypeParameter;
+import scotch.compiler.symbol.TypeParameters;
+import scotch.compiler.symbol.Value;
+import scotch.compiler.symbol.ValueType;
+import scotch.compiler.symbol.type.Type;
+import scotch.runtime.Applicable;
+import scotch.runtime.Callable;
 
+@SuppressWarnings("unused")
+@DataType(memberName = "Either", parameters = {
+    @TypeParameter(name = "a"),
+    @TypeParameter(name = "b"),
+})
 public abstract class Either<A, B> {
 
-    public static <A, B> Either<A, B> left(A left) {
-        return new Left<>(left);
+    @Value(memberName = "Left")
+    public static <A, B> Applicable<A, Either<A, B>> left() {
+        return applicable(value -> callable(() -> new Left<>(value)));
     }
 
-    public static <A, B> Either<A, B> right(B right) {
-        return new Right<>(right);
+    @ValueType(forMember = "Left")
+    public static Type left$type() {
+        return fn(var("a"), sum("scotch.data.either.Either", var("a"), var("b")));
+    }
+
+    @TypeParameters
+    public static List<Type> parameters() {
+        return asList(var("a"), var("b"));
+    }
+
+    @Value(memberName = "Right")
+    public static <A, B> Applicable<B, Either<A, B>> right() {
+        return applicable(value -> callable(() -> new Right<>(value)));
+    }
+
+    @ValueType(forMember = "Right")
+    public static Type right$type() {
+        return fn(var("b"), sum("scotch.data.either.Either", var("a"), var("b")));
     }
 
     private Either() {
@@ -22,146 +58,76 @@ public abstract class Either<A, B> {
     @Override
     public abstract boolean equals(Object o);
 
-    public abstract A getLeft();
-
-    public abstract B getRight();
-
-    public abstract B getRightOr(Function<A, B> function);
-
     @Override
     public abstract int hashCode();
 
-    public boolean isLeft() {
-        return !isRight();
-    }
-
-    public abstract boolean isRight();
-
-    public abstract <C> Either<A, C> map(Function<B, C> function);
-
-    public abstract B orElseGet(Function<A, B> function);
-
-    public abstract <T extends RuntimeException> B orElseThrow(Function<A, T> function) throws T;
+    public abstract <C> Either<A, C> map(Applicable<B, C> function);
 
     @Override
     public abstract String toString();
 
+    @DataConstructor(memberName = "Left", dataType="Either", parameters = {
+        @TypeParameter(name = "a"),
+    })
     public static class Left<A, B> extends Either<A, B> {
 
-        private final A value;
+        private final Callable<A> value;
 
-        private Left(A value) {
+        public Left(Callable<A> value) {
             this.value = value;
         }
 
         @Override
         public boolean equals(Object o) {
-            return o == this || o instanceof Left && Objects.equals(value, ((Left) o).value);
-        }
-
-        @Override
-        public A getLeft() {
-            return value;
-        }
-
-        @Override
-        public B getRight() {
-            throw new IllegalStateException();
-        }
-
-        @Override
-        public B getRightOr(Function<A, B> function) {
-            return function.apply(value);
+            return o == this || o instanceof Left && Objects.equals(value.call(), ((Left) o).value.call());
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(value);
-        }
-
-        @Override
-        public boolean isRight() {
-            return false;
+            return Objects.hash(value.call());
         }
 
         @SuppressWarnings("unchecked")
         @Override
-        public <C> Either<A, C> map(Function<B, C> function) {
+        public <C> Either<A, C> map(Applicable<B, C> function) {
             return (Either<A, C>) this;
         }
 
         @Override
-        public B orElseGet(Function<A, B> function) {
-            return function.apply(value);
-        }
-
-        @Override
-        public <T extends RuntimeException> B orElseThrow(Function<A, T> function) throws T {
-            throw function.apply(value);
-        }
-
-        @Override
         public String toString() {
-            return stringify(this) + "(" + value + ")";
+            return "Left(" + value.call() + ")";
         }
     }
 
+    @DataConstructor(memberName = "Right", dataType = "Either", parameters = {
+        @TypeParameter(name = "b"),
+    })
     public static class Right<A, B> extends Either<A, B> {
 
-        private final B value;
+        private final Callable<B> value;
 
-        private Right(B value) {
+        public Right(Callable<B> value) {
             this.value = value;
         }
 
         @Override
         public boolean equals(Object o) {
-            return o == this || o instanceof Right && Objects.equals(value, ((Right) o).value);
-        }
-
-        @Override
-        public A getLeft() {
-            throw new IllegalStateException();
-        }
-
-        @Override
-        public B getRight() {
-            return value;
-        }
-
-        @Override
-        public B getRightOr(Function<A, B> supplier) {
-            return value;
+            return o == this || o instanceof Right && Objects.equals(value.call(), ((Right) o).value.call());
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(value);
+            return Objects.hash(value.call());
         }
 
         @Override
-        public boolean isRight() {
-            return true;
-        }
-
-        @Override
-        public <C> Either<A, C> map(Function<B, C> function) {
-            return right(function.apply(value));
-        }
-
-        @Override
-        public B orElseGet(Function<A, B> function) {
-            return value;
-        }
-
-        @Override
-        public <T extends RuntimeException> B orElseThrow(Function<A, T> function) throws T {
-            return value;
+        public <C> Either<A, C> map(Applicable<B, C> function) {
+            return new Right<>(function.apply(value));
         }
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + value + ")";
+            return "Right(" + value.call() + ")";
         }
     }
 }

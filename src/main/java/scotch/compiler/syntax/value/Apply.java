@@ -11,7 +11,7 @@ import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.LambdaBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
@@ -45,7 +45,7 @@ public class Apply extends Value {
     }
 
     @Override
-    public Value accumulateNames(NameAccumulatorState state) {
+    public Value accumulateNames(NameAccumulator state) {
         return withFunction(function.accumulateNames(state))
             .withArgument(argument.accumulateNames(state));
     }

@@ -3,15 +3,15 @@ package scotch.compiler.steps;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.compiler.symbol.Operator.operator;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Value.Fixity.RIGHT_INFIX;
 import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
 import static scotch.compiler.syntax.reference.DefinitionReference.operatorRef;
 
 import java.util.function.Function;
 import org.junit.Test;
-import scotch.compiler.*;
 import scotch.compiler.Compiler;
-import scotch.compiler.symbol.Symbol;
+import scotch.compiler.ParserTest;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
@@ -33,7 +33,7 @@ public class DefineOperatorsTest extends ParserTest {
     }
 
     private void shouldHaveOperator(String name, Fixity fixity, int precedence) {
-        assertThat(((OperatorDefinition) graph.getDefinition(operatorRef(Symbol.fromString(name))).get()).getOperator(), is(operator(fixity, precedence)));
+        assertThat(((OperatorDefinition) graph.getDefinition(operatorRef(symbol(name))).get()).getOperator(), is(operator(fixity, precedence)));
     }
 
     @Override

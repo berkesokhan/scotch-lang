@@ -77,7 +77,7 @@ public abstract class Symbol implements Comparable<Symbol> {
         .put('#', "$")
         .build();
 
-    public static Symbol fromString(String name) {
+    public static Symbol symbol(String name) {
         return splitQualified(name).into(
             (optionalModuleName, memberName) -> optionalModuleName
                 .map(moduleName -> qualified(moduleName, memberName))

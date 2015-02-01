@@ -1,12 +1,12 @@
 package scotch.compiler.syntax.value;
 
-import static scotch.data.either.Either.left;
+import static scotch.compiler.util.Either.left;
 
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Operator;
@@ -14,7 +14,7 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
-import scotch.data.either.Either;
+import scotch.compiler.util.Either;
 import scotch.data.tuple.Tuple2;
 
 public abstract class PatternMatch {
@@ -33,7 +33,7 @@ public abstract class PatternMatch {
 
     public abstract PatternMatch accumulateDependencies(DependencyAccumulator state);
 
-    public abstract PatternMatch accumulateNames(NameAccumulatorState state);
+    public abstract PatternMatch accumulateNames(NameAccumulator state);
 
     public Either<PatternMatch, CaptureMatch> asCapture() {
         return left(this);

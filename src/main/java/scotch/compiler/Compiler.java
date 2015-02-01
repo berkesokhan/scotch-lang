@@ -4,7 +4,7 @@ import java.util.List;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.output.GeneratedClass;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
@@ -29,7 +29,7 @@ public class Compiler {
     }
 
     public DefinitionGraph accumulateNames() {
-        return new NameAccumulatorState(parsePrecedence()).accumulateNames();
+        return new NameAccumulator(parsePrecedence()).accumulateNames();
     }
 
     public DefinitionGraph checkTypes() {

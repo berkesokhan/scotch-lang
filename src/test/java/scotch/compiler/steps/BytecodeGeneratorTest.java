@@ -3,11 +3,14 @@ package scotch.compiler.steps;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.compiler.util.TestUtil.exec;
+import static scotch.data.either.Either.left;
+import static scotch.runtime.RuntimeUtil.callable;
 
 import java.lang.reflect.Method;
 import org.junit.Ignore;
 import org.junit.Test;
 import scotch.compiler.error.CompileException;
+import scotch.compiler.util.Either;
 import scotch.runtime.Callable;
 
 public class BytecodeGeneratorTest {
@@ -191,6 +194,18 @@ public class BytecodeGeneratorTest {
             "",
             "run = (javaHash! $ Thing 2) == (javaHash! $ Thing 2)"
         );
+    }
+
+    @Ignore("Bad type inference :(")
+    @Test
+    public void shouldCompileBind() {
+        Callable<Either> result = exec(
+            "module scotch.test",
+            "import scotch.control.monad",
+            "import scotch.data.either",
+            "run = Right \"Yes\" >>= \\which -> Left \"No\""
+        );
+        assertThat(result.call(), is(left().apply(callable(() -> "No")).call()));
     }
 
     @Ignore

@@ -2,7 +2,7 @@ package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
-import static scotch.data.either.Either.right;
+import static scotch.compiler.util.Either.right;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.ArrayList;
@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
@@ -21,7 +21,7 @@ import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
-import scotch.data.either.Either;
+import scotch.compiler.util.Either;
 
 public class UnshuffledValue extends Value {
 
@@ -45,7 +45,7 @@ public class UnshuffledValue extends Value {
     }
 
     @Override
-    public Value accumulateNames(NameAccumulatorState state) {
+    public Value accumulateNames(NameAccumulator state) {
         return withValues(values.stream()
             .map(value -> value.accumulateNames(state))
             .collect(toList()));

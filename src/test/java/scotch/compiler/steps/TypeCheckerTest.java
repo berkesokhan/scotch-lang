@@ -3,20 +3,27 @@ package scotch.compiler.steps;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.symbol.type.Type.fn;
 import static scotch.compiler.symbol.type.Type.instance;
 import static scotch.compiler.symbol.type.Type.sum;
 import static scotch.compiler.symbol.type.Type.t;
 import static scotch.compiler.symbol.type.Type.var;
-import static scotch.compiler.symbol.Unification.mismatch;
+import static scotch.compiler.syntax.StubResolver.defaultBind;
+import static scotch.compiler.syntax.StubResolver.defaultEither;
 import static scotch.compiler.syntax.StubResolver.defaultEq;
 import static scotch.compiler.syntax.StubResolver.defaultEqClass;
 import static scotch.compiler.syntax.StubResolver.defaultEqOf;
+import static scotch.compiler.syntax.StubResolver.defaultFromInteger;
 import static scotch.compiler.syntax.StubResolver.defaultInt;
+import static scotch.compiler.syntax.StubResolver.defaultLeft;
 import static scotch.compiler.syntax.StubResolver.defaultMinus;
+import static scotch.compiler.syntax.StubResolver.defaultMonad;
+import static scotch.compiler.syntax.StubResolver.defaultMonadOf;
 import static scotch.compiler.syntax.StubResolver.defaultNum;
 import static scotch.compiler.syntax.StubResolver.defaultNumOf;
 import static scotch.compiler.syntax.StubResolver.defaultPlus;
+import static scotch.compiler.syntax.StubResolver.defaultRight;
 import static scotch.compiler.syntax.StubResolver.defaultString;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.value.Value.apply;
@@ -40,16 +47,17 @@ import static scotch.compiler.util.TestUtil.stringType;
 
 import java.util.List;
 import java.util.function.Function;
+import org.junit.Ignore;
 import org.junit.Test;
-import scotch.compiler.*;
 import scotch.compiler.Compiler;
-import scotch.compiler.symbol.type.Type;
+import scotch.compiler.ParserTest;
 import scotch.compiler.symbol.type.InstanceType;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.reference.DefinitionReference;
 
-public class CheckTypesTest extends ParserTest {
+public class TypeCheckerTest extends ParserTest {
 
     private Type intType;
     private Type doubleType;
@@ -495,6 +503,31 @@ public class CheckTypesTest extends ParserTest {
         ));
     }
 
+    @Test
+    public void bindShouldGiveEitherOfStringAndString() {
+        parse(
+            "module scotch.test",
+            "import scotch.control.monad",
+            "import scotch.data.either",
+            "run = Right \"Yes\" >>= \\which -> Left \"No\""
+        );
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.run", sum("scotch.data.either.Either", stringType, stringType));
+    }
+
+    @Ignore("Bad type inference :(")
+    @Test
+    public void idFunctionShouldHaveGenericType() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.num",
+            "id x = x",
+            "run = fromInteger (id 1) + id 2.2"
+        );
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.run", doubleType);
+    }
+
     private void shouldHaveLocals(DefinitionReference reference, List<String> locals) {
         assertThat(getScope(reference).getLocals(), is(locals));
     }
@@ -504,7 +537,7 @@ public class CheckTypesTest extends ParserTest {
     }
 
     @Override
-    protected Function<scotch.compiler.Compiler, DefinitionGraph> parse() {
+    protected Function<Compiler, DefinitionGraph> parse() {
         return Compiler::checkTypes;
     }
 
@@ -519,15 +552,27 @@ public class CheckTypesTest extends ParserTest {
     @Override
     protected void initResolver(StubResolver resolver) {
         resolver
-            .define(defaultPlus())
-            .define(defaultMinus())
+            // types
             .define(defaultInt())
             .define(defaultString())
+            // num
             .define(defaultNum())
             .define(defaultNumOf(intType))
             .define(defaultNumOf(doubleType))
+            .define(defaultPlus())
+            .define(defaultMinus())
+            .define(defaultFromInteger())
+            // eq
             .define(defaultEq())
             .define(defaultEqOf(intType))
-            .define(defaultEqClass());
+            .define(defaultEqClass())
+            // either
+            .define(defaultEither())
+            .define(defaultRight())
+            .define(defaultLeft())
+            // monad
+            .define(defaultMonad())
+            .define(defaultBind())
+            .define(defaultMonadOf(sum("scotch.data.either.Either", sum("scotch.data.string.String"))));
     }
 }

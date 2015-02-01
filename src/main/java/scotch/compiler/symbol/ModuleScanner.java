@@ -7,7 +7,7 @@ import static java.util.stream.Collectors.toSet;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static scotch.compiler.symbol.DataFieldDescriptor.field;
 import static scotch.compiler.symbol.Operator.operator;
-import static scotch.compiler.symbol.Symbol.fromString;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.compiler.symbol.type.Type.var;
 import static scotch.compiler.symbol.TypeClassDescriptor.typeClass;
@@ -184,7 +184,7 @@ public class ModuleScanner {
             validateParametersGetter(parametersGetter);
             typeInstances.add(typeInstance(
                 moduleName,
-                fromString(typeInstance.typeClass()),
+                symbol(typeInstance.typeClass()),
                 invoke(parametersGetter),
                 MethodSignature.fromMethod(instanceGetter)
             ));

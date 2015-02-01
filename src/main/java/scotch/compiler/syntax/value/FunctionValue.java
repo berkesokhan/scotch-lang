@@ -4,7 +4,7 @@ import static java.util.Collections.reverse;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
-import static scotch.data.either.Either.right;
+import static scotch.compiler.util.Either.right;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.ArrayDeque;
@@ -17,7 +17,7 @@ import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
@@ -29,7 +29,7 @@ import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.reference.ScopeReference;
 import scotch.compiler.text.SourceRange;
-import scotch.data.either.Either;
+import scotch.compiler.util.Either;
 
 public class FunctionValue extends Value implements Scoped {
 
@@ -56,7 +56,7 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
-    public Value accumulateNames(NameAccumulatorState state) {
+    public Value accumulateNames(NameAccumulator state) {
         return state.scoped(this, () -> withArguments(arguments.stream()
             .map(argument -> (Argument) argument.accumulateNames(state))
             .collect(toList()))

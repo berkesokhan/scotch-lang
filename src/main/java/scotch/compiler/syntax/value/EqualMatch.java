@@ -2,6 +2,7 @@ package scotch.compiler.syntax.value;
 
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.value.Value.apply;
 import static scotch.compiler.syntax.value.Value.id;
@@ -12,10 +13,9 @@ import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
@@ -40,7 +40,7 @@ public class EqualMatch extends PatternMatch {
     }
 
     @Override
-    public PatternMatch accumulateNames(NameAccumulatorState state) {
+    public PatternMatch accumulateNames(NameAccumulator state) {
         return this;
     }
 
@@ -56,8 +56,8 @@ public class EqualMatch extends PatternMatch {
         } else {
             return new EqualMatch(sourceRange, Optional.of(argument), apply(
                 apply(
-                    id(sourceRange, Symbol.fromString("scotch.data.eq.(==)"), scope.reserveType()),
-                    id(sourceRange, Symbol.fromString(argument), scope.reserveType()),
+                    id(sourceRange, symbol("scotch.data.eq.(==)"), scope.reserveType()),
+                    id(sourceRange, symbol(argument), scope.reserveType()),
                     scope.reserveType()
                 ),
                 value,

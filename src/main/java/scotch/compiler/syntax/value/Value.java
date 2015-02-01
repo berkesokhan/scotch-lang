@@ -1,13 +1,13 @@
 package scotch.compiler.syntax.value;
 
-import static scotch.data.either.Either.left;
+import static scotch.compiler.util.Either.left;
 
 import java.util.List;
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
-import scotch.compiler.steps.NameAccumulatorState;
+import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
@@ -23,7 +23,7 @@ import scotch.compiler.syntax.reference.InstanceReference;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
-import scotch.data.either.Either;
+import scotch.compiler.util.Either;
 import scotch.data.tuple.Tuple2;
 
 public abstract class Value {
@@ -130,7 +130,7 @@ public abstract class Value {
 
     public abstract Value accumulateDependencies(DependencyAccumulator state);
 
-    public abstract Value accumulateNames(NameAccumulatorState state);
+    public abstract Value accumulateNames(NameAccumulator state);
 
     public Either<Value, FunctionValue> asFunction() {
         return left(this);

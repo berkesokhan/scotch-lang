@@ -230,6 +230,11 @@ public class SumType extends Type {
     }
 
     @Override
+    protected Unification unifyWith(VariableSum target, TypeScope scope) {
+        return target.apply(this, scope);
+    }
+
+    @Override
     protected Unification unifyWith(FunctionType target, TypeScope scope) {
         return mismatch(target, this);
     }

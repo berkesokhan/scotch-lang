@@ -8,7 +8,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static scotch.compiler.symbol.Symbol.fromString;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.symbol.type.Type.t;
 import static scotch.compiler.syntax.scope.Scope.scope;
@@ -66,9 +66,9 @@ public class ChildScopeTest {
 
     @Test
     public void shouldGetContextFromParent() {
-        when(parentScope.getContext(intType())).thenReturn(ImmutableSet.of(fromString("scotch.data.num.Num")));
+        when(parentScope.getContext(intType())).thenReturn(ImmutableSet.of(symbol("scotch.data.num.Num")));
         assertThat(childScope.getContext(intType()), contains(
-            fromString("scotch.data.num.Num")
+            symbol("scotch.data.num.Num")
         ));
     }
 }
