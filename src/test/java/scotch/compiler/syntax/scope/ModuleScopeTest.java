@@ -11,10 +11,10 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Symbol.qualified;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Symbol.unqualified;
-import static scotch.compiler.symbol.type.Type.t;
+import static scotch.compiler.symbol.type.Types.t;
 import static scotch.compiler.syntax.scope.Scope.scope;
 import static scotch.compiler.util.TestUtil.intType;
 

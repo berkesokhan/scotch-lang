@@ -3,7 +3,7 @@ package scotch.compiler.syntax.value;
 import static scotch.compiler.symbol.Operator.operator;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
-import static scotch.data.tuple.TupleValues.tuple2;
+import static scotch.compiler.util.Pair.pair;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -21,7 +21,7 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 
 public class DefaultOperator extends Value {
 
@@ -58,13 +58,13 @@ public class DefaultOperator extends Value {
     }
 
     @Override
-    public Optional<Tuple2<Identifier, Operator>> asOperator(Scope scope) {
+    public Optional<Pair<Identifier, Operator>> asOperator(Scope scope) {
         if (scope.isOperator(symbol)) {
             return scope.qualify(symbol)
                 .map(scope::getOperator)
-                .map(operator -> tuple2(asIdentifier(), operator));
+                .map(operator -> pair(asIdentifier(), operator));
         } else {
-            return Optional.of(tuple2(asIdentifier(), operator(LEFT_INFIX, 20)));
+            return Optional.of(pair(asIdentifier(), operator(LEFT_INFIX, 20)));
         }
     }
 

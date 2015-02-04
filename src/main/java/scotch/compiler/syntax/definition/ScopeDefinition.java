@@ -117,7 +117,7 @@ public class ScopeDefinition extends Definition {
 
         @Override
         public ScopeDefinition build() {
-            return scopeDef(
+            return Definitions.scopeDef(
                 require(sourceRange, "Source range"),
                 require(symbol, "Scope symbol")
             );

@@ -3,7 +3,11 @@ package scotch.compiler.syntax.value;
 import static java.util.Arrays.asList;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.valueRef;
-import static scotch.data.tuple.TupleValues.tuple2;
+import static scotch.compiler.syntax.value.Values.arg;
+import static scotch.compiler.syntax.value.Values.id;
+import static scotch.compiler.syntax.value.Values.method;
+import static scotch.compiler.syntax.value.Values.unboundMethod;
+import static scotch.compiler.util.Pair.pair;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
@@ -25,10 +29,13 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 
 public class Identifier extends Value {
 
+    public static Builder builder() {
+        return new Builder();
+    }
     private final SourceRange sourceRange;
     private final Symbol      symbol;
     private final Type        type;
@@ -50,48 +57,10 @@ public class Identifier extends Value {
     }
 
     @Override
-    public Optional<Tuple2<Identifier, Operator>> asOperator(Scope scope) {
+    public Optional<Pair<Identifier, Operator>> asOperator(Scope scope) {
         return scope.qualify(symbol)
             .map(scope::getOperator)
-            .map(operator -> tuple2(this, operator));
-    }
-
-    @Override
-    public Value bindMethods(TypeChecker state) {
-        return this;
-    }
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    @Override
-    public Value checkTypes(TypeChecker state) {
-        return bind(state.scope()).checkTypes(state);
-    }
-
-    @Override
-    public Value bindTypes(TypeChecker state) {
-        return withType(state.generate(type));
-    }
-
-    @Override
-    public Value defineOperators(OperatorAccumulator state) {
-        return this;
-    }
-
-    @Override
-    public Value parsePrecedence(PrecedenceParser state) {
-        if (state.isOperator(symbol)) {
-            return state.qualify(symbol)
-                .map(this::withSymbol)
-                .orElseGet(() -> {
-                    state.symbolNotFound(symbol, sourceRange);
-                    return this;
-                });
-        } else {
-            return this;
-        }
+            .map(operator -> pair(this, operator));
     }
 
     public Value bind(Scope scope) {
@@ -111,6 +80,26 @@ public class Identifier extends Value {
                 return arg(sourceRange, symbol.getSimpleName(), valueType);
             }
         });
+    }
+
+    @Override
+    public Value bindMethods(TypeChecker state) {
+        return this;
+    }
+
+    @Override
+    public Value bindTypes(TypeChecker state) {
+        return withType(state.generate(type));
+    }
+
+    @Override
+    public Value checkTypes(TypeChecker state) {
+        return bind(state.scope()).checkTypes(state);
+    }
+
+    @Override
+    public Value defineOperators(OperatorAccumulator state) {
+        return this;
     }
 
     @Override
@@ -152,6 +141,20 @@ public class Identifier extends Value {
     @Override
     public boolean isOperator(Scope scope) {
         return scope.isOperator(symbol);
+    }
+
+    @Override
+    public Value parsePrecedence(PrecedenceParser state) {
+        if (state.isOperator(symbol)) {
+            return state.qualify(symbol)
+                .map(this::withSymbol)
+                .orElseGet(() -> {
+                    state.symbolNotFound(symbol, sourceRange);
+                    return this;
+                });
+        } else {
+            return this;
+        }
     }
 
     @Override

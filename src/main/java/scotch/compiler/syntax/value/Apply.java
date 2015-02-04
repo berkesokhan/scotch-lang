@@ -2,6 +2,7 @@ package scotch.compiler.syntax.value;
 
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
+import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.util.StringUtil.stringify;
 
@@ -16,10 +17,10 @@ import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.symbol.Unification.UnificationVisitor;
 import scotch.compiler.symbol.Unification.Unified;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
@@ -61,7 +62,7 @@ public class Apply extends Value {
         Value function = this.function.checkTypes(state);
         Value argument = this.argument.checkTypes(state);
         Type resultType = state.reserveType();
-        return function.getType().unify(Type.fn(argument.getType(), resultType), state.scope()).accept(new UnificationVisitor<Value>() {
+        return fn(argument.getType(), resultType).unify(function.getType(), state.scope()).accept(new UnificationVisitor<Value>() {
             @Override
             public Value visit(Unified unified) {
                 Value typedFunction = function.withType(state.generate(function.getType()));
@@ -73,7 +74,7 @@ public class Apply extends Value {
 
             @Override
             public Value visitOtherwise(Unification unification) {
-                state.error(typeError(unification, sourceRange));
+                state.error(typeError(unification.flip(), argument.getSourceRange()));
                 return withType(resultType);
             }
         });

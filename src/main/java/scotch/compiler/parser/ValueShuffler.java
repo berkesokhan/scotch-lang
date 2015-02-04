@@ -2,8 +2,8 @@ package scotch.compiler.parser;
 
 import static java.util.Arrays.asList;
 import static scotch.compiler.parser.ParseError.parseError;
-import static scotch.compiler.syntax.value.Value.apply;
-import static scotch.compiler.syntax.value.Value.unshuffled;
+import static scotch.compiler.syntax.value.Values.apply;
+import static scotch.compiler.syntax.value.Values.unshuffled;
 import static scotch.compiler.util.Either.left;
 import static scotch.compiler.util.Either.right;
 
@@ -99,7 +99,7 @@ public class ValueShuffler {
 
         private OperatorPair<Identifier> getOperator(Value value, boolean expectsPrefix) {
             return value.asOperator(scope)
-                .map(tuple -> tuple.into((identifier, operator) -> {
+                .map(pair -> pair.into((identifier, operator) -> {
                     if (expectsPrefix && !operator.isPrefix()) {
                         throw new ShuffleException(parseError("Unexpected binary operator " + identifier.getSymbol(), identifier.getSourceRange()));
                     } else {

@@ -23,14 +23,12 @@ public class DefaultTypeScope implements TypeScope {
     private final Map<Type, Type>        bindings;
     private final Map<Type, Set<Symbol>> contexts;
     private final Set<Type>              specializedTypes;
-    private final Map<Type, Type>        genericMappings;
 
     public DefaultTypeScope(SymbolGenerator symbolGenerator) {
         this.symbolGenerator = symbolGenerator;
         this.bindings = new HashMap<>();
         this.contexts = new HashMap<>();
         this.specializedTypes = new HashSet<>();
-        this.genericMappings = new HashMap<>();
     }
 
     @Override
@@ -51,15 +49,6 @@ public class DefaultTypeScope implements TypeScope {
     @Override
     public Type generate(Type type) {
         return type.generate(this);
-    }
-
-    @Override
-    public Type genericVariable(VariableType type) {
-        if (specializedTypes.contains(type.simplify())) {
-            return type;
-        } else {
-            return genericMappings.computeIfAbsent(type, k -> symbolGenerator.reserveType().withContext(type.getContext()));
-        }
     }
 
     @Override
@@ -92,11 +81,16 @@ public class DefaultTypeScope implements TypeScope {
 
     @Override
     public boolean isBound(VariableType variableType) {
-        return bindings.containsKey(variableType);
+        return bindings.containsKey(variableType.simplify());
     }
 
     @Override
-    public Type reserveType() {
+    public boolean isGeneric(VariableType variableType) {
+        return !specializedTypes.contains(variableType.simplify());
+    }
+
+    @Override
+    public VariableType reserveType() {
         return symbolGenerator.reserveType();
     }
 

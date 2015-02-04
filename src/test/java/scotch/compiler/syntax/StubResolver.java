@@ -8,13 +8,13 @@ import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.SymbolEntry.immutableEntry;
 import static scotch.compiler.symbol.TypeClassDescriptor.typeClass;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
-import static scotch.compiler.symbol.type.Type.fn;
-import static scotch.compiler.symbol.type.Type.sum;
-import static scotch.compiler.symbol.type.Type.var;
-import static scotch.compiler.symbol.type.Type.varSum;
+import static scotch.compiler.symbol.type.Types.fn;
+import static scotch.compiler.symbol.type.Types.sum;
+import static scotch.compiler.symbol.type.Types.var;
+import static scotch.compiler.symbol.type.Types.varSum;
+import static scotch.compiler.util.Pair.pair;
 import static scotch.compiler.util.TestUtil.intType;
 import static scotch.compiler.util.TestUtil.typeInstance;
-import static scotch.data.tuple.TupleValues.tuple2;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,7 +31,7 @@ import scotch.compiler.symbol.SymbolEntry.ImmutableEntryBuilder;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.type.Type;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 
 public class StubResolver implements SymbolResolver {
 
@@ -107,7 +107,7 @@ public class StubResolver implements SymbolResolver {
     public static ImmutableEntry defaultFromInteger() {
         Type a = var("a", asList("scotch.data.num.Num"));
         return immutableEntry(qualified("scotch.data.num", "fromInteger"))
-            .withValueType(fn(a, intType()))
+            .withValueType(fn(intType(), a))
             .withMemberOf(symbol("scotch.data.num.Num"))
             .build();
     }
@@ -175,11 +175,11 @@ public class StubResolver implements SymbolResolver {
             .build();
     }
 
-    private final Map<Symbol, SymbolEntry>                                     symbols;
-    private final Map<Tuple2<Symbol, List<Type>>, Set<TypeInstanceDescriptor>> typeInstances;
-    private final Map<Symbol, Set<TypeInstanceDescriptor>>                     typeInstancesByClass;
-    private final Map<List<Type>, Set<TypeInstanceDescriptor>>                 typeInstancesByArguments;
-    private final Map<String, Set<TypeInstanceDescriptor>>                     typeInstancesByModule;
+    private final Map<Symbol, SymbolEntry>                                   symbols;
+    private final Map<Pair<Symbol, List<Type>>, Set<TypeInstanceDescriptor>> typeInstances;
+    private final Map<Symbol, Set<TypeInstanceDescriptor>>                   typeInstancesByClass;
+    private final Map<List<Type>, Set<TypeInstanceDescriptor>>               typeInstancesByArguments;
+    private final Map<String, Set<TypeInstanceDescriptor>>                   typeInstancesByModule;
 
     public StubResolver() {
         this.symbols = new HashMap<>();
@@ -195,7 +195,7 @@ public class StubResolver implements SymbolResolver {
     }
 
     public StubResolver define(TypeInstanceDescriptor typeInstance) {
-        typeInstances.computeIfAbsent(tuple2(typeInstance.getTypeClass(), typeInstance.getParameters()), k -> new HashSet<>()).add(typeInstance);
+        typeInstances.computeIfAbsent(pair(typeInstance.getTypeClass(), typeInstance.getParameters()), k -> new HashSet<>()).add(typeInstance);
         typeInstancesByClass.computeIfAbsent(typeInstance.getTypeClass(), k -> new HashSet<>()).add(typeInstance);
         typeInstancesByArguments.computeIfAbsent(typeInstance.getParameters(), k -> new HashSet<>()).add(typeInstance);
         typeInstancesByModule.computeIfAbsent(typeInstance.getModuleName(), k -> new HashSet<>()).add(typeInstance);
@@ -209,7 +209,7 @@ public class StubResolver implements SymbolResolver {
 
     @Override
     public Set<TypeInstanceDescriptor> getTypeInstances(Symbol symbol, List<Type> types) {
-        return ImmutableSet.copyOf(typeInstances.getOrDefault(tuple2(symbol, types), ImmutableSet.of()));
+        return ImmutableSet.copyOf(typeInstances.getOrDefault(pair(symbol, types), ImmutableSet.of()));
     }
 
     @Override

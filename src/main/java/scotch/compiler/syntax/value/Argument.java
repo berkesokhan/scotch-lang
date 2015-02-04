@@ -2,6 +2,7 @@ package scotch.compiler.syntax.value;
 
 import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.value.Values.arg;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;

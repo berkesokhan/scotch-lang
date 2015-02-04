@@ -15,6 +15,7 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.Types;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
@@ -104,7 +105,7 @@ public class LambdaValue extends Value {
 
     @Override
     public Type getType() {
-        return Type.fn(argument.getType(), body.getType());
+        return Types.fn(argument.getType(), body.getType());
     }
 
     @Override

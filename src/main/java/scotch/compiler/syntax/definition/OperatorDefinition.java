@@ -141,7 +141,7 @@ public class OperatorDefinition extends Definition {
 
         @Override
         public OperatorDefinition build() {
-            return operatorDef(
+            return Definitions.operatorDef(
                 require(sourceRange, "Source range"),
                 require(symbol, "Operator symbol"),
                 require(fixity, "Operator fixity"),

@@ -1,14 +1,14 @@
 package scotch.java;
 
-import static scotch.compiler.symbol.type.Type.fn;
-import static scotch.compiler.symbol.type.Type.sum;
-import static scotch.compiler.symbol.type.Type.var;
+import static scotch.compiler.symbol.type.Types.fn;
+import static scotch.compiler.symbol.type.Types.sum;
+import static scotch.compiler.symbol.type.Types.var;
 import static scotch.runtime.RuntimeUtil.applicable;
 import static scotch.runtime.RuntimeUtil.callable;
 
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.Value;
 import scotch.compiler.symbol.ValueType;
+import scotch.compiler.symbol.type.Type;
 import scotch.runtime.Applicable;
 
 @SuppressWarnings("unused")

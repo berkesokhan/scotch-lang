@@ -4,6 +4,8 @@ import static me.qmx.jitescript.util.CodegenUtils.p;
 import static scotch.compiler.symbol.Unification.circular;
 import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.symbol.Unification.unified;
+import static scotch.compiler.symbol.type.Types.fn;
+import static scotch.compiler.symbol.type.Types.unifyVariable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import com.google.common.collect.ImmutableSortedSet;
@@ -19,7 +22,7 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.text.SourceRange;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 import scotch.runtime.Applicable;
 
 public class FunctionType extends Type {
@@ -51,12 +54,6 @@ public class FunctionType extends Type {
         }
     }
 
-    @Override
-    public Type genericCopy(TypeScope scope) {
-        return withArgument(argument.genericCopy(scope))
-            .withResult(result.genericCopy(scope));
-    }
-
     public Type getArgument() {
         return argument;
     }
@@ -72,8 +69,8 @@ public class FunctionType extends Type {
     }
 
     @Override
-    public List<Tuple2<VariableType, Symbol>> getInstanceMap() {
-        List<Tuple2<VariableType, Symbol>> instances = new ArrayList<>();
+    public List<Pair<VariableType, Symbol>> getInstanceMap() {
+        List<Pair<VariableType, Symbol>> instances = new ArrayList<>();
         instances.addAll(argument.getInstanceMap());
         instances.addAll(result.getInstanceMap());
         return instances;
@@ -121,8 +118,18 @@ public class FunctionType extends Type {
     }
 
     @Override
-    public Unification unify(Type type, TypeScope scope) {
-        return type.unifyWith(this, scope);
+    protected Optional<List<Pair<Type, Type>>> zip_(Type other) {
+        return other.zipWith(this);
+    }
+
+    @Override
+    protected Optional<List<Pair<Type, Type>>> zipWith(FunctionType target) {
+        return target.argument.zip_(argument).flatMap(
+            argumentList -> target.result.zip_(result).map(
+                resultList -> new ArrayList<Pair<Type, Type>>() {{
+                    addAll(argumentList);
+                    addAll(resultList);
+                }}));
     }
 
     public FunctionType withArgument(Type argument) {
@@ -149,16 +156,25 @@ public class FunctionType extends Type {
     }
 
     @Override
-    protected Set<Tuple2<VariableType, Symbol>> gatherContext_() {
-        Set<Tuple2<VariableType, Symbol>> context = new HashSet<>();
+    protected Set<Pair<VariableType, Symbol>> gatherContext_() {
+        Set<Pair<VariableType, Symbol>> context = new HashSet<>();
         context.addAll(argument.gatherContext_());
         context.addAll(result.gatherContext_());
-        return ImmutableSortedSet.copyOf(Type::sort, context);
+        return ImmutableSortedSet.copyOf(Types::sort, context);
     }
 
     @Override
     protected Type generate(TypeScope scope, Set<Type> visited) {
-        return fn(argument.generate(scope), result.generate(scope));
+        return new FunctionType(sourceRange, argument.generate(scope), result.generate(scope));
+    }
+
+    @Override
+    protected Type genericCopy(TypeScope scope, Map<Type, Type> mappings) {
+        return new FunctionType(
+            sourceRange,
+            argument.genericCopy(scope, mappings),
+            result.genericCopy(scope, mappings)
+        );
     }
 
     @Override
@@ -202,5 +218,10 @@ public class FunctionType extends Type {
         } else {
             return unifyVariable(this, target, scope);
         }
+    }
+
+    @Override
+    protected Unification unify_(Type type, TypeScope scope) {
+        return type.unifyWith(this, scope);
     }
 }

@@ -1,6 +1,7 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.joining;
+import static scotch.compiler.syntax.value.Values.apply;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.ArrayList;
@@ -18,9 +19,9 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.type.FunctionType;
 import scotch.compiler.symbol.type.InstanceType;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.text.SourceRange;
 
@@ -35,7 +36,7 @@ public class Method extends Value {
     private final List<Type>     instances;
     private final Type           type;
 
-    Method(SourceRange sourceRange, ValueReference reference, List<Type> instances, Type type) {
+    Method(SourceRange sourceRange, ValueReference reference, List<? extends Type> instances, Type type) {
         this.sourceRange = sourceRange;
         this.reference = reference;
         this.instances = ImmutableList.copyOf(instances);

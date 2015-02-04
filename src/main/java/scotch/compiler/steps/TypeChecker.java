@@ -3,14 +3,13 @@ package scotch.compiler.steps;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.symbol.type.Types.instance;
 import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
 import static scotch.compiler.syntax.reference.DefinitionReference.classRef;
 import static scotch.compiler.syntax.reference.DefinitionReference.instanceRef;
-import static scotch.compiler.syntax.value.Value.arg;
-import static scotch.compiler.syntax.value.Value.entry;
-import static scotch.compiler.syntax.value.Value.fn;
-import static scotch.compiler.syntax.value.Value.instance;
-import static scotch.data.tuple.TupleValues.tuple2;
+import static scotch.compiler.syntax.value.Values.arg;
+import static scotch.compiler.syntax.value.Values.instance;
+import static scotch.compiler.util.Pair.pair;
 import static scotch.util.StringUtil.quote;
 import static scotch.util.StringUtil.stringify;
 
@@ -51,6 +50,7 @@ import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.InstanceMap;
 import scotch.compiler.syntax.value.Method;
 import scotch.compiler.syntax.value.Value;
+import scotch.compiler.syntax.value.Values;
 import scotch.compiler.text.SourceRange;
 
 public class TypeChecker implements TypeScope {
@@ -174,11 +174,6 @@ public class TypeChecker implements TypeScope {
     }
 
     @Override
-    public Type genericVariable(VariableType type) {
-        return scope().genericVariable(type);
-    }
-
-    @Override
     public Set<Symbol> getContext(Type type) {
         return scope().getContext(type);
     }
@@ -196,6 +191,11 @@ public class TypeChecker implements TypeScope {
     @Override
     public boolean isBound(VariableType variableType) {
         return scope().isBound(variableType);
+    }
+
+    @Override
+    public boolean isGeneric(VariableType variableType) {
+        return scope().isGeneric(variableType);
     }
 
     public Optional<Definition> getDefinition(DefinitionReference reference) {
@@ -230,7 +230,7 @@ public class TypeChecker implements TypeScope {
         scope().redefineSignature(signature.getSymbol(), signature.getType());
     }
 
-    public Type reserveType() {
+    public VariableType reserveType() {
         return scope().reserveType();
     }
 
@@ -262,8 +262,8 @@ public class TypeChecker implements TypeScope {
             } else {
                 List<Argument> instanceArguments = getAdditionalArguments(definition, instances);
                 arguments.push(instanceArguments.stream()
-                    .map(argument -> tuple2(argument.getType(), argument))
-                    .reduce(new HashMap<>(), (map, tuple) -> tuple.into((type, argument) -> {
+                    .map(argument -> pair(argument.getType(), argument))
+                    .reduce(new HashMap<>(), (map, pair) -> pair.into((type, argument) -> {
                         map.put(type, argument);
                         return map;
                     }), (left, right) -> {
@@ -288,9 +288,14 @@ public class TypeChecker implements TypeScope {
                         .orElseGet(value -> {
                             Symbol functionSymbol = scope().reserveSymbol();
                             Scope functionScope = scope().enterScope();
-                            scope().insert(functionScope);
-                            FunctionValue function = fn(value.getSourceRange(), functionSymbol, instanceArguments, value);
-                            entries.put(function.getReference(), entry(functionScope, function));
+                            scope().insertChild(functionScope);
+                            FunctionValue function = FunctionValue.builder()
+                                .withSourceRange(value.getSourceRange())
+                                .withSymbol(functionSymbol)
+                                .withArguments(instanceArguments)
+                                .withBody(value)
+                                .build();
+                            entries.put(function.getReference(), Values.entry(functionScope, function));
                             instanceArguments.forEach(argument -> {
                                 functionScope.defineValue(argument.getSymbol(), argument.getType());
                                 functionScope.addLocal(argument.getName());
@@ -308,8 +313,8 @@ public class TypeChecker implements TypeScope {
     private InstanceMap buildInstanceMap(ValueDefinition definition) {
         InstanceMap.Builder builder = InstanceMap.builder();
         definition.getType().getInstanceMap().stream()
-            .map(tuple -> tuple.into((type, className) -> tuple2(type, classRef(className))))
-            .forEach(tuple -> tuple.into(builder::addInstance));
+            .map(pair -> pair.into((type, className) -> pair(type, classRef(className))))
+            .forEach(pair -> pair.into(builder::addInstance));
         return builder.build();
     }
 
@@ -325,17 +330,21 @@ public class TypeChecker implements TypeScope {
     }
 
     private <T extends Scoped> void enterScope(T scoped) {
-        scopes.push(graph.getScope(scoped.getReference()));
+        Scope scope = graph.tryGetScope(scoped.getReference())
+            .orElseGet(() -> Optional.ofNullable(entries.get(scoped.getReference()))
+                .map(DefinitionEntry::getScope)
+                .orElseThrow(() -> new IllegalArgumentException("No scope found for reference " + scoped.getReference())));
+        scopes.push(scope);
     }
 
     private List<Argument> getAdditionalArguments(ValueDefinition definition, InstanceMap instances) {
         AtomicInteger counter = new AtomicInteger();
         return instances.stream()
-            .flatMap(tuple -> tuple.into((type, classRefs) -> classRefs.stream()
+            .flatMap(pair -> pair.into((type, classRefs) -> classRefs.stream()
                 .map(classRef -> arg(
                     definition.getSourceRange().getStartRange(),
                     "#" + counter.getAndIncrement() + "i",
-                    Type.instance(classRef.getSymbol(), type.simplify())
+                    instance(classRef.getSymbol(), type.simplify())
                 ))))
             .collect(toList());
     }

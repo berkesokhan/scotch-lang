@@ -1,8 +1,8 @@
 package scotch.data.maybe;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.symbol.type.Type.sum;
-import static scotch.compiler.symbol.type.Type.var;
+import static scotch.compiler.symbol.type.Types.sum;
+import static scotch.compiler.symbol.type.Types.var;
 import static scotch.data.maybe.Maybe.nothing;
 import static scotch.runtime.RuntimeUtil.callable;
 import static scotch.runtime.RuntimeUtil.flatCallable;

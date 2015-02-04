@@ -21,6 +21,7 @@ import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.symbol.type.FunctionType;
 import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ModuleReference;
@@ -62,7 +63,7 @@ public abstract class Scope implements TypeScope {
 
     public abstract void addPattern(Symbol symbol, PatternMatcher pattern);
 
-    public void bind(Scope scope) {
+    public void setParent(Scope scope) {
         throw new IllegalStateException();
     }
 
@@ -145,7 +146,7 @@ public abstract class Scope implements TypeScope {
 
     public abstract Optional<MethodSignature> getValueSignature(Symbol symbol);
 
-    public void insert(Scope scope) {
+    public void insertChild(Scope scope) {
         throw new IllegalStateException();
     }
 
@@ -193,7 +194,7 @@ public abstract class Scope implements TypeScope {
         return reserveSymbol().nest(nestings);
     }
 
-    public Type reserveType() {
+    public VariableType reserveType() {
         return getParent().reserveType();
     }
 

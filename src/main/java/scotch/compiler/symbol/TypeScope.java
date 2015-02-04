@@ -16,8 +16,6 @@ public interface TypeScope {
 
     Type generate(Type type);
 
-    Type genericVariable(VariableType type);
-
     Set<Symbol> getContext(Type type);
 
     default List<Type> getDataParameters(SumType sum) {
@@ -30,7 +28,9 @@ public interface TypeScope {
 
     boolean isBound(VariableType variableType);
 
-    Type reserveType();
+    boolean isGeneric(VariableType variableType);
+
+    VariableType reserveType();
 
     void specialize(Type type);
 }

@@ -7,7 +7,8 @@ import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.symbol.Unification.circular;
 import static scotch.compiler.symbol.Unification.unified;
-import static scotch.data.tuple.TupleValues.tuple2;
+import static scotch.compiler.symbol.type.Types.var;
+import static scotch.compiler.util.Pair.pair;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,7 +26,7 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.text.SourceRange;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 import scotch.runtime.Callable;
 
 public class VariableType extends Type {
@@ -61,11 +62,6 @@ public class VariableType extends Type {
         }
     }
 
-    @Override
-    public Type genericCopy(TypeScope scope) {
-        return scope.genericVariable(this);
-    }
-
     public Set<Symbol> getContext() {
         return context;
     }
@@ -80,9 +76,9 @@ public class VariableType extends Type {
     }
 
     @Override
-    public List<Tuple2<VariableType, Symbol>> getInstanceMap() {
-        List<Tuple2<VariableType, Symbol>> instances = new ArrayList<>();
-        getContext().forEach(className -> instances.add(tuple2(this, className)));
+    public List<Pair<VariableType, Symbol>> getInstanceMap() {
+        List<Pair<VariableType, Symbol>> instances = new ArrayList<>();
+        getContext().forEach(className -> instances.add(pair(this, className)));
         return instances;
     }
 
@@ -117,8 +113,8 @@ public class VariableType extends Type {
     @Override
     public Type qualifyNames(NameQualifier qualifier) {
         return withContext(context.stream()
-            .map(symbol -> tuple2(symbol, qualifier.qualify(symbol)))
-            .map(tuple -> tuple.into((symbol, result) -> result.orElseGet(() -> {
+            .map(symbol -> pair(symbol, qualifier.qualify(symbol)))
+            .map(pair -> pair.into((symbol, result) -> result.orElseGet(() -> {
                 qualifier.symbolNotFound(symbol, sourceRange);
                 return symbol;
             })))
@@ -127,7 +123,7 @@ public class VariableType extends Type {
 
     @Override
     public Unification rebind(TypeScope scope) {
-        return scope.bind((VariableType) scope.reserveType(), this);
+        return scope.bind(scope.reserveType(), this);
     }
 
     @Override
@@ -145,8 +141,8 @@ public class VariableType extends Type {
     }
 
     @Override
-    public Unification unify(Type type, TypeScope scope) {
-        return type.unifyWith(this, scope);
+    protected Optional<List<Pair<Type, Type>>> zip_(Type other) {
+        return other.zipWith(this);
     }
 
     public VariableType withContext(Collection<Symbol> context) {
@@ -161,13 +157,15 @@ public class VariableType extends Type {
         return scope.bind(this, target);
     }
 
-    private Optional<Unification> unify_(Type target, TypeScope scope) {
-        if (scope.isBound(this)) {
-            return Optional.of(target.unify(scope.getTarget(this), scope));
+    private Unification unifyWith_(Type target, TypeScope scope) {
+        if (target.contains(this)) {
+            return circular(target, this);
+        } else if (scope.isBound(this)) {
+            return target.unify(scope.getTarget(this), scope);
         } else if (target.contains(this) && !equals(target)) {
-            return Optional.of(circular(target, this));
+            return circular(target, this);
         } else {
-            return Optional.empty();
+            return bind(target, scope);
         }
     }
 
@@ -177,8 +175,8 @@ public class VariableType extends Type {
     }
 
     @Override
-    protected Set<Tuple2<VariableType, Symbol>> gatherContext_() {
-        return ImmutableSortedSet.copyOf(Type::sort, context.stream().map(s -> tuple2(this, s)).collect(toList()));
+    protected Set<Pair<VariableType, Symbol>> gatherContext_() {
+        return ImmutableSortedSet.copyOf(Types::sort, context.stream().map(s -> pair(this, s)).collect(toList()));
     }
 
     @Override
@@ -188,6 +186,23 @@ public class VariableType extends Type {
         } else {
             visited.add(this);
             return scope.getTarget(this).generate(scope, visited);
+        }
+    }
+
+    @Override
+    protected Type genericCopy(TypeScope scope, Map<Type, Type> mappings) {
+        if (scope.isGeneric(this)) {
+            return mappings.computeIfAbsent(simplify(), k -> {
+                VariableType variable = scope.reserveType()
+                    .withContext(new HashSet<Symbol>() {{
+                        addAll(getContext());
+                        addAll(scope.getContext(VariableType.this));
+                    }});
+                scope.extendContext(variable, getContext());
+                return variable;
+            });
+        } else {
+            return this;
         }
     }
 
@@ -216,14 +231,6 @@ public class VariableType extends Type {
         return unifyWith_(target, scope);
     }
 
-    private Unification unifyWith_(Type target, TypeScope scope) {
-        if (target.contains(this)) {
-            return circular(target, this);
-        } else {
-            return unify_(target, scope).orElseGet(() -> bind(target, scope));
-        }
-    }
-
     @Override
     protected Unification unifyWith(FunctionType target, TypeScope scope) {
         return unifyWith_(target, scope);
@@ -241,5 +248,10 @@ public class VariableType extends Type {
             scope.extendContext(this, additionalContext);
             return bind(target, scope);
         }
+    }
+
+    @Override
+    protected Unification unify_(Type type, TypeScope scope) {
+        return type.unifyWith(this, scope);
     }
 }

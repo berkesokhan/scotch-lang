@@ -2,9 +2,10 @@ package scotch.compiler.syntax.value;
 
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
-import static scotch.compiler.symbol.type.Type.sum;
+import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.value.Values.conditional;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;

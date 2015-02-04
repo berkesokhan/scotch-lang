@@ -15,7 +15,7 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Either;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 
 public abstract class PatternMatch {
 
@@ -39,7 +39,7 @@ public abstract class PatternMatch {
         return left(this);
     }
 
-    public Optional<Tuple2<CaptureMatch, Operator>> asOperator(Scope scope) {
+    public Optional<Pair<CaptureMatch, Operator>> asOperator(Scope scope) {
         return Optional.empty();
     }
 

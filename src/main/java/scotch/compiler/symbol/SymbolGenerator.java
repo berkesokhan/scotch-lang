@@ -1,13 +1,14 @@
 package scotch.compiler.symbol;
 
 import static scotch.compiler.symbol.Symbol.unqualified;
-import static scotch.compiler.symbol.type.Type.t;
+import static scotch.compiler.symbol.type.Types.t;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import scotch.compiler.symbol.type.Types;
 import scotch.compiler.symbol.type.VariableType;
 
 public class SymbolGenerator {
@@ -32,6 +33,6 @@ public class SymbolGenerator {
     }
 
     public VariableType reserveType() {
-        return t(nextType++);
+        return Types.t(nextType++);
     }
 }

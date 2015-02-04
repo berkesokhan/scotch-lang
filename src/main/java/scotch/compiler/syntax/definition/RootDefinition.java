@@ -115,7 +115,7 @@ public class RootDefinition extends Definition {
 
         @Override
         public RootDefinition build() {
-            return root(require(sourceRange, "Source range"), definitions);
+            return Definitions.root(require(sourceRange, "Source range"), definitions);
         }
 
         public Builder withModule(DefinitionReference module) {

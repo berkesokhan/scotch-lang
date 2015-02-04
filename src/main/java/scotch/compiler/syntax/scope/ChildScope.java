@@ -79,16 +79,6 @@ public class ChildScope extends Scope {
     }
 
     @Override
-    public void bind(Scope scope) {
-        bind_((ChildScope) scope);
-    }
-
-    private void bind_(ChildScope scope) {
-        scope.children.add(this);
-        parent = scope;
-    }
-
-    @Override
     public Unification bind(VariableType variableType, Type target) {
         return types.bind(variableType, target);
     }
@@ -101,13 +91,13 @@ public class ChildScope extends Scope {
     }
 
     @Override
-    public void defineDataType(Symbol symbol, DataTypeDescriptor descriptor) {
-        define(symbol).defineDataType(descriptor);
+    public void defineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor) {
+        define(symbol).defineDataConstructor(descriptor);
     }
 
     @Override
-    public void defineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor) {
-        define(symbol).defineDataConstructor(descriptor);
+    public void defineDataType(Symbol symbol, DataTypeDescriptor descriptor) {
+        define(symbol).defineDataType(descriptor);
     }
 
     @Override
@@ -123,11 +113,6 @@ public class ChildScope extends Scope {
     @Override
     public void defineValue(Symbol symbol, Type type) {
         define(symbol).defineValue(type, computeValueMethod(symbol, type));
-    }
-
-    @Override
-    protected boolean isDataConstructor(Symbol symbol) {
-        return requireEntry(symbol).isDataConstructor() || parent.isDataConstructor(symbol);
     }
 
     @Override
@@ -155,11 +140,6 @@ public class ChildScope extends Scope {
     @Override
     public Type generate(Type type) {
         return types.generate(type);
-    }
-
-    @Override
-    public Type genericVariable(VariableType type) {
-        return types.genericVariable(type);
     }
 
     @Override
@@ -239,8 +219,8 @@ public class ChildScope extends Scope {
     }
 
     @Override
-    public void insert(Scope scope) {
-        insert_((ChildScope) scope);
+    public void insertChild(Scope newChild) {
+        insertChild_((ChildScope) newChild);
     }
 
     @Override
@@ -261,6 +241,11 @@ public class ChildScope extends Scope {
                 return isDefinedLocally(symbol) || parent.isDefined(symbol);
             }
         });
+    }
+
+    @Override
+    public boolean isGeneric(VariableType variableType) {
+        return parent.isGeneric(variableType);
     }
 
     @Override
@@ -309,11 +294,6 @@ public class ChildScope extends Scope {
     }
 
     @Override
-    protected String getModuleName() {
-        return moduleName;
-    }
-
-    @Override
     public Symbol reserveSymbol() {
         return parent.reserveSymbol();
     }
@@ -321,6 +301,11 @@ public class ChildScope extends Scope {
     @Override
     public Symbol reserveSymbol(List<String> nestings) {
         return parent.reserveSymbol(nestings);
+    }
+
+    @Override
+    public void setParent(Scope newParent) {
+        setParent_((ChildScope) newParent);
     }
 
     @Override
@@ -332,15 +317,19 @@ public class ChildScope extends Scope {
         return entries.computeIfAbsent(symbol, k -> mutableEntry(symbol));
     }
 
-    private void insert_(ChildScope scope) {
-        scope.children.clear();
-        children.forEach(child -> child.bind(scope));
+    private void insertChild_(ChildScope newChild) {
+        children.forEach(child -> child.setParent(newChild));
         children.clear();
-        scope.bind(this);
+        newChild.setParent(this);
     }
 
     private SymbolEntry requireEntry(Symbol symbol) {
         return getEntry(symbol).orElseThrow(() -> new SymbolNotFoundException("Could not find symbol " + symbol.quote()));
+    }
+
+    private void setParent_(ChildScope newParent) {
+        newParent.children.add(this);
+        parent = newParent;
     }
 
     @Override
@@ -351,6 +340,16 @@ public class ChildScope extends Scope {
         } else {
             return parent.getEntry(symbol);
         }
+    }
+
+    @Override
+    protected String getModuleName() {
+        return moduleName;
+    }
+
+    @Override
+    protected boolean isDataConstructor(Symbol symbol) {
+        return requireEntry(symbol).isDataConstructor() || parent.isDataConstructor(symbol);
     }
 
     @Override

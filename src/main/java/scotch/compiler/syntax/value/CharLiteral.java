@@ -2,15 +2,16 @@ package scotch.compiler.syntax.value;
 
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
-import static scotch.compiler.symbol.type.Type.sum;
+import static scotch.compiler.symbol.type.Types.sum;
 
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.type.Types;
 import scotch.compiler.text.SourceRange;
 
 public class CharLiteral extends LiteralValue<Character> {
 
     CharLiteral(SourceRange sourceRange, char value) {
-        super(sourceRange, value, sum("scotch.data.char.Char"));
+        super(sourceRange, value, Types.sum("scotch.data.char.Char"));
     }
 
     @Override

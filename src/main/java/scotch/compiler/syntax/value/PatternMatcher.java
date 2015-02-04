@@ -1,8 +1,8 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.syntax.definition.Definitions.scopeDef;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
-import static scotch.compiler.syntax.value.Value.scopeDef;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
@@ -52,11 +52,21 @@ public class PatternMatcher implements Scoped {
     }
 
     public PatternMatcher checkTypes(TypeChecker state) {
-        return state.scoped(this,
-            () -> withMatches(matches.stream()
-                .map(match -> match.checkTypes(state))
-                .collect(toList()))
-            .withBody(body.checkTypes(state)));
+        return state.scoped(this, () -> {
+            matches.stream()
+                .map(PatternMatch::getType)
+                .forEach(state::specialize);
+            try {
+                return withMatches(matches.stream()
+                    .map(match -> match.checkTypes(state))
+                    .collect(toList()))
+                    .withBody(body.checkTypes(state));
+            } finally {
+                matches.stream()
+                    .map(PatternMatch::getType)
+                    .forEach(state::generalize);
+            }
+        });
     }
 
     public PatternMatcher bindMethods(TypeChecker state) {
@@ -112,7 +122,7 @@ public class PatternMatcher implements Scoped {
 
     @Override
     public Definition getDefinition() {
-        return scopeDef(this);
+        return scopeDef(sourceRange, symbol);
     }
 
     public List<PatternMatch> getMatches() {

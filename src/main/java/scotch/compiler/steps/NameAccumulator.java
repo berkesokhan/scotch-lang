@@ -3,6 +3,7 @@ package scotch.compiler.steps;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
 import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
+import static scotch.compiler.syntax.value.Values.scopeDef;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -25,7 +26,6 @@ import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.PatternMatcher;
-import scotch.compiler.syntax.value.Value;
 
 public class NameAccumulator {
 
@@ -68,7 +68,7 @@ public class NameAccumulator {
     }
 
     public Definition collect(PatternMatcher pattern) {
-        return collect(Value.scopeDef(pattern));
+        return collect(scopeDef(pattern));
     }
 
     public void enterScope(Definition definition) {

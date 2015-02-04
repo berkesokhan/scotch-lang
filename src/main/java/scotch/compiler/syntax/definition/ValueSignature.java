@@ -148,7 +148,7 @@ public class ValueSignature extends Definition {
 
         @Override
         public ValueSignature build() {
-            return signature(
+            return Definitions.signature(
                 require(sourceRange, "Source range"),
                 require(symbol, "Signature symbol"),
                 require(type, "Signature type")

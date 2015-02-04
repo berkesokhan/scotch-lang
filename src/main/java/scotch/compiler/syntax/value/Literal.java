@@ -1,7 +1,7 @@
 package scotch.compiler.syntax.value;
 
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
-import static scotch.compiler.syntax.value.Value.literal;
+import static scotch.compiler.syntax.value.Values.literal;
 
 import java.util.Optional;
 import java.util.function.Function;

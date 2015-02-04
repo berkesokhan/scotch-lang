@@ -161,7 +161,7 @@ public class UnshuffledDefinition extends Definition {
 
         @Override
         public UnshuffledDefinition build() {
-            return unshuffled(
+            return Definitions.unshuffled(
                 require(sourceRange, "Source range"),
                 require(symbol, "Unshuffled pattern symbol"),
                 require(matches, "Unshuffled pattern matches"),

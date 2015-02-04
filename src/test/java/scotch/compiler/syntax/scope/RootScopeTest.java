@@ -11,7 +11,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.compiler.symbol.Symbol.unqualified;
-import static scotch.compiler.symbol.type.Type.t;
 import static scotch.compiler.syntax.scope.Scope.scope;
 import static scotch.compiler.util.TestUtil.moduleImport;
 
@@ -26,6 +25,7 @@ import scotch.compiler.symbol.SymbolEntry;
 import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.exception.SymbolNotFoundException;
+import scotch.compiler.symbol.type.Types;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RootScopeTest {
@@ -54,7 +54,7 @@ public class RootScopeTest {
 
     @Test
     public void shouldDelegateQualifyingSymbolToSiblingModule() {
-        module1Scope.defineValue(qualified("scotch.module1", "fn"), t(1));
+        module1Scope.defineValue(qualified("scotch.module1", "fn"), Types.t(1));
         assertThat(module2Scope.qualify(unqualified("fn")), is(Optional.of(qualified("scotch.module1", "fn"))));
     }
 

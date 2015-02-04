@@ -5,15 +5,14 @@ import static java.util.Collections.emptyList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.compiler.symbol.Symbol.symbol;
-import static scotch.compiler.symbol.type.Type.fn;
-import static scotch.compiler.symbol.type.Type.sum;
-import static scotch.compiler.symbol.type.Type.var;
-import static scotch.compiler.symbol.type.Type.varSum;
+import static scotch.compiler.symbol.type.Types.fn;
+import static scotch.compiler.symbol.type.Types.sum;
+import static scotch.compiler.symbol.type.Types.var;
+import static scotch.compiler.symbol.type.Types.varSum;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.junit.Ignore;
 import org.junit.Test;
 import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.Symbol;
@@ -37,18 +36,21 @@ public class VariableSumTest extends UnificationTest {
 
     @Test
     public void shouldApplyTypeHavingMoreParameters() {
+        // m a ++ Map k => map k a
         defineDescriptor("Map", asList(var("a"), var("b")));
-        shouldApply(varSum("m", var("a")), sum("Map", var("k")), sum("Map", var("a"), var("b")));
+        VariableSum varSum = varSum("m", var("a"));
+        SumType sum = sum("Map", var("k"));
+        shouldApply(varSum, sum, sum("Map", var("a"), var("b")));
     }
 
     @Test
     public void shouldApplyTypeToFunction() {
+        // m a -> (a -> m b) -> m b ++ Maybe a ==> Maybe a -> (a -> Maybe b) -> Maybe b
         defineDescriptor("Maybe", asList(var("a")));
-        shouldApply(
-            fn(varSum("m", var("a")), fn(fn(var("a"), varSum("m", var("b"))), varSum("m", var("b")))),
-            sum("Maybe"),
-            fn(sum("Maybe", var("a")), fn(fn(var("a"), sum("Maybe", var("b"))), sum("Maybe", var("b"))))
-        );
+        FunctionType function = fn(varSum("m", var("a")), fn(fn(var("a"), varSum("m", var("b"))), varSum("m", var("b"))));
+        SumType sum = sum("Maybe");
+        FunctionType result = fn(sum("Maybe", var("a")), fn(fn(var("a"), sum("Maybe", var("b"))), sum("Maybe", var("b"))));
+        shouldApply(function, sum, result);
     }
 
     @Test
@@ -72,22 +74,20 @@ public class VariableSumTest extends UnificationTest {
         shouldBeCircular(unify(varSum, var), varSum, var);
     }
 
-    @Ignore("Bad type inference :(")
     @Test
     public void shouldUnifyWithSum() {
         defineDescriptor("Maybe", asList(var("a")));
         Type varSum = varSum("m", var("a"));
         Type sum = sum("Maybe", var("b"));
-        shouldBeUnified(unify(varSum, sum), sum);
+        shouldBeUnified(unify(varSum, sum), sum("Maybe", var("a")));
     }
 
-    @Ignore("Bad type inference :(")
     @Test
     public void sumShouldUnify() {
         defineDescriptor("Maybe", asList(var("a")));
         Type sum = sum("Maybe", var("b"));
         Type varSum = varSum("m", var("a"));
-        shouldBeUnified(unify(sum, varSum), sum);
+        shouldBeUnified(unify(sum, varSum), sum("Maybe", var("a")));
     }
 
     private DataTypeDescriptor defineDescriptor(String name, List<Type> parameters) {

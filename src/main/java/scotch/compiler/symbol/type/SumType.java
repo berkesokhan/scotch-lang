@@ -6,13 +6,15 @@ import static java.util.stream.Collectors.toList;
 import static scotch.compiler.symbol.Unification.circular;
 import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.symbol.Unification.unified;
-import static scotch.data.tuple.TupleValues.tuple2;
+import static scotch.compiler.symbol.type.Types.unifyVariable;
+import static scotch.compiler.util.Pair.pair;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -22,17 +24,17 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.text.SourceRange;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 import scotch.runtime.Callable;
 
 public class SumType extends Type {
 
-    private static List<Tuple2<Type, Type>> zip(List<Type> left, List<Type> right) {
-        List<Tuple2<Type, Type>> result = new ArrayList<>();
+    private static List<Pair<Type, Type>> zip(List<Type> left, List<Type> right) {
+        List<Pair<Type, Type>> result = new ArrayList<>();
         Iterator<Type> leftIterator = left.iterator();
         Iterator<Type> rightIterator = right.iterator();
         while (leftIterator.hasNext()) {
-            result.add(tuple2(leftIterator.next(), rightIterator.next()));
+            result.add(pair(leftIterator.next(), rightIterator.next()));
         }
         return result;
     }
@@ -72,13 +74,6 @@ public class SumType extends Type {
         } else {
             return false;
         }
-    }
-
-    @Override
-    public Type genericCopy(TypeScope scope) {
-        return withParameters(parameters.stream()
-            .map(parameter -> parameter.genericCopy(scope))
-            .collect(toList()));
     }
 
     @Override
@@ -149,8 +144,18 @@ public class SumType extends Type {
     }
 
     @Override
-    public Unification unify(Type type, TypeScope scope) {
-        return type.unifyWith(this, scope);
+    protected Optional<List<Pair<Type, Type>>> zip_(Type other) {
+        return other.zipWith(this);
+    }
+
+    @Override
+    protected Optional<List<Pair<Type, Type>>> zipWith(SumType target) {
+        if (equals(target)) {
+            return Optional.of(ImmutableList.of(pair(target, this)));
+        } else {
+            return Optional.empty();
+        }
+
     }
 
     public SumType withParameters(List<Type> arguments) {
@@ -179,7 +184,7 @@ public class SumType extends Type {
     }
 
     @Override
-    protected Set<Tuple2<VariableType, Symbol>> gatherContext_() {
+    protected Set<Pair<VariableType, Symbol>> gatherContext_() {
         return ImmutableSet.of();
     }
 
@@ -187,6 +192,13 @@ public class SumType extends Type {
     protected Type generate(TypeScope scope, Set<Type> visited) {
         return withParameters(parameters.stream()
             .map(parameter -> parameter.generate(scope, visited))
+            .collect(toList()));
+    }
+
+    @Override
+    protected Type genericCopy(TypeScope scope, Map<Type, Type> mappings) {
+        return new SumType(sourceRange, symbol, parameters.stream()
+            .map(parameter -> parameter.genericCopy(scope, mappings))
             .collect(toList()));
     }
 
@@ -213,8 +225,8 @@ public class SumType extends Type {
     protected Unification unifyWith(SumType target, TypeScope scope) {
         if (symbol.equals(target.symbol)) {
             if (parameters.size() == target.parameters.size()) {
-                List<Tuple2<Type, Type>> zip = zip(target.parameters, parameters);
-                for (Tuple2<Type, Type> pair : zip) {
+                List<Pair<Type, Type>> zip = zip(target.parameters, parameters);
+                for (Pair<Type, Type> pair : zip) {
                     Unification result = pair.into((left, right) -> left.unify(right, scope));
                     if (!result.isUnified()) {
                         return result;
@@ -246,5 +258,10 @@ public class SumType extends Type {
         } else {
             return unifyVariable(this, target, scope);
         }
+    }
+
+    @Override
+    protected Unification unify_(Type type, TypeScope scope) {
+        return type.unifyWith(this, scope);
     }
 }

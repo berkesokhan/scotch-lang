@@ -7,13 +7,13 @@ import static java.util.stream.Collectors.toSet;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static scotch.compiler.symbol.DataFieldDescriptor.field;
 import static scotch.compiler.symbol.Operator.operator;
-import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Symbol.qualified;
-import static scotch.compiler.symbol.type.Type.var;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.TypeClassDescriptor.typeClass;
 import static scotch.compiler.symbol.TypeInstanceDescriptor.typeInstance;
 import static scotch.compiler.symbol.Value.Fixity.NONE;
-import static scotch.data.tuple.TupleValues.tuple2;
+import static scotch.compiler.symbol.type.Types.var;
+import static scotch.compiler.util.Pair.pair;
 import static scotch.util.StringUtil.quote;
 
 import java.lang.annotation.Annotation;
@@ -32,7 +32,7 @@ import scotch.compiler.symbol.exception.IncompleteTypeInstanceError;
 import scotch.compiler.symbol.exception.InvalidMethodSignatureError;
 import scotch.compiler.symbol.exception.SymbolResolutionError;
 import scotch.compiler.symbol.type.Type;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 
 public class ModuleScanner {
 
@@ -48,7 +48,7 @@ public class ModuleScanner {
         this.typeInstances = new HashSet<>();
     }
 
-    public Tuple2<Set<SymbolEntry>, Set<TypeInstanceDescriptor>> scan() {
+    public Pair<Set<SymbolEntry>, Set<TypeInstanceDescriptor>> scan() {
         classes.forEach(this::processDataTypes);
         classes.forEach(this::processDataConstructors);
         classes.forEach(clazz -> {
@@ -56,7 +56,7 @@ public class ModuleScanner {
             processTypeInstances(clazz);
             processValues(clazz);
         });
-        return tuple2(
+        return pair(
             builders.values().stream().map(ImmutableEntryBuilder::build).collect(toSet()),
             ImmutableSet.copyOf(typeInstances)
         );
@@ -128,10 +128,10 @@ public class ModuleScanner {
 
             Map<String, Type> fieldTypes = stream(clazz.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(DataFieldType.class))
-                .map(method -> tuple2(method.getAnnotation(DataFieldType.class).forMember(), method))
+                .map(method -> pair(method.getAnnotation(DataFieldType.class).forMember(), method))
                 .collect(
                     HashMap::new,
-                    (map, tuple) -> tuple.into((name, method) -> {
+                    (map, pair) -> pair.into((name, method) -> {
                         map.put(name, invoke(method));
                         return map;
                     }),

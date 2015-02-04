@@ -196,16 +196,16 @@ public class BytecodeGeneratorTest {
         );
     }
 
-    @Ignore("Bad type inference :(")
+    @Ignore("Results lambda instead of Either :(")
     @Test
     public void shouldCompileBind() {
         Callable<Either> result = exec(
             "module scotch.test",
             "import scotch.control.monad",
             "import scotch.data.either",
-            "run = Right \"Yes\" >>= \\which -> Left \"No\""
+            "run = Right \"Yes\" >>= \\which -> Left 0"
         );
-        assertThat(result.call(), is(left().apply(callable(() -> "No")).call()));
+        assertThat(result.call(), is(left().apply(callable(() -> "0")).call()));
     }
 
     @Ignore

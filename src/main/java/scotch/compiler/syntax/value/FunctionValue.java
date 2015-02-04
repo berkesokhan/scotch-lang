@@ -2,8 +2,11 @@ package scotch.compiler.syntax.value;
 
 import static java.util.Collections.reverse;
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.definition.Definitions.scopeDef;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
+import static scotch.compiler.syntax.value.Values.fn;
 import static scotch.compiler.util.Either.right;
 import static scotch.util.StringUtil.stringify;
 
@@ -27,6 +30,7 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.Definition;
+import scotch.compiler.syntax.definition.Definitions;
 import scotch.compiler.syntax.reference.ScopeReference;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Either;
@@ -89,7 +93,13 @@ public class FunctionValue extends Value implements Scoped {
             arguments.stream()
                 .map(Argument::getSymbol)
                 .forEach(state::addLocal);
-            return withBody(body.checkTypes(state));
+            try {
+                return withBody(body.checkTypes(state));
+            } finally {
+                arguments.stream()
+                    .map(Argument::getType)
+                    .forEach(state::generalize);
+            }
         });
     }
 
@@ -132,7 +142,7 @@ public class FunctionValue extends Value implements Scoped {
 
     @Override
     public Definition getDefinition() {
-        return scopeDef(this);
+        return scopeDef(sourceRange, symbol);
     }
 
     public ScopeReference getReference() {
@@ -155,7 +165,7 @@ public class FunctionValue extends Value implements Scoped {
             reverse(args);
             return args.stream()
                 .map(Argument::getType)
-                .reduce(body.getType(), (result, arg) -> Type.fn(arg, result));
+                .reduce(body.getType(), (result, arg) -> fn(arg, result));
         });
     }
 

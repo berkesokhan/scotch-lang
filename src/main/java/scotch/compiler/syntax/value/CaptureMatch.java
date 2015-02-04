@@ -3,9 +3,9 @@ package scotch.compiler.syntax.value;
 import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
-import static scotch.compiler.syntax.definition.Definition.classDef;
+import static scotch.compiler.syntax.definition.Definitions.classDef;
 import static scotch.compiler.util.Either.right;
-import static scotch.data.tuple.TupleValues.tuple2;
+import static scotch.compiler.util.Pair.pair;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
@@ -19,17 +19,17 @@ import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.symbol.Unification.UnificationVisitor;
 import scotch.compiler.symbol.Unification.Unified;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.ClassDefinition;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Either;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 
 public class CaptureMatch extends PatternMatch {
 
@@ -63,10 +63,10 @@ public class CaptureMatch extends PatternMatch {
     }
 
     @Override
-    public Optional<Tuple2<CaptureMatch, Operator>> asOperator(Scope scope) {
+    public Optional<Pair<CaptureMatch, Operator>> asOperator(Scope scope) {
         return scope.qualify(symbol)
             .map(scope::getOperator)
-            .map(operator -> tuple2(this, operator));
+            .map(operator -> pair(this, operator));
     }
 
     @Override

@@ -1,10 +1,10 @@
 package scotch.control.monad;
 
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
-import static scotch.compiler.symbol.type.Type.fn;
-import static scotch.compiler.symbol.type.Type.sum;
-import static scotch.compiler.symbol.type.Type.var;
-import static scotch.compiler.symbol.type.Type.varSum;
+import static scotch.compiler.symbol.type.Types.fn;
+import static scotch.compiler.symbol.type.Types.sum;
+import static scotch.compiler.symbol.type.Types.var;
+import static scotch.compiler.symbol.type.Types.varSum;
 import static scotch.runtime.RuntimeUtil.applicable;
 import static scotch.runtime.RuntimeUtil.flatCallable;
 
@@ -13,6 +13,7 @@ import scotch.compiler.symbol.TypeParameter;
 import scotch.compiler.symbol.Value;
 import scotch.compiler.symbol.ValueType;
 import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.Types;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 

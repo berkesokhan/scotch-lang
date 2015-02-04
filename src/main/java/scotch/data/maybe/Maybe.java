@@ -1,8 +1,8 @@
 package scotch.data.maybe;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.symbol.type.Type.sum;
-import static scotch.compiler.symbol.type.Type.var;
+import static scotch.compiler.symbol.type.Types.sum;
+import static scotch.compiler.symbol.type.Types.var;
 import static scotch.runtime.RuntimeUtil.applicable;
 import static scotch.runtime.RuntimeUtil.callable;
 import static scotch.runtime.RuntimeUtil.flatCallable;
@@ -14,11 +14,11 @@ import scotch.compiler.symbol.DataConstructor;
 import scotch.compiler.symbol.DataField;
 import scotch.compiler.symbol.DataFieldType;
 import scotch.compiler.symbol.DataType;
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.TypeParameter;
 import scotch.compiler.symbol.TypeParameters;
 import scotch.compiler.symbol.Value;
 import scotch.compiler.symbol.ValueType;
+import scotch.compiler.symbol.type.Type;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 
@@ -28,7 +28,7 @@ import scotch.runtime.Callable;
 })
 public abstract class Maybe<A> {
 
-    public static final Type TYPE = sum("scotch.data.maybe.Maybe");
+    public static final  Type            TYPE    = sum("scotch.data.maybe.Maybe");
     private static final Callable<Maybe> NOTHING = callable(Nothing::new);
 
     @Value(memberName = "Just")

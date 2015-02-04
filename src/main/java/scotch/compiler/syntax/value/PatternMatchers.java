@@ -3,6 +3,7 @@ package scotch.compiler.syntax.value;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.value.Values.patterns;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
@@ -17,10 +18,10 @@ import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.symbol.Unification.UnificationVisitor;
 import scotch.compiler.symbol.Unification.Unified;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 

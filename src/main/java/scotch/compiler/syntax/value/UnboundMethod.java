@@ -1,6 +1,10 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.symbol.type.Types.fn;
+import static scotch.compiler.symbol.type.Types.instance;
+import static scotch.compiler.syntax.value.Values.method;
+import static scotch.compiler.syntax.value.Values.unboundMethod;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.ArrayList;
@@ -16,6 +20,7 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.type.InstanceType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.scope.Scope;
@@ -82,12 +87,6 @@ public class UnboundMethod extends Value {
         throw new IllegalStateException("Can't generate bytecode for unbound method");
     }
 
-    public Type getMethodType(List<Type> instances) {
-        List<Type> reversedInstances = new ArrayList<>(instances);
-        Collections.reverse(reversedInstances);
-        return reversedInstances.stream().reduce(type, (left, right) -> Type.fn(right, left));
-    }
-
     @Override
     public SourceRange getSourceRange() {
         return sourceRange;
@@ -107,9 +106,9 @@ public class UnboundMethod extends Value {
         return Objects.hash(valueRef, type);
     }
 
-    public List<Type> listInstanceTypes(Type valueType) {
+    public List<InstanceType> listInstanceTypes(Type valueType) {
         return valueType.getContexts().stream()
-            .map(tuple -> tuple.into((type, symbol) -> Type.instance(symbol, type.simplify())))
+            .map(pair -> pair.into((type, symbol) -> instance(symbol, type.simplify())))
             .collect(toList());
     }
 
@@ -134,8 +133,19 @@ public class UnboundMethod extends Value {
     }
 
     private Value bind(Scope scope) {
-        List<Type> instances = listInstanceTypes(scope.getRawValue(valueRef));
-        List<Type> instanceTypes = listInstanceTypes(scope.getValue(valueRef));
+        List<InstanceType> instances = listInstanceTypes(scope.getRawValue(valueRef));
+        List<InstanceType> instanceTypes = scope.getRawValue(valueRef)
+            .zip(type, scope)
+            .map(map -> instances.stream()
+                .map(instance -> instance.withBinding(map.get(instance.getBinding())))
+                .collect(toList()))
+            .orElseThrow(UnsupportedOperationException::new);
         return method(sourceRange, valueRef, instances, scope.generate(getMethodType(instanceTypes)));
+    }
+
+    private Type getMethodType(List<InstanceType> instances) {
+        List<Type> reversedInstances = new ArrayList<>(instances);
+        Collections.reverse(reversedInstances);
+        return reversedInstances.stream().reduce(type, (left, right) -> fn(right, left));
     }
 }

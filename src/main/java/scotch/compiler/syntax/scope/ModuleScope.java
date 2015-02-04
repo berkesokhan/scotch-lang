@@ -74,8 +74,8 @@ public class ModuleScope extends Scope {
     }
 
     @Override
-    public void defineDataType(Symbol symbol, DataTypeDescriptor descriptor) {
-        define(symbol).defineDataType(descriptor);
+    public Unification bind(VariableType variableType, Type target) {
+        return types.bind(variableType, target);
     }
 
     @Override
@@ -84,8 +84,8 @@ public class ModuleScope extends Scope {
     }
 
     @Override
-    public Unification bind(VariableType variableType, Type target) {
-        return types.bind(variableType, target);
+    public void defineDataType(Symbol symbol, DataTypeDescriptor descriptor) {
+        define(symbol).defineDataType(descriptor);
     }
 
     @Override
@@ -126,11 +126,6 @@ public class ModuleScope extends Scope {
     @Override
     public Type generate(Type type) {
         return types.generate(type);
-    }
-
-    @Override
-    public Type genericVariable(VariableType type) {
-        return types.genericVariable(type);
     }
 
     @Override
@@ -223,6 +218,11 @@ public class ModuleScope extends Scope {
     }
 
     @Override
+    public boolean isGeneric(VariableType variableType) {
+        return types.isGeneric(variableType);
+    }
+
+    @Override
     public boolean isOperator_(Symbol symbol) {
         return getEntry(symbol).map(SymbolEntry::isOperator).orElse(false);
     }
@@ -266,11 +266,6 @@ public class ModuleScope extends Scope {
     @Override
     public Symbol qualifyCurrent(Symbol symbol) {
         return symbol.qualifyWith(moduleName);
-    }
-
-    @Override
-    protected String getModuleName() {
-        return moduleName;
     }
 
     @Override
@@ -324,6 +319,11 @@ public class ModuleScope extends Scope {
                 return qualify(symbol).flatMap(ModuleScope.this::getEntry);
             }
         });
+    }
+
+    @Override
+    protected String getModuleName() {
+        return moduleName;
     }
 
     @Override

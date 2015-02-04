@@ -2,13 +2,13 @@ package scotch.compiler.syntax.definition;
 
 import static java.util.Arrays.asList;
 import static org.junit.rules.ExpectedException.none;
-import static scotch.compiler.symbol.type.Type.var;
 import static scotch.compiler.util.TestUtil.classDef;
 
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import scotch.compiler.symbol.type.Types;
 
 public class ClassDefinitionTest {
 
@@ -26,7 +26,7 @@ public class ClassDefinitionTest {
     public void shouldThrow_whenCreatingDefinitionWithNoMembers() {
         exception.expect(IllegalArgumentException.class);
         exception.expectMessage("Can't create class definition with 0 members");
-        classDef("Eq", asList(var("a")), asList());
+        classDef("Eq", asList(Types.var("a")), asList());
     }
 
     @Ignore

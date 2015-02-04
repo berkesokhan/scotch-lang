@@ -1,9 +1,9 @@
 package scotch.data.either;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.symbol.type.Type.fn;
-import static scotch.compiler.symbol.type.Type.sum;
-import static scotch.compiler.symbol.type.Type.var;
+import static scotch.compiler.symbol.type.Types.fn;
+import static scotch.compiler.symbol.type.Types.sum;
+import static scotch.compiler.symbol.type.Types.var;
 import static scotch.runtime.RuntimeUtil.applicable;
 import static scotch.runtime.RuntimeUtil.callable;
 

@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Symbol.unqualified;
-import static scotch.compiler.symbol.type.Type.t;
+import static scotch.compiler.symbol.type.Types.t;
 import static scotch.compiler.syntax.scope.Scope.scope;
 import static scotch.compiler.util.TestUtil.intType;
 
@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.SymbolGenerator;
+import scotch.compiler.symbol.type.Types;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ChildScopeTest {
@@ -59,7 +60,7 @@ public class ChildScopeTest {
 
     @Test
     public void shouldNotDelegateToParentWhenValueDefined() {
-        childScope.defineValue(unqualified("x"), t(2));
+        childScope.defineValue(unqualified("x"), Types.t(2));
         childScope.getValue(unqualified("x"));
         verify(parentScope, never()).getValue(unqualified("x"));
     }

@@ -35,19 +35,19 @@ import static scotch.compiler.scanner.Token.TokenKind.RIGHT_CURLY_BRACE;
 import static scotch.compiler.scanner.Token.TokenKind.RIGHT_PARENTHESIS;
 import static scotch.compiler.scanner.Token.TokenKind.SEMICOLON;
 import static scotch.compiler.scanner.Token.TokenKind.STRING_LITERAL;
-import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.compiler.symbol.Symbol.splitQualified;
+import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Symbol.unqualified;
-import static scotch.compiler.symbol.type.Type.fn;
-import static scotch.compiler.symbol.type.Type.sum;
-import static scotch.compiler.symbol.type.Type.var;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
 import static scotch.compiler.symbol.Value.Fixity.PREFIX;
 import static scotch.compiler.symbol.Value.Fixity.RIGHT_INFIX;
+import static scotch.compiler.symbol.type.Types.fn;
+import static scotch.compiler.symbol.type.Types.sum;
+import static scotch.compiler.symbol.type.Types.var;
 import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
 import static scotch.compiler.syntax.definition.DefinitionGraph.createGraph;
-import static scotch.data.tuple.TupleValues.tuple2;
+import static scotch.compiler.util.Pair.pair;
 import static scotch.util.StringUtil.quote;
 
 import java.util.ArrayDeque;
@@ -68,8 +68,8 @@ import scotch.compiler.scanner.Token.TokenKind;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.Value.Fixity;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.DataConstructorDefinition;
 import scotch.compiler.syntax.definition.DataConstructorDefinition.Builder;
@@ -108,7 +108,7 @@ import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.NamedSourcePoint;
 import scotch.compiler.text.SourceRange;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 import scotch.util.StringUtil;
 
 public class InputParser {
@@ -799,14 +799,14 @@ public class InputParser {
         }
     }
 
-    private List<Tuple2<Symbol, SourceRange>> parseSymbols() {
-        List<Tuple2<Symbol, SourceRange>> symbols = new ArrayList<>();
+    private List<Pair<Symbol, SourceRange>> parseSymbols() {
+        List<Pair<Symbol, SourceRange>> symbols = new ArrayList<>();
         markPosition();
-        symbols.add(tuple2(parseSymbol(), getSourceRange()));
+        symbols.add(pair(parseSymbol(), getSourceRange()));
         while (expects(COMMA)) {
             nextToken();
             markPosition();
-            symbols.add(tuple2(parseSymbol(), getSourceRange()));
+            symbols.add(pair(parseSymbol(), getSourceRange()));
         }
         return symbols;
     }
@@ -888,7 +888,7 @@ public class InputParser {
     }
 
     private List<DefinitionReference> parseValueSignatures() {
-        List<Tuple2<Symbol, SourceRange>> symbolList = parseSymbols();
+        List<Pair<Symbol, SourceRange>> symbolList = parseSymbols();
         Type type = parseValueSignature();
         return symbolList.stream()
             .map(pair -> pair.into(

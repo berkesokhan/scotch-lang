@@ -2,15 +2,16 @@ package scotch.compiler.syntax.value;
 
 import static me.qmx.jitescript.util.CodegenUtils.ci;
 import static me.qmx.jitescript.util.CodegenUtils.p;
-import static scotch.compiler.symbol.type.Type.sum;
+import static scotch.compiler.symbol.type.Types.sum;
 
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.type.Types;
 import scotch.compiler.text.SourceRange;
 
 public class BoolLiteral extends LiteralValue<Boolean> {
 
     BoolLiteral(SourceRange sourceRange, boolean value) {
-        super(sourceRange, value, sum("scotch.data.bool.Bool"));
+        super(sourceRange, value, Types.sum("scotch.data.bool.Bool"));
     }
 
     @Override

@@ -4,9 +4,9 @@ import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.compiler.symbol.Unification.failedBinding;
-import static scotch.compiler.symbol.type.Type.fn;
-import static scotch.compiler.symbol.type.Type.sum;
-import static scotch.compiler.symbol.type.Type.var;
+import static scotch.compiler.symbol.type.Types.fn;
+import static scotch.compiler.symbol.type.Types.sum;
+import static scotch.compiler.symbol.type.Types.var;
 import static scotch.compiler.util.TestUtil.boolType;
 import static scotch.compiler.util.TestUtil.intType;
 
@@ -112,7 +112,7 @@ public class TypeTest extends UnificationTest {
     public void shouldMutuallyExtendContexts_whenUnifyingVariables() {
         VariableType a = var("a", asList("Eq"));
         VariableType b = var("b", asList("Show"));
-        shouldBeUnified(unify(b, a), b);
+        unify(b, a);
         shouldBeBound(a, var("b", asList("Eq", "Show")));
         shouldBeBound(b, var("b", asList("Eq", "Show")));
     }

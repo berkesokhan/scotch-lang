@@ -107,11 +107,6 @@ public class RootScope extends Scope {
     }
 
     @Override
-    public Type genericVariable(VariableType type) {
-        throw new IllegalStateException();
-    }
-
-    @Override
     public Set<Symbol> getContext(Type type) {
         throw new IllegalStateException();
     }
@@ -173,6 +168,11 @@ public class RootScope extends Scope {
 
     @Override
     public boolean isBound(VariableType type) {
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean isGeneric(VariableType variableType) {
         throw new IllegalStateException();
     }
 
@@ -241,7 +241,7 @@ public class RootScope extends Scope {
     }
 
     @Override
-    public Type reserveType() {
+    public VariableType reserveType() {
         return symbolGenerator.reserveType();
     }
 

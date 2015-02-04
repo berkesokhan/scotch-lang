@@ -211,7 +211,7 @@ public class ValueDefinition extends Definition {
 
         @Override
         public ValueDefinition build() {
-            return value(
+            return Definitions.value(
                 require(sourceRange, "Source range"),
                 require(symbol, "Value symbol"),
                 require(type, "Value type"),

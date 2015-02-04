@@ -147,7 +147,7 @@ public class ModuleDefinition extends Definition {
 
         @Override
         public ModuleDefinition build() {
-            return module(
+            return Definitions.module(
                 require(sourceRange, "Source range"),
                 require(symbol, "Module symbol"),
                 require(imports, "Imports are required"),

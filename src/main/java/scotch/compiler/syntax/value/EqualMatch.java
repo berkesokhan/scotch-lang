@@ -4,8 +4,8 @@ import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
-import static scotch.compiler.syntax.value.Value.apply;
-import static scotch.compiler.syntax.value.Value.id;
+import static scotch.compiler.syntax.value.Values.apply;
+import static scotch.compiler.syntax.value.Values.id;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;

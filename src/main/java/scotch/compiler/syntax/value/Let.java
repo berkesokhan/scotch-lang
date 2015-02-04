@@ -1,7 +1,9 @@
 package scotch.compiler.syntax.value;
 
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.definition.Definitions.scopeDef;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
+import static scotch.compiler.syntax.value.Values.let;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.ArrayList;
@@ -30,6 +32,7 @@ public class Let extends Value implements Scoped {
     public static Builder builder() {
         return new Builder();
     }
+
     private final SourceRange               sourceRange;
     private final Symbol                    symbol;
     private final List<DefinitionReference> definitions;
@@ -102,7 +105,7 @@ public class Let extends Value implements Scoped {
 
     @Override
     public Definition getDefinition() {
-        return scopeDef(this);
+        return scopeDef(sourceRange, symbol);
     }
 
     public DefinitionReference getReference() {

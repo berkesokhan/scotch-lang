@@ -2,6 +2,7 @@ package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.value.Values.unshuffled;
 import static scotch.compiler.util.Either.right;
 import static scotch.util.StringUtil.stringify;
 

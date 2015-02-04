@@ -5,6 +5,7 @@ import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
 import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.reference.DefinitionReference.valueRef;
+import static scotch.compiler.syntax.value.Values.scopeDef;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -132,11 +133,11 @@ public class PrecedenceParser {
                 .map(this::collect)
                 .map(Definition::getReference)
                 .map(this::getScope)
-                .forEach(scope -> scope.bind(getScope(function.getReference())));
+                .forEach(scope -> scope.setParent(getScope(function.getReference())));
 
             Scope scope = scope().enterScope();
             functionScopes.put(valueRef(symbol), scope);
-            getScope(function.getReference()).bind(scope);
+            getScope(function.getReference()).setParent(scope);
             ValueDefinition.builder()
                 .withSourceRange(sourceRange)
                 .withSymbol(symbol)
@@ -254,7 +255,7 @@ public class PrecedenceParser {
     }
 
     private Definition collect(PatternMatcher pattern) {
-        return collect(Value.scopeDef(pattern));
+        return collect(scopeDef(pattern));
     }
 
     private void enterScope(DefinitionReference reference) {

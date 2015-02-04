@@ -1,7 +1,7 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.Collections.sort;
-import static scotch.data.tuple.TupleValues.tuple2;
+import static scotch.compiler.util.Pair.pair;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,7 +13,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.syntax.reference.ClassReference;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 
 public class InstanceMap {
 
@@ -61,8 +61,8 @@ public class InstanceMap {
         return arity.isEmpty();
     }
 
-    public Stream<Tuple2<VariableType, List<ClassReference>>> stream() {
-        return arity.stream().map(type -> tuple2(type, instances.get(type)));
+    public Stream<Pair<VariableType, List<ClassReference>>> stream() {
+        return arity.stream().map(type -> pair(type, instances.get(type)));
     }
 
     public static class Builder {

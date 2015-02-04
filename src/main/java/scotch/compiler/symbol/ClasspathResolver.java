@@ -3,7 +3,7 @@ package scotch.compiler.symbol;
 import static java.util.regex.Pattern.compile;
 import static scotch.compiler.symbol.Symbol.getPackageName;
 import static scotch.compiler.symbol.Symbol.getPackagePath;
-import static scotch.data.tuple.TupleValues.tuple2;
+import static scotch.compiler.util.Pair.pair;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,17 +26,17 @@ import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
 import scotch.compiler.symbol.exception.SymbolResolutionError;
 import scotch.compiler.symbol.type.Type;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 
 public class ClasspathResolver implements SymbolResolver {
 
-    private final ClassLoader                                                  classLoader;
-    private final Map<Symbol, SymbolEntry>                                     namedSymbols;
-    private final Set<String>                                                  searchedModules;
-    private final Map<Tuple2<Symbol, List<Type>>, Set<TypeInstanceDescriptor>> typeInstances;
-    private final Map<Symbol, Set<TypeInstanceDescriptor>>                     typeInstancesByClass;
-    private final Map<List<Type>, Set<TypeInstanceDescriptor>>                 typeInstancesByArguments;
-    private final Map<String, Set<TypeInstanceDescriptor>>                     typeInstancesByModule;
+    private final ClassLoader                                                classLoader;
+    private final Map<Symbol, SymbolEntry>                                   namedSymbols;
+    private final Set<String>                                                searchedModules;
+    private final Map<Pair<Symbol, List<Type>>, Set<TypeInstanceDescriptor>> typeInstances;
+    private final Map<Symbol, Set<TypeInstanceDescriptor>>                   typeInstancesByClass;
+    private final Map<List<Type>, Set<TypeInstanceDescriptor>>               typeInstancesByArguments;
+    private final Map<String, Set<TypeInstanceDescriptor>>                   typeInstancesByModule;
 
     public ClasspathResolver(ClassLoader classLoader) {
         this.classLoader = classLoader;
@@ -58,7 +58,7 @@ public class ClasspathResolver implements SymbolResolver {
     public Set<TypeInstanceDescriptor> getTypeInstances(Symbol symbol, List<Type> arguments) {
         search(symbol);
         search(arguments);
-        return typeInstances.getOrDefault(tuple2(symbol, arguments), ImmutableSet.of());
+        return typeInstances.getOrDefault(pair(symbol, arguments), ImmutableSet.of());
     }
 
     public Set<TypeInstanceDescriptor> getTypeInstancesByArguments(List<Type> arguments) {
@@ -169,7 +169,7 @@ public class ClasspathResolver implements SymbolResolver {
             new ModuleScanner(moduleName, classes).scan().into((entries, instances) -> {
                 entries.forEach(entry -> namedSymbols.put(entry.getSymbol(), entry));
                 instances.forEach(instance -> {
-                    typeInstances.computeIfAbsent(tuple2(instance.getTypeClass(), instance.getParameters()), k -> new HashSet<>()).add(instance);
+                    typeInstances.computeIfAbsent(pair(instance.getTypeClass(), instance.getParameters()), k -> new HashSet<>()).add(instance);
                     typeInstancesByClass.computeIfAbsent(instance.getTypeClass(), k -> new HashSet<>()).add(instance);
                     typeInstancesByArguments.computeIfAbsent(instance.getParameters(), k -> new HashSet<>()).add(instance);
                     typeInstancesByModule.computeIfAbsent(moduleName, k -> new HashSet<>()).add(instance);

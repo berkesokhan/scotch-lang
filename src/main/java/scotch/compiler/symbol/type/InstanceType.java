@@ -1,7 +1,9 @@
 package scotch.compiler.symbol.type;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -10,7 +12,7 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.Unification;
 import scotch.compiler.text.SourceRange;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 
 public class InstanceType extends Type {
 
@@ -35,11 +37,6 @@ public class InstanceType extends Type {
     @Override
     public Type generate(TypeScope scope, Set<Type> visited) {
         return withBinding(binding.generate(scope, visited));
-    }
-
-    @Override
-    public Type genericCopy(TypeScope scope) {
-        return this;
     }
 
     public Type getBinding() {
@@ -103,11 +100,6 @@ public class InstanceType extends Type {
         return toString_();
     }
 
-    @Override
-    public Unification unify(Type type, TypeScope scope) {
-        throw new UnsupportedOperationException();
-    }
-
     public InstanceType withBinding(Type binding) {
         return new InstanceType(symbol, binding);
     }
@@ -118,8 +110,13 @@ public class InstanceType extends Type {
     }
 
     @Override
-    protected Set<Tuple2<VariableType, Symbol>> gatherContext_() {
+    protected Set<Pair<VariableType, Symbol>> gatherContext_() {
         return ImmutableSet.of();
+    }
+
+    @Override
+    protected Type genericCopy(TypeScope scope, Map<Type, Type> mappings) {
+        return this;
     }
 
     @Override
@@ -134,7 +131,7 @@ public class InstanceType extends Type {
 
     @Override
     protected String toString_() {
-        return symbol.getSimpleName();
+        return symbol.getSimpleName() + "<" + binding + ">";
     }
 
     @Override
@@ -154,6 +151,16 @@ public class InstanceType extends Type {
 
     @Override
     protected Unification unifyWith(VariableSum target, TypeScope scope) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    protected Unification unify_(Type type, TypeScope scope) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected Optional<List<Pair<Type, Type>>> zip_(Type other) {
         throw new UnsupportedOperationException(); // TODO
     }
 }

@@ -5,7 +5,7 @@ import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static me.qmx.jitescript.util.CodegenUtils.p;
-import static scotch.data.tuple.TupleValues.tuple2;
+import static scotch.compiler.util.Pair.pair;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import scotch.data.tuple.Tuple2;
+import scotch.compiler.util.Pair;
 import scotch.util.StringUtil;
 
 public abstract class Symbol implements Comparable<Symbol> {
@@ -123,16 +123,16 @@ public abstract class Symbol implements Comparable<Symbol> {
         return new QualifiedSymbol(moduleName, memberNames);
     }
 
-    public static Tuple2<Optional<String>, String> splitQualified(String name) {
+    public static Pair<Optional<String>, String> splitQualified(String name) {
         Matcher matcher = qualifiedPattern.matcher(name);
         if (matcher.matches()) {
             if (tuplePattern.matcher(matcher.group(2)).matches()) {
-                return tuple2(Optional.of(matcher.group(1)), matcher.group(2));
+                return pair(Optional.of(matcher.group(1)), matcher.group(2));
             } else {
-                return tuple2(Optional.of(matcher.group(1)), matcher.group(2).replaceAll("[\\(\\)]", ""));
+                return pair(Optional.of(matcher.group(1)), matcher.group(2).replaceAll("[\\(\\)]", ""));
             }
         } else {
-            return tuple2(Optional.empty(), name);
+            return pair(Optional.empty(), name);
         }
     }
 

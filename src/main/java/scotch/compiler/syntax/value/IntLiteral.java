@@ -2,15 +2,16 @@ package scotch.compiler.syntax.value;
 
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
-import static scotch.compiler.symbol.type.Type.sum;
+import static scotch.compiler.symbol.type.Types.sum;
 
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.type.Types;
 import scotch.compiler.text.SourceRange;
 
 public class IntLiteral extends LiteralValue<Integer> {
 
     IntLiteral(SourceRange sourceRange, int value) {
-        super(sourceRange, value, sum("scotch.data.int.Int"));
+        super(sourceRange, value, Types.sum("scotch.data.int.Int"));
     }
 
     @Override
