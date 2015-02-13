@@ -3,6 +3,7 @@ package scotch.compiler.syntax.value;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.symbol.type.Types.instance;
+import static scotch.compiler.syntax.value.NoBindingError.noBinding;
 import static scotch.compiler.syntax.value.Values.method;
 import static scotch.compiler.syntax.value.Values.unboundMethod;
 import static scotch.util.StringUtil.stringify;
@@ -23,7 +24,6 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.InstanceType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.reference.ValueReference;
-import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
 
 public class UnboundMethod extends Value {
@@ -55,7 +55,7 @@ public class UnboundMethod extends Value {
 
     @Override
     public Value bindTypes(TypeChecker state) {
-        return bind(state.scope()).bindTypes(state);
+        return bind(state).bindTypes(state);
     }
 
     @Override
@@ -106,12 +106,6 @@ public class UnboundMethod extends Value {
         return Objects.hash(valueRef, type);
     }
 
-    public List<InstanceType> listInstanceTypes(Type valueType) {
-        return valueType.getContexts().stream()
-            .map(pair -> pair.into((type, symbol) -> instance(symbol, type.simplify())))
-            .collect(toList());
-    }
-
     @Override
     public Value parsePrecedence(PrecedenceParser state) {
         throw new UnsupportedOperationException();
@@ -132,20 +126,29 @@ public class UnboundMethod extends Value {
         return unboundMethod(sourceRange, valueRef, type);
     }
 
-    private Value bind(Scope scope) {
-        List<InstanceType> instances = listInstanceTypes(scope.getRawValue(valueRef));
-        List<InstanceType> instanceTypes = scope.getRawValue(valueRef)
-            .zip(type, scope)
+    private Value bind(TypeChecker state) {
+        List<InstanceType> instances = listInstanceTypes(state.getRawValue(valueRef));
+        return state.getRawValue(valueRef)
+            .zip(type, state)
             .map(map -> instances.stream()
                 .map(instance -> instance.withBinding(map.get(instance.getBinding())))
                 .collect(toList()))
-            .orElseThrow(UnsupportedOperationException::new);
-        return method(sourceRange, valueRef, instances, scope.generate(getMethodType(instanceTypes)));
+            .map(instanceTypes -> method(sourceRange, valueRef, instances, state.generate(getMethodType(instanceTypes))))
+            .orElseGet(() -> {
+                state.error(noBinding(getSymbol(), sourceRange));
+                return this;
+            });
     }
 
     private Type getMethodType(List<InstanceType> instances) {
         List<Type> reversedInstances = new ArrayList<>(instances);
         Collections.reverse(reversedInstances);
         return reversedInstances.stream().reduce(type, (left, right) -> fn(right, left));
+    }
+
+    private List<InstanceType> listInstanceTypes(Type valueType) {
+        return valueType.getContexts().stream()
+            .map(pair -> pair.into((type, symbol) -> instance(symbol, type.simplify())))
+            .collect(toList());
     }
 }

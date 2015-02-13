@@ -1,6 +1,7 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.joining;
+import static scotch.compiler.syntax.value.NoBindingError.noBinding;
 import static scotch.compiler.syntax.value.Values.apply;
 import static scotch.util.StringUtil.stringify;
 
@@ -10,7 +11,6 @@ import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
-import scotch.compiler.error.SyntaxError;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -26,10 +26,6 @@ import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.text.SourceRange;
 
 public class Method extends Value {
-
-    private static SyntaxError noBinding(Method method) {
-        return new NoBindingError(method);
-    }
 
     private final SourceRange    sourceRange;
     private final ValueReference reference;
@@ -71,7 +67,7 @@ public class Method extends Value {
                 if (optionalTypeArgument.isPresent()) {
                     typeArgument = optionalTypeArgument.get();
                 } else {
-                    state.error(noBinding(this));
+                    state.error(noBinding(getSymbol(), sourceRange));
                     return this;
                 }
             }
@@ -156,34 +152,5 @@ public class Method extends Value {
     @Override
     public Method withType(Type type) {
         return new Method(sourceRange, reference, instances, type);
-    }
-
-    private static class NoBindingError extends SyntaxError {
-
-        private final Method method;
-
-        public NoBindingError(Method method) {
-            this.method = method;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return o == this || o instanceof NoBindingError && Objects.equals(method, ((NoBindingError) o).method);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(method);
-        }
-
-        @Override
-        public String prettyPrint() {
-            return "No binding found for method " + method.getSymbol() + " " + method.getSourceRange().prettyPrint();
-        }
-
-        @Override
-        public String toString() {
-            return prettyPrint();
-        }
     }
 }

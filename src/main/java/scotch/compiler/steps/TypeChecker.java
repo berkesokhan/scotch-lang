@@ -11,7 +11,6 @@ import static scotch.compiler.syntax.value.Values.arg;
 import static scotch.compiler.syntax.value.Values.instance;
 import static scotch.compiler.util.Pair.pair;
 import static scotch.util.StringUtil.quote;
-import static scotch.util.StringUtil.stringify;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -19,7 +18,6 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,6 +25,8 @@ import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.Symbol;
@@ -44,6 +44,7 @@ import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.definition.ValueSignature;
 import scotch.compiler.syntax.reference.DefinitionReference;
+import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.FunctionValue;
@@ -181,6 +182,10 @@ public class TypeChecker implements TypeScope {
     @Override
     public DataTypeDescriptor getDataType(Symbol symbol) {
         return null;
+    }
+
+    public Type getRawValue(ValueReference valueRef) {
+        return scope().getRawValue(valueRef);
     }
 
     @Override
@@ -383,6 +388,8 @@ public class TypeChecker implements TypeScope {
             .collect(toList());
     }
 
+    @EqualsAndHashCode
+    @ToString
     public static class AmbiguousTypeInstanceError extends SyntaxError {
 
         private final TypeClassDescriptor         typeClass;
@@ -390,31 +397,11 @@ public class TypeChecker implements TypeScope {
         private final Set<TypeInstanceDescriptor> typeInstances;
         private final SourceRange                 location;
 
-        public AmbiguousTypeInstanceError(TypeClassDescriptor typeClass, List<Type> parameters, Set<TypeInstanceDescriptor> typeInstances, SourceRange location) {
+        private AmbiguousTypeInstanceError(TypeClassDescriptor typeClass, List<Type> parameters, Set<TypeInstanceDescriptor> typeInstances, SourceRange location) {
             this.typeClass = typeClass;
             this.parameters = parameters;
             this.typeInstances = typeInstances;
             this.location = location;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            } else if (o instanceof AmbiguousTypeInstanceError) {
-                AmbiguousTypeInstanceError other = (AmbiguousTypeInstanceError) o;
-                return Objects.equals(typeClass, other.typeClass)
-                    && Objects.equals(parameters, other.parameters)
-                    && Objects.equals(typeInstances, other.typeInstances)
-                    && Objects.equals(location, other.location);
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(typeClass, parameters, typeInstances);
         }
 
         @Override
@@ -424,13 +411,10 @@ public class TypeChecker implements TypeScope {
                 + " instances found in modules [" + typeInstances.stream().map(TypeInstanceDescriptor::getModuleName).collect(joining(", ")) + "]"
                 + " " + location.prettyPrint();
         }
-
-        @Override
-        public String toString() {
-            return stringify(this) + "(typeClass=" + typeClass + ", instances=" + typeInstances + ")";
-        }
     }
 
+    @EqualsAndHashCode
+    @ToString
     public static class TypeInstanceNotFoundError extends SyntaxError {
 
         private final TypeClassDescriptor typeClass;
@@ -444,34 +428,10 @@ public class TypeChecker implements TypeScope {
         }
 
         @Override
-        public boolean equals(Object o) {
-            if (o == this) {
-                return true;
-            } else if (o instanceof TypeInstanceNotFoundError) {
-                TypeInstanceNotFoundError other = (TypeInstanceNotFoundError) o;
-                return Objects.equals(typeClass, other.typeClass)
-                    && Objects.equals(parameters, other.parameters)
-                    && Objects.equals(location, other.location);
-            } else {
-                return false;
-            }
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(typeClass, parameters);
-        }
-
-        @Override
         public String prettyPrint() {
             return "Instance of type class " + quote(typeClass.getSymbol().getCanonicalName())
                 + " not found for parameters [" + parameters.stream().map(Type::toString).collect(joining(", ")) + "]"
                 + " " + location.prettyPrint();
-        }
-
-        @Override
-        public String toString() {
-            return stringify(this) + "(" + typeClass + ", parameters=" + parameters + ")";
         }
     }
 }

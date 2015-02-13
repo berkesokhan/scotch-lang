@@ -84,7 +84,7 @@ public class Values {
         return new StringLiteral(sourceRange, value);
     }
 
-    public static Method method(SourceRange sourceRange, ValueReference valueRef, List<? extends Type> instances, Type type) {
+    public static Value method(SourceRange sourceRange, ValueReference valueRef, List<? extends Type> instances, Type type) {
         return new Method(sourceRange, valueRef, instances, type);
     }
 

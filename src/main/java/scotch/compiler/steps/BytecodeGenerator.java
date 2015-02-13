@@ -1,11 +1,11 @@
 package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.sort;
 import static java.util.stream.Collectors.toList;
 import static me.qmx.jitescript.JDKVersion.V1_8;
 import static me.qmx.jitescript.util.CodegenUtils.c;
 import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
+import static scotch.compiler.util.Pair.pair;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -19,11 +19,12 @@ import me.qmx.jitescript.JiteClass;
 import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.error.CompileException;
 import scotch.compiler.output.GeneratedClass;
+import scotch.compiler.output.GeneratedClass.ClassType;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.type.FunctionType;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
+import scotch.compiler.symbol.type.FunctionType;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
@@ -32,20 +33,21 @@ import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.reference.ModuleReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
+import scotch.compiler.util.Pair;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 
 public class BytecodeGenerator {
 
-    private final DefinitionGraph      graph;
-    private final Deque<JiteClass>     jiteClasses;
-    private final List<GeneratedClass> generatedClasses;
-    private final Deque<Scope>         scopes;
-    private final Deque<List<String>>  arguments;
-    private final Deque<List<String>>  matches;
-    private final Deque<CaseEntry>     cases;
-    private       int                  lambdas;
-    private       int                  applies;
+    private final DefinitionGraph                   graph;
+    private final Deque<Pair<JiteClass, ClassType>> jiteClasses;
+    private final List<GeneratedClass>              generatedClasses;
+    private final Deque<Scope>                      scopes;
+    private final Deque<List<String>>               arguments;
+    private final Deque<List<String>>               matches;
+    private final Deque<CaseEntry>                  cases;
+    private       int                               lambdas;
+    private       int                               applies;
 
     public BytecodeGenerator(DefinitionGraph graph) {
         this.graph = graph;
@@ -69,13 +71,13 @@ public class BytecodeGenerator {
         cases.push(new CaseEntry(size));
     }
 
-    public void beginClass(String className, SourceRange sourceRange) {
-        jiteClasses.push(new JiteClass(className));
+    public void beginClass(ClassType classType, String className, SourceRange sourceRange) {
+        jiteClasses.push(pair(new JiteClass(className), classType));
         currentClass().setSourceFile(sourceRange.getSourceName());
     }
 
-    public void beginClass(String className, String superClass, SourceRange sourceRange) {
-        jiteClasses.push(new JiteClass(className, superClass, new String[0]));
+    public void beginClass(ClassType classType, String className, String superClass, SourceRange sourceRange) {
+        jiteClasses.push(pair(new JiteClass(className, superClass, new String[0]), classType));
         currentClass().setSourceFile(sourceRange.getSourceName());
     }
 
@@ -106,7 +108,7 @@ public class BytecodeGenerator {
     }
 
     public JiteClass currentClass() {
-        return jiteClasses.peek();
+        return jiteClasses.peek().getLeft();
     }
 
     public void defineDefaultConstructor(int access) {
@@ -133,8 +135,8 @@ public class BytecodeGenerator {
     }
 
     public void endClass() {
-        JiteClass jiteClass = jiteClasses.pop();
-        generatedClasses.add(new GeneratedClass(c(jiteClass.getClassName()), jiteClass.toBytes(V1_8)));
+        jiteClasses.pop().into((jiteClass, type) ->
+            generatedClasses.add(new GeneratedClass(type, c(jiteClass.getClassName()), jiteClass.toBytes(V1_8))));
     }
 
     public void endMatches() {
@@ -188,23 +190,9 @@ public class BytecodeGenerator {
     }
 
     public List<GeneratedClass> getClasses() {
-        sort(generatedClasses, (left, right) -> {
-            // TODO should sort classes by dependency order, not naming BS
-            boolean leftDollar = left.getClassName().contains("$");
-            boolean leftModule = left.getClassName().endsWith("/ScotchModule");
-            boolean rightDollar = right.getClassName().contains("$");
-            boolean rightModule = right.getClassName().endsWith("/ScotchModule");
-            if (leftDollar && rightDollar || leftModule && rightModule) {
-                return left.getClassName().compareTo(right.getClassName());
-            } else if (leftDollar && rightModule) {
-                return 1;
-            } else if (leftModule && rightDollar) {
-                return -1;
-            } else {
-                return left.getClassName().compareTo(right.getClassName());
-            }
-        });
-        return ImmutableList.copyOf(generatedClasses);
+        return generatedClasses.stream()
+            .sorted()
+            .collect(toList());
     }
 
     public Class<?>[] getLambdaCaptureTypes() {
@@ -327,7 +315,7 @@ public class BytecodeGenerator {
     private static class CaseEntry {
 
         private final List<LabelNode> labels;
-        private int position;
+        private       int             position;
 
         public CaseEntry(int size) {
             labels = new ArrayList<>();

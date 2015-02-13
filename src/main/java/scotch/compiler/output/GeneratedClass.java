@@ -1,20 +1,32 @@
 package scotch.compiler.output;
 
-public class GeneratedClass {
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NonNull;
 
-    private final String className;
-    private final byte[] bytes;
+@AllArgsConstructor
+public class GeneratedClass implements Comparable<GeneratedClass> {
 
-    public GeneratedClass(String className, byte[] bytes) {
-        this.className = className;
-        this.bytes = bytes;
+    @NonNull
+    private final ClassType type;
+    @NonNull @Getter
+    private final String    className;
+    @NonNull @Getter
+    private final byte[]    bytes;
+
+    @Override
+    public int compareTo(GeneratedClass o) {
+        int typeCompare = type.compareTo(o.type);
+        if (typeCompare == 0) {
+            return className.compareTo(o.className);
+        } else {
+            return typeCompare;
+        }
     }
 
-    public byte[] getBytes() {
-        return bytes;
-    }
-
-    public String getClassName() {
-        return className;
+    public enum ClassType {
+        DATA_TYPE,
+        DATA_CONSTRUCTOR,
+        MODULE,
     }
 }

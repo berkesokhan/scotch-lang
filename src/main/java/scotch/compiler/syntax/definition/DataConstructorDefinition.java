@@ -7,6 +7,7 @@ import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static org.apache.commons.lang.StringUtils.capitalize;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
+import static scotch.compiler.output.GeneratedClass.ClassType.DATA_CONSTRUCTOR;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.ArrayList;
@@ -68,7 +69,7 @@ public class DataConstructorDefinition {
 
     public void generateBytecode(BytecodeGenerator state) {
         JiteClass parentClass = state.currentClass();
-        state.beginClass(state.getDataConstructorClass(symbol), parentClass.getClassName(), sourceRange);
+        state.beginClass(DATA_CONSTRUCTOR, state.getDataConstructorClass(symbol), parentClass.getClassName(), sourceRange);
         parentClass.addChildClass(state.currentClass());
         generateFields(state);
         generateConstructor(state, parentClass);

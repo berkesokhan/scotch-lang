@@ -60,7 +60,6 @@ import scotch.compiler.syntax.value.InitializerField;
 import scotch.compiler.syntax.value.Instance;
 import scotch.compiler.syntax.value.IntLiteral;
 import scotch.compiler.syntax.value.Let;
-import scotch.compiler.syntax.value.Method;
 import scotch.compiler.syntax.value.PatternMatch;
 import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.PatternMatchers;
@@ -243,7 +242,7 @@ public class TestUtil {
         return Values.literal(NULL_SOURCE, value);
     }
 
-    public static Method method(String name, List<Type> instances, Type type) {
+    public static Value method(String name, List<Type> instances, Type type) {
         return Values.method(NULL_SOURCE, valueRef(name), instances, type);
     }
 

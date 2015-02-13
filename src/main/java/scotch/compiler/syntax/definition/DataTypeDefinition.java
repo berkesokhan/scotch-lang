@@ -2,6 +2,7 @@ package scotch.compiler.syntax.definition;
 
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.output.GeneratedClass.ClassType.DATA_TYPE;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.dataRef;
 
@@ -98,7 +99,7 @@ public class DataTypeDefinition extends Definition {
 
     @Override
     public void generateBytecode(BytecodeGenerator state) {
-        state.beginClass(symbol.getClassName(), sourceRange);
+        state.beginClass(DATA_TYPE, symbol.getClassName(), sourceRange);
         state.currentClass().defineDefaultConstructor();
         constructors.values().forEach(constructor -> constructor.generateBytecode(state));
         state.endClass();

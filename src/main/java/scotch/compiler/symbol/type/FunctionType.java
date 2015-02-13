@@ -199,7 +199,7 @@ public class FunctionType extends Type {
 
     @Override
     protected Unification unifyWith(VariableSum target, TypeScope scope) {
-        throw new UnsupportedOperationException(); // TODO
+        return mismatch(target, this);
     }
 
     @Override

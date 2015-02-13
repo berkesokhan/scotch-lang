@@ -43,5 +43,7 @@ public abstract class SyntaxError {
     public abstract String prettyPrint();
 
     @Override
-    public abstract String toString();
+    public String toString() {
+        return prettyPrint();
+    }
 }

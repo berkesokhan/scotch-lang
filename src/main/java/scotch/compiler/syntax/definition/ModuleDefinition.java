@@ -1,6 +1,7 @@
 package scotch.compiler.syntax.definition;
 
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
+import static scotch.compiler.output.GeneratedClass.ClassType.MODULE;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
 import static scotch.util.StringUtil.stringify;
@@ -82,7 +83,7 @@ public class ModuleDefinition extends Definition {
     @Override
     public void generateBytecode(BytecodeGenerator state) {
         state.scoped(this, () -> {
-            state.beginClass(Symbol.moduleClass(symbol), sourceRange);
+            state.beginClass(MODULE, Symbol.moduleClass(symbol), sourceRange);
             state.defineDefaultConstructor(ACC_PRIVATE);
             state.generateBytecode(definitions);
             state.endClass();
