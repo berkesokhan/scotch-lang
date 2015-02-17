@@ -11,7 +11,6 @@ import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.symbol.type.Types.var;
-import static scotch.compiler.symbol.type.Types.varSum;
 import static scotch.compiler.util.Pair.pair;
 import static scotch.compiler.util.TestUtil.intType;
 import static scotch.compiler.util.TestUtil.typeInstance;
@@ -38,7 +37,7 @@ public class StubResolver implements SymbolResolver {
     public static ImmutableEntry defaultBind() {
         Symbol symbol = symbol("scotch.control.monad.(>>=)");
         return immutableEntry(symbol)
-            .withValueType(fn(varSum("m", var("a")), fn(fn(var("a"), varSum("m", var("b"))), varSum("m", var("b")))))
+            //.withValueType(fn(varSum("m", var("a")), fn(fn(var("a"), varSum("m", var("b"))), varSum("m", var("b")))))
             .withMemberOf(symbol("scotch.control.monad.Monad"))
             .withOperator(operator(LEFT_INFIX, 1))
             .build();

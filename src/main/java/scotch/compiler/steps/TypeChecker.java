@@ -3,13 +3,7 @@ package scotch.compiler.steps;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
-import static scotch.compiler.symbol.type.Types.instance;
 import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
-import static scotch.compiler.syntax.reference.DefinitionReference.classRef;
-import static scotch.compiler.syntax.reference.DefinitionReference.instanceRef;
-import static scotch.compiler.syntax.value.Values.arg;
-import static scotch.compiler.syntax.value.Values.instance;
-import static scotch.compiler.util.Pair.pair;
 import static scotch.util.StringUtil.quote;
 
 import java.util.ArrayDeque;
@@ -20,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
@@ -28,13 +21,12 @@ import com.google.common.collect.ImmutableMap;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.symbol.Unification;
-import scotch.compiler.symbol.type.InstanceType;
+import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.syntax.Scoped;
@@ -47,11 +39,7 @@ import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
-import scotch.compiler.syntax.value.FunctionValue;
-import scotch.compiler.syntax.value.InstanceMap;
-import scotch.compiler.syntax.value.Method;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.syntax.value.Values;
 import scotch.compiler.text.SourceRange;
 
 public class TypeChecker implements TypeScope {
@@ -121,39 +109,6 @@ public class TypeChecker implements TypeScope {
         errors.add(error);
     }
 
-    public Optional<Value> findArgument(InstanceType type) {
-        for (Map<Type, Argument> map : arguments) {
-            if (map.containsKey(type)) {
-                return Optional.of(map.get(type));
-            }
-        }
-        return Optional.empty();
-    }
-
-    public Value findInstance(Method method, InstanceType instanceType) {
-        Set<TypeInstanceDescriptor> typeInstances = scope().getTypeInstances(
-            instanceType.getSymbol(),
-            asList(instanceType.getBinding())
-        );
-        if (typeInstances.isEmpty()) {
-            errors.add(typeInstanceNotFound(
-                scope().getTypeClass(classRef(instanceType.getSymbol())),
-                asList(instanceType.getBinding()),
-                method.getSourceRange()
-            ));
-        } else if (typeInstances.size() > 1) {
-            errors.add(ambiguousTypeInstance(
-                scope().getTypeClass(classRef(instanceType.getSymbol())),
-                asList(instanceType.getBinding()),
-                typeInstances,
-                method.getSourceRange()
-            ));
-        } else {
-            return instance(method.getSourceRange(), instanceRef(typeInstances.iterator().next()), instanceType);
-        }
-        return method;
-    }
-
     @Override
     public Unification bind(VariableType variableType, Type targetType) {
         return scope().bind(variableType, targetType);
@@ -179,11 +134,6 @@ public class TypeChecker implements TypeScope {
         return scope().getContext(type);
     }
 
-    @Override
-    public DataTypeDescriptor getDataType(Symbol symbol) {
-        return null;
-    }
-
     public Type getRawValue(ValueReference valueRef) {
         return scope().getRawValue(valueRef);
     }
@@ -191,6 +141,11 @@ public class TypeChecker implements TypeScope {
     @Override
     public Type getTarget(Type type) {
         return scope().getTarget(type);
+    }
+
+    @Override
+    public void implement(Symbol typeClass, SumType type) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override
@@ -260,67 +215,7 @@ public class TypeChecker implements TypeScope {
     }
 
     private Definition bindMethods(ValueDefinition definition) {
-        InstanceMap instances = buildInstanceMap(definition);
-        return scoped(definition, () -> {
-            if (instances.isEmpty()) {
-                return definition.withBody(definition.getBody().bindMethods(this));
-            } else {
-                List<Argument> instanceArguments = getAdditionalArguments(definition, instances);
-                arguments.push(instanceArguments.stream()
-                    .map(argument -> pair(argument.getType(), argument))
-                    .reduce(new HashMap<>(), (map, pair) -> pair.into((type, argument) -> {
-                        map.put(type, argument);
-                        return map;
-                    }), (left, right) -> {
-                        left.putAll(right);
-                        return left;
-                    }));
-                try {
-                    return definition.withBody(definition.getBody().asFunction()
-                        .map(function -> {
-                            Scope scope = graph.getScope(function.getReference());
-                            List<String> locals = new ArrayList<>();
-                            instanceArguments.forEach(argument -> {
-                                scope.defineValue(argument.getSymbol(), argument.getType());
-                                locals.add(argument.getName());
-                            });
-                            scope.prependLocals(locals);
-                            return function.withArguments(ImmutableList.<Argument>builder()
-                                .addAll(instanceArguments)
-                                .addAll(function.getArguments())
-                                .build());
-                        })
-                        .orElseGet(value -> {
-                            Symbol functionSymbol = scope().reserveSymbol();
-                            Scope functionScope = scope().enterScope();
-                            scope().insertChild(functionScope);
-                            FunctionValue function = FunctionValue.builder()
-                                .withSourceRange(value.getSourceRange())
-                                .withSymbol(functionSymbol)
-                                .withArguments(instanceArguments)
-                                .withBody(value)
-                                .build();
-                            entries.put(function.getReference(), Values.entry(functionScope, function));
-                            instanceArguments.forEach(argument -> {
-                                functionScope.defineValue(argument.getSymbol(), argument.getType());
-                                functionScope.addLocal(argument.getName());
-                            });
-                            return function;
-                        })
-                        .bindMethods(this));
-                } finally {
-                    arguments.pop();
-                }
-            }
-        });
-    }
-
-    private InstanceMap buildInstanceMap(ValueDefinition definition) {
-        InstanceMap.Builder builder = InstanceMap.builder();
-        definition.getType().getInstanceMap().stream()
-            .map(pair -> pair.into((type, className) -> pair(type, classRef(className))))
-            .forEach(pair -> pair.into(builder::addInstance));
-        return builder.build();
+        throw new UnsupportedOperationException(); // TODO
     }
 
     private Scope closure() {
@@ -340,18 +235,6 @@ public class TypeChecker implements TypeScope {
                 .map(DefinitionEntry::getScope)
                 .orElseThrow(() -> new IllegalArgumentException("No scope found for reference " + scoped.getReference())));
         scopes.push(scope);
-    }
-
-    private List<Argument> getAdditionalArguments(ValueDefinition definition, InstanceMap instances) {
-        AtomicInteger counter = new AtomicInteger();
-        return instances.stream()
-            .flatMap(pair -> pair.into((type, classRefs) -> classRefs.stream()
-                .map(classRef -> arg(
-                    definition.getSourceRange().getStartRange(),
-                    "#" + counter.getAndIncrement() + "i",
-                    instance(classRef.getSymbol(), type.simplify())
-                ))))
-            .collect(toList());
     }
 
     private boolean isNested() {

@@ -1,6 +1,5 @@
 package scotch.compiler.symbol;
 
-import java.util.List;
 import java.util.Set;
 import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
@@ -18,17 +17,17 @@ public interface TypeScope {
 
     Set<Symbol> getContext(Type type);
 
-    default List<Type> getDataParameters(SumType sum) {
-        return getDataType(sum.getSymbol()).getParameters();
-    }
-
-    DataTypeDescriptor getDataType(Symbol symbol);
-
     Type getTarget(Type type);
+
+    void implement(Symbol typeClass, SumType type);
 
     boolean isBound(VariableType variableType);
 
     boolean isGeneric(VariableType variableType);
+
+    default boolean isImplemented(Symbol typeClass, SumType type) {
+        throw new UnsupportedOperationException(); // TODO
+    }
 
     VariableType reserveType();
 

@@ -4,7 +4,6 @@ import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.symbol.type.Types.var;
-import static scotch.compiler.symbol.type.Types.varSum;
 import static scotch.runtime.RuntimeUtil.applicable;
 import static scotch.runtime.RuntimeUtil.flatCallable;
 
@@ -34,11 +33,7 @@ public interface Monad<Ma> {
 
     @ValueType(forMember = ">>=")
     public static Type bind$type() {
-        return fn(
-            varSum("m", var("a")),
-            fn(
-                fn(var("a"), varSum("m", var("b"))),
-                varSum("m", var("b"))));
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Value(memberName = "fail")
@@ -51,7 +46,7 @@ public interface Monad<Ma> {
 
     @ValueType(forMember = "fail")
     public static Type fail$type() {
-        return fn(sum("scotch.data.string.String"), varSum("m", var("a")));
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Value(memberName = "then", fixity = LEFT_INFIX, precedence = 1)
@@ -64,7 +59,7 @@ public interface Monad<Ma> {
 
     @ValueType(forMember = "then")
     public static Type then$type() {
-        return fn(varSum("m", var("a")), varSum("m", var("b")));
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Value(memberName = "return")
@@ -77,7 +72,7 @@ public interface Monad<Ma> {
 
     @ValueType(forMember = "return")
     public static Type wrap$type() {
-        return fn(var("a"), varSum("m", var("a")));
+        throw new UnsupportedOperationException(); // TODO
     }
 
     <A, Mb> Callable<Mb> bind(Callable<Ma> ma, Applicable<A, Mb> function);

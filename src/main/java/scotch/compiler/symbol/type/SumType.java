@@ -13,12 +13,11 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import lombok.EqualsAndHashCode;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeScope;
@@ -27,6 +26,7 @@ import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Pair;
 import scotch.runtime.Callable;
 
+@EqualsAndHashCode
 public class SumType extends Type {
 
     private static List<Pair<Type, Type>> zip(List<Type> left, List<Type> right) {
@@ -51,29 +51,15 @@ public class SumType extends Type {
     }
 
     @Override
-    public Unification apply(SumType sum, TypeScope scope) {
-        List<Type> unifiedParameters = new ArrayList<>();
-        for (Type parameter : parameters) {
-            Unification result = parameter.apply(sum, scope);
-            result.ifUnified(unifiedParameters::add);
-            if (!result.isUnified()) {
-                return result;
-            }
-        }
-        return rebind(scope).map(type -> unified(((SumType) type).withParameters(unifiedParameters)));
+    public HeadApplication apply(Type head, TypeScope scope) {
+        return head.applyWith(this, scope);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof SumType) {
-            SumType other = (SumType) o;
-            return Objects.equals(symbol, other.symbol)
-                && Objects.equals(parameters, other.parameters);
-        } else {
-            return false;
-        }
+    public Type flatten() {
+        return new SumType(sourceRange, symbol, parameters.stream()
+            .map(Type::flatten)
+            .collect(toList()));
     }
 
     @Override
@@ -110,11 +96,6 @@ public class SumType extends Type {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(symbol);
-    }
-
-    @Override
     public Type qualifyNames(NameQualifier qualifier) {
         return withSymbol(qualifier.qualify(symbol)
             .orElseGet(() -> {
@@ -124,38 +105,6 @@ public class SumType extends Type {
             .withParameters(parameters.stream()
                 .map(argument -> argument.qualifyNames(qualifier))
                 .collect(toList()));
-    }
-
-    public Unification rebind(TypeScope scope) {
-        List<Type> resultParams = new ArrayList<>();
-        for (Type parameter : parameters) {
-            Unification result = parameter.rebind(scope);
-            result.ifUnified(resultParams::add);
-            if (!result.isUnified()) {
-                return result;
-            }
-        }
-        return unified(withParameters(resultParams));
-    }
-
-    @Override
-    public String toString() {
-        return toString_();
-    }
-
-    @Override
-    protected Optional<List<Pair<Type, Type>>> zip_(Type other) {
-        return other.zipWith(this);
-    }
-
-    @Override
-    protected Optional<List<Pair<Type, Type>>> zipWith(SumType target) {
-        if (equals(target)) {
-            return Optional.of(ImmutableList.of(pair(target, this)));
-        } else {
-            return Optional.empty();
-        }
-
     }
 
     public SumType withParameters(List<Type> arguments) {
@@ -184,6 +133,19 @@ public class SumType extends Type {
     }
 
     @Override
+    protected Type flatten(List<Type> types) {
+        return withParameters(new ArrayList<Type>() {{
+            addAll(parameters);
+            addAll(types);
+        }});
+    }
+
+    @Override
+    protected List<Type> flatten_() {
+        return ImmutableList.of(flatten());
+    }
+
+    @Override
     protected Set<Pair<VariableType, Symbol>> gatherContext_() {
         return ImmutableSet.of();
     }
@@ -192,7 +154,7 @@ public class SumType extends Type {
     protected Type generate(TypeScope scope, Set<Type> visited) {
         return withParameters(parameters.stream()
             .map(parameter -> parameter.generate(scope, visited))
-            .collect(toList()));
+            .collect(toList())).flatten();
     }
 
     @Override
@@ -222,6 +184,11 @@ public class SumType extends Type {
     }
 
     @Override
+    protected Unification unifyWith(ConstructorType target, TypeScope scope) {
+        return target.apply(this, scope);
+    }
+
+    @Override
     protected Unification unifyWith(SumType target, TypeScope scope) {
         if (symbol.equals(target.symbol)) {
             if (parameters.size() == target.parameters.size()) {
@@ -239,11 +206,6 @@ public class SumType extends Type {
         } else {
             return mismatch(target, this);
         }
-    }
-
-    @Override
-    protected Unification unifyWith(VariableSum target, TypeScope scope) {
-        return target.apply(this, scope);
     }
 
     @Override

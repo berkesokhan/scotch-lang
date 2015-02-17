@@ -22,6 +22,7 @@ import scotch.compiler.symbol.Symbol.QualifiedSymbol;
 import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
 import scotch.compiler.symbol.SymbolEntry;
+import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.symbol.TypeClassDescriptor;
@@ -197,6 +198,11 @@ public class ChildScope extends Scope {
     @Override
     public Type getTarget(Type type) {
         return types.getTarget(type);
+    }
+
+    @Override
+    public void implement(Symbol typeClass, SumType type) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override

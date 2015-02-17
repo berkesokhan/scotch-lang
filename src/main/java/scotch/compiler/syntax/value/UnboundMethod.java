@@ -1,16 +1,8 @@
 package scotch.compiler.syntax.value;
 
-import static java.util.stream.Collectors.toList;
-import static scotch.compiler.symbol.type.Types.fn;
-import static scotch.compiler.symbol.type.Types.instance;
-import static scotch.compiler.syntax.value.NoBindingError.noBinding;
-import static scotch.compiler.syntax.value.Values.method;
 import static scotch.compiler.syntax.value.Values.unboundMethod;
 import static scotch.util.StringUtil.stringify;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
@@ -21,7 +13,6 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.InstanceType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.text.SourceRange;
@@ -127,28 +118,6 @@ public class UnboundMethod extends Value {
     }
 
     private Value bind(TypeChecker state) {
-        List<InstanceType> instances = listInstanceTypes(state.getRawValue(valueRef));
-        return state.getRawValue(valueRef)
-            .zip(type, state)
-            .map(map -> instances.stream()
-                .map(instance -> instance.withBinding(map.get(instance.getBinding())))
-                .collect(toList()))
-            .map(instanceTypes -> method(sourceRange, valueRef, instances, state.generate(getMethodType(instanceTypes))))
-            .orElseGet(() -> {
-                state.error(noBinding(getSymbol(), sourceRange));
-                return this;
-            });
-    }
-
-    private Type getMethodType(List<InstanceType> instances) {
-        List<Type> reversedInstances = new ArrayList<>(instances);
-        Collections.reverse(reversedInstances);
-        return reversedInstances.stream().reduce(type, (left, right) -> fn(right, left));
-    }
-
-    private List<InstanceType> listInstanceTypes(Type valueType) {
-        return valueType.getContexts().stream()
-            .map(pair -> pair.into((type, symbol) -> instance(symbol, type.simplify())))
-            .collect(toList());
+        throw new UnsupportedOperationException(); // TODO
     }
 }

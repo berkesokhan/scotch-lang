@@ -18,16 +18,12 @@ import scotch.compiler.util.Pair;
 
 public class Types {
 
+    public static ConstructorType ctor(Type head, Type tail) {
+        return new ConstructorType(head, tail);
+    }
+
     public static FunctionType fn(Type argument, Type result) {
         return new FunctionType(NULL_SOURCE, argument, result);
-    }
-
-    public static InstanceType instance(Symbol symbol, Type binding) {
-        return new InstanceType(symbol, binding);
-    }
-
-    public static InstanceType instance(String name, Type binding) {
-        return instance(symbol(name), binding);
     }
 
     public static SumType sum(String name) {
@@ -64,14 +60,6 @@ public class Types {
 
     public static VariableType var(String name, Collection<?> context) {
         return new VariableType(NULL_SOURCE, name, toSymbols(context));
-    }
-
-    public static VariableSum varSum(String name, Type... parameters) {
-        return varSum(name, asList(parameters));
-    }
-
-    private static VariableSum varSum(String name, List<Type> parameters) {
-        return new VariableSum(var(name), parameters);
     }
 
     protected static int sort(Pair<VariableType, Symbol> left, Pair<VariableType, Symbol> right) {

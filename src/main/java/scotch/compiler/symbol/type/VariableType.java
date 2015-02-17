@@ -6,7 +6,9 @@ import static java.util.stream.Collectors.toSet;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.symbol.Unification.circular;
-import static scotch.compiler.symbol.Unification.unified;
+import static scotch.compiler.symbol.Unification.mismatch;
+import static scotch.compiler.symbol.type.HeadApplication.left;
+import static scotch.compiler.symbol.type.HeadApplication.right;
 import static scotch.compiler.symbol.type.Types.var;
 import static scotch.compiler.util.Pair.pair;
 
@@ -17,8 +19,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import scotch.compiler.steps.NameQualifier;
@@ -45,8 +47,18 @@ public class VariableType extends Type {
     }
 
     @Override
-    public Unification apply(SumType sum, TypeScope scope) {
-        return unified(this);
+    public HeadApplication applyWith(SumType type, TypeScope scope) {
+        if (context.size() != 1) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+        Symbol typeClass = context.iterator().next();
+        for (int i = 0; i <= type.getParameters().size(); i++) {
+            List<Type> parameters = type.getParameters().subList(0, i);
+            if (scope.isImplemented(typeClass, type.withParameters(parameters))) {
+                return right(type.withParameters(parameters), type.getParameters().subList(i, type.getParameters().size()));
+            }
+        }
+        return left(mismatch(this, type));
     }
 
     @Override
@@ -122,27 +134,12 @@ public class VariableType extends Type {
     }
 
     @Override
-    public Unification rebind(TypeScope scope) {
-        return scope.bind(scope.reserveType(), this);
-    }
-
-    @Override
     public VariableType simplify() {
         if (context.isEmpty()) {
             return this;
         } else {
             return var(name);
         }
-    }
-
-    @Override
-    public String toString() {
-        return gatherContext() + toString_();
-    }
-
-    @Override
-    protected Optional<List<Pair<Type, Type>>> zip_(Type other) {
-        return other.zipWith(this);
     }
 
     public VariableType withContext(Collection<Symbol> context) {
@@ -172,6 +169,11 @@ public class VariableType extends Type {
     @Override
     protected boolean contains(VariableType type) {
         return equals(type);
+    }
+
+    @Override
+    protected List<Type> flatten_() {
+        return ImmutableList.of(this);
     }
 
     @Override
@@ -222,12 +224,12 @@ public class VariableType extends Type {
     }
 
     @Override
-    protected Unification unifyWith(SumType target, TypeScope scope) {
+    protected Unification unifyWith(ConstructorType target, TypeScope scope) {
         return unifyWith_(target, scope);
     }
 
     @Override
-    protected Unification unifyWith(VariableSum target, TypeScope scope) {
+    protected Unification unifyWith(SumType target, TypeScope scope) {
         return unifyWith_(target, scope);
     }
 

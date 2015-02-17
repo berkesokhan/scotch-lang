@@ -1,5 +1,6 @@
 package scotch.compiler.syntax.definition;
 
+import static lombok.AccessLevel.PACKAGE;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static org.objectweb.asm.Opcodes.ACC_STATIC;
@@ -7,10 +8,11 @@ import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.valueRef;
 import static scotch.compiler.util.Either.right;
-import static scotch.util.StringUtil.stringify;
 
-import java.util.Objects;
 import java.util.Optional;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
@@ -21,15 +23,15 @@ import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.Unification;
-import scotch.compiler.symbol.Unification.UnificationVisitor;
-import scotch.compiler.symbol.Unification.Unified;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Either;
 
+@AllArgsConstructor(access = PACKAGE)
+@EqualsAndHashCode
+@ToString
 public class ValueDefinition extends Definition {
 
     public static Builder builder() {
@@ -40,13 +42,6 @@ public class ValueDefinition extends Definition {
     private final Symbol      symbol;
     private final Value       body;
     private final Type        type;
-
-    ValueDefinition(SourceRange sourceRange, Symbol symbol, Value body, Type type) {
-        this.sourceRange = sourceRange;
-        this.symbol = symbol;
-        this.body = body;
-        this.type = type;
-    }
 
     @Override
     public Definition accumulateDependencies(DependencyAccumulator state) {
@@ -85,43 +80,23 @@ public class ValueDefinition extends Definition {
     @Override
     public Definition checkTypes(TypeChecker state) {
         return state.enclose(this, () -> {
-            Value body = this.body.checkTypes(state);
-            Type type = state.getType(this);
-            return type.unify(body.getType(), state.scope()).accept(new UnificationVisitor<Definition>() {
-                @Override
-                public Definition visit(Unified unified) {
-                    Type unifiedType = state.scope().generate(unified.getUnifiedType());
-                    ValueDefinition result = withBody(body).withType(unifiedType);
-                    state.redefine(result);
-                    return state.bind(result);
-                }
-
-                @Override
-                public Definition visitOtherwise(Unification unification) {
+            Value checkedBody = body.checkTypes(state);
+            Type type = state.getType(this)
+                .unify(checkedBody.getType(), state.scope())
+                .orElseGet(unification -> {
                     state.error(typeError(unification, sourceRange));
-                    return withBody(body).withType(type);
-                }
-            });
+                    return checkedBody.getType();
+                });
+            Type generatedType = state.scope().generate(type);
+            ValueDefinition result = withBody(checkedBody).withType(generatedType);
+            state.redefine(result);
+            return state.bind(result);
         });
     }
 
     @Override
     public Definition defineOperators(OperatorAccumulator state) {
         return state.scoped(this, () -> withBody(body.defineOperators(state)));
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof ValueDefinition) {
-            ValueDefinition other = (ValueDefinition) o;
-            return Objects.equals(symbol, other.symbol)
-                && Objects.equals(body, other.body)
-                && Objects.equals(type, other.type);
-        } else {
-            return false;
-        }
     }
 
     @Override
@@ -164,11 +139,6 @@ public class ValueDefinition extends Definition {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(symbol, body, type);
-    }
-
-    @Override
     public Optional<Definition> parsePrecedence(PrecedenceParser state) {
         return Optional.of(state.named(symbol, () -> state.scoped(this, () -> withBody(body.parsePrecedence(state).unwrap()))));
     }
@@ -176,11 +146,6 @@ public class ValueDefinition extends Definition {
     @Override
     public Definition qualifyNames(NameQualifier state) {
         return state.named(symbol, () -> state.scoped(this, () -> withBody(body.qualifyNames(state))));
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this) + "(" + symbol + " :: " + type + ")";
     }
 
     public ValueDefinition withBody(Value body) {

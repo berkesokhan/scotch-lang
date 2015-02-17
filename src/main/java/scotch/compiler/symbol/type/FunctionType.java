@@ -13,9 +13,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.symbol.Symbol;
@@ -38,11 +38,6 @@ public class FunctionType extends Type {
     }
 
     @Override
-    public Unification apply(SumType sum, TypeScope scope) {
-        return rebind(scope).map(type -> ((FunctionType) type).apply_(sum, scope));
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (o == this) {
             return true;
@@ -52,6 +47,11 @@ public class FunctionType extends Type {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public Type flatten() {
+        return new FunctionType(sourceRange, argument.flatten(), result.flatten());
     }
 
     public Type getArgument() {
@@ -105,33 +105,6 @@ public class FunctionType extends Type {
         return withArgument(argument.qualifyNames(qualifier)).withResult(result.qualifyNames(qualifier));
     }
 
-    @Override
-    public Unification rebind(TypeScope scope) {
-        return argument.rebind(scope).map(
-            argResult -> result.rebind(scope).map(
-                resultResult -> unified(withArgument(argResult).withResult(resultResult))));
-    }
-
-    @Override
-    public String toString() {
-        return gatherContext() + toString_();
-    }
-
-    @Override
-    protected Optional<List<Pair<Type, Type>>> zip_(Type other) {
-        return other.zipWith(this);
-    }
-
-    @Override
-    protected Optional<List<Pair<Type, Type>>> zipWith(FunctionType target) {
-        return target.argument.zip_(argument).flatMap(
-            argumentList -> target.result.zip_(result).map(
-                resultList -> new ArrayList<Pair<Type, Type>>() {{
-                    addAll(argumentList);
-                    addAll(resultList);
-                }}));
-    }
-
     public FunctionType withArgument(Type argument) {
         return new FunctionType(sourceRange, argument, result);
     }
@@ -144,15 +117,14 @@ public class FunctionType extends Type {
         return new FunctionType(sourceRange, argument, result);
     }
 
-    private Unification apply_(SumType sum, TypeScope scope) {
-        return argument.apply(sum, scope)
-            .map(argResult -> result.apply(sum, scope)
-                .map(resultResult -> unified(withArgument(argResult).withResult(resultResult))));
-    }
-
     @Override
     protected boolean contains(VariableType type) {
         return argument.contains(type) || result.contains(type);
+    }
+
+    @Override
+    protected List<Type> flatten_() {
+        return ImmutableList.of(flatten());
     }
 
     @Override
@@ -165,7 +137,7 @@ public class FunctionType extends Type {
 
     @Override
     protected Type generate(TypeScope scope, Set<Type> visited) {
-        return new FunctionType(sourceRange, argument.generate(scope), result.generate(scope));
+        return new FunctionType(sourceRange, argument.generate(scope), result.generate(scope)).flatten();
     }
 
     @Override
@@ -193,12 +165,12 @@ public class FunctionType extends Type {
     }
 
     @Override
-    protected Unification unifyWith(SumType target, TypeScope scope) {
+    protected Unification unifyWith(ConstructorType target, TypeScope scope) {
         return mismatch(target, this);
     }
 
     @Override
-    protected Unification unifyWith(VariableSum target, TypeScope scope) {
+    protected Unification unifyWith(SumType target, TypeScope scope) {
         return mismatch(target, this);
     }
 

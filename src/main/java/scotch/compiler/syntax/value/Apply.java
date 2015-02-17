@@ -18,8 +18,6 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Unification;
-import scotch.compiler.symbol.Unification.UnificationVisitor;
-import scotch.compiler.symbol.Unification.Unified;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Applicable;
@@ -62,22 +60,17 @@ public class Apply extends Value {
         Value function = this.function.checkTypes(state);
         Value argument = this.argument.checkTypes(state);
         Type resultType = state.reserveType();
-        return fn(argument.getType(), resultType).unify(function.getType(), state.scope()).accept(new UnificationVisitor<Value>() {
-            @Override
-            public Value visit(Unified unified) {
-                Value typedFunction = function.withType(state.generate(function.getType()));
-                Value typedArgument = argument.withType(state.generate(argument.getType()));
-                return withFunction(typedFunction)
-                    .withArgument(typedArgument)
-                    .withType(state.generate(resultType));
-            }
-
-            @Override
-            public Value visitOtherwise(Unification unification) {
-                state.error(typeError(unification.flip(), argument.getSourceRange()));
-                return withType(resultType);
-            }
-        });
+        Unification unification = fn(argument.getType(), resultType).unify(function.getType(), state.scope());
+        if (unification.isUnified()) {
+            Value typedFunction = function.withType(state.generate(function.getType()));
+            Value typedArgument = argument.withType(state.generate(argument.getType()));
+            return withFunction(typedFunction)
+                .withArgument(typedArgument)
+                .withType(state.generate(resultType));
+        } else {
+            state.error(typeError(unification.flip(), argument.getSourceRange()));
+            return withType(resultType);
+        }
     }
 
     @Override

@@ -19,9 +19,6 @@ import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Unification;
-import scotch.compiler.symbol.Unification.UnificationVisitor;
-import scotch.compiler.symbol.Unification.Unified;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.ClassDefinition;
@@ -92,20 +89,12 @@ public class CaptureMatch extends PatternMatch {
     public PatternMatch checkTypes(TypeChecker state) {
         Scope scope = state.scope();
         state.addLocal(symbol);
-        return scope.generate(type)
+        return withType(scope.generate(type)
             .unify(scope.getValue(unqualified(getArgument())), scope)
-            .accept(new UnificationVisitor<PatternMatch>() {
-                @Override
-                public PatternMatch visit(Unified unified) {
-                    return withType(unified.getUnifiedType());
-                }
-
-                @Override
-                public PatternMatch visitOtherwise(Unification unification) {
-                    state.error(typeError(unification, sourceRange));
-                    return CaptureMatch.this;
-                }
-            });
+            .orElseGet(unification -> {
+                state.error(typeError(unification, sourceRange));
+                return type;
+            }));
     }
 
     @Override

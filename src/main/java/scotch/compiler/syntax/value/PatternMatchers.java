@@ -1,6 +1,7 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.symbol.Unification.unified;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.value.Values.patterns;
@@ -18,9 +19,6 @@ import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.Unification;
-import scotch.compiler.symbol.Unification.UnificationVisitor;
-import scotch.compiler.symbol.Unification.Unified;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
@@ -77,20 +75,16 @@ public class PatternMatchers extends Value {
             .collect(toList());
         AtomicReference<Type> type = new AtomicReference<>(state.reserveType());
         patterns = patterns.stream()
-            .map(pattern -> pattern.getType().unify(type.get(), state).accept(new UnificationVisitor<PatternMatcher>() {
-                @Override
-                public PatternMatcher visit(Unified unified) {
-                    Type result = state.scope().generate(unified.getUnifiedType());
+            .map(pattern -> pattern.withType(pattern.getType().unify(type.get(), state)
+                .map(unifiedType -> {
+                    Type result = state.scope().generate(unifiedType);
                     type.set(result);
-                    return pattern.withType(result);
-                }
-
-                @Override
-                public PatternMatcher visitOtherwise(Unification unification) {
+                    return unified(unifiedType);
+                })
+                .orElseGet(unification -> {
                     state.error(typeError(unification.flip(), pattern.getSourceRange()));
-                    return pattern;
-                }
-            }))
+                    return pattern.getType();
+                })))
             .collect(toList());
         return withMatchers(patterns).withType(type.get());
     }

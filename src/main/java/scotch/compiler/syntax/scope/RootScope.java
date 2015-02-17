@@ -16,6 +16,7 @@ import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
 import scotch.compiler.symbol.SymbolEntry;
 import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
+import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.symbol.TypeClassDescriptor;
@@ -149,6 +150,11 @@ public class RootScope extends Scope {
     @Override
     public Type getTarget(Type type) {
         throw new IllegalStateException();
+    }
+
+    @Override
+    public void implement(Symbol typeClass, SumType type) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override

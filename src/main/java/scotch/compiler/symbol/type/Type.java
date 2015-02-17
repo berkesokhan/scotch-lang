@@ -1,14 +1,15 @@
 package scotch.compiler.symbol.type;
 
+import static java.util.Collections.reverse;
 import static java.util.stream.Collectors.joining;
-import static scotch.compiler.symbol.Unification.mismatch;
-import static scotch.compiler.util.Pair.pair;
+import static scotch.compiler.symbol.Unification.unified;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -25,10 +26,38 @@ public abstract class Type {
         // intentionally empty
     }
 
-    public abstract Unification apply(SumType sum, TypeScope scope);
+    public HeadApplication apply(Type head, TypeScope scope) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    public Unification apply(SumType head, List<Type> parameters, TypeScope scope) {
+        return apply(TailApplication.right(new ArrayList<>(), new ArrayList<>(parameters)), scope)
+            .unify((unifiedParameters, remainingParameters) -> {
+                if (remainingParameters.isEmpty()) {
+                    return unified(head.withParameters(new ArrayList<Type>() {{
+                        addAll(head.getParameters());
+                        addAll(unifiedParameters);
+                    }}));
+                } else {
+                    throw new UnsupportedOperationException(); // TODO
+                }
+            });
+    }
+
+    public TailApplication apply(TailApplication application, TypeScope scope) {
+        return application.next(parameter -> unify(parameter, scope));
+    }
+
+    public HeadApplication applyWith(SumType type, TypeScope scope) {
+        throw new UnsupportedOperationException(); // TODO
+    }
 
     @Override
     public abstract boolean equals(Object o);
+
+    public Type flatten() {
+        return this;
+    }
 
     public Type generate(TypeScope scope) {
         return generate(scope, new HashSet<>());
@@ -67,45 +96,36 @@ public abstract class Type {
 
     public abstract Type qualifyNames(NameQualifier qualifier);
 
-    public abstract Unification rebind(TypeScope scope);
-
     public Type simplify() {
         return this;
     }
 
     @Override
-    public abstract String toString();
+    public String toString() {
+        return gatherContext() + toString_();
+    }
 
     public Unification unify(Type type, TypeScope scope) {
         return generate(scope).unify_(type.generate(scope), scope);
     }
 
-    public Optional<Map<Type, Type>> zip(Type other, TypeScope scope) {
-        return generate(scope).zip_(other.generate(scope))
-            .map(list -> {
-                Map<Type, Type> map = new HashMap<>();
-                list.stream()
-                    .map(pair -> pair.into((key, value) -> pair(key.simplify(), value)))
-                    .forEach(pair -> pair.into(map::put));
-                return map;
-            });
-    }
-
-    protected abstract Optional<List<Pair<Type, Type>>> zip_(Type other);
-
-    protected Optional<List<Pair<Type, Type>>> zipWith(FunctionType target) {
-        return Optional.empty();
-    }
-
-    protected Optional<List<Pair<Type, Type>>> zipWith(SumType target) {
-        return Optional.empty();
-    }
-
-    protected Optional<List<Pair<Type, Type>>> zipWith(VariableType target) {
-        return Optional.of(ImmutableList.of(pair(target, this)));
-    }
-
     protected abstract boolean contains(VariableType type);
+
+    protected Type flatten(List<Type> types) {
+        List<Type> reversedTypes = new ArrayList<Type>() {{
+            add(Type.this);
+            addAll(types);
+        }};
+        reverse(reversedTypes);
+        Iterator<Type> iterator = reversedTypes.iterator();
+        Type type = iterator.next();
+        while (iterator.hasNext()) {
+            type = new ConstructorType(iterator.next(), type);
+        }
+        return type;
+    }
+
+    protected abstract List<Type> flatten_();
 
     protected String gatherContext() {
         Set<Pair<VariableType, Symbol>> context = gatherContext_();
@@ -130,15 +150,13 @@ public abstract class Type {
 
     protected abstract String toString_();
 
+    protected abstract Unification unifyWith(ConstructorType target, TypeScope scope);
+
     protected abstract Unification unifyWith(FunctionType target, TypeScope scope);
 
     protected abstract Unification unifyWith(VariableType target, TypeScope scope);
 
     protected abstract Unification unifyWith(SumType target, TypeScope scope);
-
-    protected Unification unifyWith(VariableSum target, TypeScope scope) {
-        return mismatch(target, this);
-    }
 
     protected abstract Unification unify_(Type type, TypeScope scope);
 }
