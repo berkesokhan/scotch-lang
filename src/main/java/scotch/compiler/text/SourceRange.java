@@ -1,13 +1,16 @@
 package scotch.compiler.text;
 
+import static lombok.AccessLevel.PRIVATE;
 import static scotch.compiler.text.SourcePoint.point;
 import static scotch.util.StringUtil.quote;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
+import lombok.AllArgsConstructor;
 import me.qmx.jitescript.CodeBlock;
 import org.objectweb.asm.tree.LabelNode;
 
+@AllArgsConstructor(access = PRIVATE)
 public class SourceRange {
 
     public static final SourceRange NULL_SOURCE = source("NULL", point(-1, -1, -1), point(-1, -1, -1));
@@ -19,12 +22,6 @@ public class SourceRange {
     private final String      sourceName;
     private final SourcePoint start;
     private final SourcePoint end;
-
-    private SourceRange(String sourceName, SourcePoint start, SourcePoint end) {
-        this.sourceName = sourceName;
-        this.start = start;
-        this.end = end;
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -66,6 +63,11 @@ public class SourceRange {
 
     public SourceRange getStartRange() {
         return new SourceRange(sourceName, start, start);
+    }
+
+    @Override
+    public int hashCode() {
+        return 79;
     }
 
     public void markLine(CodeBlock block) {
