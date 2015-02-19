@@ -1,11 +1,15 @@
 package scotch.compiler.parser;
 
+import static lombok.AccessLevel.PRIVATE;
+
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.text.SourceRange;
 
+@AllArgsConstructor(access = PRIVATE)
 @EqualsAndHashCode(callSuper = false)
 @ToString
 public class ParseError extends SyntaxError {
@@ -16,11 +20,6 @@ public class ParseError extends SyntaxError {
 
     @NonNull private final String      description;
     @NonNull private final SourceRange sourceRange;
-
-    ParseError(String description, SourceRange sourceRange) {
-        this.description = description;
-        this.sourceRange = sourceRange;
-    }
 
     @Override
     public String prettyPrint() {

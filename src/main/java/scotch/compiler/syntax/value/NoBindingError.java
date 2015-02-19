@@ -1,5 +1,8 @@
 package scotch.compiler.syntax.value;
 
+import static lombok.AccessLevel.PRIVATE;
+
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
@@ -7,6 +10,7 @@ import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.text.SourceRange;
 
+@AllArgsConstructor(access = PRIVATE)
 @EqualsAndHashCode(callSuper = false)
 @ToString
 public class NoBindingError extends SyntaxError {
@@ -17,11 +21,6 @@ public class NoBindingError extends SyntaxError {
 
     @NonNull private final Symbol      symbol;
     @NonNull private final SourceRange sourceRange;
-
-    private NoBindingError(Symbol symbol, SourceRange sourceRange) {
-        this.symbol = symbol;
-        this.sourceRange = sourceRange;
-    }
 
     @Override
     public String prettyPrint() {

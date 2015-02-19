@@ -7,15 +7,18 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import com.google.common.collect.ImmutableList;
+import lombok.SneakyThrows;
 
 public abstract class SyntaxError {
 
+    @SneakyThrows
     private static List<StackTraceElement> formatStackTrace() {
         List<StackTraceElement> stackTrace = new ArrayList<>(asList(currentThread().getStackTrace()));
         Iterator<StackTraceElement> iterator = stackTrace.iterator();
         while (iterator.hasNext()) {
             StackTraceElement element = iterator.next();
-            if (element.getClassName().contains("Thread") || element.getClassName().contains("SyntaxError")) {
+            Class<?> clazz = Class.forName(element.getClassName());
+            if (clazz == Thread.class || SyntaxError.class.isAssignableFrom(clazz)) {
                 iterator.remove();
             } else {
                 break;
