@@ -21,7 +21,7 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
-import scotch.compiler.symbol.Unification;
+import scotch.compiler.symbol.type.Unification;
 import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
@@ -87,7 +87,7 @@ public class RootScope extends Scope {
 
     @Override
     public Scope enterScope(String moduleName, List<Import> imports) {
-        Scope scope = scope(this, new DefaultTypeScope(symbolGenerator), resolver, moduleName, imports);
+        Scope scope = scope(this, new DefaultTypeScope(symbolGenerator, resolver), resolver, moduleName, imports);
         children.put(moduleName, scope);
         return scope;
     }
@@ -179,6 +179,11 @@ public class RootScope extends Scope {
 
     @Override
     public boolean isGeneric(VariableType variableType) {
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public boolean isImplemented(Symbol typeClass, SumType type) {
         throw new IllegalStateException();
     }
 

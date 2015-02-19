@@ -1,13 +1,15 @@
 package scotch.compiler.syntax.value;
 
+import static lombok.AccessLevel.PACKAGE;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.syntax.TypeError.typeError;
-import static scotch.util.StringUtil.stringify;
 
-import java.util.Objects;
 import java.util.function.Supplier;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.LambdaBlock;
 import scotch.compiler.steps.BytecodeGenerator;
@@ -17,26 +19,22 @@ import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.Unification;
 import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.Unification;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 import scotch.runtime.SuppliedThunk;
 
+@AllArgsConstructor(access = PACKAGE)
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class Apply extends Value {
 
     private final SourceRange sourceRange;
     private final Value       function;
     private final Value       argument;
     private final Type        type;
-
-    Apply(SourceRange sourceRange, Value function, Value argument, Type type) {
-        this.sourceRange = sourceRange;
-        this.function = function;
-        this.argument = argument;
-        this.type = type;
-    }
 
     @Override
     public Value accumulateDependencies(DependencyAccumulator state) {
@@ -59,17 +57,27 @@ public class Apply extends Value {
     public Value checkTypes(TypeChecker state) {
         Value function = this.function.checkTypes(state);
         Value argument = this.argument.checkTypes(state);
-        Type resultType = state.reserveType();
-        Unification unification = fn(argument.getType(), resultType).unify(function.getType(), state.scope());
+        Type result = state.reserveType();
+        Unification unification = fn(argument.getType(), result).unify(function.getType(), state.scope());
         if (unification.isUnified()) {
             Value typedFunction = function.withType(state.generate(function.getType()));
             Value typedArgument = argument.withType(state.generate(argument.getType()));
-            return withFunction(typedFunction)
-                .withArgument(typedArgument)
-                .withType(state.generate(resultType));
+            Type typedResult = state.generate(result);
+            Unification typedUnification = fn(typedArgument.getType(), typedResult).unify(typedFunction.getType(), state.scope());
+            if (typedUnification.isUnified()) {
+                Type argumentType = state.generate(typedArgument.getType());
+                Type resultType = state.generate(typedResult);
+                Type functionType = fn(argumentType, resultType);
+                return withFunction(typedFunction.withType(functionType))
+                    .withArgument(typedArgument.withType(argumentType))
+                    .withType(resultType);
+            } else {
+                state.error(typeError(typedUnification.flip(), argument.getSourceRange()));
+                return withType(typedResult);
+            }
         } else {
             state.error(typeError(unification.flip(), argument.getSourceRange()));
-            return withType(resultType);
+            return withType(result);
         }
     }
 
@@ -89,20 +97,6 @@ public class Apply extends Value {
     public Value parsePrecedence(PrecedenceParser state) {
         return withFunction(function.parsePrecedence(state))
             .withArgument(argument.parsePrecedence(state));
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof Apply) {
-            Apply other = (Apply) o;
-            return Objects.equals(function, other.function)
-                && Objects.equals(argument, other.argument)
-                && Objects.equals(type, other.type);
-        } else {
-            return false;
-        }
     }
 
     @Override
@@ -151,18 +145,8 @@ public class Apply extends Value {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(function, argument, type);
-    }
-
-    @Override
     public Value qualifyNames(NameQualifier state) {
         return withFunction(function.qualifyNames(state)).withArgument(argument.qualifyNames(state));
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this) + "(" + function + ", " + argument + ")";
     }
 
     public Apply withArgument(Value argument) {

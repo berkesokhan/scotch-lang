@@ -1,8 +1,8 @@
 package scotch.compiler.syntax.scope;
 
 import static java.util.stream.Collectors.toList;
-import static scotch.compiler.symbol.Unification.failedBinding;
-import static scotch.compiler.symbol.Unification.unified;
+import static scotch.compiler.symbol.type.Unification.failedBinding;
+import static scotch.compiler.symbol.type.Unification.unified;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,8 +16,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolGenerator;
+import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.TypeScope;
-import scotch.compiler.symbol.Unification;
+import scotch.compiler.symbol.type.Unification;
 import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.type.VariableType;
@@ -25,13 +26,15 @@ import scotch.compiler.symbol.type.VariableType;
 public class DefaultTypeScope implements TypeScope {
 
     private final SymbolGenerator                   symbolGenerator;
+    private final SymbolResolver                    resolver;
     private final Map<Type, Type>                   bindings;
     private final Map<Type, Set<Symbol>>            contexts;
     private final Set<Type>                         specializedTypes;
     private final Map<Symbol, List<Implementation>> implementations;
 
-    public DefaultTypeScope(SymbolGenerator symbolGenerator) {
+    public DefaultTypeScope(SymbolGenerator symbolGenerator, SymbolResolver resolver) {
         this.symbolGenerator = symbolGenerator;
+        this.resolver = resolver;
         this.bindings = new HashMap<>();
         this.contexts = new HashMap<>();
         this.specializedTypes = new HashSet<>();
@@ -98,6 +101,10 @@ public class DefaultTypeScope implements TypeScope {
 
     @Override
     public boolean isImplemented(Symbol typeClass, SumType type) {
+        return isImplementedLocally(typeClass, type) || resolver.isImplemented(typeClass, type);
+    }
+
+    private Boolean isImplementedLocally(Symbol typeClass, SumType type) {
         return Optional.ofNullable(implementations.get(typeClass))
             .map(list -> list.stream().anyMatch(implementation -> implementation.isImplementedBy(type, this)))
             .orElse(false);
@@ -144,7 +151,7 @@ public class DefaultTypeScope implements TypeScope {
 
     private static final class Implementation {
 
-        private final Symbol symbol;
+        private final Symbol            symbol;
         private final List<Set<Symbol>> contexts;
 
         public Implementation(Symbol symbol, List<Set<Symbol>> contexts) {

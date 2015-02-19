@@ -1,6 +1,7 @@
 package scotch.compiler.syntax;
 
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
 import static org.mockito.Mockito.mock;
 import static scotch.compiler.symbol.Operator.operator;
 import static scotch.compiler.symbol.Symbol.qualified;
@@ -8,10 +9,10 @@ import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.SymbolEntry.immutableEntry;
 import static scotch.compiler.symbol.TypeClassDescriptor.typeClass;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.compiler.symbol.type.Types.ctor;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.symbol.type.Types.var;
-import static scotch.compiler.util.Pair.pair;
 import static scotch.compiler.util.TestUtil.intType;
 import static scotch.compiler.util.TestUtil.typeInstance;
 
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Symbol;
@@ -29,15 +31,17 @@ import scotch.compiler.symbol.SymbolEntry.ImmutableEntry;
 import scotch.compiler.symbol.SymbolEntry.ImmutableEntryBuilder;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
+import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
-import scotch.compiler.util.Pair;
 
 public class StubResolver implements SymbolResolver {
 
     public static ImmutableEntry defaultBind() {
         Symbol symbol = symbol("scotch.control.monad.(>>=)");
         return immutableEntry(symbol)
-            //.withValueType(fn(varSum("m", var("a")), fn(fn(var("a"), varSum("m", var("b"))), varSum("m", var("b")))))
+            .withValueType(fn(ctor(var("m", asList("scotch.control.monad.Monad")), var("a")),
+                fn(fn(var("a"), ctor(var("m", asList("scotch.control.monad.Monad")), var("b"))),
+                    ctor(var("m", asList("scotch.control.monad.Monad")), var("b")))))
             .withMemberOf(symbol("scotch.control.monad.Monad"))
             .withOperator(operator(LEFT_INFIX, 1))
             .build();
@@ -174,11 +178,11 @@ public class StubResolver implements SymbolResolver {
             .build();
     }
 
-    private final Map<Symbol, SymbolEntry>                                   symbols;
-    private final Map<Pair<Symbol, List<Type>>, Set<TypeInstanceDescriptor>> typeInstances;
-    private final Map<Symbol, Set<TypeInstanceDescriptor>>                   typeInstancesByClass;
-    private final Map<List<Type>, Set<TypeInstanceDescriptor>>               typeInstancesByArguments;
-    private final Map<String, Set<TypeInstanceDescriptor>>                   typeInstancesByModule;
+    private final Map<Symbol, SymbolEntry>                                       symbols;
+    private final Map<Symbol, Map<List<Parameter>, Set<TypeInstanceDescriptor>>> typeInstances;
+    private final Map<Symbol, Set<TypeInstanceDescriptor>>                       typeInstancesByClass;
+    private final Map<List<Parameter>, Set<TypeInstanceDescriptor>>              typeInstancesByArguments;
+    private final Map<String, Set<TypeInstanceDescriptor>>                       typeInstancesByModule;
 
     public StubResolver() {
         this.symbols = new HashMap<>();
@@ -194,11 +198,30 @@ public class StubResolver implements SymbolResolver {
     }
 
     public StubResolver define(TypeInstanceDescriptor typeInstance) {
-        typeInstances.computeIfAbsent(pair(typeInstance.getTypeClass(), typeInstance.getParameters()), k -> new HashSet<>()).add(typeInstance);
+        typeInstances
+            .computeIfAbsent(typeInstance.getTypeClass(), k -> new HashMap<>())
+            .computeIfAbsent(parameterize(typeInstance.getParameters()), k -> new HashSet<>())
+            .add(typeInstance);
         typeInstancesByClass.computeIfAbsent(typeInstance.getTypeClass(), k -> new HashSet<>()).add(typeInstance);
-        typeInstancesByArguments.computeIfAbsent(typeInstance.getParameters(), k -> new HashSet<>()).add(typeInstance);
+        typeInstancesByArguments.computeIfAbsent(parameterize(typeInstance.getParameters()), k -> new HashSet<>()).add(typeInstance);
         typeInstancesByModule.computeIfAbsent(typeInstance.getModuleName(), k -> new HashSet<>()).add(typeInstance);
         return this;
+    }
+
+    private List<Parameter> parameterize(List<Type> parameters) {
+        return parameters.stream()
+            .map(type -> {
+                if (type instanceof SumType) {
+                    return (SumType) type;
+                } else {
+                    throw new IllegalArgumentException("Only SumTypes can be class type parameters");
+                }
+            })
+            .map(type -> new Parameter(type.getSymbol(), type.getParameters().stream()
+                .map(Type::getContext)
+                .collect(toList())))
+            .collect(toList());
+
     }
 
     @Override
@@ -208,7 +231,24 @@ public class StubResolver implements SymbolResolver {
 
     @Override
     public Set<TypeInstanceDescriptor> getTypeInstances(Symbol symbol, List<Type> types) {
-        return ImmutableSet.copyOf(typeInstances.getOrDefault(pair(symbol, types), ImmutableSet.of()));
+        return Optional.ofNullable(typeInstances.get(symbol))
+            .flatMap(instances -> instances.keySet().stream()
+                .filter(parameters -> parametersMatch(parameters, types))
+                .map(instances::get)
+                .findFirst())
+            .orElse(ImmutableSet.of());
+    }
+
+    private boolean parametersMatch(List<Parameter> parameters, List<Type> types) {
+        if (parameters.size() == types.size()) {
+            for (int i = 0; i < parameters.size(); i++) {
+                if (!(types.get(i) instanceof SumType) || !parameters.get(i).matches((SumType) types.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -219,5 +259,37 @@ public class StubResolver implements SymbolResolver {
     @Override
     public boolean isDefined(Symbol symbol) {
         return symbols.containsKey(symbol);
+    }
+
+    private static final class Parameter {
+
+        private final Symbol            symbol;
+        private final List<Set<Symbol>> contexts;
+
+        public Parameter(Symbol symbol, List<Set<Symbol>> contexts) {
+            this.symbol = symbol;
+            this.contexts = ImmutableList.copyOf(
+                contexts.stream()
+                    .map(ImmutableSet::copyOf)
+                    .collect(toList())
+            );
+        }
+
+        public boolean matches(SumType type) {
+            if (type.getSymbol().equals(symbol)) {
+                List<Set<Symbol>> otherContexts = type.getParameters().stream()
+                    .map(Type::getContext)
+                    .collect(toList());
+                if (otherContexts.size() == contexts.size()) {
+                    for (int i = 0; i < contexts.size(); i++) {
+                        if (!otherContexts.get(0).containsAll(contexts.get(0))) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }

@@ -28,7 +28,7 @@ import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.TypeScope;
-import scotch.compiler.symbol.Unification;
+import scotch.compiler.symbol.type.Unification;
 import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
@@ -252,6 +252,11 @@ public class ChildScope extends Scope {
     @Override
     public boolean isGeneric(VariableType variableType) {
         return parent.isGeneric(variableType);
+    }
+
+    @Override
+    public boolean isImplemented(Symbol typeClass, SumType type) {
+        return parent.isImplemented(typeClass, type);
     }
 
     @Override

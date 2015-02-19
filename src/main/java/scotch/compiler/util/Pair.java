@@ -9,7 +9,7 @@ import lombok.NonNull;
 import lombok.ToString;
 
 @AllArgsConstructor(access = PRIVATE)
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class Pair<A, B> {
 

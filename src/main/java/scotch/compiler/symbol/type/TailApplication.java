@@ -6,7 +6,6 @@ import java.util.function.Function;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import scotch.compiler.symbol.Unification;
 
 public abstract class TailApplication {
 
@@ -16,6 +15,10 @@ public abstract class TailApplication {
 
     public static TailApplication right(List<Type> unifiedParameters, List<Type> remainingParameters) {
         return new RightApplication(unifiedParameters, remainingParameters);
+    }
+
+    private TailApplication() {
+        // intentionally empty
     }
 
     @Override
@@ -32,7 +35,7 @@ public abstract class TailApplication {
     public abstract Unification unify(BiFunction<List<Type>, List<Type>, Unification> function);
 
     @AllArgsConstructor
-    @EqualsAndHashCode
+    @EqualsAndHashCode(callSuper = false)
     @ToString
     private static class LeftApplication extends TailApplication {
 
@@ -50,7 +53,7 @@ public abstract class TailApplication {
     }
 
     @AllArgsConstructor
-    @EqualsAndHashCode
+    @EqualsAndHashCode(callSuper = false)
     @ToString
     private static class RightApplication extends TailApplication {
 

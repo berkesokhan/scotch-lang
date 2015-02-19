@@ -3,9 +3,9 @@ package scotch.compiler.symbol.type;
 import static java.lang.Character.isUpperCase;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
-import static scotch.compiler.symbol.Unification.circular;
-import static scotch.compiler.symbol.Unification.mismatch;
-import static scotch.compiler.symbol.Unification.unified;
+import static scotch.compiler.symbol.type.Unification.circular;
+import static scotch.compiler.symbol.type.Unification.mismatch;
+import static scotch.compiler.symbol.type.Unification.unified;
 import static scotch.compiler.symbol.type.Types.unifyVariable;
 import static scotch.compiler.util.Pair.pair;
 
@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -21,12 +22,11 @@ import lombok.EqualsAndHashCode;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeScope;
-import scotch.compiler.symbol.Unification;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Pair;
 import scotch.runtime.Callable;
 
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 public class SumType extends Type {
 
     private static List<Pair<Type, Type>> zip(List<Type> left, List<Type> right) {
@@ -53,6 +53,10 @@ public class SumType extends Type {
     @Override
     public HeadApplication apply(Type head, TypeScope scope) {
         return head.applyWith(this, scope);
+    }
+
+    public HeadZip applyZip(Type head, TypeScope scope) {
+        return head.applyZipWith(this, scope);
     }
 
     @Override
@@ -225,5 +229,25 @@ public class SumType extends Type {
     @Override
     protected Unification unify_(Type type, TypeScope scope) {
         return type.unifyWith(this, scope);
+    }
+
+    @Override
+    protected Optional<List<Pair<Type, Type>>> zipWith(ConstructorType target, TypeScope scope) {
+        return target.applyZip(this, scope);
+    }
+
+    @Override
+    protected Optional<List<Pair<Type, Type>>> zipWith(SumType target, TypeScope scope) {
+        if (equals(target)) {
+            return Optional.of(ImmutableList.of(pair(target, this)));
+        } else {
+            return Optional.empty();
+        }
+
+    }
+
+    @Override
+    protected Optional<List<Pair<Type, Type>>> zip_(Type other, TypeScope scope) {
+        return other.zipWith(this, scope);
     }
 }

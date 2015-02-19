@@ -3,6 +3,7 @@ package scotch.compiler.symbol;
 import java.util.Set;
 import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.Unification;
 import scotch.compiler.symbol.type.VariableType;
 
 public interface TypeScope {
@@ -25,9 +26,7 @@ public interface TypeScope {
 
     boolean isGeneric(VariableType variableType);
 
-    default boolean isImplemented(Symbol typeClass, SumType type) {
-        throw new UnsupportedOperationException(); // TODO
-    }
+    boolean isImplemented(Symbol typeClass, SumType type);
 
     VariableType reserveType();
 

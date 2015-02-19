@@ -1,8 +1,11 @@
 package scotch.compiler.symbol;
 
+import static java.util.Arrays.asList;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
 
 public interface SymbolResolver {
@@ -15,5 +18,9 @@ public interface SymbolResolver {
 
     default boolean isDefined(Symbol symbol) {
         return getEntry(symbol).isPresent();
+    }
+
+    default boolean isImplemented(Symbol typeClass, SumType type) {
+        return !getTypeInstances(typeClass, asList(type)).isEmpty();
     }
 }

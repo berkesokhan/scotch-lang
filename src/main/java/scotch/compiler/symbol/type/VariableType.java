@@ -5,11 +5,9 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
-import static scotch.compiler.symbol.Unification.circular;
-import static scotch.compiler.symbol.Unification.mismatch;
-import static scotch.compiler.symbol.type.HeadApplication.left;
-import static scotch.compiler.symbol.type.HeadApplication.right;
 import static scotch.compiler.symbol.type.Types.var;
+import static scotch.compiler.symbol.type.Unification.circular;
+import static scotch.compiler.symbol.type.Unification.mismatch;
 import static scotch.compiler.util.Pair.pair;
 
 import java.util.ArrayList;
@@ -19,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -26,7 +25,6 @@ import com.google.common.collect.ImmutableSortedSet;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeScope;
-import scotch.compiler.symbol.Unification;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Pair;
 import scotch.runtime.Callable;
@@ -55,10 +53,25 @@ public class VariableType extends Type {
         for (int i = 0; i <= type.getParameters().size(); i++) {
             List<Type> parameters = type.getParameters().subList(0, i);
             if (scope.isImplemented(typeClass, type.withParameters(parameters))) {
-                return right(type.withParameters(parameters), type.getParameters().subList(i, type.getParameters().size()));
+                return HeadApplication.right(type.withParameters(parameters), type.getParameters().subList(i, type.getParameters().size()));
             }
         }
-        return left(mismatch(this, type));
+        return HeadApplication.left(mismatch(this, type));
+    }
+
+    @Override
+    public HeadZip applyZipWith(SumType type, TypeScope scope) {
+        if (context.size() != 1) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+        Symbol typeClass = context.iterator().next();
+        for (int i = 0; i <= type.getParameters().size(); i++) {
+            List<Type> parameters = type.getParameters().subList(0, i);
+            if (scope.isImplemented(typeClass, type.withParameters(parameters))) {
+                return HeadZip.right(pair(this, type.withParameters(parameters)), type.getParameters().subList(i, type.getParameters().size()));
+            }
+        }
+        return HeadZip.left();
     }
 
     @Override
@@ -255,5 +268,10 @@ public class VariableType extends Type {
     @Override
     protected Unification unify_(Type type, TypeScope scope) {
         return type.unifyWith(this, scope);
+    }
+
+    @Override
+    protected Optional<List<Pair<Type, Type>>> zip_(Type other, TypeScope scope) {
+        return other.zipWith(this, scope);
     }
 }

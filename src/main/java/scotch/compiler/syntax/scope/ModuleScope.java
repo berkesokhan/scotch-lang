@@ -27,14 +27,14 @@ import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
 import scotch.compiler.symbol.SymbolEntry;
 import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.type.SumType;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 import scotch.compiler.symbol.TypeScope;
-import scotch.compiler.symbol.Unification;
+import scotch.compiler.symbol.type.Unification;
 import scotch.compiler.symbol.exception.SymbolNotFoundException;
+import scotch.compiler.symbol.type.SumType;
+import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ValueReference;
@@ -226,6 +226,11 @@ public class ModuleScope extends Scope {
     @Override
     public boolean isGeneric(VariableType variableType) {
         return types.isGeneric(variableType);
+    }
+
+    @Override
+    public boolean isImplemented(Symbol typeClass, SumType type) {
+        return types.isImplemented(typeClass, type);
     }
 
     @Override

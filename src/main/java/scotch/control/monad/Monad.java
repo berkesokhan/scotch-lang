@@ -1,6 +1,8 @@
 package scotch.control.monad;
 
+import static java.util.Arrays.asList;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.compiler.symbol.type.Types.ctor;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.symbol.type.Types.var;
@@ -33,7 +35,13 @@ public interface Monad<Ma> {
 
     @ValueType(forMember = ">>=")
     public static Type bind$type() {
-        throw new UnsupportedOperationException(); // TODO
+        return fn(
+            ctor(var("m", asList("scotch.control.monad.Monad")), var("a")),
+            fn(
+                fn(var("a"), ctor(var("m", asList("scotch.control.monad.Monad")), var("b"))),
+                ctor(var("m", asList("scotch.control.monad.Monad")), var("b"))
+            )
+        );
     }
 
     @Value(memberName = "fail")
@@ -46,10 +54,11 @@ public interface Monad<Ma> {
 
     @ValueType(forMember = "fail")
     public static Type fail$type() {
-        throw new UnsupportedOperationException(); // TODO
+        return fn(sum("scotch.data.string.String"),
+            ctor(var("m", asList("scotch.control.monad.Monad")), var("a")));
     }
 
-    @Value(memberName = "then", fixity = LEFT_INFIX, precedence = 1)
+    @Value(memberName = ">>", fixity = LEFT_INFIX, precedence = 1)
     public static <Ma, Mb> Applicable<Monad<Ma>, Applicable<Ma, Applicable<Mb, Mb>>> then() {
         return applicable(
             monad -> applicable(
@@ -57,9 +66,11 @@ public interface Monad<Ma> {
                     mb -> mb)));
     }
 
-    @ValueType(forMember = "then")
+    @ValueType(forMember = ">>")
     public static Type then$type() {
-        throw new UnsupportedOperationException(); // TODO
+        return fn(ctor(var("m", asList("scotch.control.monad.Monad")), var("a")),
+            fn(ctor(var("m", asList("scotch.control.monad.Monad")), var("b")),
+                ctor(var("m", asList("scotch.control.monad.Monad")), var("b"))));
     }
 
     @Value(memberName = "return")
@@ -72,7 +83,7 @@ public interface Monad<Ma> {
 
     @ValueType(forMember = "return")
     public static Type wrap$type() {
-        throw new UnsupportedOperationException(); // TODO
+        return fn(var("a"), ctor(var("m", asList("scotch.control.monad.Monad")), var("a")));
     }
 
     <A, Mb> Callable<Mb> bind(Callable<Ma> ma, Applicable<A, Mb> function);

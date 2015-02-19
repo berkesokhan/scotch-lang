@@ -6,7 +6,7 @@ import lombok.ToString;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.text.SourceRange;
 
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class SymbolNotFoundError extends SyntaxError {
 

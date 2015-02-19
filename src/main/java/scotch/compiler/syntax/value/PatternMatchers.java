@@ -1,7 +1,7 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.toList;
-import static scotch.compiler.symbol.Unification.unified;
+import static scotch.compiler.symbol.type.Unification.unified;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.value.Values.patterns;

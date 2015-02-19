@@ -7,11 +7,11 @@ import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.Unification;
+import scotch.compiler.symbol.type.Unification;
 import scotch.compiler.text.SourceRange;
 
 @AllArgsConstructor(access = PRIVATE)
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class TypeError extends SyntaxError {
 

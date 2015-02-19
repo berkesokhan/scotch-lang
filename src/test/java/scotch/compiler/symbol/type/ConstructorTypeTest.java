@@ -3,16 +3,20 @@ package scotch.compiler.symbol.type;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 import static scotch.compiler.symbol.Symbol.symbol;
-import static scotch.compiler.symbol.Unification.mismatch;
-import static scotch.compiler.symbol.Unification.unified;
+import static scotch.compiler.symbol.type.Unification.mismatch;
+import static scotch.compiler.symbol.type.Unification.unified;
 import static scotch.compiler.symbol.type.Types.ctor;
 import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.symbol.type.Types.var;
 
+import java.util.HashMap;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import scotch.compiler.symbol.SymbolGenerator;
+import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.syntax.scope.DefaultTypeScope;
 
 public class ConstructorTypeTest {
@@ -21,7 +25,7 @@ public class ConstructorTypeTest {
 
     @Before
     public void setUp() {
-        scope = new DefaultTypeScope(new SymbolGenerator());
+        scope = new DefaultTypeScope(new SymbolGenerator(), mock(SymbolResolver.class));
     }
 
     @Test
@@ -65,5 +69,15 @@ public class ConstructorTypeTest {
         scope.implement(symbol("Toast"), sum("Map", var("k", asList("Eq"))));
         assertThat(ctor(var("a", asList("Toast")), var("m")).unify(sum("Map", sum("Int"), var("y")), scope),
             is(mismatch(var("a", asList("Toast")), sum("Map", sum("Int"), var("y")))));
+    }
+
+    @Test
+    public void shouldZipWithSum() {
+        scope.implement(symbol("Monad"), sum("Either", var("a")));
+        assertThat(ctor(var("m", asList("Monad")), var("a")).zip(sum("Either", sum("String"), var("x")), scope),
+            is(Optional.of(new HashMap<Type, Type>() {{
+                put(var("m"), sum("Either", sum("String")));
+                put(var("a"), var("x"));
+            }})));
     }
 }

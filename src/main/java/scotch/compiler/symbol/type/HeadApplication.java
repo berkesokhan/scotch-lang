@@ -5,7 +5,6 @@ import java.util.function.BiFunction;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import scotch.compiler.symbol.Unification;
 
 public abstract class HeadApplication {
 
@@ -15,6 +14,10 @@ public abstract class HeadApplication {
 
     public static HeadApplication right(SumType type, List<Type> remainingParameters) {
         return new RightApplication(type, remainingParameters);
+    }
+
+    private HeadApplication() {
+        // intentionally empty
     }
 
     @Override
@@ -29,7 +32,7 @@ public abstract class HeadApplication {
     public abstract Unification unify(BiFunction<SumType, List<Type>, Unification> function);
 
     @AllArgsConstructor
-    @EqualsAndHashCode
+    @EqualsAndHashCode(callSuper = false)
     @ToString
     private static class LeftApplication extends HeadApplication {
 
@@ -42,7 +45,7 @@ public abstract class HeadApplication {
     }
 
     @AllArgsConstructor
-    @EqualsAndHashCode
+    @EqualsAndHashCode(callSuper = false)
     @ToString
     private static class RightApplication extends HeadApplication {
 

@@ -3,7 +3,7 @@ package scotch.compiler.symbol.type;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.compiler.symbol.Unification.failedBinding;
+import static scotch.compiler.symbol.type.Unification.failedBinding;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.symbol.type.Types.var;
@@ -11,7 +11,6 @@ import static scotch.compiler.util.TestUtil.boolType;
 import static scotch.compiler.util.TestUtil.intType;
 
 import org.junit.Test;
-import scotch.compiler.symbol.Unification;
 
 public class TypeTest extends UnificationTest {
 

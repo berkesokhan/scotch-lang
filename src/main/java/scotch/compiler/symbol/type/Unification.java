@@ -1,4 +1,4 @@
-package scotch.compiler.symbol;
+package scotch.compiler.symbol.type;
 
 import static java.lang.String.join;
 import static java.util.stream.Collectors.toList;
@@ -14,11 +14,10 @@ import com.google.common.collect.ImmutableSet;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.type.VariableType;
+import scotch.compiler.symbol.Symbol;
 
 @AllArgsConstructor(access = PRIVATE)
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public abstract class Unification {
 
@@ -92,7 +91,7 @@ public abstract class Unification {
     public abstract String prettyPrint();
 
     @AllArgsConstructor(access = PRIVATE)
-    @EqualsAndHashCode(callSuper = true)
+    @EqualsAndHashCode(callSuper = false)
     @ToString
     public static class CircularReference extends Unification {
 
@@ -106,7 +105,7 @@ public abstract class Unification {
         }
     }
 
-    @EqualsAndHashCode(callSuper = true)
+    @EqualsAndHashCode(callSuper = false)
     @ToString
     public static class ContextMismatch extends Unification {
 
@@ -144,7 +143,7 @@ public abstract class Unification {
     }
 
     @AllArgsConstructor(access = PRIVATE)
-    @EqualsAndHashCode
+    @EqualsAndHashCode(callSuper = false)
     @ToString
     public static class ExtraParameter extends Unification {
 
@@ -157,7 +156,7 @@ public abstract class Unification {
     }
 
     @AllArgsConstructor(access = PRIVATE)
-    @EqualsAndHashCode(callSuper = true)
+    @EqualsAndHashCode(callSuper = false)
     @ToString
     public static class FailedBinding extends Unification {
 
@@ -173,7 +172,7 @@ public abstract class Unification {
     }
 
     @AllArgsConstructor(access = PRIVATE)
-    @EqualsAndHashCode(callSuper = true)
+    @EqualsAndHashCode(callSuper = false)
     @ToString
     public static class MissingParameter extends Unification {
 
@@ -212,7 +211,7 @@ public abstract class Unification {
     }
 
     @AllArgsConstructor(access = PRIVATE)
-    @EqualsAndHashCode(callSuper = true)
+    @EqualsAndHashCode(callSuper = false)
     @ToString
     public static class Unified extends Unification {
 

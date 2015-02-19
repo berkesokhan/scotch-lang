@@ -7,7 +7,7 @@ import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.text.SourceRange;
 
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class NoBindingError extends SyntaxError {
 

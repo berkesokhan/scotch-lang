@@ -3,7 +3,7 @@ package scotch.compiler.symbol.type;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static scotch.compiler.symbol.Symbol.symbol;
-import static scotch.compiler.symbol.Unification.contextMismatch;
+import static scotch.compiler.symbol.type.Unification.contextMismatch;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 
 import java.util.Collection;
@@ -13,7 +13,6 @@ import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeScope;
-import scotch.compiler.symbol.Unification;
 import scotch.compiler.util.Pair;
 
 public class Types {
@@ -24,6 +23,14 @@ public class Types {
 
     public static FunctionType fn(Type argument, Type result) {
         return new FunctionType(NULL_SOURCE, argument, result);
+    }
+
+    public static InstanceType instance(Symbol symbol, Type binding) {
+        return new InstanceType(symbol, binding);
+    }
+
+    public static InstanceType instance(String name, Type binding) {
+        return instance(symbol(name), binding);
     }
 
     public static SumType sum(String name) {

@@ -7,17 +7,18 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static scotch.compiler.symbol.Unification.circular;
-import static scotch.compiler.symbol.Unification.contextMismatch;
-import static scotch.compiler.symbol.Unification.mismatch;
-import static scotch.compiler.symbol.Unification.unified;
+import static org.mockito.Mockito.mock;
+import static scotch.compiler.symbol.type.Unification.circular;
+import static scotch.compiler.symbol.type.Unification.contextMismatch;
+import static scotch.compiler.symbol.type.Unification.mismatch;
+import static scotch.compiler.symbol.type.Unification.unified;
 
 import java.util.List;
 import org.junit.Before;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolGenerator;
+import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.TypeScope;
-import scotch.compiler.symbol.Unification;
 import scotch.compiler.syntax.scope.DefaultTypeScope;
 
 public class UnificationTest {
@@ -31,7 +32,7 @@ public class UnificationTest {
     }
 
     protected TypeScope createTypeScope() {
-        return new DefaultTypeScope(new SymbolGenerator());
+        return new DefaultTypeScope(new SymbolGenerator(), mock(SymbolResolver.class));
     }
 
     protected void setUp() {

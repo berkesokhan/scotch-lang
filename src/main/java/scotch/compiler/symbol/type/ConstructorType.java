@@ -1,8 +1,8 @@
 package scotch.compiler.symbol.type;
 
 import static lombok.AccessLevel.PACKAGE;
-import static scotch.compiler.symbol.Unification.mismatch;
-import static scotch.compiler.symbol.Unification.unified;
+import static scotch.compiler.symbol.type.Unification.mismatch;
+import static scotch.compiler.symbol.type.Unification.unified;
 import static scotch.compiler.symbol.type.Types.unifyVariable;
 
 import java.util.ArrayList;
@@ -10,33 +10,22 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeScope;
-import scotch.compiler.symbol.Unification;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Pair;
 
 @AllArgsConstructor(access = PACKAGE)
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 public class ConstructorType extends Type {
 
     private final Type head;
     private final Type tail;
-
-    public Unification apply(SumType type, TypeScope scope) {
-        return type.apply(head, scope).unify(
-            (appliedType, remainingParameters) -> {
-                if (remainingParameters.isEmpty()) {
-                    return unified(new ConstructorType(appliedType, tail).flatten());
-                } else {
-                    return tail.apply(appliedType, remainingParameters, scope);
-                }
-            });
-    }
 
     @Override
     public Type flatten() {
@@ -69,6 +58,30 @@ public class ConstructorType extends Type {
     @Override
     public Type qualifyNames(NameQualifier qualifier) {
         throw new UnsupportedOperationException(); // TODO
+    }
+
+    protected Unification apply(SumType type, TypeScope scope) {
+        return type.apply(head, scope).unify(
+            (appliedType, remainingParameters) -> {
+                if (remainingParameters.isEmpty()) {
+                    return unified(new ConstructorType(appliedType, tail).flatten());
+                } else {
+                    return tail.apply(appliedType, remainingParameters, scope);
+                }
+            });
+    }
+
+    protected Optional<List<Pair<Type, Type>>> applyZip(SumType type, TypeScope scope) {
+        return type.applyZip(head, scope).zip(
+            (zippedPair, remainingParameters) -> {
+                if (remainingParameters.isEmpty()) {
+                    return Optional.of(new ArrayList<Pair<Type, Type>>() {{
+                        add(zippedPair);
+                    }});
+                } else {
+                    return tail.applyZip(zippedPair, remainingParameters, scope);
+                }
+            });
     }
 
     @Override
@@ -139,11 +152,26 @@ public class ConstructorType extends Type {
 
     @Override
     protected Unification unifyWith(SumType target, TypeScope scope) {
-        return target.unify(flatten(), scope); // TODO
+        return flatten().unify_(target, scope); // TODO
     }
 
     @Override
     protected Unification unify_(Type type, TypeScope scope) {
         return type.unifyWith(this, scope);
+    }
+
+    @Override
+    protected Optional<List<Pair<Type, Type>>> zipWith(ConstructorType target, TypeScope scope) {
+        return target.head.zip_(head, scope)
+            .flatMap(headZip -> target.tail.zip_(tail, scope)
+                .flatMap(tailZip -> Optional.of(new ArrayList<Pair<Type, Type>>() {{
+                    addAll(headZip);
+                    addAll(tailZip);
+                }})));
+    }
+
+    @Override
+    protected Optional<List<Pair<Type, Type>>> zip_(Type other, TypeScope scope) {
+        return other.zipWith(this, scope);
     }
 }

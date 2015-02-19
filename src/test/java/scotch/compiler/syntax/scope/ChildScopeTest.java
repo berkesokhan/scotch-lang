@@ -10,7 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Symbol.unqualified;
-import static scotch.compiler.symbol.type.Types.t;
 import static scotch.compiler.syntax.scope.Scope.scope;
 import static scotch.compiler.util.TestUtil.intType;
 
@@ -24,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.SymbolGenerator;
+import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.type.Types;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -37,7 +37,7 @@ public class ChildScopeTest {
 
     @Before
     public void setUp() {
-        childScope = scope("scotch.test", parentScope, new DefaultTypeScope(new SymbolGenerator()));
+        childScope = scope("scotch.test", parentScope, new DefaultTypeScope(new SymbolGenerator(), mock(SymbolResolver.class)));
     }
 
     @Test

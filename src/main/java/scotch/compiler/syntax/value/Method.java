@@ -1,10 +1,14 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.joining;
+import static scotch.compiler.syntax.value.NoBindingError.noBinding;
+import static scotch.compiler.syntax.value.Values.apply;
 import static scotch.util.StringUtil.stringify;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
@@ -15,6 +19,8 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.type.FunctionType;
+import scotch.compiler.symbol.type.InstanceType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.text.SourceRange;
@@ -45,8 +51,31 @@ public class Method extends Value {
 
     @Override
     public Value bindMethods(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+        List<InstanceType> instanceTypes = new ArrayList<>();
+        Type type = this.type;
+        for (int i = 0; i < instances.size(); i++) {
+            instanceTypes.add((InstanceType) ((FunctionType) type).getArgument());
+            type = ((FunctionType) type).getResult();
+        }
+        Value result = this;
+        for (InstanceType instanceType : instanceTypes) {
+            Value typeArgument;
+            if (instanceType.isBound()) {
+                typeArgument = state.findInstance(this, instanceType);
+            } else {
+                Optional<Value> optionalTypeArgument = state.findArgument(instanceType);
+                if (optionalTypeArgument.isPresent()) {
+                    typeArgument = optionalTypeArgument.get();
+                } else {
+                    state.error(noBinding(reference.getSymbol(), sourceRange));
+                    return this;
+                }
+            }
+            result = apply(result, typeArgument, ((FunctionType) result.getType()).getResult());
+        }
+        return result;
     }
+
 
     @Override
     public Value bindTypes(TypeChecker state) {

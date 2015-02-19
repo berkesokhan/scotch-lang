@@ -45,7 +45,7 @@ public class ModuleScopeTest {
     @Before
     public void setUp() {
         moduleName = "scotch.test";
-        moduleScope = scope(rootScope, new DefaultTypeScope(new SymbolGenerator()), resolver, moduleName, asList(import_));
+        moduleScope = scope(rootScope, new DefaultTypeScope(new SymbolGenerator(), resolver), resolver, moduleName, asList(import_));
         when(rootScope.enterScope(any(String.class), anyList())).thenReturn(moduleScope);
         when(import_.qualify(any(String.class), any(SymbolResolver.class))).thenReturn(Optional.empty());
     }

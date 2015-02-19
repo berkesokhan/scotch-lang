@@ -2,7 +2,8 @@ package scotch.compiler.symbol.type;
 
 import static java.util.Collections.reverse;
 import static java.util.stream.Collectors.joining;
-import static scotch.compiler.symbol.Unification.unified;
+import static scotch.compiler.symbol.type.Unification.unified;
+import static scotch.compiler.util.Pair.pair;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,13 +11,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeScope;
-import scotch.compiler.symbol.Unification;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Pair;
 
@@ -45,11 +46,33 @@ public abstract class Type {
     }
 
     public TailApplication apply(TailApplication application, TypeScope scope) {
-        return application.next(parameter -> unify(parameter, scope));
+        return application.next(parameter -> unify_(parameter, scope));
     }
 
     public HeadApplication applyWith(SumType type, TypeScope scope) {
         throw new UnsupportedOperationException(); // TODO
+    }
+
+    public Optional<List<Pair<Type,Type>>> applyZip(Pair<Type, Type> zippedPair, List<Type> parameters, TypeScope scope) {
+        return applyZip(TailZip.right(new ArrayList<>(), new ArrayList<>(parameters)), scope)
+            .zip((zippedParameters, remainingParameters) -> {
+                if (remainingParameters.isEmpty()) {
+                    return Optional.of(new ArrayList<Pair<Type, Type>>() {{
+                        add(zippedPair);
+                        addAll(zippedParameters);
+                    }});
+                } else {
+                    throw new UnsupportedOperationException();
+                }
+            });
+    }
+
+    public HeadZip applyZipWith(SumType sumType, TypeScope scope) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    private TailZip applyZip(TailZip zip, TypeScope scope) {
+        return zip.next((Type parameter) -> zip_(parameter, scope));
     }
 
     @Override
@@ -109,6 +132,17 @@ public abstract class Type {
         return generate(scope).unify_(type.generate(scope), scope);
     }
 
+    public Optional<Map<Type, Type>> zip(Type other, TypeScope scope) {
+        return generate(scope).zip_(other.generate(scope), scope)
+            .map(list -> {
+                Map<Type, Type> map = new HashMap<>();
+                list.stream()
+                    .map(pair -> pair.into((key, value) -> pair(key.simplify(), value)))
+                    .forEach(pair -> pair.into(map::put));
+                return map;
+            });
+    }
+
     protected abstract boolean contains(VariableType type);
 
     protected Type flatten(List<Type> types) {
@@ -159,4 +193,22 @@ public abstract class Type {
     protected abstract Unification unifyWith(SumType target, TypeScope scope);
 
     protected abstract Unification unify_(Type type, TypeScope scope);
+
+    protected Optional<List<Pair<Type,Type>>> zipWith(ConstructorType target, TypeScope scope) {
+        return Optional.empty();
+    }
+
+    protected Optional<List<Pair<Type, Type>>> zipWith(FunctionType target, TypeScope scope) {
+        return Optional.empty();
+    }
+
+    protected Optional<List<Pair<Type, Type>>> zipWith(SumType target, TypeScope scope) {
+        return Optional.empty();
+    }
+
+    protected Optional<List<Pair<Type, Type>>> zipWith(VariableType target, TypeScope scope) {
+        return Optional.of(ImmutableList.of(pair(target, this)));
+    }
+
+    protected abstract Optional<List<Pair<Type, Type>>> zip_(Type other, TypeScope scope);
 }

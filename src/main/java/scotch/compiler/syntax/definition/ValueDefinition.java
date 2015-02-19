@@ -30,7 +30,7 @@ import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Either;
 
 @AllArgsConstructor(access = PACKAGE)
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class ValueDefinition extends Definition {
 

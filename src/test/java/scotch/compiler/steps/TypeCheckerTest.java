@@ -3,10 +3,12 @@ package scotch.compiler.steps;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.compiler.symbol.Unification.mismatch;
 import static scotch.compiler.symbol.type.Types.fn;
+import static scotch.compiler.symbol.type.Types.instance;
 import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.symbol.type.Types.t;
+import static scotch.compiler.symbol.type.Types.var;
+import static scotch.compiler.symbol.type.Unification.mismatch;
 import static scotch.compiler.syntax.StubResolver.defaultBind;
 import static scotch.compiler.syntax.StubResolver.defaultEither;
 import static scotch.compiler.syntax.StubResolver.defaultEq;
@@ -49,6 +51,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import scotch.compiler.Compiler;
 import scotch.compiler.ParserTest;
+import scotch.compiler.symbol.type.InstanceType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
@@ -201,7 +204,7 @@ public class TypeCheckerTest extends ParserTest {
             "import scotch.data.num",
             "four = 2 + 2"
         );
-        Type numType = null;
+        InstanceType numType = instance("scotch.data.num.Num", t(32));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.four", apply(
             apply(
@@ -229,8 +232,8 @@ public class TypeCheckerTest extends ParserTest {
         shouldNotHaveErrors();
         Type bool = sum("scotch.data.bool.Bool");
         Type t = t(27, asList("scotch.data.num.Num", "scotch.data.eq.Eq"));
-        Type numType = null;
-        Type eqType = null;
+        InstanceType numType = instance("scotch.data.num.Num", t(27));
+        InstanceType eqType = instance("scotch.data.eq.Eq", t(27));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fn", fn(
             "scotch.test.(fn#0)",
@@ -286,8 +289,8 @@ public class TypeCheckerTest extends ParserTest {
         );
         Type t = t(12, asList("scotch.data.eq.Eq", "scotch.data.num.Num"));
         Type bool = sum("scotch.data.bool.Bool");
-        Type numType = null;
-        Type eqType = null;
+        InstanceType numType = instance("scotch.data.num.Num", t(12));
+        InstanceType eqType = instance("scotch.data.eq.Eq", t(12));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.(commutative?)", fn(
             "scotch.test.(commutative?#0)",
@@ -329,12 +332,12 @@ public class TypeCheckerTest extends ParserTest {
                 apply(
                     method(
                         "scotch.data.num.(+)",
-                        asList(null),
-                        fn(null, fn(intType, fn(intType, intType)))
+                        asList(instance("scotch.data.num.Num", var("a"))),
+                        fn(instance("scotch.data.num.Num", intType), fn(intType, fn(intType, intType)))
                     ),
                     instance(
                         instanceRef("scotch.data.num", "scotch.data.num.Num", asList(intType)),
-                        null
+                        instance("scotch.data.num.Num", intType)
                     ),
                     fn(intType, fn(intType, intType))
                 ),
@@ -355,7 +358,7 @@ public class TypeCheckerTest extends ParserTest {
         );
         String num = "scotch.data.num.Num";
         Type t = t(14, asList(num));
-        Type instance = null;
+        InstanceType instance = instance(num, t(14));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fn", fn(
             "scotch.test.(fn#0)",
@@ -385,7 +388,7 @@ public class TypeCheckerTest extends ParserTest {
         );
         String num = "scotch.data.num.Num";
         Type t = t(10, asList(num));
-        Type instance = null;
+        InstanceType instance = instance(num, t(10));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fn", fn(
             "scotch.test.(fn#0)",
@@ -415,7 +418,7 @@ public class TypeCheckerTest extends ParserTest {
             "result = fn 3 2"
         );
         String num = "scotch.data.num.Num";
-        Type instance = null;
+        InstanceType instance = instance(num, t(16));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.result", apply(
             apply(
@@ -478,7 +481,7 @@ public class TypeCheckerTest extends ParserTest {
             "import scotch.data.eq", // TODO this should not require an import
             "fib 0 = 0"
         );
-        Type instance = null;
+        InstanceType instance = instance("scotch.data.eq.Eq", intType);
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fib", fn(
             "scotch.test.fib#0",
@@ -503,17 +506,39 @@ public class TypeCheckerTest extends ParserTest {
         ));
     }
 
-    @Ignore("VariableSum unifying in ways it shouldn't be")
+    @Test
+    public void shouldGetTypeOfRight() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.either",
+            "run = Right 1"
+        );
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.run", sum("scotch.data.either.Either", t(4), intType));
+    }
+
+    @Test
+    public void shouldGetTypeOfLeft() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.either",
+            "run = Left \"Albuquerque\""
+        );
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.run", sum("scotch.data.either.Either", stringType, t(4)));
+    }
+
+    @Ignore("Type inferencing still sucks :(")
     @Test
     public void bindShouldGiveEitherOfStringAndString() {
         parse(
             "module scotch.test",
             "import scotch.control.monad",
             "import scotch.data.either",
-            "run = Right \"Yes\" >>= \\which -> Left \"No\""
+            "run = Right 1 >>= \\i -> Left \"Oops\""
         );
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.run", sum("scotch.data.either.Either", stringType, stringType));
+        shouldHaveValue("scotch.test.run", sum("scotch.data.either.Either", stringType, intType));
     }
 
     @Test
@@ -585,6 +610,6 @@ public class TypeCheckerTest extends ParserTest {
             // monad
             .define(defaultMonad())
             .define(defaultBind())
-            .define(defaultMonadOf(sum("scotch.data.either.Either", sum("scotch.data.string.String"))));
+            .define(defaultMonadOf(sum("scotch.data.either.Either", var("a"))));
     }
 }

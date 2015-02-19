@@ -167,7 +167,7 @@ public class DefinitionGraph {
     }
 
     @AllArgsConstructor(access = PRIVATE)
-    @EqualsAndHashCode
+    @EqualsAndHashCode(callSuper = false)
     @ToString
     public static class CyclicDependencyError extends SyntaxError {
 

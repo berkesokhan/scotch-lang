@@ -196,7 +196,7 @@ public class BytecodeGeneratorTest {
         );
     }
 
-    @Ignore("Results lambda instead of Either :(")
+    @Ignore("Type inferencing still sucks :(")
     @Test
     public void shouldCompileBind() {
         Callable<Either> result = exec(
