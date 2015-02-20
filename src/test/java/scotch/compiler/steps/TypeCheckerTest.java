@@ -182,7 +182,7 @@ public class TypeCheckerTest extends ParserTest {
             "import scotch.data.num",
             "add a b = a + b"
         );
-        Type a = t(14, asList("scotch.data.num.Num"));
+        Type a = t(11, asList("scotch.data.num.Num"));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.add", fn(a, fn(a, a)));
     }
@@ -193,7 +193,7 @@ public class TypeCheckerTest extends ParserTest {
             "module scotch.test",
             "apply = \\x y -> x y"
         );
-        shouldHaveValue("scotch.test.apply", fn(fn(t(2), t(6)), fn(t(2), t(6))));
+        shouldHaveValue("scotch.test.apply", fn(fn(t(2), t(5)), fn(t(2), t(5))));
     }
 
     @Test
@@ -231,9 +231,9 @@ public class TypeCheckerTest extends ParserTest {
         );
         shouldNotHaveErrors();
         Type bool = sum("scotch.data.bool.Bool");
-        Type t = t(27, asList("scotch.data.num.Num", "scotch.data.eq.Eq"));
-        InstanceType numType = instance("scotch.data.num.Num", t(27));
-        InstanceType eqType = instance("scotch.data.eq.Eq", t(27));
+        Type t = t(17, asList("scotch.data.num.Num", "scotch.data.eq.Eq"));
+        InstanceType numType = instance("scotch.data.num.Num", t(17));
+        InstanceType eqType = instance("scotch.data.eq.Eq", t(17));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fn", fn(
             "scotch.test.(fn#0)",
@@ -357,8 +357,8 @@ public class TypeCheckerTest extends ParserTest {
             "fn a b = a + b"
         );
         String num = "scotch.data.num.Num";
-        Type t = t(14, asList(num));
-        InstanceType instance = instance(num, t(14));
+        Type t = t(11, asList(num));
+        InstanceType instance = instance(num, t(11));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fn", fn(
             "scotch.test.(fn#0)",
@@ -387,8 +387,8 @@ public class TypeCheckerTest extends ParserTest {
             "fn = \\x y -> x + y"
         );
         String num = "scotch.data.num.Num";
-        Type t = t(10, asList(num));
-        InstanceType instance = instance(num, t(10));
+        Type t = t(7, asList(num));
+        InstanceType instance = instance(num, t(7));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fn", fn(
             "scotch.test.(fn#0)",
@@ -467,7 +467,7 @@ public class TypeCheckerTest extends ParserTest {
             "    a g = g + g",
             "  f 2"
         );
-        Type num = t(23, asList("scotch.data.num.Num"));
+        Type num = t(20, asList("scotch.data.num.Num"));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.main", t(0));
         shouldHaveValue("scotch.test.(main#f)", fn(intType(), intType()));

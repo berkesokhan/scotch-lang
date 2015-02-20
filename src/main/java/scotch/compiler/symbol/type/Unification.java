@@ -76,6 +76,10 @@ public abstract class Unification {
         return this;
     }
 
+    public Unification mapType(Function<Type, Type> function) {
+        return this;
+    }
+
     public Type orElseGet(Function<Unification, Type> function) {
         return function.apply(this);
     }
@@ -230,6 +234,11 @@ public abstract class Unification {
         @Override
         public Unification map(Function<? super Type, ? extends Unification> function) {
             return function.apply(unifiedType);
+        }
+
+        @Override
+        public Unification mapType(Function<Type, Type> function) {
+            return unified(function.apply(unifiedType));
         }
 
         @Override

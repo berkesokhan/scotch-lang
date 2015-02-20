@@ -19,8 +19,8 @@ import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
+import scotch.compiler.symbol.type.FunctionType;
 import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.type.Unification;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
@@ -55,30 +55,15 @@ public class Apply extends Value {
 
     @Override
     public Value checkTypes(TypeChecker state) {
-        Value function = this.function.checkTypes(state);
-        Value argument = this.argument.checkTypes(state);
-        Type result = state.reserveType();
-        Unification unification = fn(argument.getType(), result).unify(function.getType(), state.scope());
-        if (unification.isUnified()) {
-            Value typedFunction = function.withType(state.generate(function.getType()));
-            Value typedArgument = argument.withType(state.generate(argument.getType()));
-            Type typedResult = state.generate(result);
-            Unification typedUnification = fn(typedArgument.getType(), typedResult).unify(typedFunction.getType(), state.scope());
-            if (typedUnification.isUnified()) {
-                Type argumentType = state.generate(typedArgument.getType());
-                Type resultType = state.generate(typedResult);
-                Type functionType = fn(argumentType, resultType);
-                return withFunction(typedFunction.withType(functionType))
-                    .withArgument(typedArgument.withType(argumentType))
-                    .withType(resultType);
-            } else {
-                state.error(typeError(typedUnification.flip(), argument.getSourceRange()));
-                return withType(typedResult);
-            }
-        } else {
-            state.error(typeError(unification.flip(), argument.getSourceRange()));
-            return withType(result);
-        }
+        Value checkedFunction = function.checkTypes(state);
+        Value checkedArgument = argument.checkTypes(state);
+        return new Apply(sourceRange, checkedFunction, checkedArgument, fn(checkedArgument.getType(), type)
+            .unify(checkedFunction.getType(), state.scope())
+                .mapType(t -> ((FunctionType) t).getResult())
+                .orElseGet(unification -> {
+                    state.error(typeError(unification.flip(), checkedArgument.getSourceRange()));
+                    return type;
+                }));
     }
 
     @Override
