@@ -478,7 +478,6 @@ public class TypeCheckerTest extends ParserTest {
     public void shouldBindMethodsInEqualMatch() {
         parse(
             "module scotch.test",
-            "import scotch.data.eq", // TODO this should not require an import
             "fib 0 = 0"
         );
         InstanceType instance = instance("scotch.data.eq.Eq", intType);
