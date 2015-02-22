@@ -196,7 +196,6 @@ public class BytecodeGeneratorTest {
         );
     }
 
-    @Ignore("Type inferencing still sucks :(")
     @Test
     public void shouldCompileBind() {
         Callable<Either> result = exec(
