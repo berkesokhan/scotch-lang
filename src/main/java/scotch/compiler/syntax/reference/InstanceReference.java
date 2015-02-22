@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.ToString;
 import scotch.compiler.symbol.TypeParameterDescriptor;
 
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class InstanceReference extends DefinitionReference {
 

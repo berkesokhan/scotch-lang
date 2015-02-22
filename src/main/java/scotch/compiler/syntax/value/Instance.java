@@ -16,7 +16,7 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.reference.InstanceReference;
 import scotch.compiler.text.SourceRange;
 
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
 public class Instance extends Value {
 
