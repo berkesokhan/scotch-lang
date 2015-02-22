@@ -3,9 +3,9 @@ package scotch.data.maybe;
 import static java.util.Arrays.asList;
 import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.symbol.type.Types.var;
+import static scotch.data.maybe.Maybe.just;
 import static scotch.data.maybe.Maybe.nothing;
 import static scotch.runtime.RuntimeUtil.callable;
-import static scotch.runtime.RuntimeUtil.flatCallable;
 
 import java.util.List;
 import scotch.compiler.symbol.InstanceGetter;
@@ -16,9 +16,9 @@ import scotch.control.monad.Monad;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 
-@SuppressWarnings("unused")
+@SuppressWarnings({ "unused", "unchecked" })
 @TypeInstance(typeClass = "scotch.control.monad.Monad")
-public class MonadMaybe<A2> implements Monad<Maybe<A2>> {
+public class MonadMaybe implements Monad {
 
     private static final Callable<MonadMaybe> INSTANCE = callable(MonadMaybe::new);
 
@@ -28,7 +28,7 @@ public class MonadMaybe<A2> implements Monad<Maybe<A2>> {
 
     @SuppressWarnings("unchecked")
     @InstanceGetter
-    public static <A> Callable<MonadMaybe<A>> instance() {
+    public static Callable<MonadMaybe> instance() {
         return (Callable) INSTANCE;
     }
 
@@ -37,23 +37,18 @@ public class MonadMaybe<A2> implements Monad<Maybe<A2>> {
         return asList(sum("scotch.data.either.Either", var("a")));
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <A, Mb> Callable<Mb> bind(Callable<Maybe<A2>> ma, Applicable<A, Mb> function) {
-        return flatCallable(() -> ma.call().map((Applicable) function));
+    public Callable bind(Callable value, Applicable transformer) {
+        return callable(() -> ((Maybe) value).map(transformer));
     }
 
     @Override
-    public Callable<Maybe<A2>> fail(Callable<String> message) {
+    public Callable fail(Callable message) {
         return nothing();
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <A> Callable<Maybe<A2>> wrap(Callable<A> a) {
-        return flatCallable(() -> {
-            Callable<A2> a2 = (Callable<A2>) a;
-            return Maybe.<A2>just().apply(a2);
-        });
+    public Callable wrap(Callable value) {
+        return callable(() -> just().apply(value));
     }
 }

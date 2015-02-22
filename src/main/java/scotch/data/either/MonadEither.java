@@ -3,8 +3,9 @@ package scotch.data.either;
 import static java.util.Arrays.asList;
 import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.symbol.type.Types.var;
+import static scotch.data.either.Either.left;
+import static scotch.data.either.Either.right;
 import static scotch.runtime.RuntimeUtil.callable;
-import static scotch.runtime.RuntimeUtil.flatCallable;
 
 import java.util.List;
 import scotch.compiler.symbol.InstanceGetter;
@@ -15,15 +16,14 @@ import scotch.control.monad.Monad;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 
-@SuppressWarnings("unused")
+@SuppressWarnings({ "unused", "unchecked" })
 @TypeInstance(typeClass = "scotch.control.monad.Monad")
-public class MonadEither<B> implements Monad<Either<String, B>> {
+public class MonadEither implements Monad {
 
     private static final Callable<MonadEither> INSTANCE = callable(MonadEither::new);
 
-    @SuppressWarnings("unchecked")
     @InstanceGetter
-    public static <B> Callable<MonadEither<B>> instance() {
+    public static Callable<MonadEither> instance() {
         return (Callable) INSTANCE;
     }
 
@@ -34,21 +34,18 @@ public class MonadEither<B> implements Monad<Either<String, B>> {
         );
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <A, Mb> Callable<Mb> bind(Callable<Either<String, B>> ma, Applicable<A, Mb> function) {
-        return callable(() -> (Mb) ma.call().map((Applicable) function));
+    public Callable bind(Callable value, Applicable transformer) {
+        return callable(() -> transformer.apply(value));
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public Callable<Either<String, B>> fail(Callable<String> message) {
-        return flatCallable(() -> Either.<String, B>left().apply((Callable) message));
+    public Callable fail(Callable message) {
+        return callable(() -> left().apply(message));
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <A> Callable<Either<String, B>> wrap(Callable<A> a) {
-        return flatCallable(() -> Either.<String, B>right().apply((Callable) a));
+    public Callable wrap(Callable value) {
+        return callable(() -> right().apply(value));
     }
 }

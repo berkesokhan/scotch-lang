@@ -4,13 +4,12 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.compiler.util.TestUtil.exec;
 import static scotch.data.either.Either.left;
-import static scotch.runtime.RuntimeUtil.callable;
 
 import java.lang.reflect.Method;
 import org.junit.Ignore;
 import org.junit.Test;
 import scotch.compiler.error.CompileException;
-import scotch.compiler.util.Either;
+import scotch.data.either.Either.Left;
 import scotch.runtime.Callable;
 
 public class BytecodeGeneratorTest {
@@ -198,13 +197,13 @@ public class BytecodeGeneratorTest {
 
     @Test
     public void shouldCompileBind() {
-        Callable<Either> result = exec(
+        Left result = exec(
             "module scotch.test",
             "import scotch.control.monad",
             "import scotch.data.either",
             "run = Right \"Yes\" >>= \\which -> Left 0"
         );
-        assertThat(result.call(), is(left().apply(callable(() -> "0")).call()));
+        assertThat(result, is(left(0)));
     }
 
     @Ignore
