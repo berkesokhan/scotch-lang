@@ -59,6 +59,14 @@ public class Token {
         return sourceRange.getStart();
     }
 
+    public int getStartOffset() {
+        return sourceRange.getStartOffset();
+    }
+
+    public int getEndOffset() {
+        return sourceRange.getEndOffset();
+    }
+
     public Object getValue() {
         return value;
     }
@@ -79,6 +87,10 @@ public class Token {
     @Override
     public String toString() {
         return kind + "(" + quote(value) + ")";
+    }
+
+    public Token withKind(TokenKind kind) {
+        return new Token(sourceRange, kind, value);
     }
 
     public enum TokenKind {

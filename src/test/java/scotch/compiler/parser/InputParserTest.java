@@ -523,6 +523,22 @@ public class InputParserTest extends ParserTest {
                             fieldDef("value", var("b", asList("Eq"))))))));
     }
 
+    @Test
+    public void shouldParseDot() {
+        parse(
+            "module scotch.test",
+            "val = (f . g) x"
+        );
+        shouldHaveValue("scotch.test.val", unshuffled(
+            unshuffled(
+                id("f", t(1)),
+                id(".", t(2)),
+                id("g", t(3))
+            ),
+            id("x", t(4))
+        ));
+    }
+
     private void shouldHaveDataType(String name, DataTypeDefinition value) {
         assertThat(graph.getDefinition(dataRef(name)).get(), is(value));
     }

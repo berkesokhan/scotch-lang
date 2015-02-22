@@ -53,12 +53,20 @@ public class SourceRange {
         return end.withSourceName(sourceName);
     }
 
+    public int getEndOffset() {
+        return end.getOffset();
+    }
+
     public String getSourceName() {
         return sourceName;
     }
 
     public NamedSourcePoint getStart() {
         return start.withSourceName(sourceName);
+    }
+
+    public int getStartOffset() {
+        return start.getOffset();
     }
 
     public SourceRange getStartRange() {

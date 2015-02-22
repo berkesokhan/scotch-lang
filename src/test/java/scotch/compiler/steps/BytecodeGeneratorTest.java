@@ -167,9 +167,9 @@ public class BytecodeGeneratorTest {
     public void equivalentDataShouldHaveSameHashCode() {
         boolean result = exec(
             "module scotch.test",
-            "import scotch.function",
             "import scotch.java",
             "import scotch.data.eq",
+            "import scotch.data.function",
             "",
             "data Thing a { value a }",
             "",

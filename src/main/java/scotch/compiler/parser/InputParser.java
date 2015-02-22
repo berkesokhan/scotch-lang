@@ -1122,6 +1122,20 @@ public class InputParser {
                         break;
                     }
                 }
+                identifyComposes();
+            }
+        }
+
+        private void identifyComposes() {
+            for (int i = 1; i < tokens.size() - 1; i++) {
+                Token token = tokens.get(i);
+                if (token.is(DOT)) {
+                    Token previous = tokens.get(i - 1);
+                    Token next = tokens.get(i + 1);
+                    if (token.getStartOffset() > previous.getEndOffset() && token.getEndOffset() < next.getStartOffset()) {
+                        tokens.set(i, token.withKind(IDENTIFIER));
+                    }
+                }
             }
         }
     }
