@@ -29,6 +29,11 @@ public class InstanceType extends Type {
     }
 
     @Override
+    public Type flatten() {
+        return withBinding(binding.flatten());
+    }
+
+    @Override
     public Type generate(TypeScope scope, Set<Type> visited) {
         return withBinding(binding.generate(scope, visited));
     }

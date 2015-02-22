@@ -1,73 +1,51 @@
 package scotch.compiler.symbol;
 
-import static java.util.stream.Collectors.joining;
-import static scotch.util.StringUtil.stringify;
+import static java.util.stream.Collectors.toList;
 
 import java.util.List;
-import java.util.Objects;
+import com.google.common.collect.ImmutableList;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.symbol.type.Type;
 
+@EqualsAndHashCode
+@ToString
 public class TypeInstanceDescriptor {
 
-    public static TypeInstanceDescriptor typeInstance(String moduleName, Symbol typeClass, List<Type> arguments, MethodSignature instanceGetter) {
-        return new TypeInstanceDescriptor(moduleName, typeClass, arguments, instanceGetter);
+    public static TypeInstanceDescriptor typeInstance(String moduleName, Symbol typeClass, List arguments, MethodSignature instanceGetter) {
+        return new TypeInstanceDescriptor(moduleName, typeClass, parameterize(arguments), instanceGetter);
     }
 
-    private final String          moduleName;
-    private final Symbol          typeClass;
-    private final List<Type>      parameters;
-    private final MethodSignature instanceGetter;
-
-    private TypeInstanceDescriptor(String moduleName, Symbol typeClass, List<Type> parameters, MethodSignature instanceGetter) {
-        this.moduleName = moduleName;
-        this.typeClass = typeClass;
-        this.parameters = parameters;
-        this.instanceGetter = instanceGetter;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof TypeInstanceDescriptor) {
-            TypeInstanceDescriptor other = (TypeInstanceDescriptor) o;
-            return Objects.equals(moduleName, other.moduleName)
-                && Objects.equals(typeClass, other.typeClass)
-                && Objects.equals(parameters, other.parameters)
-                && Objects.equals(instanceGetter, other.instanceGetter);
+    @SuppressWarnings("unchecked")
+    private static List<TypeParameterDescriptor> parameterize(List arguments) {
+        if (arguments.size() == 0) {
+            return ImmutableList.of();
+        } else if (arguments.get(0) instanceof TypeParameter) {
+            return arguments;
+        } else if (arguments.get(0) instanceof Type) {
+            return ((List<Type>) arguments).stream()
+                .map(TypeParameterDescriptor::typeParam)
+                .collect(toList());
         } else {
-            return false;
+            throw new IllegalArgumentException();
         }
     }
 
-    public String getModuleName() {
-        return moduleName;
-    }
+    @Getter private final String                        moduleName;
+    @Getter private final Symbol                        typeClass;
+    @Getter private final List<TypeParameterDescriptor> parameters;
+    private final         MethodSignature               instanceGetter;
 
-    public List<Type> getParameters() {
-        return parameters;
-    }
-
-    public Symbol getTypeClass() {
-        return typeClass;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(moduleName, typeClass, parameters, instanceGetter);
+    private TypeInstanceDescriptor(String moduleName, Symbol typeClass, List<TypeParameterDescriptor> parameters, MethodSignature instanceGetter) {
+        this.moduleName = moduleName;
+        this.typeClass = typeClass;
+        this.parameters = ImmutableList.copyOf(parameters);
+        this.instanceGetter = instanceGetter;
     }
 
     public CodeBlock reference() {
         return instanceGetter.reference();
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this) + "("
-            + moduleName + ":" + typeClass.getCanonicalName()
-            + ", ["
-            + parameters.stream().map(Type::toString).collect(joining(", "))
-            + "])";
     }
 }

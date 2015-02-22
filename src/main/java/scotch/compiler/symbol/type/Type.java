@@ -67,7 +67,7 @@ public abstract class Type {
             });
     }
 
-    public HeadZip applyZipWith(SumType sumType, TypeScope scope) {
+    public HeadZip applyZipWith(SumType type, TypeScope scope) {
         throw new UnsupportedOperationException(); // TODO
     }
 
@@ -78,9 +78,7 @@ public abstract class Type {
     @Override
     public abstract boolean equals(Object o);
 
-    public Type flatten() {
-        return this;
-    }
+    public abstract Type flatten();
 
     public Type generate(TypeScope scope) {
         return generate(scope, new HashSet<>());

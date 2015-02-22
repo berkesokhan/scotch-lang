@@ -30,7 +30,6 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.Definition;
-import scotch.compiler.syntax.definition.Definitions;
 import scotch.compiler.syntax.reference.ScopeReference;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Either;

@@ -57,11 +57,6 @@ public class ValueSignature extends Definition {
     }
 
     @Override
-    public Definition bindTypes(TypeChecker state) {
-        return withType(state.generate(type));
-    }
-
-    @Override
     public Definition checkTypes(TypeChecker state) {
         return state.scoped(this, () -> {
             state.redefine(this);

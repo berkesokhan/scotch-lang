@@ -54,11 +54,6 @@ public class ClassDefinition extends Definition {
     }
 
     @Override
-    public Definition bindTypes(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
     public Definition defineOperators(OperatorAccumulator state) {
         return state.keep(this);
     }

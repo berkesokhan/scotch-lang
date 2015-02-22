@@ -5,6 +5,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static scotch.compiler.symbol.Symbol.symbol;
+import static scotch.compiler.symbol.type.Types.fn;
+import static scotch.compiler.symbol.type.Types.t;
 import static scotch.compiler.symbol.type.Unification.mismatch;
 import static scotch.compiler.symbol.type.Unification.unified;
 import static scotch.compiler.symbol.type.Types.ctor;
@@ -36,6 +38,11 @@ public class ConstructorTypeTest {
     @Test
     public void constructorWithVariableHeadShouldNotFlatten() {
         assertThat(ctor(var("m"), var("a")).flatten(), is(ctor(var("m"), var("a"))));
+    }
+
+    @Test
+    public void shouldFlattenSubConstructors() {
+        assertThat(fn(var("a"), ctor(sum("List"), var("a"))).flatten(), is(fn(var("a"), sum("List", var("a")))));
     }
 
     @Test
@@ -79,5 +86,15 @@ public class ConstructorTypeTest {
                 put(var("m"), sum("Either", sum("String")));
                 put(var("a"), var("x"));
             }})));
+    }
+
+    @Test
+    public void shouldReplaceConstructorsWithSumsAsTheyAreInferenced() {
+        scope.implement(symbol("Monad"), sum("Either", var("a")));
+        Type function = fn(ctor(t(9, asList("Monad")), t(10)), fn(fn(t(10), ctor(t(9, asList("Monad")), t(11))), ctor(t(9, asList("Monad")), t(11))));
+        Unification unification = fn(sum("Either", t(13), sum("Int")), t(6)).unify(function, scope);
+        assertThat(unification.map(t -> unified(scope.generate(t))), is(unified(
+            fn(sum("Either", t(13), sum("Int")), fn(fn(sum("Int"), sum("Either", t(13), t(11))), sum("Either", t(13), t(11))))
+        )));
     }
 }

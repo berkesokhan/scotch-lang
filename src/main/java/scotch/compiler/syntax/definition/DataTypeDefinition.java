@@ -68,11 +68,6 @@ public class DataTypeDefinition extends Definition {
     }
 
     @Override
-    public Definition bindTypes(TypeChecker state) {
-        return state.keep(this);
-    }
-
-    @Override
     public Definition checkTypes(TypeChecker state) {
         return state.keep(this);
     }

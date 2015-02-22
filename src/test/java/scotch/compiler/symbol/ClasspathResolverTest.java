@@ -57,27 +57,6 @@ public class ClasspathResolverTest {
     }
 
     @Test
-    public void shouldResolveJavaTypeInstancesByClass() {
-        assertThat(resolver.getTypeInstancesByClass(symbol("scotch.data.num.Num")), hasItem(typeInstance(
-            "scotch.data.num",
-            "scotch.data.num.Num",
-            asList(intType()),
-            MethodSignature.fromMethod(NumInt.class, "instance")
-        )));
-    }
-
-    @Test
-    public void shouldResolveJavaTypeInstancesByType() {
-        resolver.getEntry(symbol("scotch.data.num.Num")); // force loading of module containing instance
-        assertThat(resolver.getTypeInstancesByArguments(asList(intType())), hasItem(typeInstance(
-            "scotch.data.num",
-            "scotch.data.num.Num",
-            asList(intType()),
-            MethodSignature.fromMethod(NumInt.class, "instance")
-        )));
-    }
-
-    @Test
     public void shouldResolveJavaTypeInstanceByClassAndType() {
         assertThat(resolver.getTypeInstances(symbol("scotch.data.num.Num"), asList(intType())), hasItem(typeInstance(
             "scotch.data.num",

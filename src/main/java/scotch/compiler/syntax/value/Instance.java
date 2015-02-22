@@ -1,8 +1,9 @@
 package scotch.compiler.syntax.value;
 
-import static scotch.util.StringUtil.stringify;
+import static java.util.stream.Collectors.toList;
 
-import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
@@ -15,6 +16,8 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.reference.InstanceReference;
 import scotch.compiler.text.SourceRange;
 
+@EqualsAndHashCode
+@ToString
 public class Instance extends Value {
 
     private final SourceRange       sourceRange;
@@ -63,25 +66,13 @@ public class Instance extends Value {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof Instance) {
-            Instance other = (Instance) o;
-            return Objects.equals(sourceRange, other.sourceRange)
-                && Objects.equals(reference, other.reference)
-                && Objects.equals(type, other.type);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
         return state.getTypeInstance(
             reference.getClassReference(),
             reference.getModuleReference(),
-            reference.getTypes()
+            reference.getParameters().stream()
+                .map(parameter -> parameter.reify(state.scope()))
+                .collect(toList())
         ).reference();
     }
 
@@ -96,18 +87,8 @@ public class Instance extends Value {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(reference, type);
-    }
-
-    @Override
     public Value qualifyNames(NameQualifier state) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this) + "(" + reference + ")";
     }
 
     @Override

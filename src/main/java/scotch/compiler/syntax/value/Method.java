@@ -76,7 +76,6 @@ public class Method extends Value {
         return result;
     }
 
-
     @Override
     public Value bindTypes(TypeChecker state) {
         return withType(state.generate(type));

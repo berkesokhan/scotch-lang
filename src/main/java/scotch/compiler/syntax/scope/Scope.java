@@ -120,8 +120,8 @@ public abstract class Scope implements TypeScope {
 
     public abstract TypeClassDescriptor getTypeClass(ClassReference classRef);
 
-    public TypeInstanceDescriptor getTypeInstance(ClassReference classReference, ModuleReference moduleReference, List<Type> types) {
-        return getTypeInstances(classReference.getSymbol(), types).stream()
+    public TypeInstanceDescriptor getTypeInstance(ClassReference classReference, ModuleReference moduleReference, List<Type> parameters) {
+        return getTypeInstances(classReference.getSymbol(), parameters).stream()
             .filter(instance -> moduleReference.is(instance.getModuleName()))
             .findFirst()
             .orElseThrow(UnsupportedOperationException::new);

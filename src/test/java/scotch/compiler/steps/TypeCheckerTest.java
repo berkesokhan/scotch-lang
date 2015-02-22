@@ -3,6 +3,7 @@ package scotch.compiler.steps;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static scotch.compiler.symbol.TypeParameterDescriptor.typeParam;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.symbol.type.Types.instance;
 import static scotch.compiler.symbol.type.Types.sum;
@@ -47,7 +48,6 @@ import static scotch.compiler.util.TestUtil.stringType;
 
 import java.util.List;
 import java.util.function.Function;
-import org.junit.Ignore;
 import org.junit.Test;
 import scotch.compiler.Compiler;
 import scotch.compiler.ParserTest;
@@ -210,7 +210,7 @@ public class TypeCheckerTest extends ParserTest {
             apply(
                 apply(
                     method("scotch.data.num.(+)", asList(numType), fn(numType, fn(intType, fn(intType, intType)))),
-                    instance(instanceRef("scotch.data.num", "scotch.data.num.Num", asList(intType)), numType),
+                    instance(instanceRef("scotch.data.num", "scotch.data.num.Num", asList(typeParam(intType))), numType),
                     fn(intType, fn(intType, intType))
                 ),
                 literal(2),
@@ -336,7 +336,7 @@ public class TypeCheckerTest extends ParserTest {
                         fn(instance("scotch.data.num.Num", intType), fn(intType, fn(intType, intType)))
                     ),
                     instance(
-                        instanceRef("scotch.data.num", "scotch.data.num.Num", asList(intType)),
+                        instanceRef("scotch.data.num", "scotch.data.num.Num", asList(typeParam(intType))),
                         instance("scotch.data.num.Num", intType)
                     ),
                     fn(intType, fn(intType, intType))
@@ -424,7 +424,7 @@ public class TypeCheckerTest extends ParserTest {
             apply(
                 apply(
                     method("scotch.test.fn", asList(instance), fn(instance, fn(intType, fn(intType, intType)))),
-                    instance(instanceRef("scotch.data.num", "scotch.data.num.Num", asList(intType)), instance),
+                    instance(instanceRef("scotch.data.num", "scotch.data.num.Num", asList(typeParam((intType)))), instance),
                     fn(intType, fn(intType, intType))
                 ),
                 literal(3),
@@ -491,7 +491,7 @@ public class TypeCheckerTest extends ParserTest {
                     apply(
                         apply(
                             method("scotch.data.eq.(==)", asList(instance), fn(instance, fn(intType, fn(intType, boolType)))),
-                            instance(instanceRef("scotch.data.eq", "scotch.data.eq.Eq", asList(intType)), instance),
+                            instance(instanceRef("scotch.data.eq", "scotch.data.eq.Eq", asList(typeParam(intType))), instance),
                             fn(intType, fn(intType, boolType))
                         ),
                         arg("#0", intType),
@@ -527,9 +527,8 @@ public class TypeCheckerTest extends ParserTest {
         shouldHaveValue("scotch.test.run", sum("scotch.data.either.Either", stringType, t(4)));
     }
 
-    @Ignore("Type inferencing still sucks :(")
     @Test
-    public void bindShouldGiveEitherOfStringAndString() {
+    public void bindShouldGiveEitherOfStringAndSomething() {
         parse(
             "module scotch.test",
             "import scotch.control.monad",
@@ -537,7 +536,7 @@ public class TypeCheckerTest extends ParserTest {
             "run = Right 1 >>= \\i -> Left \"Oops\""
         );
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.run", sum("scotch.data.either.Either", stringType, intType));
+        shouldHaveValue("scotch.test.run", sum("scotch.data.either.Either", stringType, t(15)));
     }
 
     @Test

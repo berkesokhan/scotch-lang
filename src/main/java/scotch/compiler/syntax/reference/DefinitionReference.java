@@ -2,6 +2,7 @@ package scotch.compiler.syntax.reference;
 
 import java.util.List;
 import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.TypeParameterDescriptor;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
 
@@ -17,8 +18,8 @@ public abstract class DefinitionReference {
         return new DataReference(symbol);
     }
 
-    public static InstanceReference instanceRef(ClassReference classReference, ModuleReference moduleReference, List<Type> types) {
-        return new InstanceReference(classReference, moduleReference, types);
+    public static InstanceReference instanceRef(ClassReference classReference, ModuleReference moduleReference, List<TypeParameterDescriptor> parameters) {
+        return new InstanceReference(classReference, moduleReference, parameters);
     }
 
     public static InstanceReference instanceRef(TypeInstanceDescriptor descriptor) {

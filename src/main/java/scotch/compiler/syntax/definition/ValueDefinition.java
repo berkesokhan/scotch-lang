@@ -73,11 +73,6 @@ public class ValueDefinition extends Definition {
     }
 
     @Override
-    public Definition bindTypes(TypeChecker state) {
-        return withBody(body.bindTypes(state)).withType(state.generate(type));
-    }
-
-    @Override
     public Definition checkTypes(TypeChecker state) {
         return state.enclose(this, () -> {
             Value checkedBody = body.checkTypes(state);

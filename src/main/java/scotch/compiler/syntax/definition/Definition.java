@@ -38,8 +38,6 @@ public abstract class Definition implements Scoped {
         return left(this);
     }
 
-    public abstract Definition bindTypes(TypeChecker state);
-
     public abstract Definition checkTypes(TypeChecker state);
 
     public abstract Definition defineOperators(OperatorAccumulator state);

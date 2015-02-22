@@ -37,9 +37,9 @@ public abstract class Value {
         return Optional.empty();
     }
 
-    public abstract Value bindMethods(TypeChecker state);
-
     public abstract Value bindTypes(TypeChecker state);
+
+    public abstract Value bindMethods(TypeChecker state);
 
     public abstract Value checkTypes(TypeChecker state);
 

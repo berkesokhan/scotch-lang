@@ -52,8 +52,10 @@ public class VariableType extends Type {
         Symbol typeClass = context.iterator().next();
         for (int i = 0; i <= type.getParameters().size(); i++) {
             List<Type> parameters = type.getParameters().subList(0, i);
-            if (scope.isImplemented(typeClass, type.withParameters(parameters))) {
-                return HeadApplication.right(type.withParameters(parameters), type.getParameters().subList(i, type.getParameters().size()));
+            SumType head = type.withParameters(parameters);
+            if (scope.isImplemented(typeClass, head)) {
+                scope.bind(this, head);
+                return HeadApplication.right(head, type.getParameters().subList(i, type.getParameters().size()));
             }
         }
         return HeadApplication.left(mismatch(this, type));
@@ -85,6 +87,11 @@ public class VariableType extends Type {
         } else {
             return false;
         }
+    }
+
+    @Override
+    public Type flatten() {
+        return this;
     }
 
     public Set<Symbol> getContext() {

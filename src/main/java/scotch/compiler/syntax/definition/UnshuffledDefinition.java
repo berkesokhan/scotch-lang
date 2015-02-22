@@ -60,12 +60,6 @@ public class UnshuffledDefinition extends Definition {
     }
 
     @Override
-    public Definition bindTypes(TypeChecker state) {
-        return withMatches(matches.stream().map(match -> match.bindTypes(state)).collect(toList()))
-            .withBody(body.bindTypes(state));
-    }
-
-    @Override
     public Definition checkTypes(TypeChecker state) {
         return withMatches(matches.stream().map(match -> match.checkTypes(state)).collect(toList()))
             .withBody(body.checkTypes(state));

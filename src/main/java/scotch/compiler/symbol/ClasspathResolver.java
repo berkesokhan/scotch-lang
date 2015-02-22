@@ -3,7 +3,6 @@ package scotch.compiler.symbol;
 import static java.util.regex.Pattern.compile;
 import static scotch.compiler.symbol.Symbol.getPackageName;
 import static scotch.compiler.symbol.Symbol.getPackagePath;
-import static scotch.compiler.util.Pair.pair;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,18 +24,18 @@ import scotch.compiler.symbol.Symbol.QualifiedSymbol;
 import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
 import scotch.compiler.symbol.exception.SymbolResolutionError;
+import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
-import scotch.compiler.util.Pair;
 
 public class ClasspathResolver implements SymbolResolver {
 
-    private final ClassLoader                                                classLoader;
-    private final Map<Symbol, SymbolEntry>                                   namedSymbols;
-    private final Set<String>                                                searchedModules;
-    private final Map<Pair<Symbol, List<Type>>, Set<TypeInstanceDescriptor>> typeInstances;
-    private final Map<Symbol, Set<TypeInstanceDescriptor>>                   typeInstancesByClass;
-    private final Map<List<Type>, Set<TypeInstanceDescriptor>>               typeInstancesByArguments;
-    private final Map<String, Set<TypeInstanceDescriptor>>                   typeInstancesByModule;
+    private final ClassLoader                                                                   classLoader;
+    private final Map<Symbol, SymbolEntry>                                                      namedSymbols;
+    private final Set<String>                                                                   searchedModules;
+    private final Map<Symbol, Map<List<TypeParameterDescriptor>, Set<TypeInstanceDescriptor>>> typeInstances;
+    private final Map<Symbol, Set<TypeInstanceDescriptor>>                                      typeInstancesByClass;
+    private final Map<List<TypeParameterDescriptor>, Set<TypeInstanceDescriptor>>               typeInstancesByArguments;
+    private final Map<String, Set<TypeInstanceDescriptor>>                                      typeInstancesByModule;
 
     public ClasspathResolver(ClassLoader classLoader) {
         this.classLoader = classLoader;
@@ -55,26 +54,21 @@ public class ClasspathResolver implements SymbolResolver {
     }
 
     @Override
-    public Set<TypeInstanceDescriptor> getTypeInstances(Symbol symbol, List<Type> arguments) {
+    public Set<TypeInstanceDescriptor> getTypeInstances(Symbol symbol, List<Type> types) {
         search(symbol);
-        search(arguments);
-        return typeInstances.getOrDefault(pair(symbol, arguments), ImmutableSet.of());
-    }
-
-    public Set<TypeInstanceDescriptor> getTypeInstancesByArguments(List<Type> arguments) {
-        search(arguments);
-        return ImmutableSet.copyOf(typeInstancesByArguments.getOrDefault(arguments, ImmutableSet.of()));
-    }
-
-    public Set<TypeInstanceDescriptor> getTypeInstancesByClass(Symbol symbol) {
-        search(symbol);
-        return ImmutableSet.copyOf(typeInstancesByClass.getOrDefault(symbol, ImmutableSet.of()));
+        search(types);
+        return Optional.ofNullable(typeInstances.get(symbol))
+            .flatMap(instances -> instances.keySet().stream()
+                .filter(parameters -> parametersMatch(parameters, types))
+                .map(instances::get)
+                .findFirst())
+            .orElse(ImmutableSet.of());
     }
 
     @Override
     public Set<TypeInstanceDescriptor> getTypeInstancesByModule(String moduleName) {
         search(moduleName);
-        return ImmutableSet.copyOf(typeInstancesByModule.getOrDefault(moduleName, ImmutableSet.of()));
+        return typeInstancesByModule.getOrDefault(moduleName, ImmutableSet.of());
     }
 
     private String baseName(File file) {
@@ -85,6 +79,18 @@ public class ClasspathResolver implements SymbolResolver {
     private File[] classFiles(File directory) {
         File[] files = directory.listFiles(pathName -> pathName.isFile() && pathName.getName().endsWith(".class"));
         return files == null ? new File[0] : files;
+    }
+
+    private boolean parametersMatch(List<TypeParameterDescriptor> parameters, List<Type> types) {
+        if (parameters.size() == types.size()) {
+            for (int i = 0; i < parameters.size(); i++) {
+                if (!(types.get(i) instanceof SumType) || !parameters.get(i).matches(types.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
     private Optional<Class<?>> resolveClass(String className) {
@@ -129,8 +135,8 @@ public class ClasspathResolver implements SymbolResolver {
         return classes;
     }
 
-    private void search(List<Type> arguments) {
-        arguments.forEach(argument -> argument.getContext().forEach(this::search));
+    private void search(List<Type> parameters) {
+        parameters.forEach(parameter -> parameter.getContext().forEach(this::search));
     }
 
     private void search(Symbol symbol) {
@@ -168,11 +174,14 @@ public class ClasspathResolver implements SymbolResolver {
             }
             new ModuleScanner(moduleName, classes).scan().into((entries, instances) -> {
                 entries.forEach(entry -> namedSymbols.put(entry.getSymbol(), entry));
-                instances.forEach(instance -> {
-                    typeInstances.computeIfAbsent(pair(instance.getTypeClass(), instance.getParameters()), k -> new HashSet<>()).add(instance);
-                    typeInstancesByClass.computeIfAbsent(instance.getTypeClass(), k -> new HashSet<>()).add(instance);
-                    typeInstancesByArguments.computeIfAbsent(instance.getParameters(), k -> new HashSet<>()).add(instance);
-                    typeInstancesByModule.computeIfAbsent(moduleName, k -> new HashSet<>()).add(instance);
+                instances.forEach(typeInstance -> {
+                    typeInstances
+                        .computeIfAbsent(typeInstance.getTypeClass(), k -> new HashMap<>())
+                        .computeIfAbsent(typeInstance.getParameters(), k -> new HashSet<>())
+                        .add(typeInstance);
+                    typeInstancesByClass.computeIfAbsent(typeInstance.getTypeClass(), k -> new HashSet<>()).add(typeInstance);
+                    typeInstancesByArguments.computeIfAbsent(typeInstance.getParameters(), k -> new HashSet<>()).add(typeInstance);
+                    typeInstancesByModule.computeIfAbsent(typeInstance.getModuleName(), k -> new HashSet<>()).add(typeInstance);
                 });
                 return null;
             });

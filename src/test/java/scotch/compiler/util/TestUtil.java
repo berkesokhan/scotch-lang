@@ -24,6 +24,7 @@ import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
+import scotch.compiler.symbol.TypeParameterDescriptor;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.definition.ClassDefinition;
@@ -210,7 +211,7 @@ public class TestUtil {
         return Values.instance(NULL_SOURCE, reference, type);
     }
 
-    public static InstanceReference instanceRef(String moduleName, String className, List<Type> parameters) {
+    public static InstanceReference instanceRef(String moduleName, String className, List<TypeParameterDescriptor> parameters) {
         return DefinitionReference.instanceRef(classRef(className), moduleRef(moduleName), parameters);
     }
 

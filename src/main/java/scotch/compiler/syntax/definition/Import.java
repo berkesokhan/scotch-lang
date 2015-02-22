@@ -7,8 +7,8 @@ import java.util.Optional;
 import java.util.Set;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.text.SourceRange;
 
 public abstract class Import {
@@ -23,7 +23,7 @@ public abstract class Import {
 
     protected static Set<Symbol> getContext_(String moduleName, Type type, SymbolResolver resolver) {
         return resolver.getTypeInstancesByModule(moduleName).stream()
-            .filter(typeInstance -> typeInstance.getParameters().get(0).equals(type))
+            .filter(typeInstance -> typeInstance.getParameters().get(0).matches(type))
             .map(TypeInstanceDescriptor::getTypeClass)
             .collect(toSet());
     }

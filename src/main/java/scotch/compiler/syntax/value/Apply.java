@@ -21,6 +21,7 @@ import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.type.FunctionType;
 import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.Unification;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
@@ -28,7 +29,7 @@ import scotch.runtime.SuppliedThunk;
 
 @AllArgsConstructor(access = PACKAGE)
 @EqualsAndHashCode(callSuper = false)
-@ToString
+@ToString(of = { "type", "function", "argument" })
 public class Apply extends Value {
 
     private final SourceRange sourceRange;
@@ -48,6 +49,11 @@ public class Apply extends Value {
     }
 
     @Override
+    public Value bindTypes(TypeChecker state) {
+        return new Apply(sourceRange, function.bindTypes(state), argument.bindTypes(state), state.generate(type));
+    }
+
+    @Override
     public Value bindMethods(TypeChecker state) {
         return withFunction(function.bindMethods(state))
             .withArgument(argument.bindMethods(state));
@@ -57,8 +63,9 @@ public class Apply extends Value {
     public Value checkTypes(TypeChecker state) {
         Value checkedFunction = function.checkTypes(state);
         Value checkedArgument = argument.checkTypes(state);
-        return new Apply(sourceRange, checkedFunction, checkedArgument, fn(checkedArgument.getType(), type)
-            .unify(checkedFunction.getType(), state.scope())
+        Unification unify = fn(checkedArgument.getType(), type)
+            .unify(checkedFunction.getType(), state.scope());
+        return new Apply(sourceRange, checkedFunction, checkedArgument, unify
                 .mapType(t -> ((FunctionType) t).getResult())
                 .orElseGet(unification -> {
                     state.error(typeError(unification.flip(), checkedArgument.getSourceRange()));
@@ -67,21 +74,8 @@ public class Apply extends Value {
     }
 
     @Override
-    public Value bindTypes(TypeChecker state) {
-        return withFunction(function.bindTypes(state))
-            .withArgument(argument.bindTypes(state))
-            .withType(state.generate(type));
-    }
-
-    @Override
     public Value defineOperators(OperatorAccumulator state) {
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public Value parsePrecedence(PrecedenceParser state) {
-        return withFunction(function.parsePrecedence(state))
-            .withArgument(argument.parsePrecedence(state));
     }
 
     @Override
@@ -127,6 +121,12 @@ public class Apply extends Value {
     @Override
     public Type getType() {
         return type;
+    }
+
+    @Override
+    public Value parsePrecedence(PrecedenceParser state) {
+        return withFunction(function.parsePrecedence(state))
+            .withArgument(argument.parsePrecedence(state));
     }
 
     @Override

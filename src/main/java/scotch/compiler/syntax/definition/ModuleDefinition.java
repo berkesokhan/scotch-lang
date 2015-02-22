@@ -52,11 +52,6 @@ public class ModuleDefinition extends Definition {
     }
 
     @Override
-    public Definition bindTypes(TypeChecker state) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public Definition checkTypes(TypeChecker state) {
         return state.keep(this);
     }
