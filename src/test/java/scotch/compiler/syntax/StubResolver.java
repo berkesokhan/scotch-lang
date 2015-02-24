@@ -8,6 +8,7 @@ import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.SymbolEntry.immutableEntry;
 import static scotch.compiler.symbol.TypeClassDescriptor.typeClass;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.compiler.symbol.Value.Fixity.RIGHT_INFIX;
 import static scotch.compiler.symbol.type.Types.ctor;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.symbol.type.Types.sum;
@@ -43,6 +44,14 @@ public class StubResolver implements SymbolResolver {
                     ctor(var("m", asList("scotch.control.monad.Monad")), var("b")))))
             .withMemberOf(symbol("scotch.control.monad.Monad"))
             .withOperator(operator(LEFT_INFIX, 1))
+            .build();
+    }
+
+    public static ImmutableEntry defaultDollarSign() {
+        Symbol symbol = symbol("scotch.data.function.($)");
+        return immutableEntry(symbol)
+            .withValueType(fn(fn(var("a"), var("b")), fn(var("a"), var("b"))))
+            .withOperator(operator(RIGHT_INFIX, 0))
             .build();
     }
 

@@ -140,7 +140,16 @@ public class ValueDefinition extends Definition {
 
     @Override
     public Definition qualifyNames(NameQualifier state) {
-        return state.named(symbol, () -> state.scoped(this, () -> withBody(body.qualifyNames(state))));
+        return state.named(symbol, () -> state.scoped(this, () -> {
+            Type qualifiedType = type.qualifyNames(state);
+            state.redefine(symbol, qualifiedType);
+            return new ValueDefinition(
+                sourceRange,
+                symbol,
+                body.qualifyNames(state),
+                qualifiedType
+            );
+        }));
     }
 
     public ValueDefinition withBody(Value body) {

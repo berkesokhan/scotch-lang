@@ -69,6 +69,7 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.Value.Fixity;
+import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.DataConstructorDefinition;
@@ -143,22 +144,25 @@ public class InputParser {
         return definition.getReference();
     }
 
-    private DefinitionReference createConstructor(DataConstructorDefinition constructor) {
+    private DefinitionReference createConstructor(DataConstructorDefinition constructor, SumType type) {
         return scoped(() -> definition(ValueDefinition.builder(),
-            value -> value
-                .withSymbol(constructor.getSymbol())
-                .withBody(createConstructorBody(constructor))
-                .withType(reserveType())
+            value -> {
+                Value body = createConstructorBody(constructor, type);
+                value
+                    .withSymbol(constructor.getSymbol())
+                    .withBody(body)
+                    .withType(body.getType());
+            }
         ));
     }
 
-    private Value createConstructorBody(DataConstructorDefinition constructor) {
+    private Value createConstructorBody(DataConstructorDefinition constructor, SumType type) {
         if (constructor.isNiladic()) {
             return node(Constant.builder(),
                 constant -> constant
                     .withDataType(constructor.getDataType())
                     .withSymbol(constructor.getSymbol())
-                    .withType(reserveType()));
+                    .withType(type));
         } else {
             return scoped(() -> node(
                 FunctionValue.builder(),
@@ -170,14 +174,14 @@ public class InputParser {
                         function
                             .withSymbol(symbol)
                             .withArguments(constructor.getFields().stream()
-                                .map(field -> field.toArgument(scope()))
+                                .map(DataFieldDefinition::toArgument)
                                 .collect(toList()))
                             .withBody(node(DataConstructor.builder(),
                                 ctor -> ctor
                                     .withSymbol(constructor.getSymbol())
-                                    .withType(reserveType())
+                                    .withType(type)
                                     .withArguments(constructor.getFields().stream()
-                                        .map(field -> field.toValue(scope()))
+                                        .map(DataFieldDefinition::toValue)
                                         .collect(toList()))));
                     })));
         }
@@ -429,13 +433,17 @@ public class InputParser {
 
     private List<DefinitionReference> parseDataType() {
         List<DataConstructorDefinition> constructors = new ArrayList<>();
-        DefinitionReference definition = definition(DataTypeDefinition.builder(), builder -> {
+        List<DefinitionReference> definitions = new ArrayList<>();
+        definitions.add(0, definition(DataTypeDefinition.builder(), builder -> {
             requireWord("data");
             Map<String, Type> constraints = parseSignatureConstraints();
+            List<Type> parameters = new ArrayList<>();
             Symbol symbol = qualify(requireWord());
             builder.withSymbol(symbol);
             while (!expects(ASSIGN) && !expects(LEFT_CURLY_BRACE)) {
-                builder.addParameter(parseType(constraints));
+                Type parameter = parseType(constraints);
+                builder.addParameter(parameter);
+                parameters.add(parameter);
             }
             if (expects(LEFT_CURLY_BRACE)) {
                 constructors.add(parseDataConstructor(symbol, constraints));
@@ -448,13 +456,11 @@ public class InputParser {
                 }
             }
             constructors.forEach(builder::addConstructor);
-        });
-        return new ArrayList<DefinitionReference>() {{
-            add(definition);
             constructors.stream()
-                .map(InputParser.this::createConstructor)
-                .forEach(this::add);
-        }};
+                .map(constructor -> createConstructor(constructor, sum(symbol, parameters)))
+                .forEach(definitions::add);
+        }));
+        return definitions;
     }
 
     private DefaultOperator parseDefaultOperator() {

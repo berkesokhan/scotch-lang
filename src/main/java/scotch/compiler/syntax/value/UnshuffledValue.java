@@ -109,7 +109,7 @@ public class UnshuffledValue extends Value {
 
     @Override
     public Type getType() {
-        throw new IllegalStateException();
+        return Type.NULL;
     }
 
     public List<Value> getValues() {

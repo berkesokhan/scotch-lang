@@ -11,6 +11,7 @@ import static scotch.compiler.symbol.type.Types.t;
 import static scotch.compiler.symbol.type.Types.var;
 import static scotch.compiler.symbol.type.Unification.mismatch;
 import static scotch.compiler.syntax.StubResolver.defaultBind;
+import static scotch.compiler.syntax.StubResolver.defaultDollarSign;
 import static scotch.compiler.syntax.StubResolver.defaultEither;
 import static scotch.compiler.syntax.StubResolver.defaultEq;
 import static scotch.compiler.syntax.StubResolver.defaultEqClass;
@@ -35,6 +36,7 @@ import static scotch.compiler.util.TestUtil.boolType;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.doubleType;
 import static scotch.compiler.util.TestUtil.equal;
+import static scotch.compiler.util.TestUtil.fieldDef;
 import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.instance;
 import static scotch.compiler.util.TestUtil.instanceRef;
@@ -543,9 +545,10 @@ public class TypeCheckerTest extends ParserTest {
     public void idPatternShouldHaveGenericType() {
         parse(
             "module scotch.test",
+            "import scotch.data.function",
             "import scotch.data.num",
             "id x = x",
-            "run = (fromInteger (id 1)) + (id 2.2)"
+            "run = (fromInteger $ id 1) + id 2.2"
         );
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.run", doubleType);
@@ -555,12 +558,29 @@ public class TypeCheckerTest extends ParserTest {
     public void idFunctionShouldHaveGenericType() {
         parse(
             "module scotch.test",
+            "import scotch.data.function",
             "import scotch.data.num",
             "id = \\x -> x",
-            "run = (fromInteger (id 1)) + (id 2.2)"
+            "run = (fromInteger $ id 1) + id 2.2"
         );
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.run", doubleType);
+    }
+
+    @Test
+    public void shouldCreateFunctionForInitializer() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.int",
+            "",
+            "data QuantifiedThing a { howMany Int, thing a }"
+        );
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.QuantifiedThing", fn(intType, fn(t(0), sum("scotch.test.QuantifiedThing", asList(t(0))))));
+        shouldHaveData("scotch.test.QuantifiedThing", asList(var("a")), asList(
+            fieldDef("howMany", intType),
+            fieldDef("thing", var("a"))
+        ));
     }
 
     private void shouldHaveLocals(DefinitionReference reference, List<String> locals) {
@@ -608,6 +628,8 @@ public class TypeCheckerTest extends ParserTest {
             // monad
             .define(defaultMonad())
             .define(defaultBind())
-            .define(defaultMonadOf(sum("scotch.data.either.Either", var("a"))));
+            .define(defaultMonadOf(sum("scotch.data.either.Either", var("a"))))
+            // $
+            .define(defaultDollarSign());
     }
 }

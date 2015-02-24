@@ -7,9 +7,9 @@ import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import lombok.EqualsAndHashCode;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
@@ -23,6 +23,7 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 
+@EqualsAndHashCode(callSuper = false)
 public class DataConstructor extends Value {
 
     public static Builder builder() {
@@ -77,21 +78,6 @@ public class DataConstructor extends Value {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof DataConstructor) {
-            DataConstructor other = (DataConstructor) o;
-            return Objects.equals(sourceRange, other.sourceRange)
-                && Objects.equals(symbol, other.symbol)
-                && Objects.equals(arguments, other.arguments)
-                && Objects.equals(type, other.type);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
         return new CodeBlock() {{
             newobj(state.getDataConstructorClass(symbol));
@@ -113,11 +99,6 @@ public class DataConstructor extends Value {
     @Override
     public Type getType() {
         return type;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(symbol, arguments, type);
     }
 
     @Override

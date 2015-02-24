@@ -15,6 +15,8 @@ import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeScope;
@@ -22,6 +24,8 @@ import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Pair;
 
 public abstract class Type {
+
+    public static final Type NULL = new NullType();
 
     Type() {
         // intentionally empty
@@ -209,4 +213,109 @@ public abstract class Type {
     }
 
     protected abstract Optional<List<Pair<Type, Type>>> zip_(Type other, TypeScope scope);
+
+    @EqualsAndHashCode(callSuper = false)
+    @ToString
+    private static final class NullType extends Type {
+
+        @Override
+        public Type flatten() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        public Map<String, Type> getContexts(Type type, TypeScope scope) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        public Class<?> getJavaType() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        public String getSignature() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        public SourceRange getSourceRange() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        public Type qualifyNames(NameQualifier qualifier) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected boolean contains(VariableType type) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected List<Type> flatten_() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected Set<Pair<VariableType, Symbol>> gatherContext_() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected Type generate(TypeScope scope, Set<Type> visited) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected Type genericCopy(TypeScope scope, Map<Type, Type> mappings) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected String getSignature_() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected String toParenthesizedString() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected String toString_() {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected Unification unifyWith(ConstructorType target, TypeScope scope) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected Unification unifyWith(FunctionType target, TypeScope scope) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected Unification unifyWith(VariableType target, TypeScope scope) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected Unification unifyWith(SumType target, TypeScope scope) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected Unification unify_(Type type, TypeScope scope) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+
+        @Override
+        protected Optional<List<Pair<Type, Type>>> zip_(Type other, TypeScope scope) {
+            throw new UnsupportedOperationException(); // TODO
+        }
+    }
 }

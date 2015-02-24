@@ -36,6 +36,7 @@ public class Identifier extends Value {
     public static Builder builder() {
         return new Builder();
     }
+
     private final SourceRange sourceRange;
     private final Symbol      symbol;
     private final Type        type;

@@ -1,5 +1,6 @@
 package scotch.compiler;
 
+import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.joining;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -9,6 +10,9 @@ import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.syntax.reference.DefinitionReference.signatureRef;
 import static scotch.compiler.util.TestUtil.classDef;
 import static scotch.compiler.util.TestUtil.classRef;
+import static scotch.compiler.util.TestUtil.ctorDef;
+import static scotch.compiler.util.TestUtil.dataDef;
+import static scotch.compiler.util.TestUtil.dataRef;
 import static scotch.compiler.util.TestUtil.value;
 import static scotch.compiler.util.TestUtil.valueRef;
 import static scotch.util.StringUtil.quote;
@@ -21,6 +25,7 @@ import org.junit.rules.TestName;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.StubResolver;
+import scotch.compiler.syntax.definition.DataFieldDefinition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.definition.ValueSignature;
@@ -87,6 +92,11 @@ public abstract class ParserTest {
     protected void shouldHaveValue(String name, Type type) {
         shouldHaveValue(name);
         assertThat(graph.getValue(valueRef(name)).get(), is(type));
+    }
+
+    protected void shouldHaveData(String name, List<Type> parameters, List<DataFieldDefinition> fields) {
+        assertThat(graph.hasErrors(), is(false));
+        assertThat(graph.getDefinition(dataRef(name)).get(), is(dataDef(name, parameters, asList(ctorDef(name, name, fields)))));
     }
 
     protected void shouldHaveValue(String name) {

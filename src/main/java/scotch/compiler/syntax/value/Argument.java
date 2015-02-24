@@ -3,10 +3,10 @@ package scotch.compiler.syntax.value;
 import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.value.Values.arg;
-import static scotch.util.StringUtil.stringify;
 
-import java.util.Objects;
 import java.util.Optional;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
@@ -20,6 +20,8 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 
+@EqualsAndHashCode(callSuper = false)
+@ToString(exclude = "sourceRange")
 public class Argument extends Value {
 
     public static Builder builder() {
@@ -37,49 +39,35 @@ public class Argument extends Value {
     }
 
     @Override
-    public Value accumulateDependencies(DependencyAccumulator state) {
+    public Argument accumulateDependencies(DependencyAccumulator state) {
         return this;
     }
 
     @Override
-    public Value accumulateNames(NameAccumulator state) {
+    public Argument accumulateNames(NameAccumulator state) {
         state.defineValue(getSymbol(), type);
         return this;
     }
 
     @Override
-    public Value bindMethods(TypeChecker state) {
+    public Argument bindMethods(TypeChecker state) {
         return this;
     }
 
     @Override
-    public Value bindTypes(TypeChecker state) {
+    public Argument bindTypes(TypeChecker state) {
         return withType(state.generate(getType()));
     }
 
     @Override
-    public Value checkTypes(TypeChecker state) {
+    public Argument checkTypes(TypeChecker state) {
         state.capture(getSymbol());
         return this;
     }
 
     @Override
-    public Value defineOperators(OperatorAccumulator state) {
+    public Argument defineOperators(OperatorAccumulator state) {
         return this;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof Argument) {
-            Argument other = (Argument) o;
-            return Objects.equals(sourceRange, other.sourceRange)
-                && Objects.equals(name, other.name)
-                && Objects.equals(type, other.type);
-        } else {
-            return false;
-        }
     }
 
     @Override
@@ -108,23 +96,13 @@ public class Argument extends Value {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(name, type);
-    }
-
-    @Override
-    public Value parsePrecedence(PrecedenceParser state) {
+    public Argument parsePrecedence(PrecedenceParser state) {
         return this;
     }
 
     @Override
-    public Value qualifyNames(NameQualifier state) {
-        return this;
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this) + "(" + name + " :: " + type + ")";
+    public Argument qualifyNames(NameQualifier state) {
+        return new Argument(sourceRange, name, type.qualifyNames(state));
     }
 
     @Override

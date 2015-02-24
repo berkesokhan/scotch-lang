@@ -445,11 +445,11 @@ public class InputParserTest extends ParserTest {
         );
         shouldHaveValue("scotch.test.Toast", fn(
             "scotch.test.(#0)",
-            asList(arg("type", t(0)), arg("butter", t(1)), arg("jam", t(2))),
-            construct("scotch.test.Toast", t(3), asList(
-                id("type", t(4)),
-                id("butter", t(5)),
-                id("jam", t(6))))));
+            asList(arg("type", sum("Bread")), arg("butter", sum("Verbool")), arg("jam", sum("Verbool"))),
+            construct("scotch.test.Toast", sum("scotch.test.Toast"), asList(
+                id("type", sum("Bread")),
+                id("butter", sum("Verbool")),
+                id("jam", sum("Verbool"))))));
     }
 
     @Test
@@ -458,7 +458,7 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "data Maybe a = Nothing | Just a"
         );
-        shouldHaveValue("scotch.test.Nothing", constant("scotch.test.Nothing", "scotch.test.Maybe", t(0)));
+        shouldHaveValue("scotch.test.Nothing", constant("scotch.test.Nothing", "scotch.test.Maybe", sum("scotch.test.Maybe", var("a"))));
     }
 
     @Test
@@ -469,9 +469,9 @@ public class InputParserTest extends ParserTest {
         );
         shouldHaveValue("scotch.test.Just", fn(
             "scotch.test.(#0)",
-            asList(arg("_0", t(2))),
-            construct("scotch.test.Just", t(3), asList(
-                id("_0", t(4))))));
+            asList(arg("_0", var("a"))),
+            construct("scotch.test.Just", sum("scotch.test.Maybe", var("a")), asList(
+                id("_0", var("a"))))));
     }
 
     @Test

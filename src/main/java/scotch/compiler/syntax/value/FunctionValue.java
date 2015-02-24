@@ -8,15 +8,15 @@ import static scotch.compiler.syntax.definition.Definitions.scopeDef;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
 import static scotch.compiler.syntax.value.Values.fn;
 import static scotch.compiler.util.Either.right;
-import static scotch.util.StringUtil.stringify;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
@@ -34,11 +34,14 @@ import scotch.compiler.syntax.reference.ScopeReference;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Either;
 
+@EqualsAndHashCode(callSuper = false)
+@ToString(exclude = "sourceRange")
 public class FunctionValue extends Value implements Scoped {
 
     public static Builder builder() {
         return new Builder();
     }
+
     private final SourceRange    sourceRange;
     private final Symbol         symbol;
     private final List<Argument> arguments;
@@ -61,7 +64,7 @@ public class FunctionValue extends Value implements Scoped {
     @Override
     public Value accumulateNames(NameAccumulator state) {
         return state.scoped(this, () -> withArguments(arguments.stream()
-            .map(argument -> (Argument) argument.accumulateNames(state))
+            .map(argument -> argument.accumulateNames(state))
             .collect(toList()))
             .withBody(body.accumulateNames(state)));
     }
@@ -112,21 +115,6 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof FunctionValue) {
-            FunctionValue other = (FunctionValue) o;
-            return Objects.equals(sourceRange, other.sourceRange)
-                && Objects.equals(symbol, other.symbol)
-                && Objects.equals(arguments, other.arguments)
-                && Objects.equals(body, other.body);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
         return state.enclose(this, () -> curry().generateBytecode(state));
     }
@@ -169,11 +157,6 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(symbol, arguments, body);
-    }
-
-    @Override
     public Value parsePrecedence(PrecedenceParser state) {
         Symbol s = symbol.getMemberNames().size() == 1 ? state.reserveSymbol() : symbol;
         return state.named(s, () -> state.scoped(this, () -> withSymbol(s).withBody(body.parsePrecedence(state))));
@@ -181,12 +164,14 @@ public class FunctionValue extends Value implements Scoped {
 
     @Override
     public Value qualifyNames(NameQualifier state) {
-        return state.named(symbol, () -> state.scoped(this, () -> withBody(body.qualifyNames(state))));
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this) + "(" + arguments + " -> " + body + ")";
+        return state.named(symbol, () -> state.scoped(this, () -> new FunctionValue(
+            sourceRange,
+            symbol,
+            arguments.stream()
+                .map(argument -> argument.qualifyNames(state))
+                .collect(toList()),
+            body.qualifyNames(state),
+            type)));
     }
 
     public FunctionValue withArguments(List<Argument> arguments) {

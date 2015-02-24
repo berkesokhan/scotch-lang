@@ -171,7 +171,7 @@ public class BytecodeGeneratorTest {
             "import scotch.data.eq",
             "import scotch.data.function",
             "",
-            "data Thing a { value a }",
+            "data Thing n { value n }",
             "",
             "run = (javaHash! $ Thing 2) == (javaHash! $ Thing 2)"
         );
@@ -185,7 +185,7 @@ public class BytecodeGeneratorTest {
             "import scotch.java",
             "import scotch.data.eq",
             "",
-            "data Thing a { value a }",
+            "data Thing n { value n }",
             "",
             "($) :: (a -> b) -> a -> b",
             "right infix 0 ($)",

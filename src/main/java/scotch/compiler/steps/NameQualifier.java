@@ -92,7 +92,11 @@ public class NameQualifier {
             .build();
     }
 
-    public void symbolNotFound(Symbol symbol, SourceRange sourceRange) {
+    public void redefine(Symbol symbol, Type type) {
+        scope().redefineValue(symbol, type);
+    }
+
+  public void symbolNotFound(Symbol symbol, SourceRange sourceRange) {
         errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceRange));
     }
 

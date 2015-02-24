@@ -13,10 +13,9 @@ import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.symbol.DataFieldDescriptor;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.type.FunctionType;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.Value;
@@ -86,11 +85,11 @@ public class DataFieldDefinition {
         return withType(type.qualifyNames(state));
     }
 
-    public Argument toArgument(Scope scope) {
+    public Argument toArgument() {
         return Argument.builder()
             .withName(name)
             .withSourceRange(sourceRange)
-            .withType(scope.reserveType())
+            .withType(type)
             .build();
     }
 
@@ -99,10 +98,10 @@ public class DataFieldDefinition {
         return name + " " + type;
     }
 
-    public Value toValue(Scope scope) {
+    public Value toValue() {
         return Identifier.builder()
             .withSymbol(symbol(name))
-            .withType(scope.reserveType())
+            .withType(type)
             .withSourceRange(sourceRange)
             .build();
     }
