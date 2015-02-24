@@ -75,6 +75,14 @@ public abstract class Type {
         throw new UnsupportedOperationException(); // TODO
     }
 
+    public Type getAbsoluteResult() {
+        Type result = this;
+        while (result instanceof FunctionType) {
+            result = ((FunctionType) result).getResult();
+        }
+        return result;
+    }
+
     private TailZip applyZip(TailZip zip, TypeScope scope) {
         return zip.next((Type parameter) -> zip_(parameter, scope));
     }

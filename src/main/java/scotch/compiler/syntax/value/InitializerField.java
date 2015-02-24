@@ -3,19 +3,21 @@ package scotch.compiler.syntax.value;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.util.StringUtil.stringify;
 
-import java.util.Objects;
 import java.util.Optional;
+import lombok.EqualsAndHashCode;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
-import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
+import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 
+@EqualsAndHashCode(callSuper = false)
 public class InitializerField {
 
     public static Builder builder() {
@@ -60,20 +62,6 @@ public class InitializerField {
         return withValue(value.defineOperators(state));
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof InitializerField) {
-            InitializerField other = (InitializerField) o;
-            return Objects.equals(sourceRange, other.sourceRange)
-                && Objects.equals(name, other.name)
-                && Objects.equals(value, other.value);
-        } else {
-            return false;
-        }
-    }
-
     public CodeBlock generateBytecode(BytecodeGenerator state) {
         return new CodeBlock() {{
             value.generateBytecode(state);
@@ -84,22 +72,29 @@ public class InitializerField {
         return name;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, value);
+    public Type getType() {
+        return value.getType();
+    }
+
+    public Value getValue() {
+        return value;
     }
 
     public InitializerField parsePrecedence(PrecedenceParser state) {
         return withValue(value.parsePrecedence(state));
     }
 
-    public InitializerField qualifyNames(NameQualifier state) {
+    public InitializerField qualifyNames(ScopedNameQualifier state) {
         return withValue(value.qualifyNames(state));
     }
 
     @Override
     public String toString() {
         return stringify(this) + "(" + name + ")";
+    }
+
+    public InitializerField withType(Type type) {
+        return new InitializerField(sourceRange, name, value.withType(type));
     }
 
     private InitializerField withValue(Value value) {

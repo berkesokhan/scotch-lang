@@ -7,7 +7,7 @@ import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
-import scotch.compiler.steps.NameQualifier;
+import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
@@ -71,7 +71,7 @@ public abstract class PatternMatch {
         return "[" + getClass().getSimpleName() + "]";
     }
 
-    public abstract PatternMatch qualifyNames(NameQualifier state);
+    public abstract PatternMatch qualifyNames(ScopedNameQualifier state);
 
     @Override
     public abstract String toString();

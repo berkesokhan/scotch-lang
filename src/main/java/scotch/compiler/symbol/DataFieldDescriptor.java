@@ -1,8 +1,9 @@
 package scotch.compiler.symbol;
 
-import java.util.Objects;
+import lombok.EqualsAndHashCode;
 import scotch.compiler.symbol.type.Type;
 
+@EqualsAndHashCode(callSuper = false)
 public class DataFieldDescriptor {
 
     public static DataFieldDescriptor field(String name, Type type) {
@@ -17,30 +18,20 @@ public class DataFieldDescriptor {
         this.type = type;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof DataFieldDescriptor) {
-            DataFieldDescriptor other = (DataFieldDescriptor) o;
-            return Objects.equals(name, other.name)
-                && Objects.equals(type, other.type);
-        } else {
-            return false;
-        }
-    }
-
     public String getName() {
         return name;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, type);
+    public Type getType() {
+        return type;
     }
 
     @Override
     public String toString() {
         return name + " " + type;
+    }
+
+    public DataFieldDescriptor withType(Type type) {
+        return new DataFieldDescriptor(name, type);
     }
 }

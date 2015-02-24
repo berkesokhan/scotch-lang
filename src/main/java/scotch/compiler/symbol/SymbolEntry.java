@@ -60,6 +60,10 @@ public abstract class SymbolEntry {
 
     public abstract boolean isOperator();
 
+    public abstract void redefineDataConstructor(DataConstructorDescriptor descriptor);
+
+    public abstract void redefineDataType(DataTypeDescriptor descriptor);
+
     public abstract void redefineSignature(Type type);
 
     public abstract void redefineValue(Type type, MethodSignature valueMethod);
@@ -180,6 +184,16 @@ public abstract class SymbolEntry {
         @Override
         public boolean isOperator() {
             return optionalOperator.isPresent();
+        }
+
+        @Override
+        public void redefineDataConstructor(DataConstructorDescriptor descriptor) {
+            throw existingSymbol("data constructor");
+        }
+
+        @Override
+        public void redefineDataType(DataTypeDescriptor descriptor) {
+            throw existingSymbol("data type");
         }
 
         @Override
@@ -393,6 +407,24 @@ public abstract class SymbolEntry {
         @Override
         public boolean isOperator() {
             return optionalOperator.isPresent();
+        }
+
+        @Override
+        public void redefineDataConstructor(DataConstructorDescriptor descriptor) {
+            if (optionalDataConstructor.isPresent()) {
+                optionalDataConstructor = Optional.of(descriptor);
+            } else {
+                throw new SymbolNotFoundException("Can't redefine non-existent data constructor " + symbol.quote());
+            }
+        }
+
+        @Override
+        public void redefineDataType(DataTypeDescriptor descriptor) {
+            if (optionalDataType.isPresent()) {
+                optionalDataType = Optional.of(descriptor);
+            } else {
+                throw new SymbolNotFoundException("Can't redefine non-existent data type " + symbol.quote());
+            }
         }
 
         @Override

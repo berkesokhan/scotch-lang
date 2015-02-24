@@ -8,9 +8,9 @@ import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
-import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.type.Type;
@@ -31,6 +31,10 @@ public abstract class Value {
 
     public Either<Value, FunctionValue> asFunction() {
         return left(this);
+    }
+
+    public Optional<Value> asInitializer(List<InitializerField> fields, TypeChecker state) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     public Optional<Pair<Identifier, Operator>> asOperator(Scope scope) {
@@ -75,7 +79,7 @@ public abstract class Value {
         return "[" + getClass().getSimpleName() + "]";
     }
 
-    public abstract Value qualifyNames(NameQualifier state);
+    public abstract Value qualifyNames(ScopedNameQualifier state);
 
     @Override
     public abstract String toString();

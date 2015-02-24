@@ -10,15 +10,15 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import lombok.EqualsAndHashCode;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
-import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.DataTypeDescriptor;
 import scotch.compiler.symbol.Symbol;
@@ -27,6 +27,7 @@ import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
 
+@EqualsAndHashCode(callSuper = false)
 public class DataTypeDefinition extends Definition {
 
     public static Builder builder() {
@@ -44,13 +45,6 @@ public class DataTypeDefinition extends Definition {
         this.parameters = ImmutableList.copyOf(parameters);
         this.constructors = new LinkedHashMap<>();
         constructors.forEach(constructor -> this.constructors.put(constructor.getSymbol(), constructor));
-    }
-
-    private DataTypeDefinition(SourceRange sourceRange, Symbol symbol, List<Type> parameters, Map<Symbol, DataConstructorDefinition> constructors) {
-        this.sourceRange = sourceRange;
-        this.symbol = symbol;
-        this.parameters = ImmutableList.copyOf(parameters);
-        this.constructors = new LinkedHashMap<>(constructors);
     }
 
     @Override
@@ -78,21 +72,6 @@ public class DataTypeDefinition extends Definition {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof DataTypeDefinition) {
-            DataTypeDefinition other = (DataTypeDefinition) o;
-            return Objects.equals(sourceRange, other.sourceRange)
-                && Objects.equals(symbol, other.symbol)
-                && Objects.equals(parameters, other.parameters)
-                && Objects.equals(constructors, other.constructors);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public void generateBytecode(BytecodeGenerator state) {
         state.beginClass(DATA_TYPE, symbol.getClassName(), sourceRange);
         state.currentClass().defineDefaultConstructor();
@@ -111,21 +90,24 @@ public class DataTypeDefinition extends Definition {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(symbol, parameters, constructors);
-    }
-
-    @Override
     public Optional<Definition> parsePrecedence(PrecedenceParser state) {
         return Optional.of(state.keep(this));
     }
 
     @Override
-    public Definition qualifyNames(NameQualifier state) {
-        return state.scoped(this, () -> withParameters(state.qualifyTypeNames(parameters))
-            .withConstructors(constructors.values().stream()
-                .map(constructor -> constructor.qualifyNames(state))
-                .collect(toList())));
+    public Definition qualifyNames(ScopedNameQualifier state) {
+        return state.scoped(this, () -> {
+            DataTypeDefinition definition = new DataTypeDefinition(
+                sourceRange,
+                symbol,
+                state.qualifyTypeNames(parameters),
+                constructors.values().stream()
+                    .map(constructor -> constructor.qualifyNames(state))
+                    .collect(toList())
+            );
+            state.redefineDataType(symbol, definition.getDescriptor());
+            return definition;
+        });
     }
 
     @Override
@@ -142,14 +124,6 @@ public class DataTypeDefinition extends Definition {
                 .map(DataConstructorDefinition::getDescriptor)
                 .collect(toList()))
             .build();
-    }
-
-    private DataTypeDefinition withConstructors(List<DataConstructorDefinition> constructors) {
-        return new DataTypeDefinition(sourceRange, symbol, parameters, constructors);
-    }
-
-    private DataTypeDefinition withParameters(List<Type> parameters) {
-        return new DataTypeDefinition(sourceRange, symbol, parameters, constructors);
     }
 
     public static class Builder implements SyntaxBuilder<DataTypeDefinition> {

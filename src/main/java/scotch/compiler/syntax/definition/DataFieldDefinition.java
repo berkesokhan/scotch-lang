@@ -7,8 +7,8 @@ import static scotch.compiler.symbol.DataFieldDescriptor.field;
 import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
-import java.util.Objects;
 import java.util.Optional;
+import lombok.EqualsAndHashCode;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.symbol.DataFieldDescriptor;
@@ -23,6 +23,7 @@ import scotch.compiler.text.SourceRange;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 
+@EqualsAndHashCode(callSuper = false)
 public class DataFieldDefinition {
 
     public static Builder builder() {
@@ -37,19 +38,6 @@ public class DataFieldDefinition {
         this.sourceRange = sourceRange;
         this.name = name;
         this.type = type;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof DataFieldDefinition) {
-            DataFieldDefinition other = (DataFieldDefinition) o;
-            return Objects.equals(name, other.name)
-                && Objects.equals(type, other.type);
-        } else {
-            return false;
-        }
     }
 
     public void generateBytecode(BytecodeGenerator state) {
@@ -74,11 +62,6 @@ public class DataFieldDefinition {
 
     public Type getType() {
         return type;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, type);
     }
 
     public DataFieldDefinition qualifyNames(NameQualifier state) {

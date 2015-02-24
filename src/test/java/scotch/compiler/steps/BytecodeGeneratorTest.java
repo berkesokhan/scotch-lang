@@ -179,6 +179,24 @@ public class BytecodeGeneratorTest {
     }
 
     @Test
+    public void shouldCreateDataFromInitializerWithArbitrarilyOrderedFields() {
+        boolean result = exec(
+            "module scotch.test",
+            "import scotch.java",
+            "import scotch.data.eq",
+            "import scotch.data.function",
+            "import scotch.data.int",
+            "import scotch.data.string",
+            "",
+            "data QuantifiedThing a { howMany Int, what a }",
+            "",
+            "run = QuantifiedThing { howMany = 32, what = \"Bananas\" } `javaEq?!`",
+            "      QuantifiedThing { what = \"Bananas\", howMany = 32 }"
+        );
+        assertThat(result, is(true));
+    }
+
+    @Test
     public void shouldCompileParenthesizedSignature() {
         exec(
             "module scotch.test",

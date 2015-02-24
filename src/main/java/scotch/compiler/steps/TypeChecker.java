@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import scotch.compiler.error.SyntaxError;
+import scotch.compiler.symbol.DataConstructorDescriptor;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.TypeClassDescriptor;
 import scotch.compiler.symbol.TypeInstanceDescriptor;
@@ -109,6 +110,10 @@ public class TypeChecker implements TypeScope {
             .copyWith(entries.values())
             .appendErrors(errors)
             .build();
+    }
+
+    public Optional<DataConstructorDescriptor> getDataConstructor(Symbol symbol) {
+        return scope().getDataConstructor(symbol);
     }
 
     public <T extends Scoped> T enclose(T scoped, Supplier<T> supplier) {

@@ -6,8 +6,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import lombok.EqualsAndHashCode;
 
+@EqualsAndHashCode(callSuper = false)
 public class DataConstructorDescriptor {
 
     public static Builder builder(Symbol dataType, Symbol symbol) {
@@ -25,31 +26,20 @@ public class DataConstructorDescriptor {
         fields.forEach(field -> this.fields.put(field.getName(), field));
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof DataConstructorDescriptor) {
-            DataConstructorDescriptor other = (DataConstructorDescriptor) o;
-            return Objects.equals(dataType, other.dataType)
-                && Objects.equals(symbol, other.symbol)
-                && Objects.equals(fields, other.fields);
-        } else {
-            return false;
-        }
-    }
-
     public Symbol getDataType() {
         return dataType;
     }
 
-    public Symbol getSymbol() {
-        return symbol;
+    public Map<String, DataFieldDescriptor> getFieldMap() {
+        return fields;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(dataType, symbol, fields);
+    public List<DataFieldDescriptor> getFields() {
+        return new ArrayList<>(fields.values());
+    }
+
+    public Symbol getSymbol() {
+        return symbol;
     }
 
     @Override

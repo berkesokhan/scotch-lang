@@ -16,9 +16,9 @@ import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
-import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
@@ -137,7 +137,7 @@ public class Conditional extends Value {
     }
 
     @Override
-    public Value qualifyNames(NameQualifier state) {
+    public Value qualifyNames(ScopedNameQualifier state) {
         return parse(state, Value::qualifyNames)
             .withType(type.qualifyNames(state));
     }

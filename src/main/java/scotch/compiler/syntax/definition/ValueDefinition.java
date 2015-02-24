@@ -17,9 +17,9 @@ import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
-import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
@@ -139,10 +139,10 @@ public class ValueDefinition extends Definition {
     }
 
     @Override
-    public Definition qualifyNames(NameQualifier state) {
+    public Definition qualifyNames(ScopedNameQualifier state) {
         return state.named(symbol, () -> state.scoped(this, () -> {
             Type qualifiedType = type.qualifyNames(state);
-            state.redefine(symbol, qualifiedType);
+            state.redefineValue(symbol, qualifiedType);
             return new ValueDefinition(
                 sourceRange,
                 symbol,

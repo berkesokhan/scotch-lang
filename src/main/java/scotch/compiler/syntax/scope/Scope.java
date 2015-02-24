@@ -63,6 +63,24 @@ public abstract class Scope implements TypeScope {
 
     public abstract void addPattern(Symbol symbol, PatternMatcher pattern);
 
+    public void redefineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor) {
+        Optional<SymbolEntry> optionalEntry = getEntry(symbol);
+        if (optionalEntry.isPresent()) {
+            optionalEntry.get().redefineDataConstructor(descriptor);
+        } else {
+            throw new SymbolNotFoundException("Can't redefine non-existent data constructor " + symbol.quote());
+        }
+    }
+
+    public void redefineDataType(Symbol symbol, DataTypeDescriptor descriptor) {
+        Optional<SymbolEntry> optionalEntry = getEntry(symbol);
+        if (optionalEntry.isPresent()) {
+            optionalEntry.get().redefineDataType(descriptor);
+        } else {
+            throw new SymbolNotFoundException("Can't redefine non-existent data constructor " + symbol.quote());
+        }
+    }
+
     public void setParent(Scope scope) {
         throw new IllegalStateException();
     }
@@ -87,6 +105,10 @@ public abstract class Scope implements TypeScope {
 
     public List<String> getCaptures() {
         throw new IllegalStateException();
+    }
+
+    public Optional<DataConstructorDescriptor> getDataConstructor(Symbol symbol) {
+        return getEntry(symbol).map(SymbolEntry::getDataConstructor);
     }
 
     public String getDataConstructorClass(Symbol symbol) {

@@ -17,18 +17,20 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.EqualsAndHashCode;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
 import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.NameAccumulator;
-import scotch.compiler.steps.NameQualifier;
+import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.symbol.DataConstructorDescriptor;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
 
+@EqualsAndHashCode(callSuper = false)
 public class DataConstructorDefinition {
 
     public static Builder builder() {
@@ -50,21 +52,6 @@ public class DataConstructorDefinition {
 
     public void accumulateNames(NameAccumulator state) {
         state.defineDataConstructor(symbol, getDescriptor());
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return false;
-        } else if (o instanceof DataConstructorDefinition) {
-            DataConstructorDefinition other = (DataConstructorDefinition) o;
-            return Objects.equals(sourceRange, other.sourceRange)
-                && Objects.equals(dataType, other.dataType)
-                && Objects.equals(symbol, other.symbol)
-                && Objects.equals(fields, other.fields);
-        } else {
-            return false;
-        }
     }
 
     public void generateBytecode(BytecodeGenerator state) {
@@ -105,19 +92,16 @@ public class DataConstructorDefinition {
         return symbol;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(symbol, fields);
-    }
-
     public boolean isNiladic() {
         return fields.isEmpty();
     }
 
-    public DataConstructorDefinition qualifyNames(NameQualifier state) {
-        return withFields(fields.values().stream()
+    public DataConstructorDefinition qualifyNames(ScopedNameQualifier state) {
+        DataConstructorDefinition definition = withFields(fields.values().stream()
             .map(field -> field.qualifyNames(state))
             .collect(toList()));
+        state.redefineDataConstructor(symbol, getDescriptor());
+        return definition;
     }
 
     @Override
@@ -133,7 +117,7 @@ public class DataConstructorDefinition {
             invokespecial(parentClass.getClassName(), "<init>", sig(void.class));
             AtomicInteger counter = new AtomicInteger(1);
             fields.values().forEach(field -> {
-                int offset = counter.getAndIncrement();
+                int offset = counter.get();
                 aload(0);
                 aload(offset);
                 putfield(state.currentClass().getClassName(), field.getJavaName(), ci(field.getJavaType()));

@@ -5,9 +5,9 @@ import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.output.GeneratedClass;
 import scotch.compiler.steps.NameAccumulator;
-import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.parser.InputParser;
 import scotch.compiler.scanner.Scanner;
@@ -57,6 +57,6 @@ public class Compiler {
     }
 
     public DefinitionGraph qualifyNames() {
-        return new NameQualifier(accumulateNames()).qualifyNames();
+        return new ScopedNameQualifier(accumulateNames()).qualifyNames();
     }
 }

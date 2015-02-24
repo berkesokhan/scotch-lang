@@ -1,30 +1,16 @@
 package scotch.compiler.syntax.reference;
 
-import static scotch.util.StringUtil.stringify;
-
-import java.util.Objects;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.ToString;
 import scotch.compiler.symbol.Symbol;
 
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class DataReference extends DefinitionReference {
 
-    private final Symbol symbol;
-
-    public DataReference(Symbol symbol) {
-        this.symbol = symbol;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return o == this || o instanceof DataReference && Objects.equals(symbol, ((DataReference) o).symbol);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(symbol);
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this) + "(" + symbol.toString() + ")";
-    }
+    @NonNull @Getter private final Symbol symbol;
 }

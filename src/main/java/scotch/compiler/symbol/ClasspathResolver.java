@@ -159,7 +159,7 @@ public class ClasspathResolver implements SymbolResolver {
             searchedModules.add(moduleName);
             List<Class<?>> classes = new ArrayList<>();
             try {
-                Enumeration<URL> resources = classLoader.getResources(moduleName.replace('.', '/'));
+                Enumeration<URL> resources = classLoader.getResources(getPackagePath(moduleName));
                 while (resources.hasMoreElements()) {
                     URL resource = resources.nextElement();
                     if (resource.getFile().contains("!")) {

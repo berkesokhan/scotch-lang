@@ -11,9 +11,9 @@ import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
-import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
@@ -133,7 +133,7 @@ public class DefaultOperator extends Value {
     }
 
     @Override
-    public Value qualifyNames(NameQualifier state) {
+    public Value qualifyNames(ScopedNameQualifier state) {
         throw new UnsupportedOperationException();
     }
 

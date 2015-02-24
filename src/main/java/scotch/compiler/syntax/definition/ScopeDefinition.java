@@ -9,9 +9,9 @@ import java.util.Optional;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
-import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
@@ -91,7 +91,7 @@ public class ScopeDefinition extends Definition {
     }
 
     @Override
-    public Definition qualifyNames(NameQualifier state) {
+    public Definition qualifyNames(ScopedNameQualifier state) {
         return state.keep(this);
     }
 

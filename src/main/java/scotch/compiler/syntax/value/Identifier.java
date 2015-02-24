@@ -1,25 +1,33 @@
 package scotch.compiler.syntax.value;
 
+import static java.lang.Character.isUpperCase;
 import static java.util.Arrays.asList;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.valueRef;
+import static scotch.compiler.syntax.value.Values.apply;
 import static scotch.compiler.syntax.value.Values.arg;
 import static scotch.compiler.syntax.value.Values.id;
 import static scotch.compiler.syntax.value.Values.method;
 import static scotch.compiler.syntax.value.Values.unboundMethod;
 import static scotch.compiler.util.Pair.pair;
-import static scotch.util.StringUtil.stringify;
 
-import java.util.Objects;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
-import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
+import scotch.compiler.steps.TypeQualifier;
+import scotch.compiler.symbol.DataFieldDescriptor;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Symbol.QualifiedSymbol;
@@ -31,6 +39,8 @@ import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Pair;
 
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class Identifier extends Value {
 
     public static Builder builder() {
@@ -55,6 +65,53 @@ public class Identifier extends Value {
     @Override
     public Value accumulateNames(NameAccumulator state) {
         return this;
+    }
+
+    @Override
+    public Optional<Value> asInitializer(List<InitializerField> fields, TypeChecker state) {
+        if (isUpperCase(symbol.getMemberName().charAt(0))) {
+            return state.getDataConstructor(symbol)
+                .flatMap(constructor -> {
+                    Map<String, InitializerField> initializerFieldMap = checkFields(fields, state);
+                    Map<String, DataFieldDescriptor> descriptorFieldMap = checkFields(constructor.getFieldMap(), state);
+                    if (!initializerFieldMap.keySet().containsAll(descriptorFieldMap.keySet())
+                        || !descriptorFieldMap.keySet().containsAll(initializerFieldMap.keySet())) {
+                        return Optional.empty(); // TODO
+                    }
+                    return Optional.of(descriptorFieldMap.keySet().stream().reduce(
+                        (Value) this,
+                        (function, fieldName) -> apply(function, initializerFieldMap.get(fieldName).getValue(), state.reserveType()),
+                        (left, right) -> left
+                    ));
+                });
+        } else {
+            return super.asInitializer(fields, state);
+        }
+    }
+
+    private Map<String, DataFieldDescriptor> checkFields(Map<String, DataFieldDescriptor> fieldMap, TypeChecker state) {
+        Map<String, DataFieldDescriptor> checkedFieldMap = new LinkedHashMap<>();
+        fieldMap.keySet().forEach(name -> {
+            DataFieldDescriptor descriptor = fieldMap.get(name);
+            checkedFieldMap.put(name, descriptor.withType(descriptor.getType().qualifyNames(new TypeQualifier(state)))); // TODO should not have to qualify type names here
+        });
+        return checkedFieldMap;
+    }
+
+    private HashMap<String, InitializerField> checkFields(List<InitializerField> fields, TypeChecker state) {
+        return fields.stream()
+            .map(field -> field.withType(field.getType().qualifyNames(new TypeQualifier(state)))) // TODO should not have to qualify type names here
+            .reduce(
+                new HashMap<>(),
+                (map, field) -> {
+                    map.put(field.getName(), field);
+                    return map;
+                },
+                (left, right) -> {
+                    left.putAll(right);
+                    return left;
+                }
+            );
     }
 
     @Override
@@ -104,19 +161,6 @@ public class Identifier extends Value {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof Identifier) {
-            Identifier other = (Identifier) o;
-            return Objects.equals(symbol, other.symbol)
-                && Objects.equals(type, other.type);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
         throw new UnsupportedOperationException();
     }
@@ -135,17 +179,12 @@ public class Identifier extends Value {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(symbol, type);
-    }
-
-    @Override
     public boolean isOperator(Scope scope) {
         return scope.isOperator(symbol);
     }
 
     @Override
-    public Value parsePrecedence(PrecedenceParser state) {
+    public Identifier parsePrecedence(PrecedenceParser state) {
         if (state.isOperator(symbol)) {
             return state.qualify(symbol)
                 .map(this::withSymbol)
@@ -159,18 +198,13 @@ public class Identifier extends Value {
     }
 
     @Override
-    public Value qualifyNames(NameQualifier state) {
+    public Identifier qualifyNames(ScopedNameQualifier state) {
         return state.qualify(symbol)
             .map(this::withSymbol)
             .orElseGet(() -> {
                 state.symbolNotFound(symbol, sourceRange);
                 return this;
             });
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this) + "(" + symbol + ")";
     }
 
     public Identifier withSourceRange(SourceRange sourceRange) {

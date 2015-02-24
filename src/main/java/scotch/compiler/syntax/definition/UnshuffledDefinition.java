@@ -13,9 +13,9 @@ import com.google.common.collect.ImmutableList;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
-import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
@@ -121,7 +121,7 @@ public class UnshuffledDefinition extends Definition {
     }
 
     @Override
-    public Definition qualifyNames(NameQualifier state) {
+    public Definition qualifyNames(ScopedNameQualifier state) {
         return state.scoped(this, () -> withMatches(matches.stream().map(match -> match.qualifyNames(state)).collect(toList()))
             .withBody(body.qualifyNames(state)));
     }

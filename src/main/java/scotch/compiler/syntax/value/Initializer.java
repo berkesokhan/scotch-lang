@@ -2,25 +2,27 @@ package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
-import static scotch.util.StringUtil.stringify;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
-import scotch.compiler.steps.NameQualifier;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
+import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class Initializer extends Value {
 
     public static Builder builder() {
@@ -32,7 +34,7 @@ public class Initializer extends Value {
     private final List<InitializerField> fields;
     private final Type                   type;
 
-    public Initializer(SourceRange sourceRange, Value value, List<InitializerField> fields, Type type) {
+    Initializer(SourceRange sourceRange, Value value, List<InitializerField> fields, Type type) {
         this.sourceRange = sourceRange;
         this.value = value;
         this.fields = ImmutableList.copyOf(fields);
@@ -41,68 +43,61 @@ public class Initializer extends Value {
 
     @Override
     public Value accumulateDependencies(DependencyAccumulator state) {
-        return withValue(value.accumulateDependencies(state))
-            .withFields(fields.stream()
+        return new Initializer(
+            sourceRange,
+            value.accumulateDependencies(state),
+            fields.stream()
                 .map(field -> field.accumulateDependencies(state))
-                .collect(toList()));
+                .collect(toList()),
+            type
+        );
     }
 
     @Override
     public Value accumulateNames(NameAccumulator state) {
-        return withValue(value.accumulateNames(state))
-            .withFields(fields.stream()
+        return new Initializer(
+            sourceRange,
+            value.accumulateNames(state),
+            fields.stream()
                 .map(field -> field.accumulateNames(state))
-                .collect(toList()));
+                .collect(toList()),
+            type
+        );
     }
 
     @Override
     public Value bindMethods(TypeChecker state) {
-        return withValue(value.bindMethods(state))
-            .withFields(fields.stream()
-                .map(field -> field.bindMethods(state))
-                .collect(toList()));
+        return this;
     }
 
     @Override
     public Value bindTypes(TypeChecker state) {
-        return withValue(value.bindTypes(state))
-            .withFields(fields.stream()
-                .map(field -> field.bindTypes(state))
-                .collect(toList()));
+        return this;
     }
 
     @Override
     public Value checkTypes(TypeChecker state) {
-        return withValue(value.checkTypes(state))
-            .withFields(fields.stream()
-                .map(field -> field.checkTypes(state))
-                .collect(toList()));
+        return value
+            .asInitializer(fields, state)
+            .map(value -> value.checkTypes(state))
+            .orElse(this);
     }
 
     @Override
     public Value defineOperators(OperatorAccumulator state) {
-        return withValue(value.defineOperators(state))
-            .withFields(fields.stream()
+        return new Initializer(
+            sourceRange,
+            value.defineOperators(state),
+            fields.stream()
                 .map(field -> field.defineOperators(state))
-                .collect(toList()));
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof Initializer) {
-            Initializer other = (Initializer) o;
-            return Objects.equals(sourceRange, other.sourceRange)
-                && Objects.equals(fields, other.fields);
-        } else {
-            return false;
-        }
+                .collect(toList()),
+            type
+        );
     }
 
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        throw new UnsupportedOperationException(); // TODO
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -116,29 +111,23 @@ public class Initializer extends Value {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(value, fields, type);
-    }
-
-    @Override
     public Value parsePrecedence(PrecedenceParser state) {
-        return withValue(value.parsePrecedence(state))
-            .withFields(fields.stream()
+        return new Initializer(
+            sourceRange,
+            value.parsePrecedence(state),
+            fields.stream()
                 .map(field -> field.parsePrecedence(state))
-                .collect(toList()));
+                .collect(toList()),
+            type
+        );
     }
 
     @Override
-    public Value qualifyNames(NameQualifier state) {
+    public Value qualifyNames(ScopedNameQualifier state) {
         return withValue(value.qualifyNames(state))
             .withFields(fields.stream()
                 .map(field -> field.qualifyNames(state))
                 .collect(toList()));
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this) + "(" + value + " <- " + fields.stream().map(InitializerField::getName).collect(toList()) + ")";
     }
 
     @Override
