@@ -11,7 +11,6 @@ import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 
 import java.util.List;
 import java.util.Optional;
-import scotch.compiler.Compiler;
 import scotch.compiler.output.GeneratedClass;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
@@ -68,7 +67,6 @@ import scotch.compiler.syntax.value.StringLiteral;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.syntax.value.Values;
-import scotch.runtime.Callable;
 
 public class TestUtil {
 
@@ -161,18 +159,6 @@ public class TestUtil {
 
     public static EqualMatch equal(String argument, Value value) {
         return PatternMatch.equal(NULL_SOURCE, Optional.of(argument), value);
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <A> A exec(String... lines) {
-        try {
-            ClasspathResolver resolver = new ClasspathResolver(Compiler.class.getClassLoader());
-            BytecodeClassLoader classLoader = new BytecodeClassLoader();
-            classLoader.defineAll(generateBytecode(resolver, lines));
-            return ((Callable<A>) classLoader.loadClass("scotch.test.ScotchModule").getMethod("run").invoke(null)).call();
-        } catch (ReflectiveOperationException exception) {
-            throw new RuntimeException(exception);
-        }
     }
 
     public static InitializerField field(String name, Value value) {

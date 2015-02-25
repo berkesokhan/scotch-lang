@@ -7,7 +7,6 @@ import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static org.apache.commons.lang.StringUtils.capitalize;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
-import static scotch.compiler.output.GeneratedClass.ClassType.DATA_CONSTRUCTOR;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.ArrayList;
@@ -29,6 +28,7 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
+import scotch.runtime.Copyable;
 
 @EqualsAndHashCode(callSuper = false)
 public class DataConstructorDefinition {
@@ -56,16 +56,55 @@ public class DataConstructorDefinition {
 
     public void generateBytecode(BytecodeGenerator state) {
         JiteClass parentClass = state.currentClass();
-        state.beginClass(DATA_CONSTRUCTOR, state.getDataConstructorClass(symbol), parentClass.getClassName(), sourceRange);
-        parentClass.addChildClass(state.currentClass());
-        generateFields(state);
-        generateConstructor(state, parentClass);
-        if (!isNiladic()) {
+        if (isNiladic()) {
+            state.beginConstant(state.getDataConstructorClass(symbol), sourceRange);
+            parentClass.addChildClass(state.currentClass());
+            generateToString(state);
+            state.endClass();
+        } else {
+            state.beginConstructor(state.getDataConstructorClass(symbol), sourceRange);
+            parentClass.addChildClass(state.currentClass());
+            generateFields(state);
+            generateConstructor(state, parentClass);
             generateEquals(state);
             generateGetters(state);
             generateHashCode(state);
+            generateToString(state);
+            generateCopyConstructor(state);
+            state.endClass();
         }
-        state.endClass();
+    }
+
+    private void generateToString(BytecodeGenerator state) {
+        state.method("toString", ACC_PUBLIC, sig(String.class), new CodeBlock() {{
+            newobj(p(StringBuilder.class));
+            dup();
+            ldc(symbol.getMemberName());
+            invokespecial(p(StringBuilder.class), "<init>", sig(void.class, String.class));
+            int count = 0;
+            if (!fields.isEmpty()) {
+                ldc(" {");
+                invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
+                for (DataFieldDefinition field : fields.values()) {
+                    if (count != 0) {
+                        ldc(",");
+                        invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
+                    }
+                    ldc(" " + field.getName() + " = ");
+                    invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
+                    aload(0);
+                    getfield(state.currentClass().getClassName(), field.getJavaName(), ci(field.getJavaType()));
+                    invokeinterface(p(Callable.class), "call", sig(Object.class));
+                    invokevirtual(p(Object.class), "toString", sig(String.class));
+                    invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
+                    count++;
+                }
+                ldc(" }");
+                invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
+            }
+            invokevirtual(p(Object.class), "toString", sig(String.class));
+            areturn();
+        }});
     }
 
     public Symbol getDataType() {
@@ -124,6 +163,32 @@ public class DataConstructorDefinition {
                 counter.getAndIncrement();
             });
             voidreturn();
+        }});
+    }
+
+    private void generateCopyConstructor(BytecodeGenerator state) {
+        state.method("copy", ACC_PUBLIC, sig(Copyable.class, Map.class), new CodeBlock() {{
+            newobj(state.currentClass().getClassName());
+            dup();
+            for (DataFieldDefinition field : fields.values()) {
+                LabelNode fromField = new LabelNode();
+                LabelNode endField = new LabelNode();
+                aload(1);
+                ldc(field.getJavaName());
+                invokeinterface(p(Map.class), "containsKey", sig(boolean.class, Object.class));
+                iffalse(fromField);
+                aload(1);
+                ldc(field.getJavaName());
+                invokeinterface(p(Map.class), "get", sig(Object.class, Object.class));
+                checkcast(p(field.getJavaType()));
+                go_to(endField);
+                label(fromField);
+                aload(0);
+                getfield(state.currentClass().getClassName(), field.getJavaName(), ci(field.getJavaType()));
+                label(endField);
+            }
+            invokespecial(state.currentClass().getClassName(), "<init>", sig(void.class, getParameters()));
+            areturn();
         }});
     }
 

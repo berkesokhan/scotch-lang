@@ -1,5 +1,6 @@
 package scotch.compiler.syntax.value;
 
+import static java.util.stream.Collectors.toList;
 import static scotch.compiler.util.Either.left;
 
 import java.util.List;
@@ -13,6 +14,7 @@ import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Operator;
+import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;
@@ -33,8 +35,18 @@ public abstract class Value {
         return left(this);
     }
 
-    public Optional<Value> asInitializer(List<InitializerField> fields, TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+    public Optional<Value> asInitializer(Initializer initializer, TypeChecker state) {
+        Value checkedValue = checkTypes(state);
+        if (checkedValue.getType() instanceof SumType) {
+            return Optional.of(new CopyInitializer(
+                initializer.getSourceRange(),
+                checkedValue,
+                initializer.getFields().stream()
+                    .map(field -> field.checkTypes(state))
+                    .collect(toList())));
+        } else {
+            throw new UnsupportedOperationException(); // TODO
+        }
     }
 
     public Optional<Pair<Identifier, Operator>> asOperator(Scope scope) {

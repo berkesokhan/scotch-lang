@@ -8,13 +8,17 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
+import lombok.AllArgsConstructor;
 import scotch.compiler.output.GeneratedClass;
 
+@AllArgsConstructor
 public class BytecodeClassLoader extends ClassLoader {
+
+    private final String testMethod;
 
     public Class<?> define(GeneratedClass generatedClass) {
         byte[] bytes = generatedClass.getBytes();
-        File file = new File("build/generated-test-classes/" + generatedClass.getClassName().replace('.', '/') + ".class");
+        File file = new File("build/generated-test-classes/" + testMethod + "/" + generatedClass.getClassName().replace('.', '/') + ".class");
         file.getParentFile().mkdirs();
         try (OutputStream classFile = new FileOutputStream(file)) {
             classFile.write(bytes);

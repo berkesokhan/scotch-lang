@@ -4,6 +4,8 @@ import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static me.qmx.jitescript.JDKVersion.V1_8;
 import static me.qmx.jitescript.util.CodegenUtils.c;
+import static me.qmx.jitescript.util.CodegenUtils.p;
+import static scotch.compiler.output.GeneratedClass.ClassType.DATA_CONSTRUCTOR;
 import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
 import static scotch.compiler.util.Pair.pair;
 
@@ -36,6 +38,7 @@ import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Pair;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
+import scotch.runtime.Copyable;
 
 public class BytecodeGenerator {
 
@@ -78,6 +81,16 @@ public class BytecodeGenerator {
 
     public void beginClass(ClassType classType, String className, String superClass, SourceRange sourceRange) {
         jiteClasses.push(pair(new JiteClass(className, superClass, new String[0]), classType));
+        currentClass().setSourceFile(sourceRange.getSourceName());
+    }
+
+    public void beginConstant(String className, SourceRange sourceRange) {
+        jiteClasses.push(pair(new JiteClass(className, currentClass().getClassName(), new String[0]), DATA_CONSTRUCTOR));
+        currentClass().setSourceFile(sourceRange.getSourceName());
+    }
+
+    public void beginConstructor(String className, SourceRange sourceRange) {
+        jiteClasses.push(pair(new JiteClass(className, currentClass().getClassName(), new String[] { p(Copyable.class) }), DATA_CONSTRUCTOR));
         currentClass().setSourceFile(sourceRange.getSourceName());
     }
 

@@ -78,8 +78,7 @@ public class Initializer extends Value {
     @Override
     public Value checkTypes(TypeChecker state) {
         return value
-            .asInitializer(fields, state)
-            .map(value -> value.checkTypes(state))
+            .asInitializer(this, state)
             .orElse(this);
     }
 
@@ -98,6 +97,10 @@ public class Initializer extends Value {
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
         throw new UnsupportedOperationException();
+    }
+
+    public List<InitializerField> getFields() {
+        return fields;
     }
 
     @Override

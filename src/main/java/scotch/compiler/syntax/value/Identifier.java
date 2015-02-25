@@ -68,11 +68,11 @@ public class Identifier extends Value {
     }
 
     @Override
-    public Optional<Value> asInitializer(List<InitializerField> fields, TypeChecker state) {
+    public Optional<Value> asInitializer(Initializer initializer, TypeChecker state) {
         if (isUpperCase(symbol.getMemberName().charAt(0))) {
             return state.getDataConstructor(symbol)
                 .flatMap(constructor -> {
-                    Map<String, InitializerField> initializerFieldMap = checkFields(fields, state);
+                    Map<String, InitializerField> initializerFieldMap = checkFields(initializer.getFields(), state);
                     Map<String, DataFieldDescriptor> descriptorFieldMap = checkFields(constructor.getFieldMap(), state);
                     if (!initializerFieldMap.keySet().containsAll(descriptorFieldMap.keySet())
                         || !descriptorFieldMap.keySet().containsAll(initializerFieldMap.keySet())) {
@@ -82,10 +82,10 @@ public class Identifier extends Value {
                         (Value) this,
                         (function, fieldName) -> apply(function, initializerFieldMap.get(fieldName).getValue(), state.reserveType()),
                         (left, right) -> left
-                    ));
+                    ).checkTypes(state));
                 });
         } else {
-            return super.asInitializer(fields, state);
+            return super.asInitializer(initializer, state);
         }
     }
 

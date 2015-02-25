@@ -2,17 +2,25 @@ package scotch.compiler.steps;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.compiler.util.TestUtil.exec;
 import static scotch.data.either.Either.left;
 
 import java.lang.reflect.Method;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
+import scotch.compiler.Compiler;
 import scotch.compiler.error.CompileException;
+import scotch.compiler.symbol.ClasspathResolver;
+import scotch.compiler.util.BytecodeClassLoader;
+import scotch.compiler.util.TestUtil;
 import scotch.data.either.Either.Left;
 import scotch.runtime.Callable;
 
 public class BytecodeGeneratorTest {
+
+    @Rule
+    public final TestName testName = new TestName();
 
     @Test
     public void shouldCompileId() {
@@ -196,6 +204,25 @@ public class BytecodeGeneratorTest {
         assertThat(result, is(true));
     }
 
+    @Test // TODO should not rely on runtime for correctness (implement as pattern matching mayhaps?)
+    public void shouldCopyDataWithNewFieldValues() {
+        boolean result = exec(
+            "module scotch.test",
+            "import scotch.java",
+            "import scotch.data.eq",
+            "import scotch.data.function",
+            "import scotch.data.int",
+            "import scotch.data.string",
+            "",
+            "data QuantifiedThing a { howMany Int, what a }",
+            "",
+            "originalQuantity = QuantifiedThing { howMany = 23, what = \"Oranges\" }",
+            "newQuantity = originalQuantity { howMany = 42 }",
+            "run = newQuantity `javaEq?!` QuantifiedThing { howMany = 42, what = \"Oranges\" }"
+        );
+        assertThat(result, is(true));
+    }
+
     @Test
     public void shouldCompileParenthesizedSignature() {
         exec(
@@ -238,5 +265,17 @@ public class BytecodeGeneratorTest {
             "run = show 5"
         );
         assertThat(result, is("5"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private <A> A exec(String... lines) {
+        try {
+            ClasspathResolver resolver = new ClasspathResolver(Compiler.class.getClassLoader());
+            BytecodeClassLoader classLoader = new BytecodeClassLoader(testName.getMethodName());
+            classLoader.defineAll(TestUtil.generateBytecode(resolver, lines));
+            return ((Callable<A>) classLoader.loadClass("scotch.test.ScotchModule").getMethod("run").invoke(null)).call();
+        } catch (ReflectiveOperationException exception) {
+            throw new RuntimeException(exception);
+        }
     }
 }
