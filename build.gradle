@@ -1,11 +1,14 @@
-apply plugin: 'java'
+defaultTasks 'build'
 
-allprojects {
-    group = 'org.github.lmcgrath.scotch'
-    version = '0.0.1-SNAPSHOT'
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
-}
+apply plugin: 'application'
+
+group = 'org.github.lmcgrath.scotch'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+mainClassName = 'scotch.runner.Runner'
+
+build.dependsOn += [ distZip, distTar ]
 
 repositories {
     mavenCentral()

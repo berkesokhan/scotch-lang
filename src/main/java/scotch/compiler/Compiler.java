@@ -14,6 +14,8 @@ import scotch.compiler.scanner.Scanner;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 
+// TODO multiple file compilation
+// TODO incremental compilation
 public class Compiler {
 
     public static Compiler compiler(SymbolResolver symbolResolver, String sourceName, String... lines) {
