@@ -11,9 +11,14 @@ import static scotch.compiler.scanner.Token.TokenKind.SEMICOLON;
 import static scotch.compiler.util.TestUtil.token;
 import static scotch.compiler.util.TestUtil.tokenAt;
 
+import java.net.URI;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 public class LayoutScannerTest {
+
+    @Rule public final TestName testName = new TestName();
 
     @Test
     public void sequentialLet_shouldCollapseIntoSingleLet() {
@@ -229,6 +234,6 @@ public class LayoutScannerTest {
     }
 
     private Scanner scan(String... lines) {
-        return forString("test", lines);
+        return forString(URI.create("test://" + testName.getMethodName()), lines);
     }
 }

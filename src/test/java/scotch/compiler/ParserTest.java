@@ -17,6 +17,7 @@ import static scotch.compiler.util.TestUtil.value;
 import static scotch.compiler.util.TestUtil.valueRef;
 import static scotch.util.StringUtil.quote;
 
+import java.net.URI;
 import java.util.List;
 import java.util.function.Function;
 import org.junit.Before;
@@ -45,7 +46,7 @@ public abstract class ParserTest {
     public void init() {
         setUp();
         initResolver(resolver = new StubResolver());
-        compiler = lines -> compiler(resolver, testName.getMethodName(), lines);
+        compiler = lines -> compiler(resolver, URI.create("test://" + testName.getMethodName()), lines);
     }
 
     protected Scope getScope(DefinitionReference reference) {

@@ -8,9 +8,9 @@ import static scotch.util.StringUtil.stringify;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import lombok.EqualsAndHashCode;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -23,6 +23,7 @@ import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
 
+@EqualsAndHashCode(callSuper = false)
 public class ModuleDefinition extends Definition {
 
     public static Builder builder() {
@@ -62,20 +63,6 @@ public class ModuleDefinition extends Definition {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof ModuleDefinition) {
-            ModuleDefinition other = (ModuleDefinition) o;
-            return Objects.equals(symbol, other.symbol)
-                && Objects.equals(imports, other.imports)
-                && Objects.equals(definitions, other.definitions);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public void generateBytecode(BytecodeGenerator state) {
         state.scoped(this, () -> {
             state.beginClass(MODULE, Symbol.moduleClass(symbol), sourceRange);
@@ -98,11 +85,6 @@ public class ModuleDefinition extends Definition {
     @Override
     public SourceRange getSourceRange() {
         return sourceRange;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(symbol, imports, definitions);
     }
 
     @Override

@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.rules.ExpectedException.none;
 import static scotch.compiler.scanner.Token.TokenKind.ARROW;
 import static scotch.compiler.scanner.Token.TokenKind.BACKSLASH;
 import static scotch.compiler.scanner.Token.TokenKind.CHAR_LITERAL;
@@ -34,14 +33,16 @@ import static scotch.compiler.text.SourcePoint.point;
 import static scotch.compiler.text.SourceRange.source;
 import static scotch.compiler.util.TestUtil.token;
 
+import java.net.URI;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TestName;
 
 public class DefaultScannerTest {
 
-    @Rule
-    public final ExpectedException exception = none();
+    @Rule public final TestName          testName  = new TestName();
+    @Rule public final ExpectedException exception = ExpectedException.none();
 
     @Test
     public void dotInParensIsIdentifier() {
@@ -55,12 +56,14 @@ public class DefaultScannerTest {
 
     @Test
     public void shouldGetArgumentAfterLambdaPrefix() {
-        assertThat(secondFrom("\\x -> y"), equalTo(token(IDENTIFIER, "x", source("test", point(1, 1, 2), point(2, 1, 3)))));
+        assertThat(secondFrom("\\x -> y"), equalTo(token(IDENTIFIER, "x",
+            source("test://shouldGetArgumentAfterLambdaPrefix", point(1, 1, 2), point(2, 1, 3)))));
     }
 
     @Test
     public void shouldGetArrow() {
-        assertThat(firstFrom("-> arrow?"), equalTo(token(ARROW, "->", source("test", point(0, 1, 1), point(2, 1, 3)))));
+        assertThat(firstFrom("-> arrow?"), equalTo(token(ARROW, "->",
+            source("test://shouldGetArrow", point(0, 1, 1), point(2, 1, 3)))));
     }
 
     @Test
@@ -95,7 +98,8 @@ public class DefaultScannerTest {
 
     @Test
     public void shouldGetIdentifier() {
-        assertThat(firstFrom("asteroids yo"), equalTo(token(IDENTIFIER, "asteroids", source("test", point(0, 1, 1), point(9, 1, 10)))));
+        assertThat(firstFrom("asteroids yo"), equalTo(token(IDENTIFIER, "asteroids",
+            source("test://shouldGetIdentifier", point(0, 1, 1), point(9, 1, 10)))));
     }
 
     @Test
@@ -105,7 +109,8 @@ public class DefaultScannerTest {
 
     @Test
     public void shouldGetIdentifierSuffixedWithQuote() {
-        assertThat(firstFrom("asteroids' again"), equalTo(token(IDENTIFIER, "asteroids'", source("test", point(0, 1, 1), point(10, 1, 11)))));
+        assertThat(firstFrom("asteroids' again"), equalTo(token(IDENTIFIER, "asteroids'",
+            source("test://shouldGetIdentifierSuffixedWithQuote", point(0, 1, 1), point(10, 1, 11)))));
     }
 
     @Test
@@ -130,7 +135,8 @@ public class DefaultScannerTest {
 
     @Test
     public void shouldGetLambdaPrefix() {
-        assertThat(secondFrom("asteroids \\x -> boom!"), equalTo(token(BACKSLASH, "\\", source("test", point(10, 1, 11), point(11, 1, 12)))));
+        assertThat(secondFrom("asteroids \\x -> boom!"), equalTo(token(BACKSLASH, "\\",
+            source("test://shouldGetLambdaPrefix", point(10, 1, 11), point(11, 1, 12)))));
     }
 
     @Test
@@ -207,7 +213,7 @@ public class DefaultScannerTest {
     @Test
     public void shouldReportBadHexEscape() {
         exception.expect(ScanException.class);
-        exception.expectMessage(containsString("Invalid hex escape character 'V' ['test' (1, 10)]"));
+        exception.expectMessage(containsString("Invalid hex escape character 'V' ['test://shouldReportBadHexEscape' (1, 10)]"));
         firstFrom("\"oops \\u0V12 busted\"");
     }
 
@@ -265,21 +271,23 @@ public class DefaultScannerTest {
     @Test
     public void shouldThrowException_whenCharLiteralIsEmpty() {
         exception.expect(ScanException.class);
-        exception.expectMessage("Empty char literal ['test' (1, 2)]");
+        exception.expectMessage("Empty char literal ['test://shouldThrowException_whenCharLiteralIsEmpty' (1, 2)]");
         firstFrom("''");
     }
 
     @Test
     public void shouldThrowException_whenCharLiteralIsTooLong() {
         exception.expect(ScanException.class);
-        exception.expectMessage("Unterminated character literal: unexpected <LATIN SMALL LETTER B> 'b' ['test' (1, 3)]");
+        exception.expectMessage("Unterminated character literal: unexpected <LATIN SMALL LETTER B> 'b'"
+            + " ['test://shouldThrowException_whenCharLiteralIsTooLong' (1, 3)]");
         firstFrom("'ab'");
     }
 
     @Test
     public void shouldThrowException_whenQuotingReservedWord() {
         exception.expect(ScanException.class);
-        exception.expectMessage(containsString("Cannot quote reserved word 'else' ['test' (1, 2)]"));
+        exception.expectMessage(containsString("Cannot quote reserved word 'else'" +
+            " ['test://shouldThrowException_whenQuotingReservedWord' (1, 2)]"));
         firstFrom(" `else`");
     }
 
@@ -301,7 +309,10 @@ public class DefaultScannerTest {
     }
 
     private Scanner scan(String... data) {
-        return new DefaultScanner("test", (join(lineSeparator(), data) + lineSeparator()).toCharArray());
+        return new DefaultScanner(
+            URI.create("test://" + testName.getMethodName()),
+            (join(lineSeparator(), data) + lineSeparator()).toCharArray()
+        );
     }
 
     private Token secondFrom(String... data) {

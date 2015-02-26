@@ -2,70 +2,49 @@ package scotch.compiler.text;
 
 import static scotch.compiler.text.SourcePoint.point;
 import static scotch.util.StringUtil.quote;
-import static scotch.util.StringUtil.stringify;
 
+import java.net.URI;
 import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class NamedSourcePoint {
 
-    public static NamedSourcePoint source(String sourceName, int offset, int line, int column) {
-        return new NamedSourcePoint(sourceName, offset, line, column);
+    public static NamedSourcePoint source(URI source, int offset, int line, int column) {
+        return new NamedSourcePoint(source, offset, line, column);
     }
 
-    private final String sourceName;
-    private final int    offset;
-    private final int    line;
-    private final int    column;
+    private final URI source;
+    private final int offset;
+    private final int line;
+    private final int column;
 
-    private NamedSourcePoint(String sourceName, int offset, int line, int column) {
-        this.sourceName = sourceName;
+    private NamedSourcePoint(URI source, int offset, int line, int column) {
+        this.source = source;
         this.offset = offset;
         this.line = line;
         this.column = column;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof NamedSourcePoint) {
-            NamedSourcePoint other = (NamedSourcePoint) o;
-            return Objects.equals(sourceName, other.sourceName)
-                && offset == other.offset
-                && line == other.line
-                && column == other.column;
-        } else {
-            return false;
-        }
     }
 
     public int getColumn() {
         return column;
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(sourceName, offset, line, column);
-    }
-
     public String prettyPrint() {
-        return "[" + quote(sourceName) + " (" + line + ", " + column + ")]";
+        return "[" + quote(source) + " (" + line + ", " + column + ")]";
     }
 
     public SourceRange to(NamedSourcePoint end) {
         if (!isSameSourceAs(end)) {
-            throw new IllegalArgumentException("Source range covers two sources: " + quote(sourceName) + " and " + quote(end.sourceName));
+            throw new IllegalArgumentException("Source range covers two sources: " + quote(source) + " and " + quote(end.source));
         }
-        return SourceRange.source(sourceName, toPoint(), end.toPoint());
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this) + "(source=" + quote(sourceName) + ", line=" + line + ", column=" + column + ", offset=" + offset + ")";
+        return SourceRange.source(source, toPoint(), end.toPoint());
     }
 
     private boolean isSameSourceAs(NamedSourcePoint end) {
-        return Objects.equals(sourceName, end.sourceName);
+        return Objects.equals(source, end.source);
     }
 
     private SourcePoint toPoint() {

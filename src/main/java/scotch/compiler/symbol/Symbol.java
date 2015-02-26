@@ -94,7 +94,7 @@ public abstract class Symbol implements Comparable<Symbol> {
     }
 
     public static String moduleClass(String symbol) {
-        return getPackagePath(symbol) + "/ScotchModule";
+        return getPackagePath(symbol) + "/$$Module";
     }
 
     public static String normalizeQualified(String moduleName, String memberName) {
@@ -338,7 +338,7 @@ public abstract class Symbol implements Comparable<Symbol> {
         @Override
         public String getModuleClass() {
             return Optional.ofNullable(javaTypeMap.get(this))
-                .orElseGet(() -> getPackagePath() + "/ScotchModule");
+                .orElseGet(() -> getPackagePath() + "/$$Module");
         }
 
         public String getModuleName() {

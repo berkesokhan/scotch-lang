@@ -12,6 +12,7 @@ import static scotch.compiler.scanner.Token.TokenKind.RIGHT_CURLY_BRACE;
 import static scotch.compiler.scanner.Token.TokenKind.SEMICOLON;
 import static scotch.compiler.scanner.Token.token;
 
+import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -44,8 +45,8 @@ public final class LayoutScanner implements Scanner {
     }
 
     @Override
-    public String getSourceName() {
-        return delegate.getSourceName();
+    public URI getSource() {
+        return delegate.getSource();
     }
 
     @Override

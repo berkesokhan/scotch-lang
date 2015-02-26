@@ -3,6 +3,7 @@ package scotch.compiler.text;
 import static scotch.compiler.text.NamedSourcePoint.source;
 import static scotch.util.StringUtil.stringify;
 
+import java.net.URI;
 import java.util.Objects;
 
 public class SourcePoint {
@@ -85,7 +86,7 @@ public class SourcePoint {
         return stringify(this) + "(offset=" + offset + ", line=" + line + ", column=" + column + ")";
     }
 
-    public NamedSourcePoint withSourceName(String sourceName) {
-        return source(sourceName, offset, line, column);
+    public NamedSourcePoint withSource(URI source) {
+        return source(source, offset, line, column);
     }
 }

@@ -102,7 +102,7 @@ public class TypeCheckerTest extends ParserTest {
         );
         shouldHaveErrors(typeError(
             mismatch(intType, stringType),
-            source("mismatchedSignatureAndValueShouldReportTypeError", point(59, 4, 1), point(98, 4, 40))
+            source("test://mismatchedSignatureAndValueShouldReportTypeError", point(59, 4, 1), point(98, 4, 40))
         ));
     }
 
@@ -118,7 +118,7 @@ public class TypeCheckerTest extends ParserTest {
         );
         shouldHaveErrors(typeError(
             mismatch(intType, stringType),
-            source("mismatchedPatternCaseShouldReportTypeError", point(90, 6, 1), point(118, 6, 29))
+            source("test://mismatchedPatternCaseShouldReportTypeError", point(90, 6, 1), point(118, 6, 29))
         ));
     }
 
@@ -134,8 +134,8 @@ public class TypeCheckerTest extends ParserTest {
             "fn2 n = 9"
         );
         shouldHaveErrors(
-            typeError(mismatch(stringType, intType), source("shouldReportAllTypeErrors", point(126, 7, 1), point(135, 7, 10))),
-            typeError(mismatch(intType, stringType), source("shouldReportAllTypeErrors", point(110, 6, 1), point(125, 6, 16)))
+            typeError(mismatch(stringType, intType), source("test://shouldReportAllTypeErrors", point(126, 7, 1), point(135, 7, 10))),
+            typeError(mismatch(intType, stringType), source("test://shouldReportAllTypeErrors", point(110, 6, 1), point(125, 6, 16)))
         );
     }
 
@@ -151,7 +151,7 @@ public class TypeCheckerTest extends ParserTest {
         );
         shouldHaveErrors(typeError(
             mismatch(stringType, intType),
-            source("shouldReportMismatchedFunctionAndArgumentTypes", point(106, 6, 10), point(107, 6, 11))
+            source("test://shouldReportMismatchedFunctionAndArgumentTypes", point(106, 6, 10), point(107, 6, 11))
         ));
     }
 

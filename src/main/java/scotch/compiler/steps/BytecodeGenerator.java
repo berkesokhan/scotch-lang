@@ -76,22 +76,22 @@ public class BytecodeGenerator {
 
     public void beginClass(ClassType classType, String className, SourceRange sourceRange) {
         jiteClasses.push(pair(new JiteClass(className), classType));
-        currentClass().setSourceFile(sourceRange.getSourceName());
+        currentClass().setSourceFile(sourceRange.getPath());
     }
 
     public void beginClass(ClassType classType, String className, String superClass, SourceRange sourceRange) {
         jiteClasses.push(pair(new JiteClass(className, superClass, new String[0]), classType));
-        currentClass().setSourceFile(sourceRange.getSourceName());
+        currentClass().setSourceFile(sourceRange.getPath());
     }
 
     public void beginConstant(String className, SourceRange sourceRange) {
         jiteClasses.push(pair(new JiteClass(className, currentClass().getClassName(), new String[0]), DATA_CONSTRUCTOR));
-        currentClass().setSourceFile(sourceRange.getSourceName());
+        currentClass().setSourceFile(sourceRange.getPath());
     }
 
     public void beginConstructor(String className, SourceRange sourceRange) {
         jiteClasses.push(pair(new JiteClass(className, currentClass().getClassName(), new String[] { p(Copyable.class) }), DATA_CONSTRUCTOR));
-        currentClass().setSourceFile(sourceRange.getSourceName());
+        currentClass().setSourceFile(sourceRange.getPath());
     }
 
     public void beginMatches() {

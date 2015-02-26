@@ -33,6 +33,7 @@ import static scotch.compiler.text.TextUtil.isSymbol;
 import static scotch.util.StringUtil.quote;
 import static scotch.util.StringUtil.stringify;
 
+import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.Map;
 import java.util.Optional;
@@ -68,7 +69,7 @@ public final class DefaultScanner implements Scanner {
         return new Acceptor(TokenKind.BOOL_LITERAL, Boolean::valueOf);
     }
 
-    private final String                  sourceName;
+    private final URI                     source;
     private final char[]                  data;
     private final ArrayDeque<SaveState>   saves;
     private final ArrayDeque<State>       states;
@@ -78,8 +79,8 @@ public final class DefaultScanner implements Scanner {
     private       Optional<String>        text;
     private       SourcePoint             location;
 
-    public DefaultScanner(String sourceName, char[] data) {
-        this.sourceName = sourceName;
+    public DefaultScanner(URI source, char[] data) {
+        this.source = source;
         this.data = data;
         this.saves = new ArrayDeque<>();
         this.states = new ArrayDeque<>(asList(SCAN_DEFAULT));
@@ -92,11 +93,11 @@ public final class DefaultScanner implements Scanner {
 
     @Override
     public NamedSourcePoint getPosition() {
-        return location.withSourceName(sourceName);
+        return location.withSource(source);
     }
 
-    public String getSourceName() {
-        return sourceName;
+    public URI getSource() {
+        return source;
     }
 
     @Override
@@ -119,7 +120,7 @@ public final class DefaultScanner implements Scanner {
     @Override
     public String toString() {
         return stringify(this) + "("
-            + "source=" + quote(sourceName)
+            + "source=" + quote(source)
             + ", coord=" + location
             + ")";
     }
@@ -142,7 +143,7 @@ public final class DefaultScanner implements Scanner {
 
     private void accept(TokenKind kind, Object value) {
         accept();
-        token = of(token(kind, value, marks.peek().withSourceName(sourceName).to(getPosition())));
+        token = of(token(kind, value, marks.peek().withSource(source).to(getPosition())));
     }
 
     private void acceptChar() {
@@ -192,7 +193,7 @@ public final class DefaultScanner implements Scanner {
     }
 
     private NamedSourcePoint getMarkedPosition() {
-        return marks.peek().withSourceName(sourceName);
+        return marks.peek().withSource(source);
     }
 
     private String getText() {

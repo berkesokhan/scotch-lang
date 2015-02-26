@@ -8,6 +8,7 @@ import static scotch.compiler.symbol.Symbol.toJavaName;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
@@ -26,16 +27,14 @@ public class Runner {
     public static void main(String[] args) throws Exception {
         new Runner(args).printHelpOr(runner -> {
             ScotchClassLoader classLoader = new ScotchClassLoader(runner.getOutputPath());
-            try (Stream<String> stream = Files.lines(Paths.get(getPackagePath(runner.getModule()) + ".scotch").toAbsolutePath())) {
+            Path path = Paths.get(getPackagePath(runner.getModule()) + ".scotch");
+            try (Stream<String> stream = Files.lines(path.toAbsolutePath())) {
                 List<String> lines = stream.collect(toList());
-                Compiler compiler = compiler(new ClasspathResolver(classLoader),
-                    runner.getModule(),
-                    lines.toArray(new String[lines.size()])
-                );
+                Compiler compiler = compiler(new ClasspathResolver(classLoader), path.toUri(), lines.toArray(new String[lines.size()]));
                 List<GeneratedClass> generatedClasses = compiler.generateBytecode();
                 classLoader.defineAll(generatedClasses);
                 out.println("main = " + ((Callable) classLoader
-                    .loadClass(toJavaName(runner.getModule()) + ".ScotchModule")
+                    .loadClass(toJavaName(runner.getModule()) + ".$$Module")
                     .getMethod("main")
                     .invoke(null)).call());
             }

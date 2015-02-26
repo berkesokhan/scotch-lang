@@ -9,6 +9,7 @@ import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import scotch.compiler.output.GeneratedClass;
@@ -182,7 +183,7 @@ public class TestUtil {
     }
 
     public static List<GeneratedClass> generateBytecode(ClasspathResolver resolver, String... lines) {
-        return compiler(resolver, "$test", lines).generateBytecode();
+        return compiler(resolver, URI.create("test://unnamed"), lines).generateBytecode();
     }
 
     public static Identifier id(String name, Type type) {

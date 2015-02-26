@@ -1,5 +1,6 @@
 package scotch.compiler;
 
+import java.net.URI;
 import java.util.List;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
@@ -18,8 +19,8 @@ import scotch.compiler.syntax.definition.DefinitionGraph;
 // TODO incremental compilation
 public class Compiler {
 
-    public static Compiler compiler(SymbolResolver symbolResolver, String sourceName, String... lines) {
-        return new Compiler(symbolResolver, Scanner.forString(sourceName, lines));
+    public static Compiler compiler(SymbolResolver symbolResolver, URI source, String... lines) {
+        return new Compiler(symbolResolver, Scanner.forString(source, lines));
     }
 
     private final SymbolResolver symbolResolver;

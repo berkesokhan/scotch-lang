@@ -273,7 +273,7 @@ public class BytecodeGeneratorTest {
             ClasspathResolver resolver = new ClasspathResolver(Compiler.class.getClassLoader());
             BytecodeClassLoader classLoader = new BytecodeClassLoader(testName.getMethodName());
             classLoader.defineAll(TestUtil.generateBytecode(resolver, lines));
-            return ((Callable<A>) classLoader.loadClass("scotch.test.ScotchModule").getMethod("run").invoke(null)).call();
+            return ((Callable<A>) classLoader.loadClass("scotch.test.$$Module").getMethod("run").invoke(null)).call();
         } catch (ReflectiveOperationException exception) {
             throw new RuntimeException(exception);
         }
