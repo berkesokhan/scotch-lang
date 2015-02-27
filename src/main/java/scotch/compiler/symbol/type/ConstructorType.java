@@ -14,9 +14,8 @@ import java.util.Optional;
 import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
-import scotch.compiler.steps.NameQualifier;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Pair;
 

@@ -16,9 +16,8 @@ import static scotch.compiler.symbol.type.Unification.unified;
 import java.util.List;
 import org.junit.Before;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.SymbolGenerator;
+import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.syntax.scope.DefaultTypeScope;
 
 public class UnificationTest {

@@ -18,7 +18,7 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.SymbolGenerator;
+import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.reference.ValueReference;

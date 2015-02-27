@@ -12,7 +12,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.util.Pair;
 
 public class Types {

@@ -71,7 +71,7 @@ public class Instance extends Value {
             reference.getClassReference(),
             reference.getModuleReference(),
             reference.getParameters().stream()
-                .map(parameter -> parameter.reify(state.scope()))
+                .map(parameter -> parameter.copy(state.scope()::reserveType))
                 .collect(toList())
         ).reference();
     }

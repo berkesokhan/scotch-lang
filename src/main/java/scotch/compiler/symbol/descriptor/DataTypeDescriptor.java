@@ -1,4 +1,4 @@
-package scotch.compiler.symbol;
+package scotch.compiler.symbol.descriptor;
 
 import static java.util.stream.Collectors.joining;
 
@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
 
 public class DataTypeDescriptor {

@@ -3,6 +3,7 @@ package scotch.runner;
 import static java.lang.System.out;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.Compiler.compiler;
+import static scotch.compiler.ClassLoaderResolver.resolver;
 import static scotch.compiler.symbol.Symbol.getPackagePath;
 import static scotch.compiler.symbol.Symbol.toJavaName;
 
@@ -18,7 +19,8 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import scotch.compiler.Compiler;
 import scotch.compiler.output.GeneratedClass;
-import scotch.compiler.symbol.ClasspathResolver;
+import scotch.compiler.error.CompileException;
+import scotch.compiler.ClassLoaderResolver;
 import scotch.runtime.Callable;
 
 @SuppressWarnings("unused")
@@ -26,17 +28,19 @@ public class Runner {
 
     public static void main(String[] args) throws Exception {
         new Runner(args).printHelpOr(runner -> {
-            ScotchClassLoader classLoader = new ScotchClassLoader(runner.getOutputPath());
+            ClassLoaderResolver resolver = resolver(runner.getOutputPath());
             Path path = Paths.get(getPackagePath(runner.getModule()) + ".scotch");
             try (Stream<String> stream = Files.lines(path.toAbsolutePath())) {
                 List<String> lines = stream.collect(toList());
-                Compiler compiler = compiler(new ClasspathResolver(classLoader), path.toUri(), lines.toArray(new String[lines.size()]));
+                Compiler compiler = compiler(resolver, path.toUri(), lines.toArray(new String[lines.size()]));
                 List<GeneratedClass> generatedClasses = compiler.generateBytecode();
-                classLoader.defineAll(generatedClasses);
-                out.println("main = " + ((Callable) classLoader
+                resolver.defineAll(generatedClasses);
+                out.println("main = " + ((Callable) resolver
                     .loadClass(toJavaName(runner.getModule()) + ".$$Module")
                     .getMethod("main")
                     .invoke(null)).call());
+            } catch (CompileException exception) {
+                exception.printErrors();
             }
         });
     }

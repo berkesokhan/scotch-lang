@@ -27,7 +27,7 @@ import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.steps.TypeQualifier;
-import scotch.compiler.symbol.DataFieldDescriptor;
+import scotch.compiler.symbol.descriptor.DataFieldDescriptor;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Symbol.QualifiedSymbol;

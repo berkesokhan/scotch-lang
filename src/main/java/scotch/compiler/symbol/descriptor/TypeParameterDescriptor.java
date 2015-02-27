@@ -1,4 +1,4 @@
-package scotch.compiler.symbol;
+package scotch.compiler.symbol.descriptor;
 
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.symbol.type.Types.sum;
@@ -6,12 +6,14 @@ import static scotch.compiler.symbol.type.Types.sum;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
-import scotch.compiler.syntax.scope.Scope;
+import scotch.compiler.symbol.type.VariableType;
 
 @EqualsAndHashCode
 @ToString
@@ -41,6 +43,12 @@ public class TypeParameterDescriptor {
             .collect(toList()));
     }
 
+    public Type copy(Supplier<VariableType> generator) {
+        return sum(symbol, argumentContexts.stream()
+            .map(context -> generator.get().withContext(context))
+            .collect(toList()));
+    }
+
     public Set<Symbol> getContext() {
         Set<Symbol> context = new HashSet<>();
         argumentContexts.forEach(context::addAll);
@@ -49,12 +57,6 @@ public class TypeParameterDescriptor {
 
     public boolean matches(Type type) {
         return type instanceof SumType && matches_((SumType) type);
-    }
-
-    public Type reify(Scope scope) {
-        return sum(symbol, argumentContexts.stream()
-            .map(context -> scope.reserveType().withContext(context))
-            .collect(toList()));
     }
 
     private boolean matches_(SumType type) {

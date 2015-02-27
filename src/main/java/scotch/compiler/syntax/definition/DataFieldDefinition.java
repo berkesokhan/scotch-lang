@@ -3,15 +3,15 @@ package scotch.compiler.syntax.definition;
 import static me.qmx.jitescript.util.CodegenUtils.ci;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
-import static scotch.compiler.symbol.DataFieldDescriptor.field;
+import static scotch.compiler.symbol.descriptor.DataFieldDescriptor.field;
 import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.Optional;
 import lombok.EqualsAndHashCode;
 import scotch.compiler.steps.BytecodeGenerator;
-import scotch.compiler.steps.NameQualifier;
-import scotch.compiler.symbol.DataFieldDescriptor;
+import scotch.compiler.symbol.NameQualifier;
+import scotch.compiler.symbol.descriptor.DataFieldDescriptor;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.FunctionType;
 import scotch.compiler.symbol.type.Type;

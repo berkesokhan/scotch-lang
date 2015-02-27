@@ -1,8 +1,7 @@
-package scotch.compiler.steps;
+package scotch.compiler.symbol;
 
 import java.util.Optional;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.Symbol;
 import scotch.compiler.text.SourceRange;
 
 public interface NameQualifier {

@@ -1,4 +1,4 @@
-package scotch.compiler.symbol;
+package scotch.compiler.symbol.descriptor;
 
 import static java.util.stream.Collectors.toList;
 
@@ -8,6 +8,9 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.symbol.MethodSignature;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.TypeParameter;
 import scotch.compiler.symbol.type.Type;
 
 @EqualsAndHashCode

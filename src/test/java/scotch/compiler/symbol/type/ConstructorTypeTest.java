@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
-import scotch.compiler.symbol.SymbolGenerator;
+import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.syntax.scope.DefaultTypeScope;
 

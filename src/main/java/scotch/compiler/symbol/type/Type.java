@@ -17,9 +17,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
-import scotch.compiler.steps.NameQualifier;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Pair;
 
@@ -73,14 +72,6 @@ public abstract class Type {
 
     public HeadZip applyZipWith(SumType type, TypeScope scope) {
         throw new UnsupportedOperationException(); // TODO
-    }
-
-    public Type getAbsoluteResult() {
-        Type result = this;
-        while (result instanceof FunctionType) {
-            result = ((FunctionType) result).getResult();
-        }
-        return result;
     }
 
     private TailZip applyZip(TailZip zip, TypeScope scope) {

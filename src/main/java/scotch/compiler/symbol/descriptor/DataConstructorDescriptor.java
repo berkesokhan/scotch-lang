@@ -1,4 +1,4 @@
-package scotch.compiler.symbol;
+package scotch.compiler.symbol.descriptor;
 
 import static java.util.stream.Collectors.joining;
 
@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.EqualsAndHashCode;
+import scotch.compiler.symbol.Symbol;
 
 @EqualsAndHashCode(callSuper = false)
 public class DataConstructorDescriptor {

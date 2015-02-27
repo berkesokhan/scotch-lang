@@ -3,6 +3,9 @@ package scotch.compiler.symbol;
 import static org.apache.commons.lang.StringUtils.capitalize;
 
 import java.util.Optional;
+import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
+import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
+import scotch.compiler.symbol.descriptor.TypeClassDescriptor;
 import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.symbol.type.Type;
 

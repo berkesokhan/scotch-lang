@@ -2,7 +2,6 @@ package scotch.data.maybe;
 
 import static java.util.Arrays.asList;
 import static scotch.compiler.symbol.type.Types.sum;
-import static scotch.compiler.symbol.type.Types.var;
 import static scotch.data.maybe.Maybe.just;
 import static scotch.data.maybe.Maybe.nothing;
 import static scotch.runtime.RuntimeUtil.callable;
@@ -34,12 +33,12 @@ public class MonadMaybe implements Monad {
 
     @TypeParameters
     public static List<Type> parameters() {
-        return asList(sum("scotch.data.either.Either", var("a")));
+        return asList(sum("scotch.data.maybe.Maybe"));
     }
 
     @Override
     public Callable bind(Callable value, Applicable transformer) {
-        return callable(() -> ((Maybe) value).map(transformer));
+        return ((Maybe) value.call()).map(transformer.call());
     }
 
     @Override

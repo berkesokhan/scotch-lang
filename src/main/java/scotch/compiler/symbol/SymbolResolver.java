@@ -5,6 +5,7 @@ import static java.util.Arrays.asList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
 import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
 

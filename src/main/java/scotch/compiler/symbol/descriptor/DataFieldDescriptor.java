@@ -1,4 +1,4 @@
-package scotch.compiler.symbol;
+package scotch.compiler.symbol.descriptor;
 
 import lombok.EqualsAndHashCode;
 import scotch.compiler.symbol.type.Type;

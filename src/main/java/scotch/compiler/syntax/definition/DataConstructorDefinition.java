@@ -23,7 +23,7 @@ import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.ScopedNameQualifier;
-import scotch.compiler.symbol.DataConstructorDescriptor;
+import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;

@@ -1,10 +1,10 @@
-package scotch.compiler.symbol;
+package scotch.compiler;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.compiler.symbol.DataFieldDescriptor.field;
+import static scotch.compiler.symbol.descriptor.DataFieldDescriptor.field;
 import static scotch.compiler.symbol.MethodSignature.methodSignature;
 import static scotch.compiler.symbol.Operator.operator;
 import static scotch.compiler.symbol.Symbol.symbol;
@@ -17,18 +17,21 @@ import static scotch.compiler.util.TestUtil.intType;
 import static scotch.compiler.util.TestUtil.typeClass;
 import static scotch.compiler.util.TestUtil.typeInstance;
 
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
+import scotch.compiler.symbol.MethodSignature;
+import scotch.compiler.symbol.SymbolEntry;
 import scotch.compiler.symbol.type.Type;
 import scotch.data.num.NumInt;
 
-public class ClasspathResolverTest {
+public class ClassLoaderResolverTest {
 
-    private ClasspathResolver resolver;
+    private ClassLoaderResolver resolver;
 
     @Before
     public void setUp() {
-        resolver = new ClasspathResolver(getClass().getClassLoader());
+        resolver = new ClassLoaderResolver(Optional.empty(), getClass().getClassLoader());
     }
 
     @Test

@@ -3,7 +3,7 @@ package scotch.compiler.steps;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.compiler.symbol.TypeParameterDescriptor.typeParam;
+import static scotch.compiler.symbol.descriptor.TypeParameterDescriptor.typeParam;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.symbol.type.Types.instance;
 import static scotch.compiler.symbol.type.Types.sum;

@@ -7,9 +7,8 @@ import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import scotch.compiler.steps.NameQualifier;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.TypeScope;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Pair;
 

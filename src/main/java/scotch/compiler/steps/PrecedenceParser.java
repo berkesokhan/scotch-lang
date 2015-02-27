@@ -22,7 +22,6 @@ import scotch.compiler.parser.PatternShuffler;
 import scotch.compiler.parser.ValueShuffler;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.SymbolNotFoundError;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;

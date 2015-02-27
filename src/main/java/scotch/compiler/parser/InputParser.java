@@ -66,7 +66,7 @@ import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.SymbolGenerator;
+import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.symbol.type.SumType;

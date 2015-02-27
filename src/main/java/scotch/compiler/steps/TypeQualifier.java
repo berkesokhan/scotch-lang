@@ -2,8 +2,8 @@ package scotch.compiler.steps;
 
 import java.util.Optional;
 import scotch.compiler.error.SyntaxError;
+import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.SymbolNotFoundError;
 import scotch.compiler.text.SourceRange;
 
 public class TypeQualifier implements NameQualifier {

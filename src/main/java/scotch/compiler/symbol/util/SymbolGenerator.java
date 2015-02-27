@@ -1,4 +1,4 @@
-package scotch.compiler.symbol;
+package scotch.compiler.symbol.util;
 
 import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.symbol.type.Types.t;
@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Types;
 import scotch.compiler.symbol.type.VariableType;
 

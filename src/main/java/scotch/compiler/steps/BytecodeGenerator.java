@@ -24,7 +24,7 @@ import scotch.compiler.output.GeneratedClass;
 import scotch.compiler.output.GeneratedClass.ClassType;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.TypeInstanceDescriptor;
+import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
 import scotch.compiler.symbol.type.FunctionType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;

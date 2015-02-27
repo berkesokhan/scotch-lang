@@ -16,15 +16,15 @@ import scotch.compiler.output.GeneratedClass;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
-import scotch.compiler.symbol.ClasspathResolver;
-import scotch.compiler.symbol.DataConstructorDescriptor;
-import scotch.compiler.symbol.DataFieldDescriptor;
-import scotch.compiler.symbol.DataTypeDescriptor;
+import scotch.compiler.ClassLoaderResolver;
+import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
+import scotch.compiler.symbol.descriptor.DataFieldDescriptor;
+import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.TypeClassDescriptor;
-import scotch.compiler.symbol.TypeInstanceDescriptor;
-import scotch.compiler.symbol.TypeParameterDescriptor;
+import scotch.compiler.symbol.descriptor.TypeClassDescriptor;
+import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
+import scotch.compiler.symbol.descriptor.TypeParameterDescriptor;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.definition.ClassDefinition;
@@ -182,7 +182,7 @@ public class TestUtil {
         return Values.fn(NULL_SOURCE, symbol(name), arguments, body);
     }
 
-    public static List<GeneratedClass> generateBytecode(ClasspathResolver resolver, String... lines) {
+    public static List<GeneratedClass> generateBytecode(ClassLoaderResolver resolver, String... lines) {
         return compiler(resolver, URI.create("test://unnamed"), lines).generateBytecode();
     }
 

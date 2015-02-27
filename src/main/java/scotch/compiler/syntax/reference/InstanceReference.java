@@ -5,7 +5,7 @@ import com.google.common.collect.ImmutableList;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import scotch.compiler.symbol.TypeParameterDescriptor;
+import scotch.compiler.symbol.descriptor.TypeParameterDescriptor;
 
 @EqualsAndHashCode(callSuper = false)
 @ToString

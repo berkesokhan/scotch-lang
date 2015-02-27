@@ -1,10 +1,7 @@
-package scotch.compiler.symbol;
+package scotch.compiler.symbol.type;
 
 import java.util.Set;
-import scotch.compiler.symbol.type.SumType;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.type.Unification;
-import scotch.compiler.symbol.type.VariableType;
+import scotch.compiler.symbol.Symbol;
 
 public interface TypeScope {
 

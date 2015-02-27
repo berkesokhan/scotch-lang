@@ -4,15 +4,16 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.data.either.Either.left;
 
+import java.io.File;
 import java.lang.reflect.Method;
+import java.util.Optional;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import scotch.compiler.Compiler;
 import scotch.compiler.error.CompileException;
-import scotch.compiler.symbol.ClasspathResolver;
-import scotch.compiler.util.BytecodeClassLoader;
+import scotch.compiler.ClassLoaderResolver;
 import scotch.compiler.util.TestUtil;
 import scotch.data.either.Either.Left;
 import scotch.runtime.Callable;
@@ -270,10 +271,12 @@ public class BytecodeGeneratorTest {
     @SuppressWarnings("unchecked")
     private <A> A exec(String... lines) {
         try {
-            ClasspathResolver resolver = new ClasspathResolver(Compiler.class.getClassLoader());
-            BytecodeClassLoader classLoader = new BytecodeClassLoader(testName.getMethodName());
-            classLoader.defineAll(TestUtil.generateBytecode(resolver, lines));
-            return ((Callable<A>) classLoader.loadClass("scotch.test.$$Module").getMethod("run").invoke(null)).call();
+            ClassLoaderResolver resolver = new ClassLoaderResolver(
+                Optional.of(new File("build/generated-test-classes/" + testName.getMethodName())),
+                Compiler.class.getClassLoader()
+            );
+            resolver.defineAll(TestUtil.generateBytecode(resolver, lines));
+            return ((Callable<A>) resolver.loadClass("scotch.test.$$Module").getMethod("run").invoke(null)).call();
         } catch (ReflectiveOperationException exception) {
             throw new RuntimeException(exception);
         }

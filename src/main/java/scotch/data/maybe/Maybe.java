@@ -1,12 +1,12 @@
 package scotch.data.maybe;
 
 import static java.util.Arrays.asList;
+import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.symbol.type.Types.var;
 import static scotch.runtime.RuntimeUtil.applicable;
 import static scotch.runtime.RuntimeUtil.callable;
 import static scotch.runtime.RuntimeUtil.flatCallable;
-import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
 import java.util.Objects;
@@ -38,7 +38,7 @@ public abstract class Maybe<A> {
 
     @ValueType(forMember = "Just")
     public static Type just$type() {
-        return TYPE;
+        return fn(var("a"), TYPE);
     }
 
     @SuppressWarnings("unchecked")
@@ -131,7 +131,7 @@ public abstract class Maybe<A> {
 
         @Override
         public String toString() {
-            return stringify(this) + "(" + value + ")";
+            return "Just " + value.call() + "";
         }
     }
 }

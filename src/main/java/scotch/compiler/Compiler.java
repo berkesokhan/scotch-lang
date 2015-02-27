@@ -2,9 +2,9 @@ package scotch.compiler;
 
 import java.net.URI;
 import java.util.List;
+import scotch.compiler.output.GeneratedClass;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
-import scotch.compiler.output.GeneratedClass;
 import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
