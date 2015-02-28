@@ -176,6 +176,11 @@ public class DefinitionGraph {
         public String prettyPrint() {
             return cycle.prettyPrint();
         }
+
+        @Override
+        public String report(String indent, int indentLevel) {
+            return cycle.report(indent, indentLevel);
+        }
     }
 
     public static class DefinitionGraphBuilder {

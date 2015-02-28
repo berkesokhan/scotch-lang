@@ -2,6 +2,7 @@ package scotch.compiler.syntax.definition;
 
 import static java.util.stream.Collectors.joining;
 import static scotch.compiler.text.SourceRange.NULL_SOURCE;
+import static scotch.compiler.text.TextUtil.repeat;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -35,6 +36,12 @@ public class DependencyCycle {
 
     public String prettyPrint() {
         return "Dependency cycle detected:\n" + nodes.stream().map(Node::prettyPrint).collect(joining("\n"));
+    }
+
+    public String report(String indent, int indentLevel) {
+        return nodes.stream()
+            .map(node -> node.report(indent, indentLevel))
+            .collect(joining("\n\n"));
     }
 
     public static final class Builder {
@@ -95,9 +102,18 @@ public class DependencyCycle {
         }
 
         public String prettyPrint() {
-            return "Value " + symbol.quote() + " depends on ["
+            return "Method " + symbol.quote() + " depends on ["
                 + dependencies.stream().map(Symbol::quote).collect(joining(", "))
-                + "] " + sourceRange.prettyPrint();
+                + "]" + " " + sourceRange.prettyPrint();
+        }
+
+        public String report(String indent, int indentLevel) {
+            return sourceRange.report(indent, indentLevel) + "\n"
+                + repeat(indent, indentLevel + 1) + "Can't analyze types! Dependency cycle detected:\n"
+                + repeat(indent, indentLevel + 2) + "- " + symbol.quote() + "\n"
+                + dependencies.stream()
+                    .map(symbol -> repeat(indent, indentLevel + 2) + "- " + symbol.quote())
+                    .collect(joining("\n"));
         }
     }
 }

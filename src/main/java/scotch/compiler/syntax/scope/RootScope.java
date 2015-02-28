@@ -5,8 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
-import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
@@ -14,15 +12,16 @@ import scotch.compiler.symbol.Symbol.QualifiedSymbol;
 import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
 import scotch.compiler.symbol.SymbolEntry;
-import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
+import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
+import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
 import scotch.compiler.symbol.descriptor.TypeClassDescriptor;
 import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.type.Unification;
 import scotch.compiler.symbol.type.VariableType;
+import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ValueReference;
@@ -118,12 +117,12 @@ public class RootScope extends Scope {
     }
 
     @Override
-    public TypeClassDescriptor getMemberOf(ValueReference valueRef) {
+    public Optional<TypeClassDescriptor> getMemberOf(ValueReference valueRef) {
         throw new IllegalStateException();
     }
 
     @Override
-    public Operator getOperator(Symbol symbol) {
+    public Optional<Operator> getOperator(Symbol symbol) {
         throw new IllegalStateException();
     }
 
@@ -138,7 +137,7 @@ public class RootScope extends Scope {
     }
 
     @Override
-    public Type getRawValue(Symbol symbol) {
+    public Optional<Type> getRawValue(Symbol symbol) {
         throw new IllegalStateException();
     }
 
@@ -158,7 +157,7 @@ public class RootScope extends Scope {
     }
 
     @Override
-    public TypeClassDescriptor getTypeClass(ClassReference classRef) {
+    public Optional<TypeClassDescriptor> getTypeClass(ClassReference classRef) {
         throw new IllegalStateException();
     }
 
@@ -169,7 +168,7 @@ public class RootScope extends Scope {
 
     @Override
     public Optional<MethodSignature> getValueSignature(Symbol symbol) {
-        return resolver.getEntry(symbol).map(SymbolEntry::getValueMethod);
+        return resolver.getEntry(symbol).flatMap(SymbolEntry::getValueMethod);
     }
 
     @Override
@@ -220,13 +219,13 @@ public class RootScope extends Scope {
                 if (resolver.isDefined(symbol)) {
                     return Optional.of(symbol);
                 } else {
-                    throw new SymbolNotFoundException("Could not qualify undefined symbol " + symbol.quote());
+                    return Optional.empty();
                 }
             }
 
             @Override
             public Optional<Symbol> visit(UnqualifiedSymbol symbol) {
-                throw new SymbolNotFoundException("Could not qualify undefined symbol " + symbol.quote());
+                return Optional.empty();
             }
         });
     }

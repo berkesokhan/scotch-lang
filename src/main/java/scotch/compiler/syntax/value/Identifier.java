@@ -2,6 +2,7 @@ package scotch.compiler.syntax.value;
 
 import static java.lang.Character.isUpperCase;
 import static java.util.Arrays.asList;
+import static scotch.compiler.error.SymbolNotFoundError.symbolNotFound;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.valueRef;
 import static scotch.compiler.syntax.value.Values.apply;
@@ -117,27 +118,27 @@ public class Identifier extends Value {
     @Override
     public Optional<Pair<Identifier, Operator>> asOperator(Scope scope) {
         return scope.qualify(symbol)
-            .map(scope::getOperator)
+            .flatMap(scope::getOperator)
             .map(operator -> pair(this, operator));
     }
 
-    public Value bind(Scope scope) {
-        Type valueType = scope.getValue(symbol);
-        return symbol.accept(new SymbolVisitor<Value>() {
-            @Override
-            public Value visit(QualifiedSymbol symbol) {
-                if (scope.isMember(symbol) || valueType.hasContext()) {
-                    return unboundMethod(sourceRange, valueRef(symbol), valueType);
-                } else {
-                    return method(sourceRange, valueRef(symbol), asList(), valueType);
+    public Optional<Value> bind(Scope scope) {
+        return scope.getValue(symbol).map(
+            valueType -> symbol.accept(new SymbolVisitor<Value>() {
+                @Override
+                public Value visit(QualifiedSymbol symbol) {
+                    if (scope.isMember(symbol) || valueType.hasContext()) {
+                        return unboundMethod(sourceRange, valueRef(symbol), valueType);
+                    } else {
+                        return method(sourceRange, valueRef(symbol), asList(), valueType);
+                    }
                 }
-            }
 
-            @Override
-            public Value visit(UnqualifiedSymbol symbol) {
-                return arg(sourceRange, symbol.getSimpleName(), valueType);
-            }
-        });
+                @Override
+                public Value visit(UnqualifiedSymbol symbol) {
+                    return arg(sourceRange, symbol.getSimpleName(), valueType);
+                }
+            }));
     }
 
     @Override
@@ -152,7 +153,12 @@ public class Identifier extends Value {
 
     @Override
     public Value checkTypes(TypeChecker state) {
-        return bind(state.scope()).checkTypes(state);
+        return bind(state.scope())
+            .map(value -> value.checkTypes(state))
+            .orElseGet(() -> {
+                state.error(symbolNotFound(symbol, sourceRange));
+                return this;
+            });
     }
 
     @Override

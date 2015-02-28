@@ -1,6 +1,7 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.error.SymbolNotFoundError.symbolNotFound;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.symbol.type.Types.instance;
 import static scotch.compiler.syntax.value.NoBindingError.noBinding;
@@ -127,17 +128,27 @@ public class UnboundMethod extends Value {
     }
 
     private Value bind(TypeChecker state) {
-        List<InstanceType> instances = listInstanceTypes(state.getRawValue(valueRef));
         return state.getRawValue(valueRef)
-            .zip(type, state)
-            .map(map -> instances.stream()
-                .map(instance -> instance.withBinding(map.get(instance.getBinding())))
-                .collect(toList()))
-            .map(instanceTypes -> method(sourceRange, valueRef, instances, state.generate(getMethodType(instanceTypes))))
-            .orElseGet(() -> {
-                state.error(noBinding(getSymbol(), sourceRange));
-                return this;
-            });
+            .map(valueType -> {
+                List<InstanceType> instances = listInstanceTypes(valueType);
+                return state.getRawValue(valueRef)
+                    .map(rawValue -> rawValue.zip(type, state)
+                        .map(map -> instances.stream()
+                            .map(instance -> instance.withBinding(map.get(instance.getBinding())))
+                            .collect(toList()))
+                        .map(instanceTypes -> method(sourceRange, valueRef, instances, state.generate(getMethodType(instanceTypes))))
+                        .orElseGet(() -> {
+                            state.error(noBinding(getSymbol(), sourceRange));
+                            return this;
+                        }))
+                    .orElseGet(() -> notFound(state));
+            })
+            .orElseGet(() -> notFound(state));
+    }
+
+    private UnboundMethod notFound(TypeChecker state) {
+        state.error(symbolNotFound(valueRef.getSymbol(), sourceRange));
+        return this;
     }
 
     private Type getMethodType(List<InstanceType> instances) {

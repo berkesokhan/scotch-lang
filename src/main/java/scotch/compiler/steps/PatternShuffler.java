@@ -1,7 +1,7 @@
-package scotch.compiler.parser;
+package scotch.compiler.steps;
 
 import static java.util.Collections.reverse;
-import static scotch.compiler.parser.ParseError.parseError;
+import static scotch.compiler.error.ParseError.parseError;
 import static scotch.compiler.util.Either.left;
 import static scotch.compiler.util.Either.right;
 

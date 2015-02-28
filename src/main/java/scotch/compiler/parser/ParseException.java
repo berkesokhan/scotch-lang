@@ -1,8 +1,14 @@
 package scotch.compiler.parser;
 
-public class ParseException extends RuntimeException {
+import static java.util.Arrays.asList;
+import static scotch.compiler.error.ParseError.parseError;
 
-    public ParseException(String message) {
-        super(message);
+import scotch.compiler.error.CompileException;
+import scotch.compiler.text.SourceRange;
+
+public class ParseException extends CompileException {
+
+    public ParseException(String message, SourceRange location) {
+        super(asList(parseError(message, location)));
     }
 }

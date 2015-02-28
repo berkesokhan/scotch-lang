@@ -105,6 +105,14 @@ public final class TextUtil {
             || c == '>';
     }
 
+    public static String repeat(String string, int times) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < times; i++) {
+            builder.append(string);
+        }
+        return builder.toString();
+    }
+
     private TextUtil() {
         // intentionally empty
     }

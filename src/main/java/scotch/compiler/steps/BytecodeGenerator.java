@@ -287,7 +287,9 @@ public class BytecodeGenerator {
         return captures.stream()
             .map(Symbol::unqualified)
             .map(scope()::getValue)
-            .map(this::typeOf)
+            .map(value -> value.map(this::typeOf))
+            .filter(Optional::isPresent)
+            .map(Optional::get)
             .collect(toList());
     }
 
@@ -316,7 +318,7 @@ public class BytecodeGenerator {
     }
 
     public TypeInstanceDescriptor getTypeInstance(ClassReference classRef, ModuleReference moduleRef, List<Type> parameters) {
-        return scope().getTypeInstance(classRef, moduleRef, parameters);
+        return scope().getTypeInstance(classRef, moduleRef, parameters).get();
     }
 
     public MethodSignature getValueSignature(Symbol symbol) {

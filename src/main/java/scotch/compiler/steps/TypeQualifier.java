@@ -1,6 +1,7 @@
 package scotch.compiler.steps;
 
 import java.util.Optional;
+import scotch.compiler.error.SymbolNotFoundError;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;

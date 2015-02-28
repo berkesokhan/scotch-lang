@@ -6,7 +6,6 @@ import java.util.Optional;
 import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
 import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
 import scotch.compiler.symbol.descriptor.TypeClassDescriptor;
-import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.symbol.type.Type;
 
 public abstract class SymbolEntry {
@@ -34,28 +33,28 @@ public abstract class SymbolEntry {
     public abstract void defineValue(Type type, MethodSignature valueMethod);
 
     public Optional<DataConstructorDescriptor> getConstructor(Symbol symbol) {
-        return getDataType().getConstructor(symbol);
+        return getDataType().flatMap(dataType -> dataType.getConstructor(symbol));
     }
 
-    public abstract DataConstructorDescriptor getDataConstructor();
+    public abstract Optional<DataConstructorDescriptor> getDataConstructor();
 
-    public abstract DataTypeDescriptor getDataType();
+    public abstract Optional<DataTypeDescriptor> getDataType();
 
-    public abstract Symbol getMemberOf();
+    public abstract Optional<Symbol> getMemberOf();
 
-    public abstract Operator getOperator();
+    public abstract Optional<Operator> getOperator();
 
     public abstract Optional<Type> getSignature();
 
     public abstract Symbol getSymbol();
 
-    public abstract Type getType();
+    public abstract Optional<Type> getType();
 
-    public abstract TypeClassDescriptor getTypeClass();
+    public abstract Optional<TypeClassDescriptor> getTypeClass();
 
-    public abstract Type getValue();
+    public abstract Optional<Type> getValue();
 
-    public abstract MethodSignature getValueMethod();
+    public abstract Optional<MethodSignature> getValueMethod();
 
     public abstract boolean isDataConstructor();
 
@@ -70,10 +69,6 @@ public abstract class SymbolEntry {
     public abstract void redefineSignature(Type type);
 
     public abstract void redefineValue(Type type, MethodSignature valueMethod);
-
-    protected <T> T get(Optional<T> optional, String kind) {
-        return optional.orElseThrow(() -> new SymbolNotFoundException("Symbol " + getSymbol().quote() + " is not " + kind));
-    }
 
     public static final class ImmutableEntry extends SymbolEntry {
 
@@ -125,23 +120,23 @@ public abstract class SymbolEntry {
         }
 
         @Override
-        public DataConstructorDescriptor getDataConstructor() {
-            return get(optionalDataConstructor, "a data constructor");
+        public Optional<DataConstructorDescriptor> getDataConstructor() {
+            return optionalDataConstructor;
         }
 
         @Override
-        public DataTypeDescriptor getDataType() {
-            return get(optionalDataType, "a data type");
+        public Optional<DataTypeDescriptor> getDataType() {
+            return optionalDataType;
         }
 
         @Override
-        public Symbol getMemberOf() {
-            return get(optionalMemberOf, "a class member");
+        public Optional<Symbol> getMemberOf() {
+            return optionalMemberOf;
         }
 
         @Override
-        public Operator getOperator() {
-            return get(optionalOperator, "an operator");
+        public Optional<Operator> getOperator() {
+            return optionalOperator;
         }
 
         @Override
@@ -155,23 +150,23 @@ public abstract class SymbolEntry {
         }
 
         @Override
-        public Type getType() {
-            return get(optionalType, "a type");
+        public Optional<Type> getType() {
+            return optionalType;
         }
 
         @Override
-        public TypeClassDescriptor getTypeClass() {
-            return get(optionalTypeClass, "a type class");
+        public Optional<TypeClassDescriptor> getTypeClass() {
+            return optionalTypeClass;
         }
 
         @Override
-        public Type getValue() {
-            return get(optionalValue, "a value");
+        public Optional<Type> getValue() {
+            return optionalValue;
         }
 
         @Override
-        public MethodSignature getValueMethod() {
-            return get(optionalValueMethod, "a value");
+        public Optional<MethodSignature> getValueMethod() {
+            return optionalValueMethod;
         }
 
         @Override
@@ -348,23 +343,23 @@ public abstract class SymbolEntry {
         }
 
         @Override
-        public DataConstructorDescriptor getDataConstructor() {
-            return get(optionalDataConstructor, "a data constructor");
+        public Optional<DataConstructorDescriptor> getDataConstructor() {
+            return optionalDataConstructor;
         }
 
         @Override
-        public DataTypeDescriptor getDataType() {
-            return get(optionalDataType, "a data type");
+        public Optional<DataTypeDescriptor> getDataType() {
+            return optionalDataType;
         }
 
         @Override
-        public Symbol getMemberOf() {
-            return get(optionalMemberOf, "a class member");
+        public Optional<Symbol> getMemberOf() {
+            return optionalMemberOf;
         }
 
         @Override
-        public Operator getOperator() {
-            return get(optionalOperator, "an operator");
+        public Optional<Operator> getOperator() {
+            return optionalOperator;
         }
 
         @Override
@@ -378,23 +373,23 @@ public abstract class SymbolEntry {
         }
 
         @Override
-        public Type getType() {
-            return get(optionalType, "a type");
+        public Optional<Type> getType() {
+            return optionalType;
         }
 
         @Override
-        public TypeClassDescriptor getTypeClass() {
-            return get(optionalTypeClass, " a type class");
+        public Optional<TypeClassDescriptor> getTypeClass() {
+            return optionalTypeClass;
         }
 
         @Override
-        public Type getValue() {
-            return get(optionalValue, "a value");
+        public Optional<Type> getValue() {
+            return optionalValue;
         }
 
         @Override
-        public MethodSignature getValueMethod() {
-            return get(optionalValueMethod, " a value");
+        public Optional<MethodSignature> getValueMethod() {
+            return optionalValueMethod;
         }
 
         @Override
@@ -417,7 +412,7 @@ public abstract class SymbolEntry {
             if (optionalDataConstructor.isPresent()) {
                 optionalDataConstructor = Optional.of(descriptor);
             } else {
-                throw new SymbolNotFoundException("Can't redefine non-existent data constructor " + symbol.quote());
+                throw new IllegalStateException("Can't redefine non-existent data constructor " + symbol.quote());
             }
         }
 
@@ -426,7 +421,7 @@ public abstract class SymbolEntry {
             if (optionalDataType.isPresent()) {
                 optionalDataType = Optional.of(descriptor);
             } else {
-                throw new SymbolNotFoundException("Can't redefine non-existent data type " + symbol.quote());
+                throw new IllegalStateException("Can't redefine non-existent data type " + symbol.quote());
             }
         }
 
@@ -435,7 +430,7 @@ public abstract class SymbolEntry {
             if (optionalSignature.isPresent()) {
                 optionalSignature = Optional.of(type);
             } else {
-                throw new SymbolNotFoundException("Can't redefine non-existent signature " + symbol.quote());
+                throw new IllegalStateException("Can't redefine non-existent signature " + symbol.quote());
             }
         }
 
@@ -445,7 +440,7 @@ public abstract class SymbolEntry {
                 optionalValue = Optional.of(type);
                 optionalValueMethod = Optional.of(valueMethod);
             } else {
-                throw new SymbolNotFoundException("Can't redefine non-existent value " + symbol.quote());
+                throw new IllegalStateException("Can't redefine non-existent value " + symbol.quote());
             }
         }
 

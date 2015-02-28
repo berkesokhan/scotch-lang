@@ -13,8 +13,6 @@ import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
-import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
@@ -22,12 +20,13 @@ import scotch.compiler.symbol.Symbol.QualifiedSymbol;
 import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
 import scotch.compiler.symbol.SymbolEntry;
+import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
+import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
 import scotch.compiler.symbol.descriptor.TypeClassDescriptor;
 import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.compiler.symbol.type.TypeScope;
-import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.TypeScope;
 import scotch.compiler.symbol.type.Unification;
 import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.syntax.definition.Import;
@@ -167,13 +166,20 @@ public class ChildScope extends Scope {
     }
 
     @Override
-    public TypeClassDescriptor getMemberOf(ValueReference valueRef) {
+    public Optional<TypeClassDescriptor> getMemberOf(ValueReference valueRef) {
         return parent.getMemberOf(valueRef);
     }
 
     @Override
-    public Operator getOperator(Symbol symbol) {
-        return requireEntry(symbol).getOperator();
+    public Optional<Operator> getOperator(Symbol symbol) {
+        return getEntry(symbol).flatMap(entry -> {
+            Optional<Operator> operator = entry.getOperator();
+            if (operator.isPresent()) {
+                return operator;
+            } else {
+                return parent.getOperator(symbol);
+            }
+        });
     }
 
     @Override
@@ -186,13 +192,22 @@ public class ChildScope extends Scope {
     }
 
     @Override
-    public Type getRawValue(Symbol symbol) {
-        return requireEntry(symbol).getValue();
+    public Optional<Type> getRawValue(Symbol symbol) {
+        return getEntry(symbol).flatMap(entry -> {
+            Optional<Type> rawValue = entry.getValue();
+            if (rawValue.isPresent()) {
+                return rawValue;
+            } else {
+                return parent.getRawValue(symbol);
+            }
+        });
     }
 
     @Override
     public Optional<Type> getSignature(Symbol symbol) {
-        return requireEntry(symbol).getSignature().map(signature -> signature.genericCopy(types));
+        return getEntry(symbol)
+            .flatMap(entry -> entry.getSignature()
+                .map(signature -> signature.genericCopy(types)));
     }
 
     @Override
@@ -206,7 +221,7 @@ public class ChildScope extends Scope {
     }
 
     @Override
-    public TypeClassDescriptor getTypeClass(ClassReference classRef) {
+    public Optional<TypeClassDescriptor> getTypeClass(ClassReference classRef) {
         return parent.getTypeClass(classRef);
     }
 
@@ -217,11 +232,9 @@ public class ChildScope extends Scope {
 
     @Override
     public Optional<MethodSignature> getValueSignature(Symbol symbol) {
-        if (entries.containsKey(symbol)) {
-            return Optional.of(entries.get(symbol).getValueMethod());
-        } else {
-            return parent.getValueSignature(symbol);
-        }
+        return Optional.ofNullable(entries.get(symbol))
+            .map(SymbolEntry::getValueMethod)
+            .orElseGet(() -> parent.getValueSignature(symbol));
     }
 
     @Override
@@ -334,10 +347,6 @@ public class ChildScope extends Scope {
         newChild.setParent(this);
     }
 
-    private SymbolEntry requireEntry(Symbol symbol) {
-        return getEntry(symbol).orElseThrow(() -> new SymbolNotFoundException("Could not find symbol " + symbol.quote()));
-    }
-
     private void setParent_(ChildScope newParent) {
         newParent.children.add(this);
         parent = newParent;
@@ -360,7 +369,9 @@ public class ChildScope extends Scope {
 
     @Override
     protected boolean isDataConstructor(Symbol symbol) {
-        return requireEntry(symbol).isDataConstructor() || parent.isDataConstructor(symbol);
+        return getEntry(symbol)
+            .map(SymbolEntry::isDataConstructor)
+            .orElseGet(() -> parent.isDataConstructor(symbol));
     }
 
     @Override

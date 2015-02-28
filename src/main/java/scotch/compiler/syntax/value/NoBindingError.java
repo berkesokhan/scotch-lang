@@ -1,6 +1,7 @@
 package scotch.compiler.syntax.value;
 
 import static lombok.AccessLevel.PRIVATE;
+import static scotch.compiler.text.TextUtil.repeat;
 
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -24,6 +25,16 @@ public class NoBindingError extends SyntaxError {
 
     @Override
     public String prettyPrint() {
-        return "No binding found for method " + symbol + " " + sourceRange.prettyPrint();
+        return prettyPrint_() + " " + sourceRange.prettyPrint();
+    }
+
+    @Override
+    public String report(String indent, int indentLevel) {
+        return sourceRange.report(indent, indentLevel) + "\n"
+            + repeat(indent, indentLevel + 1) + prettyPrint_();
+    }
+
+    private String prettyPrint_() {
+        return "No binding found for method " + symbol;
     }
 }

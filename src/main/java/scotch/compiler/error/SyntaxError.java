@@ -45,6 +45,8 @@ public abstract class SyntaxError {
 
     public abstract String prettyPrint();
 
+    public abstract String report(String indent, int indentLevel);
+
     @Override
     public String toString() {
         return prettyPrint();

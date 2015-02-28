@@ -22,10 +22,9 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolEntry;
-import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.symbol.type.Types;
+import scotch.compiler.symbol.util.SymbolGenerator;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RootScopeTest {
@@ -100,13 +99,13 @@ public class RootScopeTest {
         rootScope.leaveScope();
     }
 
-    @Test(expected = SymbolNotFoundException.class)
-    public void shouldThrow_whenQualifyingUndeclaredSymbol() {
-        rootScope.qualify(qualified("scotch.module1", "fn"));
+    @Test
+    public void shouldBeEmpty_whenQualifyingUndeclaredSymbol() {
+        assertThat(rootScope.qualify(qualified("scotch.module1", "fn")), is(Optional.empty()));
     }
 
-    @Test(expected = SymbolNotFoundException.class)
-    public void shouldThrow_whenQualifyingUnqualifiedSymbol() {
-        rootScope.qualify(unqualified("fn"));
+    @Test
+    public void shouldThrowBeEmpty_whenQualifyingUnqualifiedSymbol() {
+        assertThat(rootScope.qualify(unqualified("fn")), is(Optional.empty()));
     }
 }

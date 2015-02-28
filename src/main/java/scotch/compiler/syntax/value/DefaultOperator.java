@@ -61,7 +61,7 @@ public class DefaultOperator extends Value {
     public Optional<Pair<Identifier, Operator>> asOperator(Scope scope) {
         if (scope.isOperator(symbol)) {
             return scope.qualify(symbol)
-                .map(scope::getOperator)
+                .flatMap(scope::getOperator)
                 .map(operator -> pair(asIdentifier(), operator));
         } else {
             return Optional.of(pair(asIdentifier(), operator(LEFT_INFIX, 20)));

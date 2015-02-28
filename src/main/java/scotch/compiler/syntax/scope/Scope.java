@@ -7,21 +7,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
-import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.SymbolEntry;
-import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
+import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
+import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
 import scotch.compiler.symbol.descriptor.TypeClassDescriptor;
 import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.compiler.symbol.type.TypeScope;
-import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.symbol.type.FunctionType;
 import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.TypeScope;
 import scotch.compiler.symbol.type.VariableType;
+import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ModuleReference;
@@ -68,7 +67,7 @@ public abstract class Scope implements TypeScope {
         if (optionalEntry.isPresent()) {
             optionalEntry.get().redefineDataConstructor(descriptor);
         } else {
-            throw new SymbolNotFoundException("Can't redefine non-existent data constructor " + symbol.quote());
+            throw new IllegalStateException("Can't redefine non-existent data constructor " + symbol.quote());
         }
     }
 
@@ -77,7 +76,7 @@ public abstract class Scope implements TypeScope {
         if (optionalEntry.isPresent()) {
             optionalEntry.get().redefineDataType(descriptor);
         } else {
-            throw new SymbolNotFoundException("Can't redefine non-existent data constructor " + symbol.quote());
+            throw new IllegalStateException("Can't redefine non-existent data constructor " + symbol.quote());
         }
     }
 
@@ -108,14 +107,14 @@ public abstract class Scope implements TypeScope {
     }
 
     public Optional<DataConstructorDescriptor> getDataConstructor(Symbol symbol) {
-        return getEntry(symbol).map(SymbolEntry::getDataConstructor);
+        return getEntry(symbol).flatMap(SymbolEntry::getDataConstructor);
     }
 
     public String getDataConstructorClass(Symbol symbol) {
         return getEntry(symbol)
-            .map(SymbolEntry::getDataConstructor)
+            .flatMap(SymbolEntry::getDataConstructor)
             .map(constructor -> constructor.getSymbol().getClassNameAsChildOf(constructor.getDataType()))
-            .orElseThrow(() -> new SymbolNotFoundException("Can't get data constructor class for " + symbol.quote()));
+            .orElseThrow(() -> new IllegalStateException("Can't get data constructor class for " + symbol.quote()));
     }
 
     public abstract Set<Symbol> getDependencies();
@@ -124,39 +123,38 @@ public abstract class Scope implements TypeScope {
         throw new IllegalStateException();
     }
 
-    public abstract TypeClassDescriptor getMemberOf(ValueReference valueRef);
+    public abstract Optional<TypeClassDescriptor> getMemberOf(ValueReference valueRef);
 
-    public abstract Operator getOperator(Symbol symbol);
+    public abstract Optional<Operator> getOperator(Symbol symbol);
 
     public abstract Scope getParent();
 
     public abstract Map<Symbol, List<PatternMatcher>> getPatterns();
 
-    public Type getRawValue(ValueReference reference) {
+    public Optional<Type> getRawValue(ValueReference reference) {
         return getRawValue(reference.getSymbol());
     }
 
-    public abstract Type getRawValue(Symbol symbol);
+    public abstract Optional<Type> getRawValue(Symbol symbol);
 
     public abstract Optional<Type> getSignature(Symbol symbol);
 
-    public abstract TypeClassDescriptor getTypeClass(ClassReference classRef);
+    public abstract Optional<TypeClassDescriptor> getTypeClass(ClassReference classRef);
 
-    public TypeInstanceDescriptor getTypeInstance(ClassReference classReference, ModuleReference moduleReference, List<Type> parameters) {
+    public Optional<TypeInstanceDescriptor> getTypeInstance(ClassReference classReference, ModuleReference moduleReference, List<Type> parameters) {
         return getTypeInstances(classReference.getSymbol(), parameters).stream()
             .filter(instance -> moduleReference.is(instance.getModuleName()))
-            .findFirst()
-            .orElseThrow(UnsupportedOperationException::new);
+            .findFirst();
     }
 
     public abstract Set<TypeInstanceDescriptor> getTypeInstances(Symbol typeClass, List<Type> parameters);
 
-    public Type getValue(ValueReference reference) {
+    public Optional<Type> getValue(ValueReference reference) {
         return getValue(reference.getSymbol());
     }
 
-    public Type getValue(Symbol symbol) {
-        return getRawValue(symbol).genericCopy(this);
+    public Optional<Type> getValue(Symbol symbol) {
+        return getRawValue(symbol).map(type -> type.genericCopy(this));
     }
 
     public abstract Optional<MethodSignature> getValueSignature(Symbol symbol);
@@ -190,7 +188,7 @@ public abstract class Scope implements TypeScope {
         if (optionalEntry.isPresent()) {
             optionalEntry.get().redefineSignature(type);
         } else {
-            throw new SymbolNotFoundException("Can't redefine non-existent value " + symbol.quote());
+            throw new IllegalStateException("Can't redefine non-existent value " + symbol.quote());
         }
     }
 
@@ -199,7 +197,7 @@ public abstract class Scope implements TypeScope {
         if (optionalEntry.isPresent()) {
             optionalEntry.get().redefineValue(type, computeValueMethod(symbol, type));
         } else {
-            throw new SymbolNotFoundException("Can't redefine non-existent value " + symbol.quote());
+            throw new IllegalStateException("Can't redefine non-existent value " + symbol.quote());
         }
     }
 

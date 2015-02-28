@@ -17,8 +17,6 @@ import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
-import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
@@ -27,12 +25,13 @@ import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
 import scotch.compiler.symbol.SymbolEntry;
 import scotch.compiler.symbol.SymbolResolver;
+import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
+import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
 import scotch.compiler.symbol.descriptor.TypeClassDescriptor;
 import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.compiler.symbol.type.TypeScope;
-import scotch.compiler.symbol.exception.SymbolNotFoundException;
 import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.type.TypeScope;
 import scotch.compiler.symbol.type.Unification;
 import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.syntax.definition.Import;
@@ -146,18 +145,15 @@ public class ModuleScope extends Scope {
     }
 
     @Override
-    public TypeClassDescriptor getMemberOf(ValueReference valueRef) {
+    public Optional<TypeClassDescriptor> getMemberOf(ValueReference valueRef) {
         return resolver.getEntry(valueRef.getSymbol())
-            .map(SymbolEntry::getMemberOf)
-            .map(symbol -> getTypeClass(classRef(symbol)))
-            .orElseThrow(() -> new SymbolNotFoundException("Could not get parent class of symbol " + valueRef.getSymbol().quote()));
+            .flatMap(SymbolEntry::getMemberOf)
+            .flatMap(symbol -> getTypeClass(classRef(symbol)));
     }
 
     @Override
-    public Operator getOperator(Symbol symbol) {
-        return getEntry(symbol)
-            .map(SymbolEntry::getOperator)
-            .orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not an operator"));
+    public Optional<Operator> getOperator(Symbol symbol) {
+        return getEntry(symbol).flatMap(SymbolEntry::getOperator);
     }
 
     @Override
@@ -171,10 +167,8 @@ public class ModuleScope extends Scope {
     }
 
     @Override
-    public Type getRawValue(Symbol symbol) {
-        return getEntry(symbol)
-            .map(SymbolEntry::getValue)
-            .orElseThrow(() -> new SymbolNotFoundException("Symbol " + symbol.quote() + " is not a value"));
+    public Optional<Type> getRawValue(Symbol symbol) {
+        return getEntry(symbol).flatMap(SymbolEntry::getValue);
     }
 
     @Override
@@ -193,10 +187,8 @@ public class ModuleScope extends Scope {
     }
 
     @Override
-    public TypeClassDescriptor getTypeClass(ClassReference classRef) {
-        return resolver.getEntry(classRef.getSymbol())
-            .map(SymbolEntry::getTypeClass)
-            .orElseThrow(() -> new SymbolNotFoundException("Symbol " + classRef.getSymbol().quote() + " is not a type class"));
+    public Optional<TypeClassDescriptor> getTypeClass(ClassReference classRef) {
+        return resolver.getEntry(classRef.getSymbol()).flatMap(SymbolEntry::getTypeClass);
     }
 
     @Override
@@ -206,11 +198,9 @@ public class ModuleScope extends Scope {
 
     @Override
     public Optional<MethodSignature> getValueSignature(Symbol symbol) {
-        if (entries.containsKey(symbol)) {
-            return Optional.of(entries.get(symbol).getValueMethod());
-        } else {
-            return parent.getValueSignature(symbol);
-        }
+        return Optional.ofNullable(entries.get(symbol))
+            .map(SymbolEntry::getValueMethod)
+            .orElseGet(() -> parent.getValueSignature(symbol));
     }
 
     @Override

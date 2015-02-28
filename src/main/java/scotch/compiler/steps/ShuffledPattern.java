@@ -1,4 +1,4 @@
-package scotch.compiler.parser;
+package scotch.compiler.steps;
 
 import java.util.List;
 import com.google.common.collect.ImmutableList;

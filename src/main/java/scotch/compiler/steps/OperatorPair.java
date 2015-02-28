@@ -1,4 +1,4 @@
-package scotch.compiler.parser;
+package scotch.compiler.steps;
 
 import scotch.compiler.symbol.Operator;
 

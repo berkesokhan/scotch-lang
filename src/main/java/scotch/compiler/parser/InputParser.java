@@ -66,11 +66,11 @@ import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.symbol.SymbolResolver;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
+import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.DataConstructorDefinition;
 import scotch.compiler.syntax.definition.DataConstructorDefinition.Builder;
@@ -485,8 +485,8 @@ public class InputParser {
         return definitions;
     }
 
-    private ParseException parseException(String message) {
-        throw new ParseException(message + "; in " + peekSourceRange().prettyPrint());
+    private ParseException parseException(String message, SourceRange sourceRange) {
+        throw new ParseException(message, sourceRange);
     }
 
     private Value parseExpression() {
@@ -699,7 +699,7 @@ public class InputParser {
     private int parseOperatorPrecedence() {
         int precedence = requireInt();
         if (precedence > 20) {
-            throw new ParseException("Can't have operator precedence higher than 20 " + getSourceRange());
+            throw parseException("Can't have operator precedence higher than 20", getSourceRange());
         } else {
             return precedence;
         }
@@ -835,7 +835,7 @@ public class InputParser {
                 markPosition();
                 if (isLowerCase(memberName.charAt(0))) {
                     if (optionalModuleName.isPresent()) {
-                        throw parseException("Type name must be uppercase; in " + peekSourceRange().prettyPrint());
+                        throw parseException("Type name must be uppercase", peekSourceRange());
                     } else {
                         return constraints.getOrDefault(memberName, var(memberName));
                     }
@@ -1047,32 +1047,35 @@ public class InputParser {
     }
 
     private ParseException unexpected(TokenKind wantedKind) {
-        return new ParseException(
+        return parseException(
             "Unexpected " + scanner.peekAt(0).getKind()
-                + "; wanted " + wantedKind + " " + scanner.getPosition().prettyPrint()
+                + "; wanted " + wantedKind + " ",
+            scanner.peekAt(0).getSourceRange()
         );
     }
 
     private ParseException unexpected(TokenKind wantedKind, Object wantedValue) {
-        return new ParseException(
+        return parseException(
             "Unexpected " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
-                + "; wanted " + wantedKind + " with value " + quote(wantedValue) + " " + scanner.getPosition().prettyPrint()
+                + "; wanted " + wantedKind + " with value " + quote(wantedValue),
+            scanner.peekAt(0).getSourceRange()
         );
     }
 
     private ParseException unexpected(TokenKind wantedKind, Object... wantedValues) {
-        return new ParseException(
+        return parseException(
             "Unexpected " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
                 + "; wanted " + wantedKind + " with one value of"
-                + " [" + join(", ", stream(wantedValues).map(StringUtil::quote).collect(toList())) + "] " + scanner.getPosition().prettyPrint()
+                + " [" + join(", ", stream(wantedValues).map(StringUtil::quote).collect(toList())) + "]",
+            scanner.peekAt(0).getSourceRange()
         );
     }
 
     private ParseException unexpected(List<TokenKind> wantedKinds) {
-        return new ParseException(
+        return parseException(
             "Unexpected " + scanner.peekAt(0).getKind()
-                + "; wanted one of [" + join(", ", wantedKinds.stream().map(Object::toString).collect(toList())) + "]"
-                + " " + scanner.getPosition().prettyPrint()
+                + "; wanted one of [" + join(", ", wantedKinds.stream().map(Object::toString).collect(toList())) + "]",
+            scanner.peekAt(0).getSourceRange()
         );
     }
 

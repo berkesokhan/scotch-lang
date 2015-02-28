@@ -1,5 +1,6 @@
 package scotch.compiler.syntax.value;
 
+import static scotch.compiler.error.SymbolNotFoundError.symbolNotFound;
 import static scotch.compiler.symbol.Symbol.unqualified;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
@@ -62,7 +63,7 @@ public class CaptureMatch extends PatternMatch {
     @Override
     public Optional<Pair<CaptureMatch, Operator>> asOperator(Scope scope) {
         return scope.qualify(symbol)
-            .map(scope::getOperator)
+            .flatMap(scope::getOperator)
             .map(operator -> pair(this, operator));
     }
 
@@ -89,12 +90,17 @@ public class CaptureMatch extends PatternMatch {
     public PatternMatch checkTypes(TypeChecker state) {
         Scope scope = state.scope();
         state.addLocal(symbol);
-        return withType(scope.generate(type)
-            .unify(scope.getValue(unqualified(getArgument())), scope)
-            .orElseGet(unification -> {
-                state.error(typeError(unification, sourceRange));
-                return type;
-            }));
+        return scope.getValue(unqualified(getArgument()))
+            .map(argument -> withType(scope.generate(type)
+                .unify(argument, scope)
+                .orElseGet(unification -> {
+                    state.error(typeError(unification, sourceRange));
+                    return type;
+                })))
+            .orElseGet(() -> {
+                state.error(symbolNotFound(unqualified(getArgument()), sourceRange));
+                return this;
+            });
     }
 
     @Override

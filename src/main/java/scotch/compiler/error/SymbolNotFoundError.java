@@ -1,12 +1,12 @@
-package scotch.compiler.steps;
+package scotch.compiler.error;
 
 import static lombok.AccessLevel.PRIVATE;
+import static scotch.compiler.text.TextUtil.repeat;
 
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
-import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.text.SourceRange;
 
@@ -24,6 +24,16 @@ public class SymbolNotFoundError extends SyntaxError {
 
     @Override
     public String prettyPrint() {
-        return "Symbol not found: " + symbol.quote() + " " + sourceRange.prettyPrint();
+        return prettyPrint_() + " " + sourceRange.prettyPrint();
+    }
+
+    @Override
+    public String report(String indent, int indentLevel) {
+        return sourceRange.report(indent, indentLevel) + "\n"
+            + repeat(indent, indentLevel + 1) + prettyPrint_();
+    }
+
+    private String prettyPrint_() {
+        return "Symbol not found: " + symbol.quote();
     }
 }

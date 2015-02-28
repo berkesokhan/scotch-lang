@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.error.SymbolNotFoundError;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
 import scotch.compiler.symbol.descriptor.DataTypeDescriptor;

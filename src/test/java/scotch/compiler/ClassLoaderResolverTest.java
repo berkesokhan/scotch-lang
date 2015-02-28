@@ -39,16 +39,16 @@ public class ClassLoaderResolverTest {
         Type a = var("a", asList("scotch.data.num.Num"));
         SymbolEntry entry = resolver.getEntry(symbol("scotch.data.num.(+)")).get();
 
-        assertThat(entry.getValue(), is(fn(a, fn(a, a))));
-        assertThat(entry.getOperator(), is(operator(LEFT_INFIX, 7)));
-        assertThat(entry.getValueMethod(), is(methodSignature("scotch/data/num/Num:add:()Lscotch/runtime/Applicable;")));
-        assertThat(entry.getMemberOf(), is(symbol("scotch.data.num.Num")));
+        assertThat(entry.getValue(), is(Optional.of(fn(a, fn(a, a)))));
+        assertThat(entry.getOperator(), is(Optional.of(operator(LEFT_INFIX, 7))));
+        assertThat(entry.getValueMethod(), is(Optional.of(methodSignature("scotch/data/num/Num:add:()Lscotch/runtime/Applicable;"))));
+        assertThat(entry.getMemberOf(), is(Optional.of((symbol("scotch.data.num.Num")))));
     }
 
     @Test
     public void shouldResolveJavaTypeClass() {
         SymbolEntry entry = resolver.getEntry(symbol("scotch.data.num.Num")).get();
-        assertThat(entry.getTypeClass(), is(typeClass("scotch.data.num.Num", asList(var("a")), asList(
+        assertThat(entry.getTypeClass(), is(Optional.of(typeClass("scotch.data.num.Num", asList(var("a")), asList(
             "scotch.data.num.(+)",
             "scotch.data.num.(-)",
             "scotch.data.num.(*)",
@@ -56,7 +56,7 @@ public class ClassLoaderResolverTest {
             "scotch.data.num.signum",
             "scotch.data.num.negate",
             "scotch.data.num.abs"
-        ))));
+        )))));
     }
 
     @Test
@@ -81,7 +81,7 @@ public class ClassLoaderResolverTest {
 
     @Test
     public void shouldResolveDataType() {
-        assertThat(resolver.getEntry(symbol("scotch.data.maybe.Maybe")).get().getDataType(), is(dataType(
+        assertThat(resolver.getEntry(symbol("scotch.data.maybe.Maybe")).get().getDataType(), is(Optional.of(dataType(
             "scotch.data.maybe.Maybe",
             asList(var("a")),
             asList(
@@ -95,6 +95,6 @@ public class ClassLoaderResolverTest {
                     asList(field("value", var("a")))
                 )
             )
-        )));
+        ))));
     }
 }

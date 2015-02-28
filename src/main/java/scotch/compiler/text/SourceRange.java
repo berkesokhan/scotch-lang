@@ -2,7 +2,7 @@ package scotch.compiler.text;
 
 import static lombok.AccessLevel.PRIVATE;
 import static scotch.compiler.text.SourcePoint.point;
-import static scotch.util.StringUtil.quote;
+import static scotch.compiler.text.TextUtil.repeat;
 
 import java.net.URI;
 import java.util.Objects;
@@ -100,6 +100,14 @@ public class SourceRange {
     }
 
     public String prettyPrint() {
-        return "[" + quote(getPath()) + " " + start.prettyPrint() + ", " + end.prettyPrint() + "]";
+        return "[" + prettyPrint_() + "]";
+    }
+
+    public String report(String indent, int indentLevel) {
+        return repeat(indent, indentLevel) + prettyPrint_();
+    }
+
+    private String prettyPrint_() {
+        return getPath() + " " + start.prettyPrint() + ", " + end.prettyPrint();
     }
 }
