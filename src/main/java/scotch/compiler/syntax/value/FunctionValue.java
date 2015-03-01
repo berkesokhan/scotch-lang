@@ -1,6 +1,7 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.Collections.reverse;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
@@ -16,7 +17,6 @@ import java.util.List;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import lombok.EqualsAndHashCode;
-import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
@@ -35,7 +35,6 @@ import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Either;
 
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange")
 public class FunctionValue extends Value implements Scoped {
 
     public static Builder builder() {
@@ -171,7 +170,13 @@ public class FunctionValue extends Value implements Scoped {
                 .map(argument -> argument.qualifyNames(state))
                 .collect(toList()),
             body.qualifyNames(state),
-            type)));
+            type
+        )));
+    }
+
+    @Override
+    public String toString() {
+        return "(" + arguments.stream().map(arg -> arg.getSymbol().toString()).collect(joining(", ")) + " -> " + body + ")";
     }
 
     public FunctionValue withArguments(List<Argument> arguments) {

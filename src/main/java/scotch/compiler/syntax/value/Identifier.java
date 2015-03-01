@@ -41,7 +41,7 @@ import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Pair;
 
 @EqualsAndHashCode(callSuper = false)
-@ToString
+@ToString(exclude = "sourceRange")
 public class Identifier extends Value {
 
     public static Builder builder() {

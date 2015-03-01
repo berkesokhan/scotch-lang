@@ -1,10 +1,13 @@
 package scotch.compiler.text;
 
+import static java.util.Arrays.asList;
 import static lombok.AccessLevel.PRIVATE;
 import static scotch.compiler.text.SourcePoint.point;
 import static scotch.compiler.text.TextUtil.repeat;
 
 import java.net.URI;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.ToString;
@@ -17,14 +20,30 @@ public class SourceRange {
 
     public static final SourceRange NULL_SOURCE = source(URI.create("null://nowhere"), point(-1, -1, -1), point(-1, -1, -1));
 
-    public static SourceRange source(URI source, SourcePoint start, SourcePoint end) {
-        return new SourceRange(source, start, end);
+    public static SourceRange extent(SourceRange... ranges) {
+        return extent(asList(ranges));
+    }
+
+    public static SourceRange extent(Collection<SourceRange> ranges) {
+        Iterator<SourceRange> iterator = ranges.iterator();
+        if (iterator.hasNext()) {
+            SourceRange range = iterator.next();
+            while (iterator.hasNext()) {
+                range = range.extend(iterator.next());
+            }
+            return range;
+        } else {
+            return NULL_SOURCE;
+        }
     }
 
     public static SourceRange source(String source, SourcePoint start, SourcePoint end) {
         return source(URI.create(source), start, end);
     }
 
+    public static SourceRange source(URI source, SourcePoint start, SourcePoint end) {
+        return new SourceRange(source, start, end);
+    }
     private final URI         source;
     private final SourcePoint start;
     private final SourcePoint end;
@@ -63,12 +82,16 @@ public class SourceRange {
         return end.getOffset();
     }
 
-    public URI getSource() {
-        return source;
+    public SourceRange getEndRange() {
+        return new SourceRange(source, end, end);
     }
 
     public String getPath() {
         return source.getPath();
+    }
+
+    public URI getSource() {
+        return source;
     }
 
     public NamedSourcePoint getStart() {

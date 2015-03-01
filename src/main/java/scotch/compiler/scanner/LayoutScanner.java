@@ -6,9 +6,13 @@ import static scotch.compiler.scanner.LayoutScanner.State.SCAN_DEFAULT;
 import static scotch.compiler.scanner.LayoutScanner.State.SCAN_DISABLED;
 import static scotch.compiler.scanner.LayoutScanner.State.SCAN_LAYOUT;
 import static scotch.compiler.scanner.LayoutScanner.State.SCAN_LET;
+import static scotch.compiler.scanner.Token.TokenKind.END_OF_FILE;
 import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_IN;
 import static scotch.compiler.scanner.Token.TokenKind.LEFT_CURLY_BRACE;
+import static scotch.compiler.scanner.Token.TokenKind.LEFT_SQUARE_BRACE;
+import static scotch.compiler.scanner.Token.TokenKind.NEWLINE;
 import static scotch.compiler.scanner.Token.TokenKind.RIGHT_CURLY_BRACE;
+import static scotch.compiler.scanner.Token.TokenKind.RIGHT_SQUARE_BRACE;
 import static scotch.compiler.scanner.Token.TokenKind.SEMICOLON;
 import static scotch.compiler.scanner.Token.token;
 
@@ -17,7 +21,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
-import scotch.compiler.scanner.Token.TokenKind;
 import scotch.compiler.text.NamedSourcePoint;
 
 public final class LayoutScanner implements Scanner {
@@ -78,14 +81,14 @@ public final class LayoutScanner implements Scanner {
     }
 
     private void buffer() {
-        if (tokens.isEmpty() || !lastToken().is(TokenKind.END_OF_FILE) && tokens.size() < LOOK_AHEAD) {
+        if (tokens.isEmpty() || !lastToken().is(END_OF_FILE) && tokens.size() < LOOK_AHEAD) {
             buffer_();
         }
     }
 
     private void buffer_() {
         Token token = delegate.nextToken();
-        if (token.is(TokenKind.END_OF_FILE) && !lastToken().is(SEMICOLON)) {
+        if (token.is(END_OF_FILE) && !lastToken().is(SEMICOLON)) {
             tokens.add(token(SEMICOLON, ";", token.getSourceRange()));
         }
         tokens.add(token);
@@ -118,7 +121,7 @@ public final class LayoutScanner implements Scanner {
     }
 
     private void enterLayout() {
-        if (secondToken().is(TokenKind.NEWLINE)) {
+        if (secondToken().is(NEWLINE)) {
             exciseNewLine();
             enterLayout();
         } else if (secondToken().is(LEFT_CURLY_BRACE)) {
@@ -132,7 +135,7 @@ public final class LayoutScanner implements Scanner {
     }
 
     private void enterLet() {
-        if (secondToken().is(TokenKind.NEWLINE)) {
+        if (secondToken().is(NEWLINE)) {
             exciseNewLine();
             enterLet();
         } else if (secondToken().is(LEFT_CURLY_BRACE)) {
@@ -150,7 +153,7 @@ public final class LayoutScanner implements Scanner {
     }
 
     private void exciseNewLine() {
-        if (secondToken().is(TokenKind.NEWLINE)) {
+        if (secondToken().is(NEWLINE)) {
             tokens.remove(1);
         } else {
             throw new IllegalStateException();
@@ -221,6 +224,7 @@ public final class LayoutScanner implements Scanner {
                 return;
             case KEYWORD_WHERE:
             case KEYWORD_ON:
+            case KEYWORD_DO:
                 enterLayout();
                 return;
             case KEYWORD_LET:
@@ -260,9 +264,9 @@ public final class LayoutScanner implements Scanner {
                 }
                 break;
             case SCAN_DISABLED:
-                if (firstToken().is(LEFT_CURLY_BRACE) || firstToken().is(TokenKind.LEFT_SQUARE_BRACE)) {
+                if (firstToken().is(LEFT_CURLY_BRACE) || firstToken().is(LEFT_SQUARE_BRACE)) {
                     bracesUp();
-                } else if (firstToken().is(RIGHT_CURLY_BRACE) || secondToken().is(TokenKind.RIGHT_SQUARE_BRACE)) {
+                } else if (firstToken().is(RIGHT_CURLY_BRACE) || secondToken().is(RIGHT_SQUARE_BRACE)) {
                     if (hasBraces()) {
                         bracesDown();
                     } else {

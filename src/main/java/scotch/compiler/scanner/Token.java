@@ -126,5 +126,7 @@ public class Token {
         KEYWORD_MATCH,
         KEYWORD_ON,
         DOUBLE_ARROW,
+        KEYWORD_DO,
+        BACKWARD_ARROW,
     }
 }

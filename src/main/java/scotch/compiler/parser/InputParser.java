@@ -11,6 +11,7 @@ import static java.util.stream.Collectors.toMap;
 import static scotch.compiler.scanner.Token.TokenKind.ARROW;
 import static scotch.compiler.scanner.Token.TokenKind.ASSIGN;
 import static scotch.compiler.scanner.Token.TokenKind.BACKSLASH;
+import static scotch.compiler.scanner.Token.TokenKind.BACKWARD_ARROW;
 import static scotch.compiler.scanner.Token.TokenKind.BOOL_LITERAL;
 import static scotch.compiler.scanner.Token.TokenKind.CHAR_LITERAL;
 import static scotch.compiler.scanner.Token.TokenKind.COMMA;
@@ -22,6 +23,7 @@ import static scotch.compiler.scanner.Token.TokenKind.DOUBLE_LITERAL;
 import static scotch.compiler.scanner.Token.TokenKind.END_OF_FILE;
 import static scotch.compiler.scanner.Token.TokenKind.IDENTIFIER;
 import static scotch.compiler.scanner.Token.TokenKind.INT_LITERAL;
+import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_DO;
 import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_ELSE;
 import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_IF;
 import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_IN;
@@ -62,6 +64,8 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
+import lombok.AllArgsConstructor;
+import lombok.NonNull;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
@@ -71,6 +75,7 @@ import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.symbol.type.SumType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.util.SymbolGenerator;
+import scotch.compiler.syntax.builder.BuilderUtil;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.DataConstructorDefinition;
 import scotch.compiler.syntax.definition.DataConstructorDefinition.Builder;
@@ -137,6 +142,10 @@ public class InputParser {
         return createGraph(definitions)
             .withSequence(symbolGenerator)
             .build();
+    }
+
+    private BindExpressionBuilder bindExpression() {
+        return new BindExpressionBuilder();
     }
 
     private DefinitionReference collect(Definition definition) {
@@ -485,6 +494,50 @@ public class InputParser {
         return definitions;
     }
 
+    private void parseDoExpression(List<DoExpression> expressions) {
+        if (expectsWord() && expectsAt(1, BACKWARD_ARROW)) {
+            expressions.add(scoped(() -> node(bindExpression(),
+                bind -> definition(ScopeDefinition.builder(), scope -> {
+                    Symbol symbol = reserveSymbol();
+                    scope.withSymbol(symbol);
+                    bind.withSymbol(symbol);
+                    bind.withArgument(parseArgument());
+                    require(BACKWARD_ARROW);
+                    bind.withValue(parseExpression());
+                    requireTerminator();
+                    if (!expects(RIGHT_CURLY_BRACE)) {
+                        parseDoExpression(expressions);
+                    }
+                })
+            )));
+        } else {
+            DoExpression expression = new ThenExpression(parseExpression());
+            requireTerminator();
+            if (!expects(RIGHT_CURLY_BRACE)) {
+                parseDoExpression(expressions);
+            }
+            expressions.add(expression);
+        }
+    }
+
+    private Value parseDoStatement() {
+        require(KEYWORD_DO);
+        require(LEFT_CURLY_BRACE);
+        List<DoExpression> expressions = new ArrayList<>();
+        parseDoExpression(expressions);
+        require(RIGHT_CURLY_BRACE);
+        List<Value> values = expressions.remove(0).toValue();
+        while (!expressions.isEmpty()) {
+            expressions.remove(0).toValue(values);
+        }
+        UnshuffledValue.Builder builder = UnshuffledValue.builder();
+        values.forEach(builder::withMember);
+        builder.withSourceRange(SourceRange.extent(values.stream()
+            .map(Value::getSourceRange)
+            .collect(toList())));
+        return builder.build();
+    }
+
     private ParseException parseException(String message, SourceRange sourceRange) {
         throw new ParseException(message, sourceRange);
     }
@@ -740,6 +793,8 @@ public class InputParser {
             value = parseFunction();
         } else if (expects(KEYWORD_LET)) {
             value = parseLet();
+        } else if (expects(KEYWORD_DO)) {
+            value = parseDoStatement();
         } else if (expects(KEYWORD_IF)) {
             value = parseConditional();
         } else if (required) {
@@ -1083,6 +1138,91 @@ public class InputParser {
         return positions.pop();
     }
 
+    @AllArgsConstructor
+    private class BindExpression extends DoExpression {
+
+        @NonNull private final SourceRange sourceRange;
+        @NonNull private final Symbol      symbol;
+        @NonNull private final Argument    argument;
+        @NonNull private final Value       value;
+
+        @Override
+        public List<Value> toValue() {
+            throw new ParseException("Unexpected bind in do-notation", value.getSourceRange());
+        }
+
+        @Override
+        public void toValue(List<Value> values) {
+            List<Value> outerValues = new ArrayList<Value>() {{
+                UnshuffledValue.Builder unshuffled = UnshuffledValue.builder();
+                values.forEach(unshuffled::withMember);
+                unshuffled.withSourceRange(SourceRange.extent(values.stream()
+                    .map(Value::getSourceRange)
+                    .collect(toList())));
+                add(value);
+                add(Identifier.builder()
+                    .withSymbol(qualified("scotch.control.monad", ">>="))
+                    .withType(reserveType())
+                    .withSourceRange(value.getSourceRange().getEndRange())
+                    .build());
+                add(FunctionValue.builder()
+                    .withSymbol(symbol)
+                    .withArguments(asList(argument))
+                    .withBody(unshuffled.build())
+                    .withSourceRange(sourceRange)
+                    .build());
+            }};
+            values.clear();
+            values.addAll(outerValues);
+        }
+    }
+
+    private final class BindExpressionBuilder implements SyntaxBuilder<BindExpression> {
+
+        private Optional<SourceRange> sourceRange;
+        private Optional<Symbol>      symbol;
+        private Optional<Argument>    argument;
+        private Optional<Value>       value;
+
+        @Override
+        public BindExpression build() {
+            return new BindExpression(
+                BuilderUtil.require(sourceRange, "Source range"),
+                BuilderUtil.require(symbol, "Symbol"),
+                BuilderUtil.require(argument, "Argument"),
+                BuilderUtil.require(value, "Value")
+            );
+        }
+
+        public BindExpressionBuilder withArgument(Argument argument) {
+            this.argument = Optional.of(argument);
+            return this;
+        }
+
+        @Override
+        public BindExpressionBuilder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public BindExpressionBuilder withSymbol(Symbol symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
+        }
+
+        public BindExpressionBuilder withValue(Value value) {
+            this.value = Optional.of(value);
+            return this;
+        }
+    }
+
+    private abstract class DoExpression {
+
+        public abstract List<Value> toValue();
+
+        public abstract void toValue(List<Value> values);
+    }
+
     private static final class LookAheadScanner {
 
         private final Scanner          delegate;
@@ -1146,6 +1286,27 @@ public class InputParser {
                     }
                 }
             }
+        }
+    }
+
+    @AllArgsConstructor
+    private class ThenExpression extends DoExpression {
+
+        @NonNull private final Value value;
+
+        @Override
+        public List<Value> toValue() {
+            return new ArrayList<>(asList(value));
+        }
+
+        @Override
+        public void toValue(List<Value> values) {
+            values.add(0, value);
+            values.add(1, Identifier.builder()
+                .withSymbol(qualified("scotch.control.monad", ">>"))
+                .withType(reserveType())
+                .withSourceRange(value.getSourceRange().getEndRange())
+                .build());
         }
     }
 }

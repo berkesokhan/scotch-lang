@@ -3,6 +3,7 @@ package scotch.compiler.steps;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.data.either.Either.left;
+import static scotch.data.maybe.Maybe.just;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -16,6 +17,7 @@ import scotch.compiler.error.CompileException;
 import scotch.compiler.ClassLoaderResolver;
 import scotch.compiler.util.TestUtil;
 import scotch.data.either.Either.Left;
+import scotch.data.maybe.Maybe;
 import scotch.runtime.Callable;
 
 public class BytecodeGeneratorTest {
@@ -250,6 +252,23 @@ public class BytecodeGeneratorTest {
             "run = Right \"Yes\" >>= \\which -> Left 0"
         );
         assertThat(result, is(left(0)));
+    }
+
+    @Test
+    public void shouldCompileDoNotation() {
+        Maybe result = exec(
+            "module scotch.test",
+            "",
+            "import scotch.control.monad",
+            "import scotch.data.function",
+            "import scotch.data.maybe",
+            "import scotch.data.num",
+            "",
+            "run = do",
+            "    val <- Just 3",
+            "    return $ val + 2"
+        );
+        assertThat(result, is(just(5)));
     }
 
     @Ignore

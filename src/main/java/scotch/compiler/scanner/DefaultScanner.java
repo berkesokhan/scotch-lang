@@ -14,6 +14,40 @@ import static scotch.compiler.scanner.DefaultScanner.Action.KEEP_GOING;
 import static scotch.compiler.scanner.DefaultScanner.State.SCAN_COMMENT;
 import static scotch.compiler.scanner.DefaultScanner.State.SCAN_DEFAULT;
 import static scotch.compiler.scanner.DefaultScanner.State.SCAN_STRING;
+import static scotch.compiler.scanner.Token.TokenKind.ARROW;
+import static scotch.compiler.scanner.Token.TokenKind.ASSIGN;
+import static scotch.compiler.scanner.Token.TokenKind.BACKSLASH;
+import static scotch.compiler.scanner.Token.TokenKind.BACKWARD_ARROW;
+import static scotch.compiler.scanner.Token.TokenKind.BOOL_LITERAL;
+import static scotch.compiler.scanner.Token.TokenKind.CHAR_LITERAL;
+import static scotch.compiler.scanner.Token.TokenKind.COMMA;
+import static scotch.compiler.scanner.Token.TokenKind.DEFAULT_OPERATOR;
+import static scotch.compiler.scanner.Token.TokenKind.DOT;
+import static scotch.compiler.scanner.Token.TokenKind.DOUBLE_ARROW;
+import static scotch.compiler.scanner.Token.TokenKind.DOUBLE_COLON;
+import static scotch.compiler.scanner.Token.TokenKind.DOUBLE_LITERAL;
+import static scotch.compiler.scanner.Token.TokenKind.END_OF_FILE;
+import static scotch.compiler.scanner.Token.TokenKind.IDENTIFIER;
+import static scotch.compiler.scanner.Token.TokenKind.INT_LITERAL;
+import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_DO;
+import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_ELSE;
+import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_IF;
+import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_IN;
+import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_LET;
+import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_MATCH;
+import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_ON;
+import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_THEN;
+import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_WHERE;
+import static scotch.compiler.scanner.Token.TokenKind.LEFT_CURLY_BRACE;
+import static scotch.compiler.scanner.Token.TokenKind.LEFT_PARENTHESIS;
+import static scotch.compiler.scanner.Token.TokenKind.LEFT_SQUARE_BRACE;
+import static scotch.compiler.scanner.Token.TokenKind.NEWLINE;
+import static scotch.compiler.scanner.Token.TokenKind.PIPE;
+import static scotch.compiler.scanner.Token.TokenKind.RIGHT_CURLY_BRACE;
+import static scotch.compiler.scanner.Token.TokenKind.RIGHT_PARENTHESIS;
+import static scotch.compiler.scanner.Token.TokenKind.RIGHT_SQUARE_BRACE;
+import static scotch.compiler.scanner.Token.TokenKind.SEMICOLON;
+import static scotch.compiler.scanner.Token.TokenKind.STRING_LITERAL;
 import static scotch.compiler.scanner.Token.token;
 import static scotch.compiler.text.SourcePoint.point;
 import static scotch.compiler.text.TextUtil.isAsciiEscape;
@@ -35,6 +69,7 @@ import static scotch.util.StringUtil.stringify;
 
 import java.net.URI;
 import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -46,19 +81,21 @@ import scotch.compiler.text.SourcePoint;
 public final class DefaultScanner implements Scanner {
 
     private static final Map<String, Acceptor> dictionary = ImmutableMap.<String, Acceptor>builder()
-        .put("->", take(TokenKind.ARROW))
-        .put("=>", take(TokenKind.DOUBLE_ARROW))
-        .put("=", take(TokenKind.ASSIGN))
-        .put("let", take(TokenKind.KEYWORD_LET))
-        .put("in", take(TokenKind.KEYWORD_IN))
+        .put("->", take(ARROW))
+        .put("<-", take(BACKWARD_ARROW))
+        .put("=>", take(DOUBLE_ARROW))
+        .put("=", take(ASSIGN))
+        .put("let", take(KEYWORD_LET))
+        .put("in", take(KEYWORD_IN))
         .put("False", takeBool())
         .put("True", takeBool())
-        .put("if", take(TokenKind.KEYWORD_IF))
-        .put("else", take(TokenKind.KEYWORD_ELSE))
-        .put("then", take(TokenKind.KEYWORD_THEN))
-        .put("where", take(TokenKind.KEYWORD_WHERE))
-        .put("match", take(TokenKind.KEYWORD_MATCH))
-        .put("on", take(TokenKind.KEYWORD_ON))
+        .put("if", take(KEYWORD_IF))
+        .put("else", take(KEYWORD_ELSE))
+        .put("then", take(KEYWORD_THEN))
+        .put("where", take(KEYWORD_WHERE))
+        .put("match", take(KEYWORD_MATCH))
+        .put("on", take(KEYWORD_ON))
+        .put("do", take(KEYWORD_DO))
         .build();
 
     private static Acceptor take(TokenKind kind) {
@@ -66,18 +103,18 @@ public final class DefaultScanner implements Scanner {
     }
 
     private static Acceptor takeBool() {
-        return new Acceptor(TokenKind.BOOL_LITERAL, Boolean::valueOf);
+        return new Acceptor(BOOL_LITERAL, Boolean::valueOf);
     }
 
-    private final URI                     source;
-    private final char[]                  data;
-    private final ArrayDeque<SaveState>   saves;
-    private final ArrayDeque<State>       states;
-    private final ArrayDeque<SourcePoint> marks;
-    private       Action                  action;
-    private       Optional<Token>         token;
-    private       Optional<String>        text;
-    private       SourcePoint             location;
+    private final URI                source;
+    private final char[]             data;
+    private final Deque<SaveState>   saves;
+    private final Deque<State>       states;
+    private final Deque<SourcePoint> marks;
+    private       Action             action;
+    private       Optional<Token>    token;
+    private       Optional<String>   text;
+    private       SourcePoint        location;
 
     public DefaultScanner(URI source, char[] data) {
         this.source = source;
@@ -147,11 +184,11 @@ public final class DefaultScanner implements Scanner {
     }
 
     private void acceptChar() {
-        accept(TokenKind.CHAR_LITERAL, unescapeJava(getText()).charAt(0));
+        accept(CHAR_LITERAL, unescapeJava(getText()).charAt(0));
     }
 
     private void acceptInt() {
-        accept(TokenKind.INT_LITERAL, Integer::valueOf);
+        accept(INT_LITERAL, Integer::valueOf);
     }
 
     private void begin() {
@@ -256,7 +293,7 @@ public final class DefaultScanner implements Scanner {
     private void nextToken_() {
         setAction(ERROR);
         if (isEOF()) {
-            accept(TokenKind.END_OF_FILE);
+            accept(END_OF_FILE);
         } else if (state() == SCAN_DEFAULT) {
             skipIgnored();
             if (isDoubleQuote(peek())) {
@@ -267,56 +304,56 @@ public final class DefaultScanner implements Scanner {
                 scanQuotedWord();
             } else if (isBackslash(peek())) {
                 read();
-                accept(TokenKind.BACKSLASH);
+                accept(BACKSLASH);
             } else if (peek() == '|' && !isLetterOrDigit(peekAt(1)) && !isSymbol(peekAt(1))) {
                 read();
-                accept(TokenKind.PIPE);
+                accept(PIPE);
             } else if (peek() == -1) {
                 read();
-                accept(TokenKind.END_OF_FILE);
+                accept(END_OF_FILE);
             } else if (peek() == '@') {
                 read();
-                accept(TokenKind.IDENTIFIER);
+                accept(IDENTIFIER);
             } else if (peek() == '(') {
                 scanParentheses();
             } else if (peek() == ')') {
                 read();
-                accept(TokenKind.RIGHT_PARENTHESIS);
+                accept(RIGHT_PARENTHESIS);
             } else if (peek() == '[') {
                 read();
                 if (peek() == ']') {
                     read();
-                    accept(TokenKind.IDENTIFIER);
+                    accept(IDENTIFIER);
                 } else {
-                    accept(TokenKind.LEFT_SQUARE_BRACE);
+                    accept(LEFT_SQUARE_BRACE);
                 }
             } else if (peek() == ']') {
                 read();
-                accept(TokenKind.RIGHT_SQUARE_BRACE);
+                accept(RIGHT_SQUARE_BRACE);
             } else if (peek() == '\n') {
                 read();
-                accept(TokenKind.NEWLINE);
+                accept(NEWLINE);
             } else if (peek() == '.') {
                 if (!isIdentifier(peekAt(-1)) && !isIdentifier(peekAt(1))) {
                     read();
-                    accept(TokenKind.IDENTIFIER);
+                    accept(IDENTIFIER);
                 } else {
                     read();
-                    accept(TokenKind.DOT);
+                    accept(DOT);
                 }
             } else if (peek() == ',') {
                 read();
-                accept(TokenKind.COMMA);
+                accept(COMMA);
             } else if (peek() == ';') {
                 read();
-                accept(TokenKind.SEMICOLON);
+                accept(SEMICOLON);
             } else if (peek() == ':') {
                 read();
                 if (peek() == ':') {
                     read();
-                    accept(TokenKind.DOUBLE_COLON);
+                    accept(DOUBLE_COLON);
                 } else {
-                    accept(TokenKind.IDENTIFIER);
+                    accept(IDENTIFIER);
                 }
             } else {
                 scanDefault();
@@ -410,14 +447,14 @@ public final class DefaultScanner implements Scanner {
             scanNumber();
         } else if (peek() == '{') {
             read();
-            accept(TokenKind.LEFT_CURLY_BRACE);
+            accept(LEFT_CURLY_BRACE);
         } else if (peek() == '}') {
             read();
-            accept(TokenKind.RIGHT_CURLY_BRACE);
+            accept(RIGHT_CURLY_BRACE);
         } else if (isIdentifier(peek())) {
             if (isPrefix()) {
                 read();
-                accept(TokenKind.IDENTIFIER);
+                accept(IDENTIFIER);
             } else {
                 scanWord();
             }
@@ -485,7 +522,7 @@ public final class DefaultScanner implements Scanner {
                     acceptInt();
                 } else {
                     end();
-                    accept(TokenKind.DOUBLE_LITERAL, Double::valueOf);
+                    accept(DOUBLE_LITERAL, Double::valueOf);
                 }
             } else {
                 acceptInt();
@@ -503,7 +540,7 @@ public final class DefaultScanner implements Scanner {
             if (peek() == ',' || peek() == ')') {
                 scanParentheses_();
             } else {
-                accept(TokenKind.LEFT_PARENTHESIS);
+                accept(LEFT_PARENTHESIS);
             }
         } else {
             unexpected();
@@ -516,7 +553,7 @@ public final class DefaultScanner implements Scanner {
             scanParentheses_();
         } else if (peek() == ')') {
             read();
-            accept(TokenKind.IDENTIFIER);
+            accept(IDENTIFIER);
         } else {
             unexpected();
         }
@@ -532,7 +569,7 @@ public final class DefaultScanner implements Scanner {
                     throw new ScanException("Cannot quote reserved word " + quote(word) + " " + getMarkedPosition().prettyPrint());
                 } else {
                     read();
-                    accept(TokenKind.DEFAULT_OPERATOR, word);
+                    accept(DEFAULT_OPERATOR, word);
                 }
             } else {
                 error();
@@ -546,7 +583,7 @@ public final class DefaultScanner implements Scanner {
         if (isDoubleQuote(peek())) {
             read();
             leaveState();
-            accept(TokenKind.STRING_LITERAL, unescapeJava(getText()));
+            accept(STRING_LITERAL, unescapeJava(getText()));
         } else if (isNewLineOrEOF(peek())) {
             unterminatedString();
         } else if (isBackslash(peek())) {
@@ -561,7 +598,7 @@ public final class DefaultScanner implements Scanner {
 
     private void scanWord() {
         readWord();
-        accept(dictionary.getOrDefault(getText(), take(TokenKind.IDENTIFIER)));
+        accept(dictionary.getOrDefault(getText(), take(IDENTIFIER)));
     }
 
     private void setAction(Action action) {

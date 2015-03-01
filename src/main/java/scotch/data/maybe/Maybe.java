@@ -4,6 +4,7 @@ import static java.util.Arrays.asList;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.symbol.type.Types.var;
+import static scotch.runtime.Callable.box;
 import static scotch.runtime.RuntimeUtil.applicable;
 import static scotch.runtime.RuntimeUtil.callable;
 import static scotch.runtime.RuntimeUtil.flatCallable;
@@ -34,6 +35,11 @@ public abstract class Maybe<A> {
     @Value(memberName = "Just")
     public static <A> Applicable<A, Maybe<A>> just() {
         return applicable(value -> callable(() -> new Just<>(value)));
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <A> Maybe<A> just(A value) {
+        return (Maybe<A>) just().apply(box(value)).call();
     }
 
     @ValueType(forMember = "Just")
@@ -111,7 +117,7 @@ public abstract class Maybe<A> {
 
         @Override
         public boolean equals(Object o) {
-            return o == this || o instanceof Just && Objects.equals(value, ((Just) o).value);
+            return o == this || o instanceof Just && Objects.equals(value.call(), ((Just) o).value.call());
         }
 
         @DataField(memberName = "value")

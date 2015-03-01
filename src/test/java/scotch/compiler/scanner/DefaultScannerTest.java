@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.compiler.scanner.Token.TokenKind.ARROW;
 import static scotch.compiler.scanner.Token.TokenKind.BACKSLASH;
+import static scotch.compiler.scanner.Token.TokenKind.BACKWARD_ARROW;
 import static scotch.compiler.scanner.Token.TokenKind.CHAR_LITERAL;
 import static scotch.compiler.scanner.Token.TokenKind.COMMA;
 import static scotch.compiler.scanner.Token.TokenKind.DEFAULT_OPERATOR;
@@ -16,6 +17,7 @@ import static scotch.compiler.scanner.Token.TokenKind.DOUBLE_COLON;
 import static scotch.compiler.scanner.Token.TokenKind.DOUBLE_LITERAL;
 import static scotch.compiler.scanner.Token.TokenKind.IDENTIFIER;
 import static scotch.compiler.scanner.Token.TokenKind.INT_LITERAL;
+import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_DO;
 import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_IN;
 import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_LET;
 import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_MATCH;
@@ -294,6 +296,16 @@ public class DefaultScannerTest {
     @Test
     public void shouldGetLet() {
         assertThat(firstFrom("let"), is(token(KEYWORD_LET, "let")));
+    }
+
+    @Test
+    public void shouldGetDo() {
+        assertThat(firstFrom("do things"), is(token(KEYWORD_DO, "do")));
+    }
+
+    @Test
+    public void shouldGetBackwardError() {
+        assertThat(secondFrom("thingy <-"), is(token(BACKWARD_ARROW, "<-")));
     }
 
     private Token firstFrom(String... data) {

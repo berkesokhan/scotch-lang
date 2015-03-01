@@ -35,6 +35,7 @@ import static scotch.compiler.util.TestUtil.root;
 import static scotch.compiler.util.TestUtil.scopeRef;
 import static scotch.compiler.util.TestUtil.signatureRef;
 import static scotch.compiler.util.TestUtil.unshuffled;
+import static scotch.control.monad.Monad.fail;
 
 import java.util.List;
 import java.util.function.Function;
@@ -537,6 +538,52 @@ public class InputParserTest extends ParserTest {
             ),
             id("x", t(4))
         ));
+    }
+
+    @Test
+    public void shouldParseDoNotationWithThen() {
+        parse(
+            "module scotch.test",
+            "messaged = do",
+            "    println \"Hello World!\"",
+            "    println \"Debilitating coffee addiction\""
+        );
+        shouldHaveValue("scotch.test.messaged", unshuffled(
+            unshuffled(id("println", t(1)), literal("Hello World!")),
+            id("scotch.control.monad.(>>)", t(3)),
+            unshuffled(id("println", t(2)), literal("Debilitating coffee addiction"))
+        ));
+    }
+
+    @Test
+    public void shouldParseDoNotationWithBind() {
+        parse(
+            "module scotch.test",
+            "pingpong = do",
+            "    ping <- readln",
+            "    println (\"ponging back! \" ++ ping)"
+        );
+        shouldHaveValue("scotch.test.pingpong", unshuffled(
+            unshuffled(id("readln", t(2))),
+            id("scotch.control.monad.(>>=)", t(6)),
+            fn("scotch.test.(pingpong#0)", arg("ping", t(1)), unshuffled(
+                id("println", t(3)),
+                unshuffled(literal("ponging back! "), id("++", t(4)), id("ping", t(5)))
+            ))
+        ));
+    }
+
+    @Test
+    public void shouldThrow_whenBindIsLastLineInDoNotation() {
+        exception.expectMessage(containsString("Unexpected bind in do-notation"));
+        parse(
+            "module scotch.test",
+            "pingpong = do",
+            "    ping <- readln",
+            "    println (\"ponging back! \" ++ ping)",
+            "    pong <- readln"
+        );
+        fail();
     }
 
     private void shouldHaveDataType(String name, DataTypeDefinition value) {
