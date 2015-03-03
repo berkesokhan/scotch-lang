@@ -4,8 +4,6 @@ import java.util.List;
 import java.util.Optional;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
-import scotch.compiler.syntax.Scoped;
-import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
 import scotch.compiler.syntax.definition.Definitions;
 import scotch.compiler.syntax.reference.DefinitionReference;
@@ -90,10 +88,6 @@ public class Values {
 
     public static PatternMatchers patterns(SourceRange sourceRange, Type type, List<PatternMatcher> patterns) {
         return new PatternMatchers(sourceRange, patterns, type);
-    }
-
-    public static Definition scopeDef(Scoped scoped) {
-        return scoped.getDefinition();
     }
 
     public static UnboundMethod unboundMethod(SourceRange sourceRange, ValueReference valueRef, Type type) {

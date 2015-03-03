@@ -3,7 +3,7 @@ package scotch.compiler.steps;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
 import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
-import static scotch.compiler.syntax.value.Values.scopeDef;
+import static scotch.compiler.syntax.definition.Definitions.scopeDef;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;

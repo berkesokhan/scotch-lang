@@ -71,7 +71,7 @@ public abstract class Either<A, B> {
     @Override
     public abstract String toString();
 
-    @DataConstructor(memberName = "Left", dataType="Either", parameters = {
+    @DataConstructor(ordinal = 0, memberName = "Left", dataType="Either", parameters = {
         @TypeParameter(name = "a"),
     })
     public static class Left<A, B> extends Either<A, B> {
@@ -104,7 +104,7 @@ public abstract class Either<A, B> {
         }
     }
 
-    @DataConstructor(memberName = "Right", dataType = "Either", parameters = {
+    @DataConstructor(ordinal = 1, memberName = "Right", dataType = "Either", parameters = {
         @TypeParameter(name = "b"),
     })
     public static class Right<A, B> extends Either<A, B> {

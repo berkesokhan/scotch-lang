@@ -16,5 +16,7 @@ public @interface DataConstructor {
 
     String dataType();
 
+    int ordinal();
+
     TypeParameter[] parameters() default { };
 }

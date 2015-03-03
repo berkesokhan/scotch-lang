@@ -4,6 +4,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.data.either.Either.left;
 import static scotch.data.maybe.Maybe.just;
+import static scotch.data.tuple.TupleValues.tuple2;
+import static scotch.data.tuple.TupleValues.tuple3;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -12,12 +14,14 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import scotch.compiler.ClassLoaderResolver;
 import scotch.compiler.Compiler;
 import scotch.compiler.error.CompileException;
-import scotch.compiler.ClassLoaderResolver;
 import scotch.compiler.util.TestUtil;
 import scotch.data.either.Either.Left;
 import scotch.data.maybe.Maybe;
+import scotch.data.tuple.Tuple2;
+import scotch.data.tuple.Tuple3;
 import scotch.runtime.Callable;
 
 public class BytecodeGeneratorTest {
@@ -271,6 +275,17 @@ public class BytecodeGeneratorTest {
         assertThat(result, is(just(5)));
     }
 
+    @Test
+    public void shouldCompileTupleLiteral() {
+        Tuple3<Integer, Integer, Tuple2<Integer, Integer>> tuple = exec(
+            "module scotch.test",
+            "import scotch.data.int",
+            "",
+            "run = (1, 2, (3, 4))"
+        );
+        assertThat(tuple, is(tuple3(1, 2, tuple2(3, 4))));
+    }
+
     @Ignore
     @Test
     public void shouldCompileShow() {
@@ -294,7 +309,7 @@ public class BytecodeGeneratorTest {
                 Optional.of(new File("build/generated-test-classes/" + testName.getMethodName())),
                 Compiler.class.getClassLoader()
             );
-            resolver.defineAll(TestUtil.generateBytecode(resolver, lines));
+            resolver.defineAll(TestUtil.generateBytecode(testName.getMethodName(), resolver, lines));
             return ((Callable<A>) resolver.loadClass("scotch.test.$$Module").getMethod("run").invoke(null)).call();
         } catch (ReflectiveOperationException exception) {
             throw new RuntimeException(exception);

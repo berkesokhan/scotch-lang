@@ -1,7 +1,6 @@
 package scotch.compiler.syntax.value;
 
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
-import static scotch.util.StringUtil.stringify;
 
 import java.util.Optional;
 import lombok.EqualsAndHashCode;
@@ -90,7 +89,7 @@ public class InitializerField {
 
     @Override
     public String toString() {
-        return stringify(this) + "(" + name + ")";
+        return "(" + name + " = " + value + ")";
     }
 
     public InitializerField withType(Type type) {

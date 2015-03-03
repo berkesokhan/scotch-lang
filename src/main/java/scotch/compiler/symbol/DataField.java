@@ -13,4 +13,6 @@ import java.lang.annotation.Target;
 public @interface DataField {
 
     String memberName();
+
+    int ordinal();
 }

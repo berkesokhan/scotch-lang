@@ -52,68 +52,122 @@ class GenerateTuples extends DefaultTask {
             def content = [
                 'package scotch.data.tuple;',
                 '',
+                'import static java.util.Arrays.asList;',
+                'import static scotch.compiler.symbol.type.Types.var;',
+                '',
+                'import java.util.List;',
                 'import java.util.Objects;',
                 'import javax.annotation.Generated;',
+                'import lombok.AllArgsConstructor;',
+                'import lombok.Getter;',
+                'import scotch.compiler.symbol.DataConstructor;',
+                'import scotch.compiler.symbol.DataField;',
+                'import scotch.compiler.symbol.DataFieldType;',
+                'import scotch.compiler.symbol.DataType;',
+                'import scotch.compiler.symbol.TypeParameter;',
+                'import scotch.compiler.symbol.TypeParameters;',
+                'import scotch.compiler.symbol.type.Type;',
+                'import scotch.runtime.Callable;',
                 '',
             ]
 
             content << generated
-            content << "public final class Tuple${size}<${range.collect { t -> "T${t}" }.join(', ')}> {"
-
+            content << "@DataType(memberName = \"(${",".multiply(it)})\", parameters = { ${range.collect { t -> "@TypeParameter(name = \"${(char) (97 + t)}\")" }.join(', ') } })"
+            content << "public abstract class Tuple${size}<${range.collect { t -> "T${t}" }.join(', ')}> {"
             content << ''
-            range.each { t ->
-                content << "    private final T${t} _${t};"
-            }
 
-            content << ''
-            content << "    public Tuple${size}(${range.collect { t -> "T${t} _${t}" }.join(', ')}) {"
-            range.each { t ->
-                content << "        this._${t} = _${t};"
-            }
-            content << "    }"
-
-            content << ''
-            content << '    @Override'
-            content << '    public boolean equals(Object o) {'
-            content << '        if (o == this) {'
-            content << '            return true;'
-            content << "        } else if (o instanceof Tuple${size}) {"
-            content << "            Tuple${size} other = (Tuple${size}) o;"
-            content << "            return ${range.collect { t -> "Objects.equals(_${t}, other._${t})"}.join("\n                && ")};"
-            content << '        } else {'
-            content << '            return false;'
-            content << '        }'
+            content << '    @TypeParameters'
+            content << '    public static List<Type> parameters() {'
+            content << "        return asList(${range.collect { t -> "var(\"${(char) (97 + t)}\")" }.join(', ')});"
             content << '    }'
+            content << ''
+
+            content << "    private Tuple${size}() {"
+            content << '        // intentionally empty'
+            content << '    }'
+            content << ''
+
+            content << '    @Override'
+            content << '    public abstract boolean equals(Object o);'
+            content << ''
 
             range.each { t ->
+                content << "    public abstract Callable<T${t}> get_${t}();"
                 content << ''
-                content << "    public T${t} get_${t}() {"
-                content << "        return _${t};"
-                content << "    }"
             }
 
-            content << ''
             content << '    @Override'
-            content << '    public int hashCode() {'
-            content << "        return Objects.hash(${range.collect { t -> "_${t}" }.join(', ')});"
-            content << "    }"
+            content << '    public abstract int hashCode();'
             content << ''
 
-            content << "    public <U> U into(Deconstruct${size}<U, ${range.collect { t -> "T${t}" }.join(', ')}> deconstructor) {"
-            content << "        return deconstructor.apply(${range.collect { t -> "_${t}" }.join(', ')});"
-            content << '    }'
+            content << "    public abstract <U> U into(Deconstruct${size}<U, ${range.collect { t -> "T${t}" }.join(', ')}> deconstructor);"
             content << ''
 
             content << '    @Override'
-            content << '    public String toString() {'
-            content << "        return \"(\" + ${range.collect { t -> "_${t} + " }.join(' ", " + ')} \")\";"
-            content << '    }'
+            content << '    public abstract String toString();'
             content << ''
 
             content << '    @FunctionalInterface'
             content << "    public interface Deconstruct${size}<U, ${range.collect { t -> "T${t}" }.join(", ")}> {"
             content << ''
-            content << "        U apply(${range.collect { t -> "T${t} _${t}" }.join(', ')});"
+            content << "        U apply(${range.collect { t -> "Callable<T${t}> _${t}" }.join(', ')});"
+            content << '    }'
+            content << ''
+
+            content << "    ${generated}"
+            content << '    @AllArgsConstructor'
+            content << '    @Getter'
+            content << "    @DataConstructor(ordinal = 0, memberName = \"(${",".multiply(it)})\", dataType = \"(${",".multiply(it)})\", parameters = { ${range.collect { t -> "@TypeParameter(name = \"${(char) (97 + t)}\")" }.join(', ') } })"
+            content << "    public static final class Tuple${size}Data<${range.collect { t -> "T${t}" }.join(', ')}> extends Tuple${size}<${range.collect { t -> "T${t}" }.join(', ')}> {"
+            content << ''
+
+            range.each { t ->
+                content << "        private final Callable<T${t}> _${t};"
+            }
+            content << ''
+
+            content << '        @Override'
+            content << '        public boolean equals(Object o) {'
+            content << '            if (o == this) {'
+            content << '                return true;'
+            content << "            } else if (o instanceof Tuple${size}Data) {"
+            content << "                Tuple${size}Data other = (Tuple${size}Data) o;"
+            content << "                return ${range.collect { t -> "Objects.equals(_${t}.call(), other._${t}.call())"}.join(" && ")};"
+            content << '            } else {'
+            content << '                return false;'
+            content << '            }'
+            content << '        }'
+            content << ''
+
+            range.each { t ->
+                content << "        @DataFieldType(forMember = \"_${t}\")"
+                content << "        public static Type _${t}\$type() {"
+                content << "            return var(\"${(char) (97 + t)}\");"
+                content << '        }'
+                content << ''
+                content << "        @DataField(memberName = \"_${t}\", ordinal = ${t})"
+                content << '        @Override'
+                content << "        public Callable<T${t}> get_${t}() {"
+                content << "            return _${t};"
+                content << '        }'
+                content << ''
+            }
+
+            content << '        @Override'
+            content << '        public int hashCode() {'
+            content << "            return Objects.hash(${range.collect { t -> "_${t}.call()" }.join(', ')});"
+            content << "        }"
+            content << ''
+
+            content << "        public <U> U into(Deconstruct${size}<U, ${range.collect { t -> "T${t}" }.join(', ')}> deconstructor) {"
+            content << "            return deconstructor.apply(${range.collect { t -> "_${t}" }.join(', ')});"
+            content << '        }'
+            content << ''
+
+            content << '        @Override'
+            content << '        public String toString() {'
+            content << "            return \"(\" + ${range.collect { t -> "_${t}.call() + " }.join(' ", " + ')} \")\";"
+            content << '        }'
             content << '    }'
             content << '}'
             content << ''
@@ -127,12 +181,26 @@ class GenerateTuples extends DefaultTask {
         def util = [
             'package scotch.data.tuple;',
             '',
+            'import static java.util.Arrays.asList;',
+            'import static scotch.compiler.symbol.type.Types.fn;',
+            'import static scotch.compiler.symbol.type.Types.sum;',
+            'import static scotch.compiler.symbol.type.Types.var;',
+            'import static scotch.runtime.Callable.box;',
+            'import static scotch.runtime.RuntimeUtil.applicable;',
+            'import static scotch.runtime.RuntimeUtil.callable;',
+            '',
             'import java.util.function.Function;',
             'import javax.annotation.Generated;',
+            'import scotch.compiler.symbol.Value;',
+            'import scotch.compiler.symbol.ValueType;',
+            'import scotch.compiler.symbol.type.Type;',
+            'import scotch.runtime.Callable;',
+            'import scotch.runtime.Applicable;',
             '',
             generated,
             '@SuppressWarnings({ "unused", "unchecked" })',
             'public final class TupleValues {',
+            ''
         ]
 
         tupleRange.each {
@@ -140,10 +208,45 @@ class GenerateTuples extends DefaultTask {
             def range = (0..it)
             def generics = "<${range.collect { t -> "T${t}" }.join(', ')}>"
 
-            util << ''
-            util << "    public static ${generics} Tuple${size}${generics} tuple${size}(${range.collect { t -> "T${t} _${t}" }.join(", ")}) {"
-            util << "        return new Tuple${size}<>(${range.collect { t -> "_${t}" }.join(', ')});"
+            def type = "sum(\"scotch.data.tuple.(${','.multiply(it)})\", asList(${range.collect { t -> "var(\"${(char) (97 + t)}\")"}.join(', ')}))"
+            def signature = "Tuple${size}${generics}"
+            for (def i = it; i >= 0; i--) {
+                type = "fn(var(\"${(char) (97 + i)}\"), ${type})"
+                signature = "Applicable<T${i}, ${signature}>"
+            }
+
+            // tuple constructor function
+            util << "    @Value(memberName = \"(${','.multiply(it)})\")"
+            util << "    public static ${generics} ${signature} tuple${size}() {"
+
+            def ctor = "callable(() -> new Tuple${size}.Tuple${size}Data<>(${range.collect { t -> "_${t}" }.join(', ')}))"
+
+            for (def i = it; i >= 0; i--) {
+                ctor = "applicable(_${i} -> ${ctor})"
+            }
+
+            util << "        return ${ctor};"
             util << '    }'
+            util << ''
+
+            // tuple constructor type
+            util << "    @ValueType(forMember = \"(${','.multiply(it)})\")"
+            util << "    public static Type tuple${size}\$type() {"
+            util << "        return ${type};"
+            util << '    }'
+            util << ''
+
+            // tuple shorthand constructor
+            def applies = "tuple${size}()";
+            for (def i = 0; i <= it; i++) {
+                applies = "((Applicable) ${applies}).apply((Callable) box(_${i}))"
+            }
+
+            util << '    @SuppressWarnings("unchecked")'
+            util << "    public static ${generics} Tuple${size}${generics} tuple${size}(${range.collect { t -> "T${t} _${t}" }.join(', ')}) {"
+            util << "        return (Tuple${size}) ${applies}.call();"
+            util << '    }'
+            util << ''
         }
 
         util << ''

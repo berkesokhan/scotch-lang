@@ -1,5 +1,6 @@
 package scotch.compiler.symbol.descriptor;
 
+import static java.util.Collections.sort;
 import static java.util.stream.Collectors.joining;
 
 import java.util.ArrayList;
@@ -22,10 +23,12 @@ public class DataTypeDescriptor {
     private final Map<Symbol, DataConstructorDescriptor> constructors;
 
     private DataTypeDescriptor(Symbol symbol, List<Type> parameters, List<DataConstructorDescriptor> constructors) {
+        List<DataConstructorDescriptor> sortedConstructors = new ArrayList<>(constructors);
+        sort(sortedConstructors);
         this.symbol = symbol;
         this.parameters = new ArrayList<>(parameters);
         this.constructors = new LinkedHashMap<>();
-        constructors.forEach(constructor -> this.constructors.put(constructor.getSymbol(), constructor));
+        sortedConstructors.forEach(constructor -> this.constructors.put(constructor.getSymbol(), constructor));
     }
 
     @Override

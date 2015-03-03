@@ -75,7 +75,7 @@ public abstract class Maybe<A> {
 
     public abstract String toString();
 
-    @DataConstructor(memberName = "Nothing", dataType = "Maybe")
+    @DataConstructor(ordinal = 0, memberName = "Nothing", dataType = "Maybe")
     public static class Nothing<A> extends Maybe<A> {
 
         @Override
@@ -99,7 +99,7 @@ public abstract class Maybe<A> {
         }
     }
 
-    @DataConstructor(memberName = "Just", dataType = "Maybe", parameters = {
+    @DataConstructor(ordinal = 1, memberName = "Just", dataType = "Maybe", parameters = {
         @TypeParameter(name = "a"),
     })
     public static class Just<A> extends Maybe<A> {
@@ -120,7 +120,7 @@ public abstract class Maybe<A> {
             return o == this || o instanceof Just && Objects.equals(value.call(), ((Just) o).value.call());
         }
 
-        @DataField(memberName = "value")
+        @DataField(memberName = "value", ordinal = 0)
         public Callable<A> getValue() {
             return value;
         }

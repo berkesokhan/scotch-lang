@@ -4,6 +4,7 @@ import java.util.List;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.symbol.type.Type;
+import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.PatternMatch;
 import scotch.compiler.syntax.value.Value;
@@ -29,6 +30,10 @@ public class Definitions {
 
     public static ScopeDefinition scopeDef(SourceRange sourceRange, Symbol symbol) {
         return new ScopeDefinition(sourceRange, symbol);
+    }
+
+    public static Definition scopeDef(Scoped scoped) {
+        return scoped.getDefinition();
     }
 
     public static ValueSignature signature(SourceRange sourceRange, Symbol symbol, Type type) {

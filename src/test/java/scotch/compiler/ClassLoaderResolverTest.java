@@ -4,11 +4,11 @@ import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.compiler.symbol.descriptor.DataFieldDescriptor.field;
 import static scotch.compiler.symbol.MethodSignature.methodSignature;
 import static scotch.compiler.symbol.Operator.operator;
 import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.compiler.symbol.descriptor.DataFieldDescriptor.field;
 import static scotch.compiler.symbol.type.Types.fn;
 import static scotch.compiler.symbol.type.Types.var;
 import static scotch.compiler.util.TestUtil.constructor;
@@ -86,13 +86,13 @@ public class ClassLoaderResolverTest {
             asList(var("a")),
             asList(
                 constructor(
-                    "scotch.data.maybe.Maybe",
+                    0, "scotch.data.maybe.Maybe",
                     "scotch.data.maybe.Nothing"
                 ),
                 constructor(
-                    "scotch.data.maybe.Maybe",
+                    1, "scotch.data.maybe.Maybe",
                     "scotch.data.maybe.Just",
-                    asList(field("value", var("a")))
+                    asList(field(0, "value", var("a")))
                 )
             )
         ))));

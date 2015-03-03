@@ -122,6 +122,7 @@ public class ModuleScanner {
     @SuppressWarnings("unchecked")
     private <T> T invoke(Method method) {
         try {
+            method.setAccessible(true);
             return (T) method.invoke(null);
         } catch (ReflectiveOperationException exception) {
             throw new SymbolResolutionError(exception);
@@ -138,10 +139,9 @@ public class ModuleScanner {
 
     private void processDataConstructors(Class<?> clazz) {
         Optional.ofNullable(clazz.getAnnotation(DataConstructor.class)).ifPresent(annotation -> {
-            DataConstructorDescriptor.Builder constructor = DataConstructorDescriptor.builder(
-                qualify(annotation.dataType()),
-                qualify(annotation.memberName())
-            );
+            Symbol constructor = qualify(annotation.memberName());
+            Symbol dataType = qualify(annotation.dataType());
+            DataConstructorDescriptor.Builder builder = getBuilder(constructor).dataConstructor(annotation.ordinal(), dataType);
 
             Map<String, Type> fieldTypes = stream(clazz.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(DataFieldType.class))
@@ -158,15 +158,14 @@ public class ModuleScanner {
             stream(clazz.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(DataField.class))
                 .map(method -> method.getAnnotation(DataField.class))
-                .forEach(field -> constructor.addField(field(
+                .forEach(field -> builder.addField(field(
+                    field.ordinal(),
                     field.memberName(),
                     Optional.ofNullable(fieldTypes.get(field.memberName()))
                         .orElseThrow(() -> incompleteDataType(clazz, DataFieldType.class))
                 )));
 
-            Symbol dataType = qualify(annotation.dataType());
-            getBuilder(dataType).dataType()
-                .addConstructor(constructor.build());
+            getBuilder(dataType).dataType().addConstructor(builder.build());
         });
     }
 
@@ -220,11 +219,7 @@ public class ModuleScanner {
             Optional.ofNullable(method.getAnnotation(ValueType.class)).ifPresent(valueType -> {
                 ImmutableEntryBuilder builder = getBuilder(valueType.forMember());
                 if (Type.class.isAssignableFrom(method.getReturnType())) {
-                    try {
-                        builder.withValueType((Type) method.invoke(null));
-                    } catch (ReflectiveOperationException exception) {
-                        throw new SymbolResolutionError(exception);
-                    }
+                    builder.withValueType(invoke(method));
                 } else {
                     throw new InvalidMethodSignatureError("Method " + pp(method)
                         + " annotated by " + pp(ValueType.class)

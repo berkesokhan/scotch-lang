@@ -1,29 +1,44 @@
 package scotch.compiler.symbol.descriptor;
 
-import lombok.EqualsAndHashCode;
+import java.util.Objects;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import scotch.compiler.symbol.type.Type;
 
-@EqualsAndHashCode(callSuper = false)
-public class DataFieldDescriptor {
+@AllArgsConstructor
+@Getter
+public class DataFieldDescriptor implements Comparable<DataFieldDescriptor> {
 
-    public static DataFieldDescriptor field(String name, Type type) {
-        return new DataFieldDescriptor(name, type);
+    public static DataFieldDescriptor field(int ordinal, String name, Type type) {
+        return new DataFieldDescriptor(ordinal, name, type);
     }
 
+    private final int    ordinal;
     private final String name;
     private final Type   type;
 
-    private DataFieldDescriptor(String name, Type type) {
-        this.name = name;
-        this.type = type;
+    @Override
+    public int compareTo(DataFieldDescriptor o) {
+        return ordinal - o.ordinal;
     }
 
-    public String getName() {
-        return name;
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        } else if (o instanceof DataFieldDescriptor) {
+            DataFieldDescriptor other = (DataFieldDescriptor) o;
+            return Objects.equals(ordinal, other.ordinal)
+                && Objects.equals(name, other.name)
+                && Objects.equals(type, other.type);
+        } else {
+            return false;
+        }
     }
 
-    public Type getType() {
-        return type;
+    @Override
+    public int hashCode() {
+        return Objects.hash(ordinal, name, type);
     }
 
     @Override
@@ -32,6 +47,6 @@ public class DataFieldDescriptor {
     }
 
     public DataFieldDescriptor withType(Type type) {
-        return new DataFieldDescriptor(name, type);
+        return new DataFieldDescriptor(ordinal, name, type);
     }
 }

@@ -61,6 +61,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
@@ -110,6 +111,7 @@ import scotch.compiler.syntax.value.InitializerField;
 import scotch.compiler.syntax.value.Let;
 import scotch.compiler.syntax.value.Literal;
 import scotch.compiler.syntax.value.PatternMatch;
+import scotch.compiler.syntax.value.TupleBuilder;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.NamedSourcePoint;
@@ -315,7 +317,10 @@ public class InputParser {
 
     private DataFieldDefinition parseAnonymousField_(int offset, Map<String, Type> constraints) {
         return node(DataFieldDefinition.builder(),
-            builder -> builder.withName("_" + offset).withType(parseType(constraints)));
+            builder -> builder
+                .withOrdinal(offset)
+                .withName("_" + offset)
+                .withType(parseType(constraints)));
     }
 
     private List<DataFieldDefinition> parseAnonymousFields(Map<String, Type> constraints) {
@@ -407,15 +412,17 @@ public class InputParser {
             .collect(toMap(Entry::getKey, entry -> var(entry.getKey(), entry.getValue())));
     }
 
-    private DataConstructorDefinition parseDataConstructor(Symbol dataType, Map<String, Type> constraints) {
+    private DataConstructorDefinition parseDataConstructor(AtomicInteger ordinal, Symbol dataType, Map<String, Type> constraints) {
         return node(DataConstructorDefinition.builder(), builder -> {
             if (expects(LEFT_CURLY_BRACE)) {
                 builder
+                    .withOrdinal(ordinal.getAndIncrement())
                     .withSymbol(dataType)
                     .withDataType(dataType);
                 parseDataFields(builder, constraints);
             } else {
                 builder
+                    .withOrdinal(ordinal.getAndIncrement())
                     .withSymbol(qualify(requireWord()))
                     .withDataType(dataType);
                 if (expects(LEFT_CURLY_BRACE)) {
@@ -429,10 +436,11 @@ public class InputParser {
 
     private void parseDataFields(Builder builder, Map<String, Type> constraints) {
         require(LEFT_CURLY_BRACE);
-        builder.addField(parseNamedField(constraints));
+        AtomicInteger ordinal = new AtomicInteger();
+        builder.addField(parseNamedField(ordinal, constraints));
         while (expects(COMMA) && expectsWordAt(1)) {
             nextToken();
-            builder.addField(parseNamedField(constraints));
+            builder.addField(parseNamedField(ordinal, constraints));
         }
         if (expects(COMMA)) {
             nextToken();
@@ -454,14 +462,15 @@ public class InputParser {
                 builder.addParameter(parameter);
                 parameters.add(parameter);
             }
+            AtomicInteger ordinal = new AtomicInteger();
             if (expects(LEFT_CURLY_BRACE)) {
-                constructors.add(parseDataConstructor(symbol, constraints));
+                constructors.add(parseDataConstructor(ordinal, symbol, constraints));
             } else {
                 require(ASSIGN);
-                constructors.add(parseDataConstructor(symbol, constraints));
+                constructors.add(parseDataConstructor(ordinal, symbol, constraints));
                 while (expects(PIPE)) {
                     nextToken();
-                    constructors.add(parseDataConstructor(symbol, constraints));
+                    constructors.add(parseDataConstructor(ordinal, symbol, constraints));
                 }
             }
             constructors.forEach(builder::addConstructor);
@@ -699,22 +708,22 @@ public class InputParser {
         return definitions;
     }
 
-    private DataFieldDefinition parseNamedField(Map<String, Type> constraints) {
+    private DataFieldDefinition parseNamedField(AtomicInteger ordinal, Map<String, Type> constraints) {
         if (expects(LEFT_PARENTHESIS)) {
             nextToken();
-            DataFieldDefinition field = parseNamedField_(constraints);
+            DataFieldDefinition field = parseNamedField_(ordinal, constraints);
             require(RIGHT_PARENTHESIS);
             return field;
         } else {
-            return parseNamedField_(constraints);
+            return parseNamedField_(ordinal, constraints);
         }
     }
 
-    private DataFieldDefinition parseNamedField_(Map<String, Type> constraints) {
-        return node(DataFieldDefinition.builder(), builder -> {
-            builder.withName(requireWord());
-            builder.withType(parseType(constraints));
-        });
+    private DataFieldDefinition parseNamedField_(AtomicInteger ordinal, Map<String, Type> constraints) {
+        return node(DataFieldDefinition.builder(), builder -> builder
+            .withOrdinal(ordinal.getAndIncrement())
+            .withName(requireWord())
+            .withType(parseType(constraints)));
     }
 
     private List<DefinitionReference> parseOperatorDefinition() {
@@ -786,9 +795,7 @@ public class InputParser {
         } else if (expectsLiteral()) {
             value = parseLiteral();
         } else if (expects(LEFT_PARENTHESIS)) {
-            nextToken();
-            value = parseExpression();
-            require(RIGHT_PARENTHESIS);
+            value = parseTupleOrParenthetical();
         } else if (expects(BACKSLASH)) {
             value = parseFunction();
         } else if (expects(KEYWORD_LET)) {
@@ -801,6 +808,24 @@ public class InputParser {
             throw unexpected(ImmutableList.<TokenKind>builder().add(IDENTIFIER, LEFT_PARENTHESIS).addAll(literals).build());
         }
         return ofNullable(value).map(this::parseInitializer_);
+    }
+
+    private Value parseTupleOrParenthetical() {
+        return node(TupleBuilder.builder(), builder -> {
+            require(LEFT_PARENTHESIS);
+            builder.withMember(parseExpression());
+            while (expects(COMMA)) {
+                nextToken();
+                builder.withMember(parseExpression());
+            }
+            require(RIGHT_PARENTHESIS);
+            if (builder.hasTooManyMembers()) {
+                throw parseException("Tuple can't have more than " + builder.maxMembers() + " members", scanner.peekAt(0).getSourceRange());
+            } else if (builder.isTuple()) {
+                builder.withType(reserveType());
+                builder.withTupleType(reserveType());
+            }
+        });
     }
 
     private String parseQualifiedName() {

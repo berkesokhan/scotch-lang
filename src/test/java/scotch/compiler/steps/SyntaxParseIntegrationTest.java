@@ -41,15 +41,15 @@ public class SyntaxParseIntegrationTest extends ParserTest {
             "left infix 6 (==), (/=)",
             "x == y = not (x /= y)"
         );
-        shouldHaveValue("scotch.test.(==)", t(10), fn("scotch.test.(==#0)", asList(arg("#0", t(7)), arg("#1", t(8))), patterns(t(9),
+        shouldHaveValue("scotch.test.(==)", t(12), fn("scotch.test.(==#0)", asList(arg("#0", t(9)), arg("#1", t(10))), patterns(t(11),
             pattern("scotch.test.(==#0#0)", asList(capture("#0", "x", t(0)), capture("#1", "y", t(2))), apply(
                 id("scotch.data.bool.not", t(3)),
                 apply(
-                    apply(id("scotch.test.(/=)", t(5)), id("x", t(4)), t(11)),
+                    apply(id("scotch.test.(/=)", t(5)), id("x", t(4)), t(13)),
                     id("y", t(6)),
-                    t(12)
+                    t(14)
                 ),
-                t(13)
+                t(15)
             ))
         )));
     }
@@ -63,41 +63,41 @@ public class SyntaxParseIntegrationTest extends ParserTest {
             "fib 1 = 1",
             "fib n = fib (n - 1) + fib (n - 2)"
         );
-        shouldHaveValue("scotch.test.fib", t(13), fn("scotch.test.(fib#0)", asList(arg("#0", t(11))), patterns(t(12),
+        shouldHaveValue("scotch.test.fib", t(17), fn("scotch.test.(fib#0)", asList(arg("#0", t(15))), patterns(t(16),
             pattern("scotch.test.(fib#0#0)", asList(equal("#0", apply(
-                apply(id("scotch.data.eq.(==)", t(14)), id("#0", t(15)), t(16)),
+                apply(id("scotch.data.eq.(==)", t(18)), id("#0", t(19)), t(20)),
                 literal(0),
-                t(17)
+                t(21)
             ))), literal(0)),
             pattern("scotch.test.(fib#0#1)", asList(equal("#0", apply(
-                apply(id("scotch.data.eq.(==)", t(18)), id("#0", t(19)), t(20)),
+                apply(id("scotch.data.eq.(==)", t(22)), id("#0", t(23)), t(24)),
                 literal(1),
-                t(21)
+                t(25)
             ))), literal(1)),
             pattern("scotch.test.(fib#0#2)", asList(capture("#0", "n", t(3))), apply(
                 apply(
-                    id("scotch.test.(+)", t(7)),
+                    id("scotch.test.(+)", t(9)),
                     apply(
                         id("scotch.test.fib", t(4)),
                         apply(
-                            apply(id("scotch.test.(-)", t(6)), id("n", t(5)), t(22)),
+                            apply(id("scotch.test.(-)", t(6)), id("n", t(5)), t(26)),
                             literal(1),
-                            t(23)
+                            t(27)
                         ),
-                        t(24)
+                        t(28)
                     ),
-                    t(28)
+                    t(32)
                 ),
                 apply(
-                    id("scotch.test.fib", t(8)),
+                    id("scotch.test.fib", t(10)),
                     apply(
-                        apply(id("scotch.test.(-)", t(10)), id("n", t(9)), t(25)),
+                        apply(id("scotch.test.(-)", t(12)), id("n", t(11)), t(29)),
                         literal(2),
-                        t(26)
+                        t(30)
                     ),
-                    t(27)
+                    t(31)
                 ),
-                t(29)
+                t(33)
             ))
         )));
     }

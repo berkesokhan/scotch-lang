@@ -1,5 +1,6 @@
 package scotch.compiler.symbol;
 
+import static java.lang.Character.isUpperCase;
 import static java.util.Arrays.asList;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.joining;
@@ -239,6 +240,18 @@ public abstract class Symbol implements Comparable<Symbol> {
 
     @Override
     public abstract int hashCode();
+
+    public static boolean isSumName(String name) {
+        return splitQualified(name).into(
+            (moduleName, memberName) -> "[]".equals(memberName)
+                || isUpperCase(memberName.charAt(0))
+                || tuplePattern.matcher(memberName).matches()
+        );
+    }
+
+    public boolean isTuple() {
+        return tuplePattern.matcher(getMemberName()).find();
+    }
 
     public abstract Symbol map(Function<QualifiedSymbol, Symbol> function);
 

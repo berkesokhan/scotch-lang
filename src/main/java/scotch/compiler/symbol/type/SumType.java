@@ -1,12 +1,11 @@
 package scotch.compiler.symbol.type;
 
-import static java.lang.Character.isUpperCase;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.symbol.type.Types.unifyVariable;
 import static scotch.compiler.symbol.type.Unification.circular;
 import static scotch.compiler.symbol.type.Unification.mismatch;
 import static scotch.compiler.symbol.type.Unification.unified;
-import static scotch.compiler.symbol.type.Types.unifyVariable;
 import static scotch.compiler.util.Pair.pair;
 
 import java.util.ArrayList;
@@ -43,7 +42,7 @@ public class SumType extends Type {
     private final List<Type>  parameters;
 
     SumType(SourceRange sourceRange, Symbol symbol, List<Type> parameters) {
-        shouldBeUpperCase(symbol.getSimpleName());
+        shouldBeSumName(symbol.getSimpleName());
         this.sourceRange = sourceRange;
         this.symbol = symbol;
         this.parameters = ImmutableList.copyOf(parameters);
@@ -122,9 +121,9 @@ public class SumType extends Type {
         return new SumType(sourceRange, symbol, parameters);
     }
 
-    private void shouldBeUpperCase(String name) {
-        if (!isUpperCase(name.charAt(0))) {
-            throw new IllegalArgumentException("Sum type should have upper-case name: got '" + name + "'");
+    private static void shouldBeSumName(String name) {
+        if (!Symbol.isSumName(name)) {
+            throw new IllegalArgumentException("Sum type should have upper-case name, be tuple, or list: got '" + name + "'");
         }
     }
 
@@ -179,7 +178,9 @@ public class SumType extends Type {
 
     @Override
     protected String toString_() {
-        if (parameters.isEmpty()) {
+        if (symbol.isTuple()) {
+            return "(" + parameters.stream().map(Type::toString).collect(joining(", ")) + ")";
+        } else if (parameters.isEmpty()) {
             return symbol.getSimpleName();
         } else {
             return symbol.getSimpleName() + " " + parameters.stream().map(Type::toString).collect(joining(" "));

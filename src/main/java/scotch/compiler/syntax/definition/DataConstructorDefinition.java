@@ -1,5 +1,6 @@
 package scotch.compiler.syntax.definition;
 
+import static java.util.Collections.sort;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static me.qmx.jitescript.util.CodegenUtils.ci;
@@ -23,35 +24,44 @@ import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.ScopedNameQualifier;
-import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
 import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
 import scotch.runtime.Copyable;
 
 @EqualsAndHashCode(callSuper = false)
-public class DataConstructorDefinition {
+public class DataConstructorDefinition implements Comparable<DataConstructorDefinition> {
 
     public static Builder builder() {
         return new Builder();
     }
 
     private final SourceRange                      sourceRange;
+    private final int                              ordinal;
     private final Symbol                           dataType;
     private final Symbol                           symbol;
     private final Map<String, DataFieldDefinition> fields;
 
-    private DataConstructorDefinition(SourceRange sourceRange, Symbol dataType, Symbol symbol, List<DataFieldDefinition> fields) {
+    private DataConstructorDefinition(SourceRange sourceRange, int ordinal, Symbol dataType, Symbol symbol, List<DataFieldDefinition> fields) {
+        List<DataFieldDefinition> sortedFields = new ArrayList<>(fields);
+        sort(sortedFields);
         this.sourceRange = sourceRange;
+        this.ordinal = ordinal;
         this.dataType = dataType;
         this.symbol = symbol;
         this.fields = new LinkedHashMap<>();
-        fields.forEach(field -> this.fields.put(field.getName(), field));
+        sortedFields.forEach(field -> this.fields.put(field.getName(), field));
     }
 
     public void accumulateNames(NameAccumulator state) {
         state.defineDataConstructor(symbol, getDescriptor());
+    }
+
+    @Override
+    public int compareTo(DataConstructorDefinition o) {
+        return ordinal - o.ordinal;
     }
 
     public void generateBytecode(BytecodeGenerator state) {
@@ -75,44 +85,12 @@ public class DataConstructorDefinition {
         }
     }
 
-    private void generateToString(BytecodeGenerator state) {
-        state.method("toString", ACC_PUBLIC, sig(String.class), new CodeBlock() {{
-            newobj(p(StringBuilder.class));
-            dup();
-            ldc(symbol.getMemberName());
-            invokespecial(p(StringBuilder.class), "<init>", sig(void.class, String.class));
-            int count = 0;
-            if (!fields.isEmpty()) {
-                ldc(" {");
-                invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
-                for (DataFieldDefinition field : fields.values()) {
-                    if (count != 0) {
-                        ldc(",");
-                        invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
-                    }
-                    ldc(" " + field.getName() + " = ");
-                    invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
-                    aload(0);
-                    getfield(state.currentClass().getClassName(), field.getJavaName(), ci(field.getJavaType()));
-                    invokeinterface(p(Callable.class), "call", sig(Object.class));
-                    invokevirtual(p(Object.class), "toString", sig(String.class));
-                    invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
-                    count++;
-                }
-                ldc(" }");
-                invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
-            }
-            invokevirtual(p(Object.class), "toString", sig(String.class));
-            areturn();
-        }});
-    }
-
     public Symbol getDataType() {
         return dataType;
     }
 
     public DataConstructorDescriptor getDescriptor() {
-        return DataConstructorDescriptor.builder(dataType, symbol)
+        return DataConstructorDescriptor.builder(ordinal, dataType, symbol)
             .withFields(fields.values().stream()
                 .map(DataFieldDefinition::getDescriptor)
                 .collect(toList()))
@@ -281,6 +259,38 @@ public class DataConstructorDefinition {
         }});
     }
 
+    private void generateToString(BytecodeGenerator state) {
+        state.method("toString", ACC_PUBLIC, sig(String.class), new CodeBlock() {{
+            newobj(p(StringBuilder.class));
+            dup();
+            ldc(symbol.getMemberName());
+            invokespecial(p(StringBuilder.class), "<init>", sig(void.class, String.class));
+            int count = 0;
+            if (!fields.isEmpty()) {
+                ldc(" {");
+                invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
+                for (DataFieldDefinition field : fields.values()) {
+                    if (count != 0) {
+                        ldc(",");
+                        invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
+                    }
+                    ldc(" " + field.getName() + " = ");
+                    invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
+                    aload(0);
+                    getfield(state.currentClass().getClassName(), field.getJavaName(), ci(field.getJavaType()));
+                    invokeinterface(p(Callable.class), "call", sig(Object.class));
+                    invokevirtual(p(Object.class), "toString", sig(String.class));
+                    invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
+                    count++;
+                }
+                ldc(" }");
+                invokevirtual(p(StringBuilder.class), "append", sig(StringBuilder.class, String.class));
+            }
+            invokevirtual(p(Object.class), "toString", sig(String.class));
+            areturn();
+        }});
+    }
+
     private Class<?>[] getParameters() {
         List<Class<?>> parameters = fields.values().stream()
             .map(DataFieldDefinition::getJavaType)
@@ -289,22 +299,16 @@ public class DataConstructorDefinition {
     }
 
     private DataConstructorDefinition withFields(List<DataFieldDefinition> fields) {
-        return new DataConstructorDefinition(sourceRange, dataType, symbol, fields);
+        return new DataConstructorDefinition(sourceRange, ordinal, dataType, symbol, fields);
     }
 
     public static class Builder implements SyntaxBuilder<DataConstructorDefinition> {
 
-        private Optional<SourceRange>     sourceRange;
-        private Optional<Symbol>          dataType;
-        private Optional<Symbol>          symbol;
-        private List<DataFieldDefinition> fields;
-
-        private Builder() {
-            sourceRange = Optional.empty();
-            dataType = Optional.empty();
-            symbol = Optional.empty();
-            fields = new ArrayList<>();
-        }
+        private Optional<SourceRange>     sourceRange = Optional.empty();
+        private Optional<Integer>         ordinal     = Optional.empty();
+        private Optional<Symbol>          dataType    = Optional.empty();
+        private Optional<Symbol>          symbol      = Optional.empty();
+        private List<DataFieldDefinition> fields      = new ArrayList<>();
 
         public Builder addField(DataFieldDefinition field) {
             fields.add(field);
@@ -315,6 +319,7 @@ public class DataConstructorDefinition {
         public DataConstructorDefinition build() {
             return new DataConstructorDefinition(
                 require(sourceRange, "Source range"),
+                require(ordinal, "Ordinal"),
                 require(dataType, "Constructor data type"),
                 require(symbol, "Constructor symbol"),
                 fields
@@ -328,6 +333,11 @@ public class DataConstructorDefinition {
 
         public Builder withFields(List<DataFieldDefinition> fields) {
             fields.forEach(this::addField);
+            return this;
+        }
+
+        public Builder withOrdinal(int ordinal) {
+            this.ordinal = Optional.of(ordinal);
             return this;
         }
 

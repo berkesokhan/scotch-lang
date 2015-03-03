@@ -392,12 +392,12 @@ public class InputParserTest extends ParserTest {
         );
         shouldHaveDataType("scotch.test.Toast", dataDef("scotch.test.Toast", emptyList(), asList(
             ctorDef(
-                "scotch.test.Toast",
+                0, "scotch.test.Toast",
                 "scotch.test.Toast",
                 asList(
-                    fieldDef("type", sum("Bread")),
-                    fieldDef("butter", sum("Verbool")),
-                    fieldDef("jam", sum("Verbool")))))));
+                    fieldDef(0, "type", sum("Bread")),
+                    fieldDef(1, "butter", sum("Verbool")),
+                    fieldDef(2, "jam", sum("Verbool")))))));
     }
 
     @Test
@@ -407,11 +407,11 @@ public class InputParserTest extends ParserTest {
             "data Maybe a = Nothing | Just a"
         );
         shouldHaveDataType("scotch.test.Maybe", dataDef("scotch.test.Maybe", asList(var("a")), asList(
-            ctorDef("scotch.test.Maybe", "scotch.test.Nothing"),
+            ctorDef(0, "scotch.test.Maybe", "scotch.test.Nothing"),
             ctorDef(
-                "scotch.test.Maybe",
+                1, "scotch.test.Maybe",
                 "scotch.test.Just",
-                asList(fieldDef("_0", var("a")))))));
+                asList(fieldDef(0, "_0", var("a")))))));
     }
 
     @Test
@@ -425,13 +425,13 @@ public class InputParserTest extends ParserTest {
             dataDef("scotch.test.Map",
                 asList(var("a"), var("b")),
                 asList(
-                    ctorDef("scotch.test.Map", "scotch.test.Empty"),
+                    ctorDef(0, "scotch.test.Map", "scotch.test.Empty"),
                     ctorDef(
-                        "scotch.test.Map",
+                        1, "scotch.test.Map",
                         "scotch.test.Entry",
                         asList(
-                            fieldDef("key", var("a")),
-                            fieldDef("value", var("b")))))));
+                            fieldDef(0, "key", var("a")),
+                            fieldDef(1, "value", var("b")))))));
     }
 
     @Test
@@ -495,13 +495,13 @@ public class InputParserTest extends ParserTest {
             "scotch.test.List",
             asList(var),
             asList(
-                ctorDef("scotch.test.List", "scotch.test.Empty"),
+                ctorDef(0, "scotch.test.List", "scotch.test.Empty"),
                 ctorDef(
-                    "scotch.test.List",
+                    1, "scotch.test.List",
                     "scotch.test.Node",
                     asList(
-                        fieldDef("_0", var),
-                        fieldDef("_1", sum("List", asList(var))))))));
+                        fieldDef(0, "_0", var),
+                        fieldDef(1, "_1", sum("List", asList(var))))))));
     }
 
     @Test
@@ -515,13 +515,13 @@ public class InputParserTest extends ParserTest {
             dataDef("scotch.test.Map",
                 asList(var("a", asList("Eq")), var("b", asList("Eq"))),
                 asList(
-                    ctorDef("scotch.test.Map", "scotch.test.Empty"),
+                    ctorDef(0, "scotch.test.Map", "scotch.test.Empty"),
                     ctorDef(
-                        "scotch.test.Map",
+                        1, "scotch.test.Map",
                         "scotch.test.Entry",
                         asList(
-                            fieldDef("key", var("a", asList("Eq"))),
-                            fieldDef("value", var("b", asList("Eq"))))))));
+                            fieldDef(0, "key", var("a", asList("Eq"))),
+                            fieldDef(1, "value", var("b", asList("Eq"))))))));
     }
 
     @Test
@@ -536,7 +536,7 @@ public class InputParserTest extends ParserTest {
                 id(".", t(2)),
                 id("g", t(3))
             ),
-            id("x", t(4))
+            id("x", t(6))
         ));
     }
 
@@ -565,7 +565,7 @@ public class InputParserTest extends ParserTest {
         );
         shouldHaveValue("scotch.test.pingpong", unshuffled(
             unshuffled(id("readln", t(2))),
-            id("scotch.control.monad.(>>=)", t(6)),
+            id("scotch.control.monad.(>>=)", t(8)),
             fn("scotch.test.(pingpong#0)", arg("ping", t(1)), unshuffled(
                 id("println", t(3)),
                 unshuffled(literal("ponging back! "), id("++", t(4)), id("ping", t(5)))
@@ -584,6 +584,28 @@ public class InputParserTest extends ParserTest {
             "    pong <- readln"
         );
         fail();
+    }
+
+    @Test
+    public void shouldParseTupleLiteral() {
+        parse(
+            "module scotch.test",
+            "tuple = (1, 2, 3)"
+        );
+        shouldHaveValue("scotch.test.tuple", initializer(t(1), id("scotch.data.tuple.(,,)", t(2)), asList(
+            field("_0", unshuffled(literal(1))),
+            field("_1", unshuffled(literal(2))),
+            field("_2", unshuffled(literal(3)))
+        )));
+    }
+
+    @Test
+    public void shouldThrow_whenTupleHasTooManyMembers() {
+        exception.expectMessage(containsString("Tuple can't have more than 24 members"));
+        parse(
+            "module scotch.test",
+            "tuple = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25)"
+        );
     }
 
     private void shouldHaveDataType(String name, DataTypeDefinition value) {

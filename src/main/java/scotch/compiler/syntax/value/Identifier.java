@@ -1,7 +1,7 @@
 package scotch.compiler.syntax.value;
 
-import static java.lang.Character.isUpperCase;
 import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
 import static scotch.compiler.error.SymbolNotFoundError.symbolNotFound;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.valueRef;
@@ -12,10 +12,8 @@ import static scotch.compiler.syntax.value.Values.method;
 import static scotch.compiler.syntax.value.Values.unboundMethod;
 import static scotch.compiler.util.Pair.pair;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -28,12 +26,12 @@ import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.steps.TypeQualifier;
-import scotch.compiler.symbol.descriptor.DataFieldDescriptor;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.Symbol.QualifiedSymbol;
 import scotch.compiler.symbol.Symbol.SymbolVisitor;
 import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
+import scotch.compiler.symbol.descriptor.DataFieldDescriptor;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
@@ -70,49 +68,39 @@ public class Identifier extends Value {
 
     @Override
     public Optional<Value> asInitializer(Initializer initializer, TypeChecker state) {
-        if (isUpperCase(symbol.getMemberName().charAt(0))) {
+        if (Symbol.isSumName(symbol.getMemberName()) || isTuple()) {
             return state.getDataConstructor(symbol)
                 .flatMap(constructor -> {
-                    Map<String, InitializerField> initializerFieldMap = checkFields(initializer.getFields(), state);
-                    Map<String, DataFieldDescriptor> descriptorFieldMap = checkFields(constructor.getFieldMap(), state);
-                    if (!initializerFieldMap.keySet().containsAll(descriptorFieldMap.keySet())
-                        || !descriptorFieldMap.keySet().containsAll(initializerFieldMap.keySet())) {
+                    List<InitializerField> initializerFields = checkInitializerFields(initializer.getFields(), state);
+                    List<DataFieldDescriptor> descriptorFields = checkConstructorFields(constructor.getFields(), state);
+                    if (!initializerFields.stream().map(InitializerField::getName).collect(toList())
+                            .containsAll(descriptorFields.stream().map(DataFieldDescriptor::getName).collect(toList()))
+                        || !descriptorFields.stream().map(DataFieldDescriptor::getName).collect(toList())
+                            .containsAll(initializerFields.stream().map(InitializerField::getName).collect(toList()))) {
+                        state.error(symbolNotFound(symbol, sourceRange)); // TODO
                         return Optional.empty(); // TODO
                     }
-                    return Optional.of(descriptorFieldMap.keySet().stream().reduce(
-                        (Value) this,
-                        (function, fieldName) -> apply(function, initializerFieldMap.get(fieldName).getValue(), state.reserveType()),
-                        (left, right) -> left
-                    ).checkTypes(state));
+                    List<InitializerField> sortedFields = sort(initializerFields, descriptorFields);
+                    Value value = this;
+                    for (InitializerField field : sortedFields) {
+                        value = apply(value, field.getValue(), state.reserveType());
+                    }
+                    return Optional.of(value.checkTypes(state));
                 });
         } else {
             return super.asInitializer(initializer, state);
         }
     }
 
-    private Map<String, DataFieldDescriptor> checkFields(Map<String, DataFieldDescriptor> fieldMap, TypeChecker state) {
-        Map<String, DataFieldDescriptor> checkedFieldMap = new LinkedHashMap<>();
-        fieldMap.keySet().forEach(name -> {
-            DataFieldDescriptor descriptor = fieldMap.get(name);
-            checkedFieldMap.put(name, descriptor.withType(descriptor.getType().qualifyNames(new TypeQualifier(state)))); // TODO should not have to qualify type names here
-        });
-        return checkedFieldMap;
-    }
-
-    private HashMap<String, InitializerField> checkFields(List<InitializerField> fields, TypeChecker state) {
-        return fields.stream()
-            .map(field -> field.withType(field.getType().qualifyNames(new TypeQualifier(state)))) // TODO should not have to qualify type names here
-            .reduce(
-                new HashMap<>(),
-                (map, field) -> {
-                    map.put(field.getName(), field);
-                    return map;
-                },
-                (left, right) -> {
-                    left.putAll(right);
-                    return left;
-                }
-            );
+    private List<InitializerField> sort(List<InitializerField> initializerFields, List<DataFieldDescriptor> descriptorFields) {
+        List<InitializerField> sortedFields = new ArrayList<>();
+        List<String> initializerNames = initializerFields.stream().map(InitializerField::getName).collect(toList());
+        List<String> descriptorNames = descriptorFields.stream().map(DataFieldDescriptor::getName).collect(toList());
+        for (int i = 0; i < descriptorNames.size(); i++) {
+            int index = initializerNames.indexOf(descriptorNames.get(i));
+            sortedFields.add(i, initializerFields.get(index));
+        }
+        return sortedFields;
     }
 
     @Override
@@ -223,6 +211,34 @@ public class Identifier extends Value {
 
     public Identifier withType(Type type) {
         return new Identifier(sourceRange, symbol, type);
+    }
+
+    private List<DataFieldDescriptor> checkConstructorFields(List<DataFieldDescriptor> fields, TypeChecker state) {
+        List<DataFieldDescriptor> checkedFields = new ArrayList<>();
+        fields.forEach(field -> {
+            checkedFields.add(field.withType(field.getType().qualifyNames(new TypeQualifier(state)))); // TODO should not have to qualify type names here
+        });
+        return checkedFields;
+    }
+
+    private List<InitializerField> checkInitializerFields(List<InitializerField> fields, TypeChecker state) {
+        return fields.stream()
+            .map(field -> field.withType(field.getType().qualifyNames(new TypeQualifier(state)))) // TODO should not have to qualify type names here
+            .reduce(
+                new ArrayList<>(),
+                (list, field) -> {
+                    list.add(field);
+                    return list;
+                },
+                (left, right) -> {
+                    left.addAll(right);
+                    return left;
+                }
+            );
+    }
+
+    private boolean isTuple() {
+        return symbol.getMemberName().startsWith("(") && symbol.getMemberName().endsWith(")");
     }
 
     public static class Builder implements SyntaxBuilder<Identifier> {

@@ -95,9 +95,9 @@ public abstract class ParserTest {
         assertThat(graph.getValue(valueRef(name)).get(), is(type));
     }
 
-    protected void shouldHaveData(String name, List<Type> parameters, List<DataFieldDefinition> fields) {
+    protected void shouldHaveData(int ordinal, String name, List<Type> parameters, List<DataFieldDefinition> fields) {
         assertThat(graph.hasErrors(), is(false));
-        assertThat(graph.getDefinition(dataRef(name)).get(), is(dataDef(name, parameters, asList(ctorDef(name, name, fields)))));
+        assertThat(graph.getDefinition(dataRef(name)).get(), is(dataDef(name, parameters, asList(ctorDef(ordinal, name, name, fields)))));
     }
 
     protected void shouldHaveValue(String name) {

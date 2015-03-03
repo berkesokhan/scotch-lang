@@ -3,16 +3,17 @@ package scotch.compiler.syntax.definition;
 import static me.qmx.jitescript.util.CodegenUtils.ci;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
-import static scotch.compiler.symbol.descriptor.DataFieldDescriptor.field;
 import static scotch.compiler.symbol.Symbol.symbol;
+import static scotch.compiler.symbol.descriptor.DataFieldDescriptor.field;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.Optional;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.symbol.NameQualifier;
-import scotch.compiler.symbol.descriptor.DataFieldDescriptor;
 import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.descriptor.DataFieldDescriptor;
 import scotch.compiler.symbol.type.FunctionType;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
@@ -23,21 +24,22 @@ import scotch.compiler.text.SourceRange;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 
+@AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
-public class DataFieldDefinition {
+public class DataFieldDefinition implements Comparable<DataFieldDefinition> {
 
     public static Builder builder() {
         return new Builder();
     }
 
     private final SourceRange sourceRange;
+    private final int         ordinal;
     private final String      name;
     private final Type        type;
 
-    private DataFieldDefinition(SourceRange sourceRange, String name, Type type) {
-        this.sourceRange = sourceRange;
-        this.name = name;
-        this.type = type;
+    @Override
+    public int compareTo(DataFieldDefinition o) {
+        return ordinal - o.ordinal;
     }
 
     public void generateBytecode(BytecodeGenerator state) {
@@ -45,7 +47,7 @@ public class DataFieldDefinition {
     }
 
     public DataFieldDescriptor getDescriptor() {
-        return field(name, type);
+        return field(ordinal, name, type);
     }
 
     public String getJavaName() {
@@ -90,23 +92,20 @@ public class DataFieldDefinition {
     }
 
     private DataFieldDefinition withType(Type type) {
-        return new DataFieldDefinition(sourceRange, name, type);
+        return new DataFieldDefinition(sourceRange, ordinal, name, type);
     }
 
     public static final class Builder implements SyntaxBuilder<DataFieldDefinition> {
 
-        private Optional<SourceRange> sourceRange;
-        private Optional<String> name;
-        private Optional<Type>   type;
-
-        private Builder() {
-            name = Optional.empty();
-            type = Optional.empty();
-        }
+        private Optional<SourceRange> sourceRange = Optional.empty();
+        private Optional<Integer>     ordinal = Optional.empty();
+        private Optional<String>      name = Optional.empty();
+        private Optional<Type>        type = Optional.empty();
 
         public DataFieldDefinition build() {
             return new DataFieldDefinition(
                 require(sourceRange, "Source range"),
+                require(ordinal, "Ordinal"),
                 require(name, "Field name"),
                 require(type, "Field type")
             );
@@ -114,6 +113,11 @@ public class DataFieldDefinition {
 
         public Builder withName(String name) {
             this.name = Optional.of(name);
+            return this;
+        }
+
+        public Builder withOrdinal(int ordinal) {
+            this.ordinal = Optional.of(ordinal);
             return this;
         }
 

@@ -12,25 +12,26 @@ import static scotch.compiler.text.SourceRange.NULL_SOURCE;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import scotch.compiler.ClassLoaderResolver;
 import scotch.compiler.output.GeneratedClass;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
-import scotch.compiler.ClassLoaderResolver;
+import scotch.compiler.symbol.MethodSignature;
+import scotch.compiler.symbol.Symbol;
+import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
 import scotch.compiler.symbol.descriptor.DataFieldDescriptor;
 import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
-import scotch.compiler.symbol.MethodSignature;
-import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.descriptor.TypeClassDescriptor;
 import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
 import scotch.compiler.symbol.descriptor.TypeParameterDescriptor;
-import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.definition.ClassDefinition;
 import scotch.compiler.syntax.definition.DataConstructorDefinition;
 import scotch.compiler.syntax.definition.DataFieldDefinition;
 import scotch.compiler.syntax.definition.DataTypeDefinition;
+import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.definition.Definitions;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.definition.ModuleImport;
@@ -107,23 +108,24 @@ public class TestUtil {
         return Values.construct(NULL_SOURCE, symbol(name), type, arguments);
     }
 
-    public static DataConstructorDescriptor constructor(String dataType, String name) {
-        return constructor(dataType, name, emptyList());
+    public static DataConstructorDescriptor constructor(int ordinal, String dataType, String name) {
+        return constructor(ordinal, dataType, name, emptyList());
     }
 
-    public static DataConstructorDescriptor constructor(String dataType, String name, List<DataFieldDescriptor> fields) {
-        return DataConstructorDescriptor.builder(symbol(dataType), symbol(name))
+    public static DataConstructorDescriptor constructor(int ordinal, String dataType, String name, List<DataFieldDescriptor> fields) {
+        return DataConstructorDescriptor.builder(ordinal, symbol(dataType), symbol(name))
             .withFields(fields)
             .build();
     }
 
-    public static DataConstructorDefinition ctorDef(String dataType, String name) {
-        return ctorDef(dataType, name, emptyList());
+    public static DataConstructorDefinition ctorDef(int ordinal, String dataType, String name) {
+        return ctorDef(ordinal, dataType, name, emptyList());
     }
 
-    public static DataConstructorDefinition ctorDef(String dataType, String name, List<DataFieldDefinition> fields) {
+    public static DataConstructorDefinition ctorDef(int ordinal, String dataType, String name, List<DataFieldDefinition> fields) {
         return DataConstructorDefinition.builder()
             .withSourceRange(NULL_SOURCE)
+            .withOrdinal(ordinal)
             .withDataType(symbol(dataType))
             .withSymbol(symbol(name))
             .withFields(fields)
@@ -166,9 +168,10 @@ public class TestUtil {
         return InitializerField.field(NULL_SOURCE, name, value);
     }
 
-    public static DataFieldDefinition fieldDef(String name, Type type) {
+    public static DataFieldDefinition fieldDef(int ordinal, String name, Type type) {
         return DataFieldDefinition.builder()
             .withSourceRange(NULL_SOURCE)
+            .withOrdinal(ordinal)
             .withName(name)
             .withType(type)
             .build();
@@ -182,8 +185,12 @@ public class TestUtil {
         return Values.fn(NULL_SOURCE, symbol(name), arguments, body);
     }
 
-    public static List<GeneratedClass> generateBytecode(ClassLoaderResolver resolver, String... lines) {
-        return compiler(resolver, URI.create("test://unnamed"), lines).generateBytecode();
+    public static List<GeneratedClass> generateBytecode(String methodName, ClassLoaderResolver resolver, String... lines) {
+        return compiler(resolver, URI.create("test://" + methodName), lines).generateBytecode();
+    }
+
+    public static DefinitionGraph integratedParse(String methodName, ClassLoaderResolver resolver, String... lines) {
+        return compiler(resolver, URI.create("test://" + methodName), lines).checkTypes();
     }
 
     public static Identifier id(String name, Type type) {

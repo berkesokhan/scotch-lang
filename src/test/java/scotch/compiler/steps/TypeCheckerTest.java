@@ -577,9 +577,9 @@ public class TypeCheckerTest extends ParserTest {
         );
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.QuantifiedThing", fn(intType, fn(t(0), sum("scotch.test.QuantifiedThing", asList(t(0))))));
-        shouldHaveData("scotch.test.QuantifiedThing", asList(var("a")), asList(
-            fieldDef("howMany", intType),
-            fieldDef("thing", var("a"))
+        shouldHaveData(0, "scotch.test.QuantifiedThing", asList(var("a")), asList(
+            fieldDef(0, "howMany", intType),
+            fieldDef(1, "thing", var("a"))
         ));
     }
 

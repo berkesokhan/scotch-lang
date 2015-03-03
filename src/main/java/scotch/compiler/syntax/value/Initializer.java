@@ -22,7 +22,7 @@ import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 
 @EqualsAndHashCode(callSuper = false)
-@ToString
+@ToString(exclude = "sourceRange")
 public class Initializer extends Value {
 
     public static Builder builder() {

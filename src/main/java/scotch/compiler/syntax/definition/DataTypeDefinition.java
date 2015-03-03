@@ -1,5 +1,6 @@
 package scotch.compiler.syntax.definition;
 
+import static java.util.Collections.sort;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.output.GeneratedClass.ClassType.DATA_TYPE;
@@ -40,11 +41,13 @@ public class DataTypeDefinition extends Definition {
     private final Map<Symbol, DataConstructorDefinition> constructors;
 
     private DataTypeDefinition(SourceRange sourceRange, Symbol symbol, List<Type> parameters, List<DataConstructorDefinition> constructors) {
+        List<DataConstructorDefinition> sortedConstructors = new ArrayList<>(constructors);
+        sort(sortedConstructors);
         this.sourceRange = sourceRange;
         this.symbol = symbol;
         this.parameters = ImmutableList.copyOf(parameters);
         this.constructors = new LinkedHashMap<>();
-        constructors.forEach(constructor -> this.constructors.put(constructor.getSymbol(), constructor));
+        sortedConstructors.forEach(constructor -> this.constructors.put(constructor.getSymbol(), constructor));
     }
 
     @Override
