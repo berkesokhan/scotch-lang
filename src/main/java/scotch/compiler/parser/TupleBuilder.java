@@ -1,4 +1,4 @@
-package scotch.compiler.syntax.value;
+package scotch.compiler.parser;
 
 import static scotch.compiler.symbol.Symbol.qualified;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
@@ -8,6 +8,10 @@ import java.util.List;
 import java.util.Optional;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
+import scotch.compiler.syntax.value.Identifier;
+import scotch.compiler.syntax.value.Initializer;
+import scotch.compiler.syntax.value.InitializerField;
+import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
 public final class TupleBuilder implements SyntaxBuilder<Value> {

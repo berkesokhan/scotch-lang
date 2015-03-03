@@ -608,6 +608,36 @@ public class InputParserTest extends ParserTest {
         );
     }
 
+    @Test
+    public void shouldParseListLiteral() {
+        parse(
+            "module scotch.test",
+            "list = [1, 2]"
+        );
+        shouldHaveValue("scotch.test.list", initializer(t(4), id("scotch.data.list.(:)", t(5)), asList(
+            field("_0", unshuffled(literal(1))),
+            field("_1", initializer(t(2), id("scotch.data.list.(:)", t(3)), asList(
+                field("_0", unshuffled(literal(2))),
+                field("_1", constant("scotch.data.list.[]", "scotch.data.list.[]", t(1)))
+            )))
+        )));
+    }
+
+    @Test
+    public void shouldParseListLiteralWithTrailingComma() {
+        parse(
+            "module scotch.test",
+            "list = [1, 2,]"
+        );
+        shouldHaveValue("scotch.test.list", initializer(t(4), id("scotch.data.list.(:)", t(5)), asList(
+            field("_0", unshuffled(literal(1))),
+            field("_1", initializer(t(2), id("scotch.data.list.(:)", t(3)), asList(
+                field("_0", unshuffled(literal(2))),
+                field("_1", constant("scotch.data.list.[]", "scotch.data.list.[]", t(1)))
+            )))
+        )));
+    }
+
     private void shouldHaveDataType(String name, DataTypeDefinition value) {
         assertThat(graph.getDefinition(dataRef(name)).get(), is(value));
     }

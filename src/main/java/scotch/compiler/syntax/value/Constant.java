@@ -1,14 +1,10 @@
 package scotch.compiler.syntax.value;
 
-import static me.qmx.jitescript.util.CodegenUtils.p;
-import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Supplier;
 import me.qmx.jitescript.CodeBlock;
-import me.qmx.jitescript.LambdaBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -20,8 +16,6 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
-import scotch.runtime.Callable;
-import scotch.runtime.SuppliedThunk;
 
 public class Constant extends Value {
 
@@ -88,23 +82,7 @@ public class Constant extends Value {
 
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        return new CodeBlock() {{
-            String className = state.getDataConstructorClass(symbol);
-            newobj(p(SuppliedThunk.class));
-            dup();
-            lambda(state.currentClass(), new LambdaBlock("$$constant$" + symbol.getMemberName()) {{
-                function(p(Supplier.class), "get", sig(Object.class));
-                specialize(sig(Callable.class));
-                capture(new Class<?>[0]);
-                delegateTo(ACC_STATIC | ACC_PRIVATE, sig(Callable.class), new CodeBlock() {{
-                    newobj(className);
-                    dup();
-                    invokespecial(className, "<init>", sig(void.class));
-                    areturn();
-                }});
-            }});
-            invokespecial(p(SuppliedThunk.class), "<init>", sig(void.class, Supplier.class));
-        }};
+        return state.getValueSignature(symbol).reference();
     }
 
     @Override

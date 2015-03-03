@@ -61,6 +61,7 @@ public final class ModuleImport extends Import {
         return stringify(this) + "(" + moduleName + ")";
     }
 
+    @Override
     public ModuleImport withSourceRange(SourceRange sourceRange) {
         return new ModuleImport(sourceRange, moduleName);
     }

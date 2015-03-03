@@ -1,5 +1,6 @@
 package scotch.compiler;
 
+import static java.lang.management.ManagementFactory.getRuntimeMXBean;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.symbol.Symbol.getPackageName;
@@ -72,8 +73,16 @@ public class ClassLoaderResolver extends URLClassLoader implements SymbolResolve
     }
 
     public Class<?> define(GeneratedClass generatedClass) {
+        writeClass(generatedClass);
+        return define_(generatedClass);
+    }
+
+    private void writeClass(GeneratedClass generatedClass) {
+        optionalOutputPath.ifPresent(outputPath -> writeClass(generatedClass, generatedClass.getBytes(), outputPath));
+    }
+
+    private Class<?> define_(GeneratedClass generatedClass) {
         byte[] bytes = generatedClass.getBytes();
-        optionalOutputPath.ifPresent(outputPath -> writeClass(generatedClass, bytes, outputPath));
         Class<?> clazz = defineClass(generatedClass.getClassName(), bytes, 0, bytes.length);
         definedClasses
             .computeIfAbsent(clazz.getName().replace(Pattern.quote("." + clazz.getSimpleName()) + "$", ""), k -> new HashSet<>())
@@ -82,8 +91,9 @@ public class ClassLoaderResolver extends URLClassLoader implements SymbolResolve
     }
 
     public List<Class<?>> defineAll(List<GeneratedClass> generatedClasses) {
+        generatedClasses.forEach(this::writeClass);
         return generatedClasses.stream()
-            .map(this::define)
+            .map(this::define_)
             .collect(toList());
     }
 
@@ -176,7 +186,7 @@ public class ClassLoaderResolver extends URLClassLoader implements SymbolResolve
     }
 
     private void search(List<Type> parameters) {
-        parameters.forEach(parameter -> parameter.getContext().forEach(this::search));
+        parameters.forEach(parameter -> parameter.accept(this::search));
     }
 
     private void search(Symbol symbol) {
@@ -242,8 +252,15 @@ public class ClassLoaderResolver extends URLClassLoader implements SymbolResolve
         try (OutputStream classFile = new FileOutputStream(file)) {
             classFile.write(bytes);
             classFile.flush();
+            if (isDebug()) {
+                System.out.println("Class file written to: " + file.getAbsolutePath());
+            }
         } catch (IOException exception) {
             throw new RuntimeException(exception);
         }
+    }
+
+    private boolean isDebug() {
+        return getRuntimeMXBean().getInputArguments().toString().contains("jdwp");
     }
 }

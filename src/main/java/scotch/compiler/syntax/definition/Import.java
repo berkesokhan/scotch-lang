@@ -46,4 +46,6 @@ public abstract class Import {
 
     @Override
     public abstract String toString();
+
+    public abstract Import withSourceRange(SourceRange sourceRange);
 }

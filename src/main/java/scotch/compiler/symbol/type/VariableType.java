@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
@@ -41,6 +42,11 @@ public class VariableType extends Type {
         this.sourceRange = sourceRange;
         this.name = name;
         this.context = ImmutableSet.copyOf(context);
+    }
+
+    @Override
+    public void accept(Consumer<Symbol> consumer) {
+        context.forEach(consumer::accept);
     }
 
     @Override

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import lombok.EqualsAndHashCode;
@@ -28,6 +29,10 @@ public abstract class Type {
 
     Type() {
         // intentionally empty
+    }
+
+    public void accept(Consumer<Symbol> consumer) {
+        // no-op
     }
 
     public HeadApplication apply(Type head, TypeScope scope) {
@@ -72,10 +77,6 @@ public abstract class Type {
 
     public HeadZip applyZipWith(SumType type, TypeScope scope) {
         throw new UnsupportedOperationException(); // TODO
-    }
-
-    private TailZip applyZip(TailZip zip, TypeScope scope) {
-        return zip.next((Type parameter) -> zip_(parameter, scope));
     }
 
     @Override
@@ -142,6 +143,10 @@ public abstract class Type {
                     .forEach(pair -> pair.into(map::put));
                 return map;
             });
+    }
+
+    private TailZip applyZip(TailZip zip, TypeScope scope) {
+        return zip.next((Type parameter) -> zip_(parameter, scope));
     }
 
     protected abstract boolean contains(VariableType type);

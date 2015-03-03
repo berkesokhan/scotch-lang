@@ -286,6 +286,44 @@ public class BytecodeGeneratorTest {
         assertThat(tuple, is(tuple3(1, 2, tuple2(3, 4))));
     }
 
+    @Test
+    public void listsShouldEqual() {
+        boolean result = exec(
+            "module scotch.test",
+            "import scotch.data.eq",
+            "import scotch.data.int",
+            "import scotch.data.list",
+            "",
+            "run = [1, 2, 3] == [1, 2, 3]"
+        );
+        assertThat(result, is(true));
+    }
+
+    @Test
+    public void emptyListsShouldEqual() {
+        boolean result = exec(
+            "module scotch.test",
+            "import scotch.data.eq",
+            "import scotch.data.list",
+            "",
+            "run = [] == []"
+        );
+        assertThat(result, is(true));
+    }
+
+    @Test
+    public void listShouldEqualConsList() {
+        boolean result = exec(
+            "module scotch.test",
+            "import scotch.data.eq",
+            "import scotch.data.int",
+            "import scotch.data.list",
+            "",
+            "run = [1, 2, 3] == 1:2:3:[]"
+        );
+        assertThat(result, is(true));
+    }
+
     @Ignore
     @Test
     public void shouldCompileShow() {

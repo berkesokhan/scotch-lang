@@ -67,6 +67,7 @@ public final class InclusionImport extends Import {
         return stringify(this) + "(" + moduleName + ", " + includes + ")";
     }
 
+    @Override
     public InclusionImport withSourceRange(SourceRange sourceRange) {
         return new InclusionImport(sourceRange, moduleName, includes);
     }

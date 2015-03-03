@@ -32,9 +32,11 @@ import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_THEN;
 import static scotch.compiler.scanner.Token.TokenKind.KEYWORD_WHERE;
 import static scotch.compiler.scanner.Token.TokenKind.LEFT_CURLY_BRACE;
 import static scotch.compiler.scanner.Token.TokenKind.LEFT_PARENTHESIS;
+import static scotch.compiler.scanner.Token.TokenKind.LEFT_SQUARE_BRACE;
 import static scotch.compiler.scanner.Token.TokenKind.PIPE;
 import static scotch.compiler.scanner.Token.TokenKind.RIGHT_CURLY_BRACE;
 import static scotch.compiler.scanner.Token.TokenKind.RIGHT_PARENTHESIS;
+import static scotch.compiler.scanner.Token.TokenKind.RIGHT_SQUARE_BRACE;
 import static scotch.compiler.scanner.Token.TokenKind.SEMICOLON;
 import static scotch.compiler.scanner.Token.TokenKind.STRING_LITERAL;
 import static scotch.compiler.symbol.Symbol.qualified;
@@ -111,7 +113,6 @@ import scotch.compiler.syntax.value.InitializerField;
 import scotch.compiler.syntax.value.Let;
 import scotch.compiler.syntax.value.Literal;
 import scotch.compiler.syntax.value.PatternMatch;
-import scotch.compiler.syntax.value.TupleBuilder;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.NamedSourcePoint;
@@ -654,6 +655,24 @@ public class InputParser {
         ));
     }
 
+    private Value parseList() {
+        return node(ListBuilder.builder(symbolGenerator), builder -> {
+            require(LEFT_SQUARE_BRACE);
+            if (!expects(RIGHT_SQUARE_BRACE)) {
+                builder.addValue(parseExpression());
+                while (expects(COMMA)) {
+                    nextToken();
+                    if (expects(RIGHT_SQUARE_BRACE)) {
+                        break;
+                    } else {
+                        builder.addValue(parseExpression());
+                    }
+                }
+            }
+            require(RIGHT_SQUARE_BRACE);
+        });
+    }
+
     private Value parseLiteral() {
         return node(Literal.builder(), builder -> {
             if (expects(STRING_LITERAL)) {
@@ -796,6 +815,8 @@ public class InputParser {
             value = parseLiteral();
         } else if (expects(LEFT_PARENTHESIS)) {
             value = parseTupleOrParenthetical();
+        } else if (expects(LEFT_SQUARE_BRACE)) {
+            value = parseList();
         } else if (expects(BACKSLASH)) {
             value = parseFunction();
         } else if (expects(KEYWORD_LET)) {
@@ -808,24 +829,6 @@ public class InputParser {
             throw unexpected(ImmutableList.<TokenKind>builder().add(IDENTIFIER, LEFT_PARENTHESIS).addAll(literals).build());
         }
         return ofNullable(value).map(this::parseInitializer_);
-    }
-
-    private Value parseTupleOrParenthetical() {
-        return node(TupleBuilder.builder(), builder -> {
-            require(LEFT_PARENTHESIS);
-            builder.withMember(parseExpression());
-            while (expects(COMMA)) {
-                nextToken();
-                builder.withMember(parseExpression());
-            }
-            require(RIGHT_PARENTHESIS);
-            if (builder.hasTooManyMembers()) {
-                throw parseException("Tuple can't have more than " + builder.maxMembers() + " members", scanner.peekAt(0).getSourceRange());
-            } else if (builder.isTuple()) {
-                builder.withType(reserveType());
-                builder.withTupleType(reserveType());
-            }
-        });
     }
 
     private String parseQualifiedName() {
@@ -895,6 +898,24 @@ public class InputParser {
             symbols.add(pair(parseSymbol(), getSourceRange()));
         }
         return symbols;
+    }
+
+    private Value parseTupleOrParenthetical() {
+        return node(TupleBuilder.builder(), builder -> {
+            require(LEFT_PARENTHESIS);
+            builder.withMember(parseExpression());
+            while (expects(COMMA)) {
+                nextToken();
+                builder.withMember(parseExpression());
+            }
+            require(RIGHT_PARENTHESIS);
+            if (builder.hasTooManyMembers()) {
+                throw parseException("Tuple can't have more than " + builder.maxMembers() + " members", scanner.peekAt(0).getSourceRange());
+            } else if (builder.isTuple()) {
+                builder.withType(reserveType());
+                builder.withTupleType(reserveType());
+            }
+        });
     }
 
     private Type parseType(Map<String, Type> constraints) {

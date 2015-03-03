@@ -87,7 +87,12 @@ public class SourceRange {
     }
 
     public String getPath() {
-        return source.getPath();
+        String path = source.getPath();
+        if (path.isEmpty()) {
+            return source.toString();
+        } else {
+            return path;
+        }
     }
 
     public URI getSource() {

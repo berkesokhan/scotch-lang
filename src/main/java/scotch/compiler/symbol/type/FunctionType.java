@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedSet;
@@ -35,6 +36,12 @@ public class FunctionType extends Type {
         this.sourceRange = sourceRange;
         this.argument = argument;
         this.result = result;
+    }
+
+    @Override
+    public void accept(Consumer<Symbol> consumer) {
+        argument.accept(consumer);
+        result.accept(consumer);
     }
 
     @Override

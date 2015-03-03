@@ -68,7 +68,7 @@ public class Identifier extends Value {
 
     @Override
     public Optional<Value> asInitializer(Initializer initializer, TypeChecker state) {
-        if (Symbol.isSumName(symbol.getMemberName()) || isTuple()) {
+        if (symbol.isConstructorName()) {
             return state.getDataConstructor(symbol)
                 .flatMap(constructor -> {
                     List<InitializerField> initializerFields = checkInitializerFields(initializer.getFields(), state);
@@ -235,10 +235,6 @@ public class Identifier extends Value {
                     return left;
                 }
             );
-    }
-
-    private boolean isTuple() {
-        return symbol.getMemberName().startsWith("(") && symbol.getMemberName().endsWith(")");
     }
 
     public static class Builder implements SyntaxBuilder<Identifier> {

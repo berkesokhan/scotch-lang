@@ -2,6 +2,7 @@ package scotch.compiler;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.compiler.symbol.MethodSignature.methodSignature;
@@ -10,6 +11,7 @@ import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
 import static scotch.compiler.symbol.descriptor.DataFieldDescriptor.field;
 import static scotch.compiler.symbol.type.Types.fn;
+import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.symbol.type.Types.var;
 import static scotch.compiler.util.TestUtil.constructor;
 import static scotch.compiler.util.TestUtil.dataType;
@@ -18,10 +20,12 @@ import static scotch.compiler.util.TestUtil.typeClass;
 import static scotch.compiler.util.TestUtil.typeInstance;
 
 import java.util.Optional;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import scotch.compiler.symbol.MethodSignature;
 import scotch.compiler.symbol.SymbolEntry;
+import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
 import scotch.compiler.symbol.type.Type;
 import scotch.data.num.NumInt;
 
@@ -96,5 +100,14 @@ public class ClassLoaderResolverTest {
                 )
             )
         ))));
+    }
+
+    @Test
+    public void shouldResolveEqForListOfInt() {
+        Set<TypeInstanceDescriptor> typeInstances = resolver.getTypeInstances(
+            symbol("scotch.data.eq.Eq"),
+            asList(sum("scotch.data.list.[]", asList(intType())))
+        );
+        assertThat(typeInstances, hasSize(1));
     }
 }

@@ -78,14 +78,6 @@ public abstract class Symbol implements Comparable<Symbol> {
         .put('#', "$")
         .build();
 
-    public static Symbol symbol(String name) {
-        return splitQualified(name).into(
-            (optionalModuleName, memberName) -> optionalModuleName
-                .map(moduleName -> qualified(moduleName, memberName))
-                .orElseGet(() -> unqualified(memberName))
-        );
-    }
-
     public static String getPackageName(String moduleName) {
         return getPackageFor(moduleName, ".");
     }
@@ -135,6 +127,14 @@ public abstract class Symbol implements Comparable<Symbol> {
         } else {
             return pair(Optional.empty(), name);
         }
+    }
+
+    public static Symbol symbol(String name) {
+        return splitQualified(name).into(
+            (optionalModuleName, memberName) -> optionalModuleName
+                .map(moduleName -> qualified(moduleName, memberName))
+                .orElseGet(() -> unqualified(memberName))
+        );
     }
 
     public static String toJavaName(String memberName) {
@@ -241,12 +241,16 @@ public abstract class Symbol implements Comparable<Symbol> {
     @Override
     public abstract int hashCode();
 
-    public static boolean isSumName(String name) {
-        return splitQualified(name).into(
-            (moduleName, memberName) -> "[]".equals(memberName)
-                || isUpperCase(memberName.charAt(0))
-                || tuplePattern.matcher(memberName).matches()
-        );
+    public boolean isConstructorName() {
+        return isSumName() || ":".equals(getMemberName());
+    }
+
+    public boolean isList() {
+        return "[]".equals(getMemberName());
+    }
+
+    public boolean isSumName() {
+        return isUpperCase(getMemberName().charAt(0)) || isList() || isTuple();
     }
 
     public boolean isTuple() {

@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -26,6 +27,12 @@ import scotch.runtime.Callable;
 
 @EqualsAndHashCode(callSuper = false)
 public class SumType extends Type {
+
+    private static void shouldBeSumName(Symbol symbol) {
+        if (!symbol.isSumName()) {
+            throw new IllegalArgumentException("Sum type should have upper-case name, be tuple, or list: got '" + symbol.getMemberName() + "'");
+        }
+    }
 
     private static List<Pair<Type, Type>> zip(List<Type> left, List<Type> right) {
         List<Pair<Type, Type>> result = new ArrayList<>();
@@ -42,10 +49,16 @@ public class SumType extends Type {
     private final List<Type>  parameters;
 
     SumType(SourceRange sourceRange, Symbol symbol, List<Type> parameters) {
-        shouldBeSumName(symbol.getSimpleName());
+        shouldBeSumName(symbol);
         this.sourceRange = sourceRange;
         this.symbol = symbol;
         this.parameters = ImmutableList.copyOf(parameters);
+    }
+
+    @Override
+    public void accept(Consumer<Symbol> consumer) {
+        consumer.accept(symbol);
+        parameters.forEach(parameter -> parameter.accept(consumer));
     }
 
     @Override
@@ -62,11 +75,6 @@ public class SumType extends Type {
         return new SumType(sourceRange, symbol, parameters.stream()
             .map(Type::flatten)
             .collect(toList()));
-    }
-
-    @Override
-    public Set<Symbol> getContext() {
-        return ImmutableSet.of(symbol);
     }
 
     @Override
@@ -119,12 +127,6 @@ public class SumType extends Type {
 
     public SumType withSymbol(Symbol symbol) {
         return new SumType(sourceRange, symbol, parameters);
-    }
-
-    private static void shouldBeSumName(String name) {
-        if (!Symbol.isSumName(name)) {
-            throw new IllegalArgumentException("Sum type should have upper-case name, be tuple, or list: got '" + name + "'");
-        }
     }
 
     @Override
@@ -180,6 +182,8 @@ public class SumType extends Type {
     protected String toString_() {
         if (symbol.isTuple()) {
             return "(" + parameters.stream().map(Type::toString).collect(joining(", ")) + ")";
+        } else if (symbol.isList()) {
+            return "[" + parameters.stream().map(Type::toString).collect(joining(", ")) + "]";
         } else if (parameters.isEmpty()) {
             return symbol.getSimpleName();
         } else {
