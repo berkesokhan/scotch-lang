@@ -25,7 +25,7 @@ import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ValueReference;
-import scotch.compiler.syntax.value.PatternMatcher;
+import scotch.compiler.syntax.pattern.PatternMatcher;
 
 public class RootScope extends Scope {
 

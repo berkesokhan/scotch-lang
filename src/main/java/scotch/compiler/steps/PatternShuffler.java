@@ -14,8 +14,8 @@ import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.definition.UnshuffledDefinition;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.syntax.value.CaptureMatch;
-import scotch.compiler.syntax.value.PatternMatch;
+import scotch.compiler.syntax.pattern.CaptureMatch;
+import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.util.Either;
 
 public class PatternShuffler {

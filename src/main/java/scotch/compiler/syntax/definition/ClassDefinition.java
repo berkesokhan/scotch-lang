@@ -1,5 +1,7 @@
 package scotch.compiler.syntax.definition;
 
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.definition.Definitions.classDef;
 import static scotch.compiler.syntax.reference.DefinitionReference.classRef;
 import static scotch.util.StringUtil.stringify;
 
@@ -16,6 +18,7 @@ import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
 
@@ -109,5 +112,51 @@ public class ClassDefinition extends Definition {
     @Override
     public String toString() {
         return stringify(this) + "(" + symbol + ")";
+    }
+
+    public static class ClassDefinitionBuilder implements SyntaxBuilder<ClassDefinition> {
+
+        private Optional<Symbol>                    symbol;
+        private Optional<List<Type>>                arguments;
+        private Optional<List<DefinitionReference>> members;
+        private Optional<SourceRange>               sourceRange;
+
+        public ClassDefinitionBuilder() {
+            symbol = Optional.empty();
+            arguments = Optional.empty();
+            members = Optional.empty();
+            sourceRange = Optional.empty();
+        }
+
+        @Override
+        public ClassDefinition build() {
+            return classDef(
+                require(sourceRange, "Source range"),
+                require(symbol, "Class symbol"),
+                require(arguments, "Class arguments"),
+                require(members, "Class member definitions")
+            );
+        }
+
+        public ClassDefinitionBuilder withArguments(List<Type> arguments) {
+            this.arguments = Optional.of(arguments);
+            return this;
+        }
+
+        public ClassDefinitionBuilder withMembers(List<DefinitionReference> members) {
+            this.members = Optional.of(members);
+            return this;
+        }
+
+        @Override
+        public ClassDefinitionBuilder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public ClassDefinitionBuilder withSymbol(Symbol symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
+        }
     }
 }

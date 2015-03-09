@@ -30,12 +30,12 @@ import scotch.runtime.Callable;
 @DataType(memberName = "[]", parameters = {
     @TypeParameter(name = "a")
 })
-public abstract class ListSum<A> {
+public abstract class ConsList<A> {
 
     private static final Callable<EmptyCell> EMPTY = callable(EmptyCell::new);
 
     @Value(memberName = ":", fixity = RIGHT_INFIX, precedence = 5)
-    public static <A> Applicable<A, Applicable<ListSum<A>, ListSum<A>>> cons() {
+    public static <A> Applicable<A, Applicable<ConsList<A>, ConsList<A>>> cons() {
         return applicable(head -> applicable(tail -> callable(() -> new ConsCell<>(head, tail))));
     }
 
@@ -46,7 +46,7 @@ public abstract class ListSum<A> {
 
     @SuppressWarnings("unchecked")
     @Value(memberName = "[]")
-    public static <A> Callable<ListSum<A>> empty() {
+    public static <A> Callable<ConsList<A>> empty() {
         return (Callable) EMPTY;
     }
 
@@ -60,7 +60,7 @@ public abstract class ListSum<A> {
         return asList(var("a"));
     }
 
-    private ListSum() {
+    private ConsList() {
         // intentionally empty
     }
 
@@ -80,7 +80,7 @@ public abstract class ListSum<A> {
     @DataConstructor(ordinal = 1, memberName = ":", dataType = "[]", parameters = {
         @TypeParameter(name = "a")
     })
-    public static class ConsCell<A> extends ListSum<A> {
+    public static class ConsCell<A> extends ConsList<A> {
 
         @DataFieldType(forMember = "_0")
         public static Type head$type() {
@@ -93,7 +93,7 @@ public abstract class ListSum<A> {
         }
 
         private final Callable<A> head;
-        private final Callable<ListSum<A>> tail;
+        private final Callable<ConsList<A>> tail;
 
         @Override
         public boolean equals(Object o) {
@@ -114,7 +114,7 @@ public abstract class ListSum<A> {
         }
 
         @DataField(ordinal = 1, memberName = "_1")
-        public Callable<ListSum<A>> getTail() {
+        public Callable<ConsList<A>> getTail() {
             return tail;
         }
 
@@ -134,7 +134,7 @@ public abstract class ListSum<A> {
 
     @EqualsAndHashCode(callSuper = false)
     @DataConstructor(ordinal = 0, memberName = "[]", dataType = "[]")
-    public static class EmptyCell<A> extends ListSum<A> {
+    public static class EmptyCell<A> extends ConsList<A> {
 
         @Override
         protected List<A> toString_() {

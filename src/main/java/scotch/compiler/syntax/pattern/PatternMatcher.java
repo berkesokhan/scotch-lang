@@ -1,4 +1,4 @@
-package scotch.compiler.syntax.value;
+package scotch.compiler.syntax.pattern;
 
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.definition.Definitions.scopeDef;
@@ -21,6 +21,7 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.reference.DefinitionReference;
+import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
 public class PatternMatcher implements Scoped {

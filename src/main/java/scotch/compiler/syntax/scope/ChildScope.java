@@ -32,7 +32,7 @@ import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ValueReference;
-import scotch.compiler.syntax.value.PatternMatcher;
+import scotch.compiler.syntax.pattern.PatternMatcher;
 
 public class ChildScope extends Scope {
 

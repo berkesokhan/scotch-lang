@@ -2,14 +2,14 @@ package scotch.compiler.syntax.definition;
 
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.syntax.pattern.PatternMatcher.pattern;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
-import static scotch.compiler.syntax.value.PatternMatcher.pattern;
-import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -19,12 +19,14 @@ import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
+import scotch.compiler.syntax.pattern.PatternMatch;
+import scotch.compiler.syntax.pattern.PatternMatcher;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.syntax.value.PatternMatch;
-import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
+@EqualsAndHashCode(callSuper = false)
+@ToString(exclude = "sourceRange")
 public class UnshuffledDefinition extends Definition {
 
     public static Builder builder() {
@@ -71,20 +73,6 @@ public class UnshuffledDefinition extends Definition {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof UnshuffledDefinition) {
-            UnshuffledDefinition other = (UnshuffledDefinition) o;
-            return Objects.equals(symbol, other.symbol)
-                && Objects.equals(matches, other.matches)
-                && Objects.equals(body, other.body);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public void generateBytecode(BytecodeGenerator state) {
         throw new IllegalStateException("Can't generate bytecode from unshuffled definition");
     }
@@ -111,11 +99,6 @@ public class UnshuffledDefinition extends Definition {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(symbol, body, matches);
-    }
-
-    @Override
     public Optional<Definition> parsePrecedence(PrecedenceParser state) {
         return state.scopedOptional(this, () -> state.shuffle(this));
     }
@@ -124,11 +107,6 @@ public class UnshuffledDefinition extends Definition {
     public Definition qualifyNames(ScopedNameQualifier state) {
         return state.scoped(this, () -> withMatches(matches.stream().map(match -> match.qualifyNames(state)).collect(toList()))
             .withBody(body.qualifyNames(state)));
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this) + "(" + symbol + ")";
     }
 
     public UnshuffledDefinition withBody(Value body) {

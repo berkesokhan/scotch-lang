@@ -1,4 +1,4 @@
-package scotch.compiler.syntax.value;
+package scotch.compiler.syntax.pattern;
 
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
@@ -19,10 +19,15 @@ import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
+import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
 
 public class EqualMatch extends PatternMatch {
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     private final SourceRange      sourceRange;
     private final Optional<String> argument;
@@ -42,11 +47,6 @@ public class EqualMatch extends PatternMatch {
     @Override
     public PatternMatch accumulateNames(NameAccumulator state) {
         return this;
-    }
-
-    @Override
-    public PatternMatch checkTypes(TypeChecker state) {
-        return withValue(value.checkTypes(state));
     }
 
     @Override
@@ -73,6 +73,11 @@ public class EqualMatch extends PatternMatch {
     @Override
     public PatternMatch bindTypes(TypeChecker state) {
         return withValue(value.bindTypes(state));
+    }
+
+    @Override
+    public PatternMatch checkTypes(TypeChecker state) {
+        return withValue(value.checkTypes(state));
     }
 
     @Override
@@ -127,12 +132,12 @@ public class EqualMatch extends PatternMatch {
         return stringify(this) + "(" + value + ")";
     }
 
-    @Override
-    public EqualMatch withType(Type generate) {
+    public EqualMatch withSourceRange(SourceRange sourceRange) {
         return new EqualMatch(sourceRange, argument, value);
     }
 
-    public EqualMatch withSourceRange(SourceRange sourceRange) {
+    @Override
+    public EqualMatch withType(Type generate) {
         return new EqualMatch(sourceRange, argument, value);
     }
 
@@ -140,18 +145,18 @@ public class EqualMatch extends PatternMatch {
         return new EqualMatch(sourceRange, argument, value);
     }
 
-    public static class EqualMatchBuilder implements SyntaxBuilder<EqualMatch> {
+    public static class Builder implements SyntaxBuilder<EqualMatch> {
 
         private Optional<Value>       value;
         private Optional<SourceRange> sourceRange;
 
-        public EqualMatchBuilder() {
+        private Builder() {
             // intentionally empty
         }
 
         @Override
         public EqualMatch build() {
-            return equal(
+            return Patterns.equal(
                 require(sourceRange, "Source range"),
                 Optional.empty(),
                 require(value, "Capture value")
@@ -159,12 +164,12 @@ public class EqualMatch extends PatternMatch {
         }
 
         @Override
-        public EqualMatchBuilder withSourceRange(SourceRange sourceRange) {
+        public Builder withSourceRange(SourceRange sourceRange) {
             this.sourceRange = Optional.of(sourceRange);
             return this;
         }
 
-        public EqualMatchBuilder withValue(Value value) {
+        public Builder withValue(Value value) {
             this.value = Optional.of(value);
             return this;
         }

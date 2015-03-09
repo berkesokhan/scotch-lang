@@ -32,7 +32,7 @@ import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.FunctionValue;
-import scotch.compiler.syntax.value.PatternMatcher;
+import scotch.compiler.syntax.pattern.PatternMatcher;
 import scotch.compiler.syntax.value.PatternMatchers;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;

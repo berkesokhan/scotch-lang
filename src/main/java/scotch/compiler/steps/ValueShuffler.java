@@ -130,7 +130,7 @@ public class ValueShuffler {
                     }
                 }));
             }
-            if (stack.size() > 1) {
+            while (stack.size() > 1) {
                 stack.push(apply(stack.pollLast(), stack.pollLast(), reserveType()));
             }
             return stack.pop();

@@ -39,6 +39,11 @@ import scotch.compiler.syntax.definition.OperatorDefinition;
 import scotch.compiler.syntax.definition.RootDefinition;
 import scotch.compiler.syntax.definition.UnshuffledDefinition;
 import scotch.compiler.syntax.definition.ValueDefinition;
+import scotch.compiler.syntax.pattern.CaptureMatch;
+import scotch.compiler.syntax.pattern.EqualMatch;
+import scotch.compiler.syntax.pattern.PatternMatch;
+import scotch.compiler.syntax.pattern.PatternMatcher;
+import scotch.compiler.syntax.pattern.Patterns;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.DataReference;
 import scotch.compiler.syntax.reference.DefinitionReference;
@@ -49,12 +54,10 @@ import scotch.compiler.syntax.reference.SignatureReference;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.BoolLiteral;
-import scotch.compiler.syntax.value.CaptureMatch;
 import scotch.compiler.syntax.value.CharLiteral;
 import scotch.compiler.syntax.value.Conditional;
 import scotch.compiler.syntax.value.DataConstructor;
 import scotch.compiler.syntax.value.DoubleLiteral;
-import scotch.compiler.syntax.value.EqualMatch;
 import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.Initializer;
@@ -62,8 +65,6 @@ import scotch.compiler.syntax.value.InitializerField;
 import scotch.compiler.syntax.value.Instance;
 import scotch.compiler.syntax.value.IntLiteral;
 import scotch.compiler.syntax.value.Let;
-import scotch.compiler.syntax.value.PatternMatch;
-import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.PatternMatchers;
 import scotch.compiler.syntax.value.StringLiteral;
 import scotch.compiler.syntax.value.UnshuffledValue;
@@ -81,11 +82,11 @@ public class TestUtil {
     }
 
     public static CaptureMatch capture(String name, Type type) {
-        return PatternMatch.capture(NULL_SOURCE, Optional.empty(), symbol(name), type);
+        return Patterns.capture(NULL_SOURCE, Optional.empty(), symbol(name), type);
     }
 
     public static CaptureMatch capture(String argument, String name, Type type) {
-        return PatternMatch.capture(NULL_SOURCE, Optional.of(argument), symbol(name), type);
+        return Patterns.capture(NULL_SOURCE, Optional.of(argument), symbol(name), type);
     }
 
     public static ClassDefinition classDef(String name, List<Type> arguments, List<DefinitionReference> members) {
@@ -157,11 +158,11 @@ public class TestUtil {
     }
 
     public static EqualMatch equal(Value value) {
-        return PatternMatch.equal(NULL_SOURCE, Optional.empty(), value);
+        return Patterns.equal(NULL_SOURCE, Optional.empty(), value);
     }
 
     public static EqualMatch equal(String argument, Value value) {
-        return PatternMatch.equal(NULL_SOURCE, Optional.of(argument), value);
+        return Patterns.equal(NULL_SOURCE, Optional.of(argument), value);
     }
 
     public static InitializerField field(String name, Value value) {

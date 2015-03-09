@@ -3,7 +3,7 @@ package scotch.compiler.steps;
 import java.util.List;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.symbol.Symbol;
-import scotch.compiler.syntax.value.PatternMatch;
+import scotch.compiler.syntax.pattern.PatternMatch;
 
 public class ShuffledPattern {
 

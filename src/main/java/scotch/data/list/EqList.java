@@ -15,7 +15,7 @@ import scotch.runtime.Callable;
 
 @SuppressWarnings("unused")
 @TypeInstance(typeClass = "scotch.data.eq.Eq")
-public class EqList implements Eq<ListSum> {
+public class EqList implements Eq<ConsList> {
 
     private static final Callable<EqList> INSTANCE = callable(EqList::new);
 
@@ -34,7 +34,7 @@ public class EqList implements Eq<ListSum> {
     }
 
     @Override
-    public Callable<Boolean> eq(Callable<ListSum> left, Callable<ListSum> right) {
+    public Callable<Boolean> eq(Callable<ConsList> left, Callable<ConsList> right) {
         return callable(() -> left.call().equals(right.call()));
     }
 }

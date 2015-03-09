@@ -6,7 +6,7 @@ import scotch.compiler.symbol.Value.Fixity;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.syntax.value.PatternMatch;
+import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 

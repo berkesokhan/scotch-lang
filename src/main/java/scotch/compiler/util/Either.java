@@ -26,8 +26,6 @@ public abstract class Either<A, B> {
 
     public abstract B getRight();
 
-    public abstract B getRightOr(Function<A, B> function);
-
     @Override
     public abstract int hashCode();
 
@@ -67,11 +65,6 @@ public abstract class Either<A, B> {
         @Override
         public B getRight() {
             throw new IllegalStateException();
-        }
-
-        @Override
-        public B getRightOr(Function<A, B> function) {
-            return function.apply(value);
         }
 
         @Override
@@ -126,11 +119,6 @@ public abstract class Either<A, B> {
 
         @Override
         public B getRight() {
-            return value;
-        }
-
-        @Override
-        public B getRightOr(Function<A, B> supplier) {
             return value;
         }
 

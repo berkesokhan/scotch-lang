@@ -1,13 +1,18 @@
-package scotch.compiler.syntax.value;
+package scotch.compiler.syntax.pattern;
 
+import static scotch.compiler.error.ParseError.parseError;
 import static scotch.compiler.util.Either.left;
 
+import java.util.List;
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.error.SyntaxError;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
+import scotch.compiler.steps.PatternShuffler;
 import scotch.compiler.steps.ScopedNameQualifier;
+import scotch.compiler.steps.ShuffledPattern;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Operator;
 import scotch.compiler.symbol.Symbol;
@@ -18,14 +23,6 @@ import scotch.compiler.util.Either;
 import scotch.compiler.util.Pair;
 
 public abstract class PatternMatch {
-
-    public static CaptureMatch capture(SourceRange sourceRange, Optional<String> argument, Symbol symbol, Type type) {
-        return new CaptureMatch(sourceRange, argument, symbol, type);
-    }
-
-    public static EqualMatch equal(SourceRange sourceRange, Optional<String> argument, Value value) {
-        return new EqualMatch(sourceRange, argument, value);
-    }
 
     PatternMatch() {
         // intentionally empty
@@ -40,6 +37,14 @@ public abstract class PatternMatch {
     }
 
     public Optional<Pair<CaptureMatch, Operator>> asOperator(Scope scope) {
+        return Optional.empty();
+    }
+
+    public Either<SyntaxError, ShuffledPattern> asShuffledPattern(Scope scope, List<PatternMatch> matches) {
+        return left(parseError("Illegal start of pattern", getSourceRange()));
+    }
+
+    public Optional<Symbol> asSymbol() {
         return Optional.empty();
     }
 
@@ -72,6 +77,10 @@ public abstract class PatternMatch {
     }
 
     public abstract PatternMatch qualifyNames(ScopedNameQualifier state);
+
+    public PatternMatch shuffle(PatternShuffler shuffler, Scope scope) {
+        return this;
+    }
 
     @Override
     public abstract String toString();

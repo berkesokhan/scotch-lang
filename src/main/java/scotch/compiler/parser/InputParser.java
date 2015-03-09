@@ -5,7 +5,6 @@ import static java.lang.String.join;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.Collections.emptyMap;
-import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static scotch.compiler.scanner.Token.TokenKind.ARROW;
@@ -51,6 +50,7 @@ import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.symbol.type.Types.var;
 import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
 import static scotch.compiler.syntax.definition.DefinitionGraph.createGraph;
+import static scotch.compiler.text.TextUtil.repeat;
 import static scotch.compiler.util.Pair.pair;
 import static scotch.util.StringUtil.quote;
 
@@ -80,8 +80,8 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.syntax.builder.BuilderUtil;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
+import scotch.compiler.syntax.definition.ClassDefinition.ClassDefinitionBuilder;
 import scotch.compiler.syntax.definition.DataConstructorDefinition;
-import scotch.compiler.syntax.definition.DataConstructorDefinition.Builder;
 import scotch.compiler.syntax.definition.DataFieldDefinition;
 import scotch.compiler.syntax.definition.DataTypeDefinition;
 import scotch.compiler.syntax.definition.Definition;
@@ -96,23 +96,23 @@ import scotch.compiler.syntax.definition.ScopeDefinition;
 import scotch.compiler.syntax.definition.UnshuffledDefinition;
 import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.definition.ValueSignature;
+import scotch.compiler.syntax.pattern.CaptureMatch;
+import scotch.compiler.syntax.pattern.EqualMatch;
+import scotch.compiler.syntax.pattern.IgnorePattern;
+import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
-import scotch.compiler.syntax.value.CaptureMatch.CaptureMatchBuilder;
-import scotch.compiler.syntax.value.CaptureMatch.ClassDefinitionBuilder;
 import scotch.compiler.syntax.value.Conditional;
 import scotch.compiler.syntax.value.Constant;
 import scotch.compiler.syntax.value.DataConstructor;
 import scotch.compiler.syntax.value.DefaultOperator;
-import scotch.compiler.syntax.value.EqualMatch.EqualMatchBuilder;
 import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.Initializer;
 import scotch.compiler.syntax.value.InitializerField;
 import scotch.compiler.syntax.value.Let;
 import scotch.compiler.syntax.value.Literal;
-import scotch.compiler.syntax.value.PatternMatch;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.NamedSourcePoint;
@@ -435,7 +435,7 @@ public class InputParser {
         });
     }
 
-    private void parseDataFields(Builder builder, Map<String, Type> constraints) {
+    private void parseDataFields(DataConstructorDefinition.Builder builder, Map<String, Type> constraints) {
         require(LEFT_CURLY_BRACE);
         AtomicInteger ordinal = new AtomicInteger();
         builder.addField(parseNamedField(ordinal, constraints));
@@ -693,14 +693,19 @@ public class InputParser {
 
     private Optional<PatternMatch> parseMatch(boolean required) {
         PatternMatch match = null;
-        if (expectsWord()) {
-            match = node(new CaptureMatchBuilder(), builder -> builder.withIdentifier(parseWordReference()));
+        if (expectsWord("_")) {
+            match = node(IgnorePattern.builder(), builder -> {
+                requireWord("_");
+                builder.withType(reserveType());
+            });
+        } else if (expectsWord()) {
+            match = node(CaptureMatch.builder(), builder -> builder.withIdentifier(parseWordReference()));
         } else if (expectsLiteral()) {
-            match = node(new EqualMatchBuilder(), builder -> builder.withValue(parseLiteral()));
+            match = node(EqualMatch.builder(), builder -> builder.withValue(parseLiteral()));
         } else if (required) {
             throw unexpected(IDENTIFIER);
         }
-        return ofNullable(match);
+        return Optional.ofNullable(match);
     }
 
     @SuppressWarnings("unchecked")
@@ -828,7 +833,7 @@ public class InputParser {
         } else if (required) {
             throw unexpected(ImmutableList.<TokenKind>builder().add(IDENTIFIER, LEFT_PARENTHESIS).addAll(literals).build());
         }
-        return ofNullable(value).map(this::parseInitializer_);
+        return Optional.ofNullable(value).map(this::parseInitializer_);
     }
 
     private String parseQualifiedName() {
@@ -923,30 +928,48 @@ public class InputParser {
             constraints,
             tryRequire(LEFT_PARENTHESIS)
                 .map(token -> {
-                    Type type = parseType(constraints);
+                    List<Type> members = new ArrayList<>();
+                    members.add(parseType(constraints));
+                    while (expects(COMMA)) {
+                        nextToken();
+                        members.add(parseType(constraints));
+                    }
                     require(RIGHT_PARENTHESIS);
+                    Type type;
+                    if (members.size() == 1) {
+                        type = members.get(0);
+                    } else {
+                        type = sum("scotch.data.tuple.(" + repeat(",", members.size() - 1) + ")", members);
+                    }
                     return type;
                 })
                 .orElseGet(() -> parseTypePrimary(constraints)));
     }
 
     private Type parseTypePrimary(Map<String, Type> constraints) {
-        return splitQualified(parseQualifiedName()).into((optionalModuleName, memberName) -> {
-            try {
-                markPosition();
-                if (isLowerCase(memberName.charAt(0))) {
-                    if (optionalModuleName.isPresent()) {
-                        throw parseException("Type name must be uppercase", peekSourceRange());
+        if (expects(LEFT_SQUARE_BRACE)) {
+            require(LEFT_SQUARE_BRACE);
+            Type type = sum("scotch.data.list.[]", asList(parseTypePrimary(constraints)));
+            require(RIGHT_SQUARE_BRACE);
+            return type;
+        } else {
+            return splitQualified(parseQualifiedName()).into((optionalModuleName, memberName) -> {
+                try {
+                    markPosition();
+                    if (isLowerCase(memberName.charAt(0))) {
+                        if (optionalModuleName.isPresent()) {
+                            throw parseException("Type name must be uppercase", peekSourceRange());
+                        } else {
+                            return constraints.getOrDefault(memberName, var(memberName));
+                        }
                     } else {
-                        return constraints.getOrDefault(memberName, var(memberName));
+                        return parseTypePrimary_(optionalModuleName, memberName, constraints);
                     }
-                } else {
-                    return parseTypePrimary_(optionalModuleName, memberName, constraints);
+                } finally {
+                    positions.pop();
                 }
-            } finally {
-                positions.pop();
-            }
-        });
+            });
+        }
     }
 
     private Type parseTypePrimary_(Optional<String> optionalModuleName, String memberName, Map<String, Type> constraints) {

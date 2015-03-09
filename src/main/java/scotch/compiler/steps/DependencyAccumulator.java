@@ -23,7 +23,7 @@ import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Identifier;
-import scotch.compiler.syntax.value.PatternMatcher;
+import scotch.compiler.syntax.pattern.PatternMatcher;
 
 public class DependencyAccumulator {
 
@@ -64,13 +64,16 @@ public class DependencyAccumulator {
     }
 
     public Identifier addDependency(Identifier identifier) {
-        identifier.getSymbol().map(symbol -> {
-            if (!symbols.contains(symbol)) {
-                scope().addDependency(symbol);
+        return identifier.withSymbol(addDependency(identifier.getSymbol()));
+    }
+
+    public Symbol addDependency(Symbol symbol) {
+        return symbol.map(qualifiedSymbol -> {
+            if (!symbols.contains(qualifiedSymbol)) {
+                scope().addDependency(qualifiedSymbol);
             }
-            return symbol;
+            return qualifiedSymbol;
         });
-        return identifier;
     }
 
     public Definition collect(Definition definition) {

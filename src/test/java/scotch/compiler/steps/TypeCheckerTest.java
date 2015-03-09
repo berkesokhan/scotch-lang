@@ -583,6 +583,30 @@ public class TypeCheckerTest extends ParserTest {
         ));
     }
 
+    @Test
+    public void shouldParseListSignature() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.int",
+            "",
+            "fn :: [Int] -> Int"
+        );
+        shouldNotHaveErrors();
+        shouldHaveSignature("scotch.test.fn", fn(sum("scotch.data.list.[]", asList(intType)), intType));
+    }
+
+    @Test
+    public void shouldParseTupleSignature() {
+        parse(
+            "module scotch.test",
+            "import scotch.data.int",
+            "",
+            "fn :: (Int, Int) -> Int"
+        );
+        shouldNotHaveErrors();
+        shouldHaveSignature("scotch.test.fn", fn(sum("scotch.data.tuple.(,)", asList(intType, intType)), intType));
+    }
+
     private void shouldHaveLocals(DefinitionReference reference, List<String> locals) {
         assertThat(getScope(reference).getLocals(), is(locals));
     }

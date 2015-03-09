@@ -6,6 +6,7 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.definition.DefinitionEntry;
 import scotch.compiler.syntax.definition.Definitions;
+import scotch.compiler.syntax.pattern.PatternMatcher;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.reference.InstanceReference;
 import scotch.compiler.syntax.reference.ValueReference;

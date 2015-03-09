@@ -49,8 +49,8 @@ import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DataTypeDefinition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
+import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.syntax.value.PatternMatch;
 import scotch.compiler.syntax.value.Value;
 
 public class InputParserTest extends ParserTest {

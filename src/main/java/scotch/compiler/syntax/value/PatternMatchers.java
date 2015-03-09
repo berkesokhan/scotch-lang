@@ -21,6 +21,7 @@ import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
+import scotch.compiler.syntax.pattern.PatternMatcher;
 import scotch.compiler.text.SourceRange;
 
 public class PatternMatchers extends Value {
