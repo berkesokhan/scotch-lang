@@ -30,7 +30,6 @@ import lombok.ToString;
 import scotch.compiler.error.SyntaxError;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
-import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
 import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
 import scotch.compiler.symbol.type.InstanceType;
 import scotch.compiler.symbol.type.SumType;
@@ -183,10 +182,6 @@ public class TypeChecker implements TypeScope {
     @Override
     public Set<Symbol> getContext(Type type) {
         return scope().getContext(type);
-    }
-
-    public Optional<DataTypeDescriptor> getDataType(Symbol symbol) {
-        return scope().getDataType(symbol);
     }
 
     public Optional<Definition> getDefinition(DefinitionReference reference) {

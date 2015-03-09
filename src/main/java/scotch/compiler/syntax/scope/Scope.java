@@ -106,6 +106,10 @@ public abstract class Scope implements TypeScope {
         throw new IllegalStateException();
     }
 
+    public Optional<DataTypeDescriptor> getDataType(Symbol symbol) {
+        return getEntry(symbol).flatMap(SymbolEntry::getDataType);
+    }
+
     public Optional<DataConstructorDescriptor> getDataConstructor(Symbol symbol) {
         return getEntry(symbol).flatMap(SymbolEntry::getDataConstructor);
     }
