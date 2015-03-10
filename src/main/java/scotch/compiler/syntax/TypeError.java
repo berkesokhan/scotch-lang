@@ -21,7 +21,7 @@ public class TypeError extends SyntaxError {
     }
 
     @NonNull private final Unification unification;
-    @NonNull private final          SourceRange sourceRange;
+    @NonNull private final SourceRange sourceRange;
 
     @Override
     public String prettyPrint() {

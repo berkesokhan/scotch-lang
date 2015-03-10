@@ -2,6 +2,7 @@ package scotch.compiler.symbol.type;
 
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static scotch.compiler.symbol.type.Types.unifyVariable;
 import static scotch.compiler.symbol.type.Unification.circular;
 import static scotch.compiler.symbol.type.Unification.mismatch;
@@ -17,7 +18,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import lombok.EqualsAndHashCode;
 import scotch.compiler.symbol.NameQualifier;
 import scotch.compiler.symbol.Symbol;
@@ -151,7 +151,9 @@ public class SumType extends Type {
 
     @Override
     protected Set<Pair<VariableType, Symbol>> gatherContext_() {
-        return ImmutableSet.of();
+        return parameters.stream()
+            .flatMap(parameter -> parameter.gatherContext_().stream())
+            .collect(toSet());
     }
 
     @Override
@@ -181,13 +183,13 @@ public class SumType extends Type {
     @Override
     protected String toString_() {
         if (symbol.isTuple()) {
-            return "(" + parameters.stream().map(Type::toString).collect(joining(", ")) + ")";
+            return "(" + parameters.stream().map(Type::toString_).collect(joining(", ")) + ")";
         } else if (symbol.isList()) {
-            return "[" + parameters.stream().map(Type::toString).collect(joining(", ")) + "]";
+            return "[" + parameters.stream().map(Type::toString_).collect(joining(", ")) + "]";
         } else if (parameters.isEmpty()) {
             return symbol.getSimpleName();
         } else {
-            return symbol.getSimpleName() + " " + parameters.stream().map(Type::toString).collect(joining(" "));
+            return symbol.getSimpleName() + " " + parameters.stream().map(Type::toString_).collect(joining(" "));
         }
     }
 

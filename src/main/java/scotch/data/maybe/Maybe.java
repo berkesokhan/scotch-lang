@@ -29,7 +29,7 @@ import scotch.runtime.Callable;
 })
 public abstract class Maybe<A> {
 
-    public static final  Type            TYPE    = sum("scotch.data.maybe.Maybe");
+    public static final  Type            TYPE    = sum("scotch.data.maybe.Maybe", var("a"));
     private static final Callable<Maybe> NOTHING = callable(Nothing::new);
 
     @Value(memberName = "Just")

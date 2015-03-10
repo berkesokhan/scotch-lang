@@ -2,6 +2,7 @@ package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.compiler.symbol.type.Types.sum;
@@ -61,6 +62,44 @@ public class TypeCheckerIntegrationTest {
             mismatch(intType(), stringType()),
             source("test://shouldHaveError_whenStringIsHeterogeneous", point(107, 6, 15), point(113, 6, 21))
         )));
+    }
+
+    @Test
+    public void shouldDetermineTypeOfSuccessfulChainedMaybe() {
+        parse(
+            "module scotch.test",
+            "import scotch.control.monad",
+            "import scotch.data.function",
+            "import scotch.data.int",
+            "import scotch.data.maybe",
+            "import scotch.data.num",
+            "",
+            "addedStuff = do",
+            "    x <- Just 3",
+            "    y <- Just 2",
+            "    return $ x + y"
+        );
+        assertThat(graph.getErrors(), is(empty()));
+        assertThat(graph.getValue(valueRef("scotch.test.addedStuff")), is(Optional.of(sum("scotch.data.maybe.Maybe", asList(intType())))));
+    }
+
+    @Test
+    public void shouldDetermineTypeOfFailedChainedMaybe() {
+        parse(
+            "module scotch.test",
+            "import scotch.control.monad",
+            "import scotch.data.function",
+            "import scotch.data.int",
+            "import scotch.data.maybe",
+            "import scotch.data.num",
+            "",
+            "addedStuff = do",
+            "    x <- Just 3",
+            "    y <- Nothing",
+            "    return $ x + y"
+        );
+        assertThat(graph.getErrors(), is(empty()));
+        assertThat(graph.getValue(valueRef("scotch.test.addedStuff")), is(Optional.of(sum("scotch.data.maybe.Maybe", asList(intType())))));
     }
 
     private void parse(String... lines) {

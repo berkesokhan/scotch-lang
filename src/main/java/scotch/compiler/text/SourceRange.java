@@ -1,6 +1,5 @@
 package scotch.compiler.text;
 
-import static java.util.Arrays.asList;
 import static lombok.AccessLevel.PRIVATE;
 import static scotch.compiler.text.SourcePoint.point;
 import static scotch.compiler.text.TextUtil.repeat;
@@ -10,19 +9,13 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
-import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import org.objectweb.asm.tree.LabelNode;
 
 @AllArgsConstructor(access = PRIVATE)
-@ToString
 public class SourceRange {
 
     public static final SourceRange NULL_SOURCE = source(URI.create("null://nowhere"), point(-1, -1, -1), point(-1, -1, -1));
-
-    public static SourceRange extent(SourceRange... ranges) {
-        return extent(asList(ranges));
-    }
 
     public static SourceRange extent(Collection<SourceRange> ranges) {
         Iterator<SourceRange> iterator = ranges.iterator();
@@ -133,6 +126,11 @@ public class SourceRange {
 
     public String report(String indent, int indentLevel) {
         return repeat(indent, indentLevel) + prettyPrint_();
+    }
+
+    @Override
+    public String toString() {
+        return prettyPrint();
     }
 
     private String prettyPrint_() {
