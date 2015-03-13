@@ -28,7 +28,7 @@ public class ScotchModule {
 
     @ValueType(forMember = ".")
     public static Type compose$type() {
-        return fn(fn(var("b"), var("c")), fn(fn(var("a"), var("c")), fn(var("a"), var("c"))));
+        return fn(fn(var("b"), var("c")), fn(fn(var("a"), var("b")), fn(var("a"), var("c"))));
     }
 
     @Value(memberName = "$", fixity = RIGHT_INFIX, precedence = 0)
