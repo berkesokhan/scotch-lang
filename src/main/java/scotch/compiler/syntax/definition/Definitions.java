@@ -44,8 +44,8 @@ public class Definitions {
         return new UnshuffledDefinition(sourceRange, symbol, matches, body);
     }
 
-    public static ValueDefinition value(SourceRange sourceRange, Symbol symbol, Type type, Value value) {
-        return new ValueDefinition(sourceRange, symbol, value, type);
+    public static ValueDefinition value(SourceRange sourceRange, Symbol symbol, Value value) {
+        return new ValueDefinition(sourceRange, symbol, value);
     }
 
     private Definitions() {

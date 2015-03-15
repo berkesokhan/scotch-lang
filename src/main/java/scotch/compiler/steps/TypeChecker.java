@@ -91,7 +91,6 @@ public class TypeChecker implements TypeScope {
 
     public Definition bind(ValueDefinition definition) {
         return bindMethods(definition
-            .withType(scope().generate(definition.getType()))
             .withBody(definition.getBody().bindTypes(this)));
     }
 

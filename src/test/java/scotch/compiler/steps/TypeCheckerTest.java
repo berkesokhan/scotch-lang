@@ -74,7 +74,7 @@ public class TypeCheckerTest extends ParserTest {
             "test = id 5"
         );
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.id", fn(t(1), t(1)));
+        shouldHaveValue("scotch.test.id", fn(t(11), t(11)));
         shouldHaveValue("scotch.test.test", intType);
     }
 
@@ -184,9 +184,9 @@ public class TypeCheckerTest extends ParserTest {
             "import scotch.data.num",
             "add a b = a + b"
         );
-        Type a = t(11, asList("scotch.data.num.Num"));
+        Type a = t(16, asList("scotch.data.num.Num"));
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.add", fn(a, fn(a, a)));
+        shouldHaveValue("scotch.test.add", fn(instance("scotch.data.num.Num", a), fn(a, fn(a, a)))); // TODO equality on InstanceType
     }
 
     @Test
@@ -195,7 +195,7 @@ public class TypeCheckerTest extends ParserTest {
             "module scotch.test",
             "apply = \\x y -> x y"
         );
-        shouldHaveValue("scotch.test.apply", fn(fn(t(2), t(5)), fn(t(2), t(5))));
+        shouldHaveValue("scotch.test.apply", fn(fn(t(7), t(8)), fn(t(7), t(8))));
     }
 
     @Test
@@ -233,9 +233,9 @@ public class TypeCheckerTest extends ParserTest {
         );
         shouldNotHaveErrors();
         Type bool = sum("scotch.data.bool.Bool");
-        Type t = t(17, asList("scotch.data.num.Num", "scotch.data.eq.Eq"));
-        InstanceType numType = instance("scotch.data.num.Num", t(17));
-        InstanceType eqType = instance("scotch.data.eq.Eq", t(17));
+        Type t = t(25, asList("scotch.data.num.Num", "scotch.data.eq.Eq"));
+        InstanceType numType = instance("scotch.data.num.Num", t(25));
+        InstanceType eqType = instance("scotch.data.eq.Eq", t(25));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fn", fn(
             "scotch.test.(fn#0)",
@@ -289,10 +289,10 @@ public class TypeCheckerTest extends ParserTest {
             "fn a b = a + b == b + a",
             "commutative? a b = fn a b"
         );
-        Type t = t(12, asList("scotch.data.eq.Eq", "scotch.data.num.Num"));
+        Type t = t(42, asList("scotch.data.eq.Eq", "scotch.data.num.Num"));
         Type bool = sum("scotch.data.bool.Bool");
-        InstanceType numType = instance("scotch.data.num.Num", t(12));
-        InstanceType eqType = instance("scotch.data.eq.Eq", t(12));
+        InstanceType numType = instance("scotch.data.num.Num", t(42));
+        InstanceType eqType = instance("scotch.data.eq.Eq", t(42));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.(commutative?)", fn(
             "scotch.test.(commutative?#0)",
@@ -359,8 +359,8 @@ public class TypeCheckerTest extends ParserTest {
             "fn a b = a + b"
         );
         String num = "scotch.data.num.Num";
-        Type t = t(11, asList(num));
-        InstanceType instance = instance(num, t(11));
+        Type t = t(16, asList(num));
+        InstanceType instance = instance(num, t(16));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fn", fn(
             "scotch.test.(fn#0)",
@@ -389,8 +389,8 @@ public class TypeCheckerTest extends ParserTest {
             "fn = \\x y -> x + y"
         );
         String num = "scotch.data.num.Num";
-        Type t = t(7, asList(num));
-        InstanceType instance = instance(num, t(7));
+        Type t = t(11, asList(num));
+        InstanceType instance = instance(num, t(11));
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fn", fn(
             "scotch.test.(fn#0)",
@@ -469,17 +469,20 @@ public class TypeCheckerTest extends ParserTest {
             "    a g = g + g",
             "  f 2"
         );
-        Type num = t(20, asList("scotch.data.num.Num"));
+        Type num30 = t(30, asList("scotch.data.num.Num"));
+        Type num24 = t(24, asList("scotch.data.num.Num"));
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.main", t(0));
-        shouldHaveValue("scotch.test.(main#f)", fn(intType(), intType()));
-        shouldHaveValue("scotch.test.(main#a)", fn(num, num));
+        shouldHaveValue("scotch.test.main", t(11));
+        shouldHaveValue("scotch.test.(main#f)", fn(instance("scotch.data.num.Num", num30), fn(num30, num30)));
+        shouldHaveValue("scotch.test.(main#a)", fn(instance("scotch.data.num.Num", num24), fn(num24, num24)));
     }
 
     @Test
     public void shouldBindMethodsInEqualMatch() {
         parse(
             "module scotch.test",
+            "import scotch.data.eq",
+            "import scotch.data.int",
             "fib 0 = 0"
         );
         InstanceType instance = instance("scotch.data.eq.Eq", intType);

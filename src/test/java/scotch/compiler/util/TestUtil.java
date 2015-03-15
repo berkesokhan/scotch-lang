@@ -308,8 +308,8 @@ public class TestUtil {
         return Definitions.unshuffled(NULL_SOURCE, symbol(name), matches, body);
     }
 
-    public static ValueDefinition value(String name, Type type, Value value) {
-        return Definitions.value(NULL_SOURCE, symbol(name), type, value);
+    public static ValueDefinition value(String name, Value value) {
+        return Definitions.value(NULL_SOURCE, symbol(name), value);
     }
 
     public static ValueReference valueRef(String name) {

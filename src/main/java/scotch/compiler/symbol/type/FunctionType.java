@@ -166,8 +166,8 @@ public class FunctionType extends Type {
 
     @Override
     protected Unification unifyWith(FunctionType target, TypeScope scope) {
-        return target.argument.unify(argument, scope).map(
-            argumentResult -> target.result.unify(result, scope).map(
+        return target.argument.unify_(argument, scope).map(
+            argumentResult -> target.result.unify_(result, scope).map(
                 resultResult -> unified(fn(argumentResult, resultResult))
             )
         );

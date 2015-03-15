@@ -41,7 +41,6 @@ public class ValueDefinition extends Definition {
     private final SourceRange sourceRange;
     private final Symbol      symbol;
     private final Value       body;
-    private final Type        type;
 
     @Override
     public Definition accumulateDependencies(DependencyAccumulator state) {
@@ -57,8 +56,8 @@ public class ValueDefinition extends Definition {
 
     @Override
     public Definition accumulateNames(NameAccumulator state) {
-        state.defineValue(symbol, type);
-        state.specialize(type);
+        state.defineValue(symbol, getType());
+        state.specialize(getType());
         return state.scoped(this, () -> withBody(body.accumulateNames(state)));
     }
 
@@ -83,7 +82,7 @@ public class ValueDefinition extends Definition {
                     return checkedBody.getType();
                 });
             Type generatedType = state.scope().generate(type);
-            ValueDefinition result = withBody(checkedBody).withType(generatedType);
+            ValueDefinition result = withBody(checkedBody.withType(generatedType));
             state.redefine(result);
             return state.bind(result);
         });
@@ -96,7 +95,7 @@ public class ValueDefinition extends Definition {
 
     @Override
     public void generateBytecode(BytecodeGenerator state) {
-        state.generate(this, () -> state.method(getMethodName(), ACC_STATIC | ACC_PUBLIC, sig(state.typeOf(type)), new CodeBlock() {{
+        state.generate(this, () -> state.method(getMethodName(), ACC_STATIC | ACC_PUBLIC, sig(state.typeOf(getType())), new CodeBlock() {{
             annotate(Value.class).value("memberName", symbol.getSimpleName());
             markLine(this);
             append(body.generateBytecode(state));
@@ -118,7 +117,7 @@ public class ValueDefinition extends Definition {
     }
 
     public String getSignature() {
-        return type.getSignature();
+        return getType().getSignature();
     }
 
     public SourceRange getSourceRange() {
@@ -130,7 +129,7 @@ public class ValueDefinition extends Definition {
     }
 
     public Type getType() {
-        return type;
+        return body.getType();
     }
 
     @Override
@@ -141,27 +140,22 @@ public class ValueDefinition extends Definition {
     @Override
     public Definition qualifyNames(ScopedNameQualifier state) {
         return state.named(symbol, () -> state.scoped(this, () -> {
-            Type qualifiedType = type.qualifyNames(state);
+            Type qualifiedType = getType().qualifyNames(state);
             state.redefineValue(symbol, qualifiedType);
             return new ValueDefinition(
                 sourceRange,
                 symbol,
-                body.qualifyNames(state),
-                qualifiedType
+                body.qualifyNames(state)
             );
         }));
     }
 
     public ValueDefinition withBody(Value body) {
-        return new ValueDefinition(sourceRange, symbol, body, type);
+        return new ValueDefinition(sourceRange, symbol, body);
     }
 
     public ValueDefinition withSourceRange(SourceRange sourceRange) {
-        return new ValueDefinition(sourceRange, symbol, body, type);
-    }
-
-    public ValueDefinition withType(Type type) {
-        return new ValueDefinition(sourceRange, symbol, body, type);
+        return new ValueDefinition(sourceRange, symbol, body);
     }
 
     public static class Builder implements SyntaxBuilder<ValueDefinition> {
@@ -183,7 +177,6 @@ public class ValueDefinition extends Definition {
             return Definitions.value(
                 require(sourceRange, "Source range"),
                 require(symbol, "Value symbol"),
-                require(type, "Value type"),
                 require(body, "Value body").collapse()
             );
         }

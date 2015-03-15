@@ -211,7 +211,8 @@ public class BytecodeGeneratorTest {
         assertThat(result, is(true));
     }
 
-    @Test // TODO should not rely on runtime for correctness (implement as pattern matching mayhaps?)
+    @Ignore // TODO should not rely on runtime for correctness (implement as pattern matching mayhaps?)
+    @Test
     public void shouldCopyDataWithNewFieldValues() {
         boolean result = exec(
             "module scotch.test",

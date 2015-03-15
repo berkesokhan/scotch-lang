@@ -111,7 +111,7 @@ public abstract class ParserTest {
 
     protected void shouldHaveValue(String name, Type type, Value body) {
         shouldHaveValue(name);
-        assertThat(graph.getDefinition(valueRef(name)).get(), is(value(name, type, body)));
+        assertThat(graph.getDefinition(valueRef(name)).get(), is(value(name, body)));
     }
 
     protected void shouldNotHaveErrors() {
