@@ -10,37 +10,86 @@ each of which can have zero or more fields. When constructors have fields, the
 fields may optionally be named.
 
 ```
-// A single-constructor data type declaration
-data Toast { kind Bread, burnLevel Int }
+// Toast as a record type with a single constructor having unnamed fields
+data Toast Bread Int
 
-// A data type declaration with two constructors, one having unnamed fields
-data List a = EmptyList | ListNode a (List a)
+// Toast as a record type with a single constructor having named fields
+data Toast { kind Bread, // the field name 'kind' is followed by the type 'Bread'
+             burnLevel Int }
+
+// Singly-linked sausages with two constructors
+data SausageLinks
+    = NoSausage // NoSausage has no fields
+    | SausageLink Sausage SausageLinks // SausageLink has two unnamed fields of type Sausage and SausageLinks
+
+// French-to-Spanish dictionary as a bi-map
+data FrenchSpanishDictionary
+    = EmptyEntry
+    | DictionaryEntry { key FrenchWord,
+                        value SpanishWord,
+                        left FrenchSpanishDictionary,
+                        right FrenchSpanishDictionary }
 ```
 
 Data types are closed types. This means they cannot be extended like types in
 object-oriented languages like Java or C#. The reason for this is because you can
-create functions over all known constructors within a data type, which allows for
+create [patterns](#syntax-patterns) over all known constructors within a data type, which allows for
 complete function definitions.
+
+```
+// Maybe can only be either Nothing or Just
+data Maybe something = Nothing | Just something
+```
+
+As a consequence of the above definition of `Maybe` the patterns below are possible
+and can be analyzed by the compiler to ensure all constructors within `Maybe` are handled.
+
+```
+valueOf (Just x) = x
+valueOf Nothing  = throw "Got nothin!"
+```
+
+An incomplete pattern like the one below causes the compiler to emit a warning
+because there is no handling for `Nothing`:
+
+```
+valueOf (Just x) = x
+// pattern for Nothing intentionally absent
+```
+
+<span style="color: red;">**WARNING:**</span> this warning feature is not yet implemented.
+
+### Constructors
+
+Constructors are used to create value instances of a particular data type.
+Constructors themselves are not types. This is reflected in [value signatures](#syntax-values-value-signatures)
+where only type names used.
+
+```
+// Using the Maybe definition
+data Maybe something = Nothing | Just something
+
+// Declare a value
+just5 :: Maybe Int
+just5 = Just 5
+```
+
+In the above example, even though `just5` always returns `Just 5`, we can only
+give it the signature `Maybe Int`.
 
 ### Constant Constructors
 
-Constant constructors take no arguments and are referenced by name only. They
-are effectively singletons.
+Constant constructors take no arguments and are referenced by name only.
 
 ```
 // the constructor Nothing is a constant
-data Maybe a = Nothing | Just a
+data Maybe somethings = Nothing | Just something
 ```
 
 ### Object Constructors
 
 Objects consist of a collection of named properties. Even when properties are
 unnamed, they are named according to ordinal (`_0`, `_1`, etc).
-
-```
-// Toast data type declaration
-data Toast { kind Bread, burnLevel Int }
-```
 
 Objects can be initialized using either unordered property bags or by passing
 arguments in the order the properties were declared.
@@ -53,40 +102,32 @@ Toast { burnLevel = 2, kind = Sourdough }
 Toast Sourdough 2
 ```
 
-Tuples are initialized using literal syntax.
+If using a property bag, then all properties must be present or the compiler
+will emit an error listing the missing properties. Likewise, the compiler emits
+an error for properties that don't exist.
 
-```
-// tuple literal
-tuple = (1, 2, 3)
-
-```
-
-Properties on objects can be access directly using a dot `(.)` but it is preferred
-to use destructuring.
-
-```
-// object property access with (.)
-toast.kind
-tuple._1
-
-// object destructuring
-kindOf Toast { kind = k } = k
-snd (_, b) = b
-```
-
-### Generic Type Arguments
+### Generic Types
 
 Data types may accept type arguments so any type can be stored in their affected
-fields. The most common use case for type arguments are collection types:
+fields. The most common use case for type arguments are collection types.
 
 ```
 // The built-in list type
-data [a] = [] | a : [a]
+data [a] = [] | a : [a] // a is the generic argument to List
 
 // The (not yet) built-in bi-map type
-data BiMap a v = MapLeaf
-               | MapBranch { key a, value v, left BiMap a v, right BiMap a v }
+data BiMap keyType valueType // keyType and valueType are generic arguments to BiMap
+    = MapLeaf
+    | MapBranch { key keyType,
+                  value valueType,
+                  left BiMap keyType valueType,
+                  right BiMap keyType valueType }
 ```
+
+Read [here](#syntax-lists) for the list type.
+
+Generic type arguments are generally given using single, lower-case letters. Full
+names are perfectly fine for clarity as long as the first letter is lower case.
 
 ## Values
 
