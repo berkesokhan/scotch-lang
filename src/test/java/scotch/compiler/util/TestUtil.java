@@ -258,8 +258,12 @@ public class TestUtil {
         return Patterns.pattern(NULL_SOURCE, symbol(name), matches, body);
     }
 
-    public static PatternMatcher patterns(Type type, PatternCase... matchers) {
-        return Values.patterns(NULL_SOURCE, type, asList(matchers));
+    public static PatternMatcher patterns(String symbol, Type type, Argument argument, PatternCase... matchers) {
+        return patterns(symbol, type, asList(argument), matchers);
+    }
+
+    public static PatternMatcher patterns(String symbol, Type type, List<Argument> arguments, PatternCase... matchers) {
+        return Values.patterns(NULL_SOURCE, symbol(symbol), type, arguments, asList(matchers));
     }
 
     public static RootDefinition root(List<DefinitionReference> definitions) {

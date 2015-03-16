@@ -35,10 +35,8 @@ public class NameQualifierTest extends ParserTest {
             "fn2 a b = a b"
         );
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.fn1", fn(
-            "scotch.test.(fn1#0)",
-            asList(arg("#0", t(11)), arg("#1", t(12))),
-            patterns(t(13), pattern(
+        shouldHaveValue("scotch.test.fn1",
+            patterns("scotch.test.(fn1#0)", t(13), asList(arg("#0", t(11)), arg("#1", t(12))), pattern(
                 "scotch.test.(fn1#0#0)",
                 asList(capture("#0", "a", t(1)), capture("#1", "b", t(2))),
                 apply(
@@ -47,7 +45,7 @@ public class NameQualifierTest extends ParserTest {
                     t(16)
                 )
             ))
-        ));
+        );
     }
 
     @Test

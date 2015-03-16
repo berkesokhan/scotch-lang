@@ -50,7 +50,7 @@ public class UnboundMethod extends Value {
     }
 
     @Override
-    public Value bindMethods(TypeChecker state) {
+    public Value bindMethods(TypeChecker state, InstanceMap instances) {
         throw new UnsupportedOperationException();
     }
 

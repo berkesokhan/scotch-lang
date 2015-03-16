@@ -54,9 +54,9 @@ public class Apply extends Value {
     }
 
     @Override
-    public Value bindMethods(TypeChecker state) {
-        return withFunction(function.bindMethods(state))
-            .withArgument(argument.bindMethods(state));
+    public Value bindMethods(TypeChecker state, InstanceMap instances) {
+        return withFunction(function.bindMethods(state, instances))
+            .withArgument(argument.bindMethods(state, instances));
     }
 
     @Override

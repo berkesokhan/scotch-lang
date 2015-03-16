@@ -1,6 +1,7 @@
 package scotch.compiler.syntax.value;
 
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.syntax.value.WithArguments.withoutArguments;
 import static scotch.compiler.util.Either.left;
 
 import java.util.List;
@@ -31,8 +32,8 @@ public abstract class Value {
 
     public abstract Value accumulateNames(NameAccumulator state);
 
-    public Either<Value, FunctionValue> asFunction() {
-        return left(this);
+    public WithArguments withArguments() {
+        return withoutArguments(this);
     }
 
     public Optional<Value> asInitializer(Initializer initializer, TypeChecker state) {
@@ -55,7 +56,7 @@ public abstract class Value {
 
     public abstract Value bindTypes(TypeChecker state);
 
-    public abstract Value bindMethods(TypeChecker state);
+    public abstract Value bindMethods(TypeChecker state, InstanceMap instances);
 
     public abstract Value checkTypes(TypeChecker state);
 

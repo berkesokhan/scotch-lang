@@ -40,7 +40,7 @@ public abstract class LiteralValue<A> extends Value {
     }
 
     @Override
-    public Value bindMethods(TypeChecker state) {
+    public Value bindMethods(TypeChecker state, InstanceMap instances) {
         return this;
     }
 

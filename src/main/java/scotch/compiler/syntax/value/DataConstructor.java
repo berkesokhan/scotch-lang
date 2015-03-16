@@ -53,8 +53,8 @@ public class DataConstructor extends Value {
     }
 
     @Override
-    public Value bindMethods(TypeChecker state) {
-        return withArguments(state.bindMethods(arguments));
+    public Value bindMethods(TypeChecker state, InstanceMap instances) {
+        return withArguments(state.bindMethods(arguments, instances));
     }
 
     @Override

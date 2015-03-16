@@ -8,6 +8,7 @@ import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
 import static scotch.compiler.syntax.reference.DefinitionReference.classRef;
 import static scotch.compiler.syntax.reference.DefinitionReference.instanceRef;
 import static scotch.compiler.syntax.value.Values.arg;
+import static scotch.compiler.syntax.value.Values.entry;
 import static scotch.compiler.syntax.value.Values.instance;
 import static scotch.compiler.text.TextUtil.repeat;
 import static scotch.compiler.util.Pair.pair;
@@ -52,7 +53,6 @@ import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.InstanceMap;
 import scotch.compiler.syntax.value.Method;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.syntax.value.Values;
 import scotch.compiler.text.SourceRange;
 
 public class TypeChecker implements TypeScope {
@@ -277,7 +277,7 @@ public class TypeChecker implements TypeScope {
         InstanceMap instances = buildInstanceMap(definition);
         return scoped(definition, () -> {
             if (instances.isEmpty()) {
-                return definition.withBody(definition.getBody().bindMethods(this));
+                return definition.withBody(definition.getBody().bindMethods(this, instances));
             } else {
                 List<Argument> instanceArguments = getAdditionalArguments(definition, instances);
                 arguments.push(instanceArguments.stream()
@@ -290,19 +290,19 @@ public class TypeChecker implements TypeScope {
                         return left;
                     }));
                 try {
-                    return definition.withBody(definition.getBody().asFunction()
-                        .map(function -> {
-                            Scope scope = graph.getScope(function.getReference());
+                    return definition.withBody(definition.getBody().withArguments()
+                        .map((reference, arguments) -> {
+                            Scope scope = graph.getScope(reference);
                             List<String> locals = new ArrayList<>();
                             instanceArguments.forEach(argument -> {
                                 scope.defineValue(argument.getSymbol(), argument.getType());
                                 locals.add(argument.getName());
                             });
                             scope.prependLocals(locals);
-                            return function.withArguments(ImmutableList.<Argument>builder()
+                            return ImmutableList.<Argument>builder()
                                 .addAll(instanceArguments)
-                                .addAll(function.getArguments())
-                                .build());
+                                .addAll(arguments)
+                                .build();
                         })
                         .orElseGet(value -> {
                             Symbol functionSymbol = scope().reserveSymbol();
@@ -314,14 +314,14 @@ public class TypeChecker implements TypeScope {
                                 .withArguments(instanceArguments)
                                 .withBody(value)
                                 .build();
-                            entries.put(function.getReference(), Values.entry(functionScope, function));
+                            entries.put(function.getReference(), entry(functionScope, function));
                             instanceArguments.forEach(argument -> {
                                 functionScope.defineValue(argument.getSymbol(), argument.getType());
                                 functionScope.addLocal(argument.getName());
                             });
                             return function;
                         })
-                        .bindMethods(this));
+                        .bindMethods(this, instances));
                 } finally {
                     arguments.pop();
                 }
@@ -383,9 +383,9 @@ public class TypeChecker implements TypeScope {
         scopes.pop();
     }
 
-    public List<Value> bindMethods(List<Value> values) {
+    public List<Value> bindMethods(List<Value> values, InstanceMap instances) {
         return values.stream()
-            .map(value -> value.bindMethods(this))
+            .map(value -> value.bindMethods(this, instances))
             .collect(toList());
     }
 

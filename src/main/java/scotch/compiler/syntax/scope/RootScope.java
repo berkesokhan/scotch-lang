@@ -132,7 +132,7 @@ public class RootScope extends Scope {
     }
 
     @Override
-    public Map<Symbol, List<PatternCase>> getPatterns() {
+    public Map<Symbol, List<PatternCase>> getPatternCases() {
         throw new IllegalStateException();
     }
 

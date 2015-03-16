@@ -3,9 +3,9 @@ package scotch.compiler.steps;
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
+import static scotch.compiler.syntax.definition.Definitions.scopeDef;
 import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
 import static scotch.compiler.syntax.reference.DefinitionReference.valueRef;
-import static scotch.compiler.syntax.definition.Definitions.scopeDef;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -28,11 +28,10 @@ import scotch.compiler.syntax.definition.DefinitionEntry;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.definition.UnshuffledDefinition;
 import scotch.compiler.syntax.definition.ValueDefinition;
+import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
-import scotch.compiler.syntax.value.FunctionValue;
-import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
@@ -121,13 +120,13 @@ public class PrecedenceParser {
 
     public List<DefinitionReference> processPatterns() {
         List<DefinitionReference> members = new ArrayList<>();
-        scope().getPatterns().forEach((symbol, patterns) -> {
-            SourceRange sourceRange = patterns.subList(1, patterns.size()).stream()
+        scope().getPatternCases().forEach((symbol, patternCases) -> {
+            SourceRange sourceRange = patternCases.subList(1, patternCases.size()).stream()
                 .map(PatternCase::getSourceRange)
-                .reduce(patterns.get(0).getSourceRange(), SourceRange::extend);
-            FunctionValue function = buildFunction(patterns, sourceRange);
+                .reduce(patternCases.get(0).getSourceRange(), SourceRange::extend);
+            PatternMatcher function = buildMatcher(patternCases, sourceRange);
 
-            patterns.stream()
+            patternCases.stream()
                 .map(this::collect)
                 .map(Definition::getReference)
                 .map(this::getScope)
@@ -217,21 +216,17 @@ public class PrecedenceParser {
         errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceRange));
     }
 
-    private FunctionValue buildFunction(List<PatternCase> patterns, SourceRange sourceRange) {
-        Symbol functionSymbol = scope().reserveSymbol(ImmutableList.of());
-        List<Argument> arguments = buildFunctionArguments(patterns, sourceRange);
-        FunctionValue function = FunctionValue.builder()
+    private PatternMatcher buildMatcher(List<PatternCase> patternCases, SourceRange sourceRange) {
+        List<Argument> arguments = buildFunctionArguments(patternCases, sourceRange);
+        PatternMatcher matcher = PatternMatcher.builder()
             .withSourceRange(sourceRange)
-            .withSymbol(functionSymbol)
+            .withSymbol(scope().reserveSymbol(ImmutableList.of()))
+            .withType(scope().reserveType())
             .withArguments(arguments)
-            .withBody(PatternMatcher.builder()
-                .withSourceRange(sourceRange)
-                .withType(scope().reserveType())
-                .withPatterns(patterns)
-                .build())
+            .withPatterns(patternCases)
             .build();
-        functionScopes.put(function.getReference(), scope().enterScope());
-        return function;
+        functionScopes.put(matcher.getReference(), scope().enterScope());
+        return matcher;
     }
 
     private List<Argument> buildFunctionArguments(List<PatternCase> patterns, SourceRange sourceRange) {

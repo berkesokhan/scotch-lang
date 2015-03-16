@@ -21,6 +21,7 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.reference.DefinitionReference;
+import scotch.compiler.syntax.value.InstanceMap;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
@@ -66,12 +67,12 @@ public class PatternCase implements Scoped {
         });
     }
 
-    public PatternCase bindMethods(TypeChecker state) {
+    public PatternCase bindMethods(TypeChecker state, InstanceMap instances) {
         return state.scoped(this,
             () -> withMatches(matches.stream()
-                .map(match -> match.bindMethods(state))
+                .map(match -> match.bindMethods(state, instances))
                 .collect(toList()))
-            .withBody(body.bindMethods(state)));
+            .withBody(body.bindMethods(state, instances)));
     }
 
     public PatternCase bindTypes(TypeChecker state) {

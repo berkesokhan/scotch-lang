@@ -19,6 +19,7 @@ import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
+import scotch.compiler.syntax.value.InstanceMap;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
@@ -66,8 +67,9 @@ public class EqualMatch extends PatternMatch {
         }
     }
 
-    public PatternMatch bindMethods(TypeChecker state) {
-        return withValue(value.bindMethods(state));
+    @Override
+    public PatternMatch bindMethods(TypeChecker state, InstanceMap instances) {
+        return withValue(value.bindMethods(state, instances));
     }
 
     @Override

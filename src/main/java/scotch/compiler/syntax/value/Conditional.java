@@ -56,8 +56,8 @@ public class Conditional extends Value {
     }
 
     @Override
-    public Value bindMethods(TypeChecker state) {
-        return parse(state, Value::bindMethods);
+    public Value bindMethods(TypeChecker state, InstanceMap instances) {
+        return parse(state, (value, s) -> value.bindMethods(s, instances));
     }
 
     @Override

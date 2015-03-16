@@ -50,10 +50,10 @@ public class Method extends Value {
     }
 
     @Override
-    public Value bindMethods(TypeChecker state) {
+    public Value bindMethods(TypeChecker state, InstanceMap instances) {
         List<InstanceType> instanceTypes = new ArrayList<>();
         Type type = this.type;
-        for (int i = 0; i < instances.size(); i++) {
+        for (int i = 0; i < this.instances.size(); i++) {
             instanceTypes.add((InstanceType) ((FunctionType) type).getArgument());
             type = ((FunctionType) type).getResult();
         }

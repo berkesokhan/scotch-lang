@@ -87,8 +87,8 @@ public class Values {
         return new Method(sourceRange, valueRef, instances, type);
     }
 
-    public static PatternMatcher patterns(SourceRange sourceRange, Type type, List<PatternCase> patterns) {
-        return new PatternMatcher(sourceRange, patterns, type);
+    public static PatternMatcher patterns(SourceRange sourceRange, Symbol symbol, Type type, List<Argument> arguments, List<PatternCase> patterns) {
+        return new PatternMatcher(sourceRange, symbol, arguments, patterns, type);
     }
 
     public static UnboundMethod unboundMethod(SourceRange sourceRange, ValueReference valueRef, Type type) {

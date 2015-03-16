@@ -98,8 +98,8 @@ public class DependencyAccumulator {
     }
 
     @SuppressWarnings("unchecked")
-    public <T extends Scoped> T keep(Scoped scoped) {
-        return (T) scoped(scoped, () -> scoped);
+    public <T extends Scoped> T keep(Scoped scopedThing) {
+        return (T) scoped(scopedThing, () -> scopedThing);
     }
 
     public void leaveScope() {

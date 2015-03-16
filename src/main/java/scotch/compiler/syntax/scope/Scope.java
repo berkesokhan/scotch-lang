@@ -133,7 +133,7 @@ public abstract class Scope implements TypeScope {
 
     public abstract Scope getParent();
 
-    public abstract Map<Symbol, List<PatternCase>> getPatterns();
+    public abstract Map<Symbol, List<PatternCase>> getPatternCases();
 
     public Optional<Type> getRawValue(ValueReference reference) {
         return getRawValue(reference.getSymbol());

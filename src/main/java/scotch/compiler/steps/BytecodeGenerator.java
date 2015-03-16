@@ -79,11 +79,6 @@ public class BytecodeGenerator {
         currentClass().setSourceFile(sourceRange.getPath());
     }
 
-    public void beginClass(ClassType classType, String className, String superClass, SourceRange sourceRange) {
-        jiteClasses.push(pair(new JiteClass(className, superClass, new String[0]), classType));
-        currentClass().setSourceFile(sourceRange.getPath());
-    }
-
     public void beginConstant(String className, SourceRange sourceRange) {
         jiteClasses.push(pair(new JiteClass(className, currentClass().getClassName(), new String[0]), DATA_CONSTRUCTOR));
         currentClass().setSourceFile(sourceRange.getPath());
@@ -225,8 +220,12 @@ public class BytecodeGenerator {
     }
 
     public int getVariable(String name) {
-        return getAllVariables()
-            .indexOf(name);
+        int offset = getAllVariables().indexOf(name);
+        if (offset >= 0) {
+            return offset;
+        } else {
+            throw new IllegalArgumentException("Could not find offset of variable '" + name + "'");
+        }
     }
 
     public void method(String methodName, int access, String signature, CodeBlock body) {

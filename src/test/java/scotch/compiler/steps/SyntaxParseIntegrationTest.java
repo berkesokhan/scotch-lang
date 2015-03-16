@@ -14,7 +14,6 @@ import static scotch.compiler.syntax.value.Values.apply;
 import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.equal;
-import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
 import static scotch.compiler.util.TestUtil.let;
 import static scotch.compiler.util.TestUtil.literal;
@@ -41,7 +40,7 @@ public class SyntaxParseIntegrationTest extends ParserTest {
             "left infix 6 (==), (/=)",
             "x == y = not (x /= y)"
         );
-        shouldHaveValue("scotch.test.(==)", t(12), fn("scotch.test.(==#0)", asList(arg("#0", t(9)), arg("#1", t(10))), patterns(t(11),
+        shouldHaveValue("scotch.test.(==)", t(12), patterns("scotch.test.(==#0)", t(11), asList(arg("#0", t(9)), arg("#1", t(10))),
             pattern("scotch.test.(==#0#0)", asList(capture("#0", "x", t(0)), capture("#1", "y", t(2))), apply(
                 id("scotch.data.bool.not", t(3)),
                 apply(
@@ -51,7 +50,7 @@ public class SyntaxParseIntegrationTest extends ParserTest {
                 ),
                 t(15)
             ))
-        )));
+        ));
     }
 
     @Test
@@ -63,7 +62,7 @@ public class SyntaxParseIntegrationTest extends ParserTest {
             "fib 1 = 1",
             "fib n = fib (n - 1) + fib (n - 2)"
         );
-        shouldHaveValue("scotch.test.fib", t(17), fn("scotch.test.(fib#0)", asList(arg("#0", t(15))), patterns(t(16),
+        shouldHaveValue("scotch.test.fib", t(17), patterns("scotch.test.(fib#0)", t(16), asList(arg("#0", t(15))),
             pattern("scotch.test.(fib#0#0)", asList(equal("#0", apply(
                 apply(id("scotch.data.eq.(==)", t(18)), id("#0", t(19)), t(20)),
                 literal(0),
@@ -99,7 +98,7 @@ public class SyntaxParseIntegrationTest extends ParserTest {
                 ),
                 t(33)
             ))
-        )));
+        ));
     }
 
     @Test
@@ -115,10 +114,8 @@ public class SyntaxParseIntegrationTest extends ParserTest {
             "commutative? a b = fn a b"
         );
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.(commutative?)", fn(
-            "scotch.test.(commutative?#0)",
-            asList(arg("#0", t(26)), arg("#1", t(27))),
-            patterns(t(28), pattern(
+        shouldHaveValue("scotch.test.(commutative?)", patterns("scotch.test.(commutative?#0)", t(28), asList(arg("#0", t(26)), arg("#1", t(27))),
+            pattern(
                 "scotch.test.(commutative?#0#0)",
                 asList(capture("#0", "a", t(11)), capture("#1", "b", t(12))),
                 apply(
@@ -130,7 +127,7 @@ public class SyntaxParseIntegrationTest extends ParserTest {
                     id("b", t(15)),
                     t(31)
                 )
-            ))
+            )
         ));
     }
 
@@ -145,16 +142,16 @@ public class SyntaxParseIntegrationTest extends ParserTest {
             "  f 2"
         );
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.(main#f)", fn("scotch.test.(main#f#0)", asList(arg("#0", t(12))), patterns(t(13), pattern(
+        shouldHaveValue("scotch.test.(main#f)", patterns("scotch.test.(main#f#0)", t(13), asList(arg("#0", t(12))), pattern(
             "scotch.test.(main#f#0#0)",
             asList(capture("#0", "x", t(2))),
             apply(id("scotch.test.(main#a)", t(3)), id("x", t(4)), t(15))
-        ))));
-        shouldHaveValue("scotch.test.(main#a)", fn("scotch.test.(main#a#0)", asList(arg("#0", t(16))), patterns(t(17), pattern(
+        )));
+        shouldHaveValue("scotch.test.(main#a)", patterns("scotch.test.(main#a#0)", t(17), asList(arg("#0", t(16))), pattern(
             "scotch.test.(main#a#0#0)",
             asList(capture("#0", "g", t(6))),
             apply(apply(id("scotch.test.(+)", t(8)), id("g", t(7)), t(19)), id("g", t(9)), t(20))
-        ))));
+        )));
         shouldHaveValue("scotch.test.main", let(
             "scotch.test.(main#0)",
             asList(valueRef("scotch.test.(main#f)"), valueRef("scotch.test.(main#a)")),

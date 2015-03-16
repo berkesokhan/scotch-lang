@@ -6,7 +6,6 @@ import static scotch.compiler.syntax.value.Values.apply;
 import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.equal;
-import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
 import static scotch.compiler.util.TestUtil.let;
 import static scotch.compiler.util.TestUtil.literal;
@@ -49,15 +48,11 @@ public class ParsePrecedenceTest extends ParserTest {
             "x $ y = x y"
         );
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.($)", fn(
-            "scotch.test.($#0)",
-            asList(arg("#0", t(5)), arg("#1", t(6))),
-            patterns(t(7), pattern(
-                "scotch.test.($#0#0)",
-                asList(capture("#0", "x", t(0)), capture("#1", "y", t(2))),
-                apply(id("x", t(3)), id("y", t(4)), t(9))
-            ))
-        ));
+        shouldHaveValue("scotch.test.($)", patterns("scotch.test.($#0)", t(7), asList(arg("#0", t(5)), arg("#1", t(6))), pattern(
+            "scotch.test.($#0#0)",
+            asList(capture("#0", "x", t(0)), capture("#1", "y", t(2))),
+            apply(id("x", t(3)), id("y", t(4)), t(9))
+        )));
     }
 
     @Test
@@ -70,16 +65,16 @@ public class ParsePrecedenceTest extends ParserTest {
             "    a g = g + g",
             "  f 2"
         );
-        shouldHaveValue("scotch.test.(main#f)", fn("scotch.test.(main#f#0)", arg("#0", t(12)), patterns(t(13), pattern(
+        shouldHaveValue("scotch.test.(main#f)", patterns("scotch.test.(main#f#0)", t(13), arg("#0", t(12)), pattern(
             "scotch.test.(main#f#0#0)",
             asList(capture("#0", "x", t(2))),
             apply(id("a", t(3)), id("x", t(4)), t(15))
-        ))));
-        shouldHaveValue("scotch.test.(main#a)", fn("scotch.test.(main#a#0)", arg("#0", t(16)), patterns(t(17), pattern(
+        )));
+        shouldHaveValue("scotch.test.(main#a)", patterns("scotch.test.(main#a#0)", t(17), arg("#0", t(16)), pattern(
             "scotch.test.(main#a#0#0)",
             asList(capture("#0", "g", t(6))),
             apply(apply(id("scotch.test.(+)", t(8)), id("g", t(7)), t(19)), id("g", t(9)), t(20))
-        ))));
+        )));
         shouldHaveValue("scotch.test.main", let(
             "scotch.test.(main#0)",
             asList(valueRef("scotch.test.(main#f)"), valueRef("scotch.test.(main#a)")),
@@ -93,19 +88,15 @@ public class ParsePrecedenceTest extends ParserTest {
             "module scotch.test",
             "fib 0 = 0"
         );
-        shouldHaveValue("scotch.test.fib", fn(
-            "scotch.test.fib#0",
-            arg("#0", t(1)),
-            patterns(t(2), pattern(
-                "scotch.test.fib#0#0",
-                asList(equal("#0", apply(
-                    apply(id("scotch.data.eq.(==)", t(4)), id("#0", t(5)), t(6)),
-                    literal(0),
-                    t(7)
-                ))),
-                literal(0)
-            ))
-        ));
+        shouldHaveValue("scotch.test.fib", patterns("scotch.test.(fib#0)", t(2), arg("#0", t(1)), pattern(
+            "scotch.test.fib#0#0",
+            asList(equal("#0", apply(
+                apply(id("scotch.data.eq.(==)", t(4)), id("#0", t(5)), t(6)),
+                literal(0),
+                t(7)
+            ))),
+            literal(0)
+        )));
     }
 
     @Override

@@ -47,7 +47,7 @@ public class ModuleScope extends Scope {
     private final String                         moduleName;
     private final List<Import>                   imports;
     private final Map<Symbol, SymbolEntry>       entries;
-    private final Map<Symbol, List<PatternCase>> patterns;
+    private final Map<Symbol, List<PatternCase>> patternCases;
     private final Set<Symbol>                    dependencies;
 
     ModuleScope(Scope parent, TypeScope types, SymbolResolver resolver, String moduleName, List<Import> imports) {
@@ -57,7 +57,7 @@ public class ModuleScope extends Scope {
         this.moduleName = moduleName;
         this.imports = ImmutableList.copyOf(imports);
         this.entries = new HashMap<>();
-        this.patterns = new LinkedHashMap<>();
+        this.patternCases = new LinkedHashMap<>();
         this.dependencies = new HashSet<>();
     }
 
@@ -70,7 +70,7 @@ public class ModuleScope extends Scope {
 
     @Override
     public void addPattern(Symbol symbol, PatternCase pattern) {
-        patterns.computeIfAbsent(symbol, k -> new ArrayList<>()).add(pattern);
+        patternCases.computeIfAbsent(symbol, k -> new ArrayList<>()).add(pattern);
     }
 
     @Override
@@ -162,8 +162,8 @@ public class ModuleScope extends Scope {
     }
 
     @Override
-    public Map<Symbol, List<PatternCase>> getPatterns() {
-        return patterns;
+    public Map<Symbol, List<PatternCase>> getPatternCases() {
+        return patternCases;
     }
 
     @Override

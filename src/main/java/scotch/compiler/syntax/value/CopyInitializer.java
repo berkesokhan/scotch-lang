@@ -57,9 +57,9 @@ public class CopyInitializer extends Value {
     }
 
     @Override
-    public Value bindMethods(TypeChecker state) {
+    public Value bindMethods(TypeChecker state, InstanceMap instances) {
         return new CopyInitializer(sourceRange, value.bindTypes(state), fields.stream()
-            .map(field -> field.bindMethods(state))
+            .map(field -> field.bindMethods(state, instances))
             .collect(toList()));
     }
 

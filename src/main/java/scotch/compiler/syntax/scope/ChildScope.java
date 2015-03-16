@@ -39,7 +39,7 @@ public class ChildScope extends Scope {
     private final TypeScope                      types;
     private final Set<ChildScope>                children;
     private final Map<Symbol, SymbolEntry>       entries;
-    private final Map<Symbol, List<PatternCase>> patterns;
+    private final Map<Symbol, List<PatternCase>> patternCases;
     private final Set<Symbol>                    dependencies;
     private final List<String>                   captures;
     private final List<String>                   locals;
@@ -52,7 +52,7 @@ public class ChildScope extends Scope {
         this.types = types;
         this.children = new HashSet<>();
         this.entries = new HashMap<>();
-        this.patterns = new LinkedHashMap<>();
+        this.patternCases = new LinkedHashMap<>();
         this.dependencies = new HashSet<>();
         this.captures = new ArrayList<>();
         this.locals = new ArrayList<>();
@@ -75,7 +75,7 @@ public class ChildScope extends Scope {
     }
 
     public void addPattern(Symbol symbol, PatternCase pattern) {
-        patterns.computeIfAbsent(symbol, k -> new ArrayList<>()).add(pattern);
+        patternCases.computeIfAbsent(symbol, k -> new ArrayList<>()).add(pattern);
     }
 
     @Override
@@ -187,8 +187,8 @@ public class ChildScope extends Scope {
         return parent;
     }
 
-    public Map<Symbol, List<PatternCase>> getPatterns() {
-        return patterns;
+    public Map<Symbol, List<PatternCase>> getPatternCases() {
+        return patternCases;
     }
 
     @Override
