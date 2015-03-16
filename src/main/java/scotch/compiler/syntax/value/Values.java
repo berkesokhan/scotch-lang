@@ -6,7 +6,7 @@ import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.definition.DefinitionEntry;
 import scotch.compiler.syntax.definition.Definitions;
-import scotch.compiler.syntax.pattern.PatternMatcher;
+import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.reference.InstanceReference;
 import scotch.compiler.syntax.reference.ValueReference;
@@ -39,7 +39,7 @@ public class Values {
         return new DefinitionEntry(scope, Definitions.scopeDef(function.getSourceRange(), function.getSymbol()));
     }
 
-    public static DefinitionEntry entry(Scope scope, PatternMatcher matcher) {
+    public static DefinitionEntry entry(Scope scope, PatternCase matcher) {
         return DefinitionEntry.entry(scope, Definitions.scopeDef(matcher.getSourceRange(), matcher.getSymbol()));
     }
 
@@ -87,8 +87,8 @@ public class Values {
         return new Method(sourceRange, valueRef, instances, type);
     }
 
-    public static PatternMatchers patterns(SourceRange sourceRange, Type type, List<PatternMatcher> patterns) {
-        return new PatternMatchers(sourceRange, patterns, type);
+    public static PatternMatcher patterns(SourceRange sourceRange, Type type, List<PatternCase> patterns) {
+        return new PatternMatcher(sourceRange, patterns, type);
     }
 
     public static UnboundMethod unboundMethod(SourceRange sourceRange, ValueReference valueRef, Type type) {

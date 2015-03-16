@@ -25,7 +25,7 @@ import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ValueReference;
-import scotch.compiler.syntax.pattern.PatternMatcher;
+import scotch.compiler.syntax.pattern.PatternCase;
 
 public class RootScope extends Scope {
 
@@ -45,7 +45,7 @@ public class RootScope extends Scope {
     }
 
     @Override
-    public void addPattern(Symbol symbol, PatternMatcher pattern) {
+    public void addPattern(Symbol symbol, PatternCase pattern) {
         throw new IllegalStateException();
     }
 
@@ -132,7 +132,7 @@ public class RootScope extends Scope {
     }
 
     @Override
-    public Map<Symbol, List<PatternMatcher>> getPatterns() {
+    public Map<Symbol, List<PatternCase>> getPatterns() {
         throw new IllegalStateException();
     }
 

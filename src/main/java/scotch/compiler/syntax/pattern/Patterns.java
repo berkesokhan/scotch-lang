@@ -1,5 +1,6 @@
 package scotch.compiler.syntax.pattern;
 
+import java.util.List;
 import java.util.Optional;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
@@ -18,6 +19,10 @@ public final class Patterns {
 
     public static IgnorePattern ignore(SourceRange sourceRange, Type type) {
         return new IgnorePattern(sourceRange, type);
+    }
+
+    public static PatternCase pattern(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
+        return new PatternCase(sourceRange, symbol, matches, body);
     }
 
     private Patterns() {

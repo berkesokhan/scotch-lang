@@ -37,18 +37,18 @@ import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ValueReference;
-import scotch.compiler.syntax.pattern.PatternMatcher;
+import scotch.compiler.syntax.pattern.PatternCase;
 
 public class ModuleScope extends Scope {
 
-    private final Scope                             parent;
-    private final TypeScope                         types;
-    private final SymbolResolver                    resolver;
-    private final String                            moduleName;
-    private final List<Import>                      imports;
-    private final Map<Symbol, SymbolEntry>          entries;
-    private final Map<Symbol, List<PatternMatcher>> patterns;
-    private final Set<Symbol>                       dependencies;
+    private final Scope                          parent;
+    private final TypeScope                      types;
+    private final SymbolResolver                 resolver;
+    private final String                         moduleName;
+    private final List<Import>                   imports;
+    private final Map<Symbol, SymbolEntry>       entries;
+    private final Map<Symbol, List<PatternCase>> patterns;
+    private final Set<Symbol>                    dependencies;
 
     ModuleScope(Scope parent, TypeScope types, SymbolResolver resolver, String moduleName, List<Import> imports) {
         this.parent = parent;
@@ -69,7 +69,7 @@ public class ModuleScope extends Scope {
     }
 
     @Override
-    public void addPattern(Symbol symbol, PatternMatcher pattern) {
+    public void addPattern(Symbol symbol, PatternCase pattern) {
         patterns.computeIfAbsent(symbol, k -> new ArrayList<>()).add(pattern);
     }
 
@@ -162,7 +162,7 @@ public class ModuleScope extends Scope {
     }
 
     @Override
-    public Map<Symbol, List<PatternMatcher>> getPatterns() {
+    public Map<Symbol, List<PatternCase>> getPatterns() {
         return patterns;
     }
 

@@ -2,7 +2,7 @@ package scotch.compiler.syntax.definition;
 
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
-import static scotch.compiler.syntax.pattern.PatternMatcher.pattern;
+import static scotch.compiler.syntax.pattern.Patterns.pattern;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
 
 import java.util.List;
@@ -20,7 +20,7 @@ import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.pattern.PatternMatch;
-import scotch.compiler.syntax.pattern.PatternMatcher;
+import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
@@ -57,7 +57,7 @@ public class UnshuffledDefinition extends Definition {
             .withBody(body.accumulateNames(state)));
     }
 
-    public PatternMatcher asPatternMatcher(List<PatternMatch> matches) {
+    public PatternCase asPatternMatcher(List<PatternMatch> matches) {
         return pattern(sourceRange, symbol, matches, body);
     }
 

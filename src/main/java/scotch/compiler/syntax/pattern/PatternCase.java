@@ -24,35 +24,31 @@ import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
-public class PatternMatcher implements Scoped {
-
-    public static PatternMatcher pattern(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
-        return new PatternMatcher(sourceRange, symbol, matches, body);
-    }
+public class PatternCase implements Scoped {
 
     private final SourceRange        sourceRange;
     private final Symbol             symbol;
     private final List<PatternMatch> matches;
     private final Value              body;
 
-    PatternMatcher(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
+    PatternCase(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
         this.sourceRange = sourceRange;
         this.symbol = symbol;
         this.matches = ImmutableList.copyOf(matches);
         this.body = body;
     }
 
-    public PatternMatcher accumulateDependencies(DependencyAccumulator state) {
+    public PatternCase accumulateDependencies(DependencyAccumulator state) {
         return state.keep(withMatches(matches.stream().map(match -> match.accumulateDependencies(state)).collect(toList()))
             .withBody(body.accumulateDependencies(state)));
     }
 
-    public PatternMatcher accumulateNames(NameAccumulator state) {
+    public PatternCase accumulateNames(NameAccumulator state) {
         return state.scoped(this, () -> withMatches(matches.stream().map(match -> match.accumulateNames(state)).collect(toList()))
             .withBody(body.accumulateNames(state)));
     }
 
-    public PatternMatcher checkTypes(TypeChecker state) {
+    public PatternCase checkTypes(TypeChecker state) {
         return state.scoped(this, () -> {
             matches.stream()
                 .map(PatternMatch::getType)
@@ -70,7 +66,7 @@ public class PatternMatcher implements Scoped {
         });
     }
 
-    public PatternMatcher bindMethods(TypeChecker state) {
+    public PatternCase bindMethods(TypeChecker state) {
         return state.scoped(this,
             () -> withMatches(matches.stream()
                 .map(match -> match.bindMethods(state))
@@ -78,7 +74,7 @@ public class PatternMatcher implements Scoped {
             .withBody(body.bindMethods(state)));
     }
 
-    public PatternMatcher bindTypes(TypeChecker state) {
+    public PatternCase bindTypes(TypeChecker state) {
         return state.scoped(this,
             () -> withMatches(matches.stream()
                 .map(match -> match.bindTypes(state))
@@ -90,8 +86,8 @@ public class PatternMatcher implements Scoped {
     public boolean equals(Object o) {
         if (o == this) {
             return true;
-        } else if (o instanceof PatternMatcher) {
-            PatternMatcher other = (PatternMatcher) o;
+        } else if (o instanceof PatternCase) {
+            PatternCase other = (PatternCase) o;
             return Objects.equals(symbol, other.symbol)
                 && Objects.equals(matches, other.matches)
                 && Objects.equals(body, other.body);
@@ -102,7 +98,7 @@ public class PatternMatcher implements Scoped {
 
     public CodeBlock generateBytecode(BytecodeGenerator state) {
         return new CodeBlock() {{
-            state.generate(PatternMatcher.this, () -> {
+            state.generate(PatternCase.this, () -> {
                 label(state.beginCase());
                 state.beginMatches();
                 matches.forEach(match -> append(match.generateBytecode(state)));
@@ -151,7 +147,7 @@ public class PatternMatcher implements Scoped {
         return Objects.hash(symbol, matches, body);
     }
 
-    public PatternMatcher parsePrecedence(PrecedenceParser state) {
+    public PatternCase parsePrecedence(PrecedenceParser state) {
         return state.scoped(this, () -> {
             AtomicInteger counter = new AtomicInteger();
             List<PatternMatch> boundMatches = matches.stream()
@@ -163,15 +159,15 @@ public class PatternMatcher implements Scoped {
         });
     }
 
-    public PatternMatcher qualifyNames(ScopedNameQualifier state) {
+    public PatternCase qualifyNames(ScopedNameQualifier state) {
         return state.scoped(this, () -> withMatches(matches.stream()
             .map(match -> match.qualifyNames(state))
             .collect(toList()))
         .withBody(body.qualifyNames(state)));
     }
 
-    private PatternMatcher withSymbol(Symbol symbol) {
-        return new PatternMatcher(sourceRange, symbol, matches, body);
+    private PatternCase withSymbol(Symbol symbol) {
+        return new PatternCase(sourceRange, symbol, matches, body);
     }
 
     @Override
@@ -179,15 +175,15 @@ public class PatternMatcher implements Scoped {
         return stringify(this) + "(" + symbol + ")";
     }
 
-    public PatternMatcher withBody(Value body) {
-        return new PatternMatcher(sourceRange, symbol, matches, body);
+    public PatternCase withBody(Value body) {
+        return new PatternCase(sourceRange, symbol, matches, body);
     }
 
-    public PatternMatcher withMatches(List<PatternMatch> matches) {
-        return new PatternMatcher(sourceRange, symbol, matches, body);
+    public PatternCase withMatches(List<PatternMatch> matches) {
+        return new PatternCase(sourceRange, symbol, matches, body);
     }
 
-    public PatternMatcher withType(Type type) {
-        return new PatternMatcher(sourceRange, symbol, matches, body.withType(type));
+    public PatternCase withType(Type type) {
+        return new PatternCase(sourceRange, symbol, matches, body.withType(type));
     }
 }

@@ -32,8 +32,8 @@ import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.FunctionValue;
-import scotch.compiler.syntax.pattern.PatternMatcher;
-import scotch.compiler.syntax.value.PatternMatchers;
+import scotch.compiler.syntax.pattern.PatternCase;
+import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
@@ -56,7 +56,7 @@ public class PrecedenceParser {
         this.errors = new ArrayList<>();
     }
 
-    public void addPattern(Symbol symbol, PatternMatcher matcher) {
+    public void addPattern(Symbol symbol, PatternCase matcher) {
         scope().getParent().addPattern(symbol, matcher);
     }
 
@@ -123,7 +123,7 @@ public class PrecedenceParser {
         List<DefinitionReference> members = new ArrayList<>();
         scope().getPatterns().forEach((symbol, patterns) -> {
             SourceRange sourceRange = patterns.subList(1, patterns.size()).stream()
-                .map(PatternMatcher::getSourceRange)
+                .map(PatternCase::getSourceRange)
                 .reduce(patterns.get(0).getSourceRange(), SourceRange::extend);
             FunctionValue function = buildFunction(patterns, sourceRange);
 
@@ -217,14 +217,14 @@ public class PrecedenceParser {
         errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceRange));
     }
 
-    private FunctionValue buildFunction(List<PatternMatcher> patterns, SourceRange sourceRange) {
+    private FunctionValue buildFunction(List<PatternCase> patterns, SourceRange sourceRange) {
         Symbol functionSymbol = scope().reserveSymbol(ImmutableList.of());
         List<Argument> arguments = buildFunctionArguments(patterns, sourceRange);
         FunctionValue function = FunctionValue.builder()
             .withSourceRange(sourceRange)
             .withSymbol(functionSymbol)
             .withArguments(arguments)
-            .withBody(PatternMatchers.builder()
+            .withBody(PatternMatcher.builder()
                 .withSourceRange(sourceRange)
                 .withType(scope().reserveType())
                 .withPatterns(patterns)
@@ -234,7 +234,7 @@ public class PrecedenceParser {
         return function;
     }
 
-    private List<Argument> buildFunctionArguments(List<PatternMatcher> patterns, SourceRange sourceRange) {
+    private List<Argument> buildFunctionArguments(List<PatternCase> patterns, SourceRange sourceRange) {
         int arity = patterns.get(0).getArity();
         List<Argument> arguments = new ArrayList<>();
         for (int i = 0; i < arity; i++) {
@@ -252,7 +252,7 @@ public class PrecedenceParser {
         return definition;
     }
 
-    private Definition collect(PatternMatcher pattern) {
+    private Definition collect(PatternCase pattern) {
         return collect(scopeDef(pattern));
     }
 

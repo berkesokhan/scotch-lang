@@ -32,19 +32,19 @@ import scotch.compiler.symbol.type.VariableType;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ValueReference;
-import scotch.compiler.syntax.pattern.PatternMatcher;
+import scotch.compiler.syntax.pattern.PatternCase;
 
 public class ChildScope extends Scope {
 
-    private final TypeScope                         types;
-    private final Set<ChildScope>                   children;
-    private final Map<Symbol, SymbolEntry>          entries;
-    private final Map<Symbol, List<PatternMatcher>> patterns;
-    private final Set<Symbol>                       dependencies;
-    private final List<String>                      captures;
-    private final List<String>                      locals;
-    private final String                            moduleName;
-    private Scope parent;
+    private final TypeScope                      types;
+    private final Set<ChildScope>                children;
+    private final Map<Symbol, SymbolEntry>       entries;
+    private final Map<Symbol, List<PatternCase>> patterns;
+    private final Set<Symbol>                    dependencies;
+    private final List<String>                   captures;
+    private final List<String>                   locals;
+    private final String                         moduleName;
+    private       Scope                          parent;
 
     ChildScope(String moduleName, Scope parent, TypeScope types) {
         this.moduleName = moduleName;
@@ -74,7 +74,7 @@ public class ChildScope extends Scope {
         }
     }
 
-    public void addPattern(Symbol symbol, PatternMatcher pattern) {
+    public void addPattern(Symbol symbol, PatternCase pattern) {
         patterns.computeIfAbsent(symbol, k -> new ArrayList<>()).add(pattern);
     }
 
@@ -187,7 +187,7 @@ public class ChildScope extends Scope {
         return parent;
     }
 
-    public Map<Symbol, List<PatternMatcher>> getPatterns() {
+    public Map<Symbol, List<PatternCase>> getPatterns() {
         return patterns;
     }
 

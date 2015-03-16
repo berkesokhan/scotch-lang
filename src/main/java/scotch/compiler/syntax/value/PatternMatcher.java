@@ -21,20 +21,20 @@ import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.syntax.pattern.PatternMatcher;
+import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.text.SourceRange;
 
-public class PatternMatchers extends Value {
+public class PatternMatcher extends Value {
 
     public static Builder builder() {
         return new Builder();
     }
 
-    private final SourceRange          sourceRange;
-    private final List<PatternMatcher> matchers;
-    private final Type                 type;
+    private final SourceRange       sourceRange;
+    private final List<PatternCase> matchers;
+    private final Type              type;
 
-    PatternMatchers(SourceRange sourceRange, List<PatternMatcher> matchers, Type type) {
+    PatternMatcher(SourceRange sourceRange, List<PatternCase> matchers, Type type) {
         this.sourceRange = sourceRange;
         this.matchers = matchers;
         this.type = type;
@@ -71,7 +71,7 @@ public class PatternMatchers extends Value {
 
     @Override
     public Value checkTypes(TypeChecker state) {
-        List<PatternMatcher> patterns = matchers.stream()
+        List<PatternCase> patterns = matchers.stream()
             .map(matcher -> matcher.checkTypes(state))
             .collect(toList());
         AtomicReference<Type> type = new AtomicReference<>(state.reserveType());
@@ -99,8 +99,8 @@ public class PatternMatchers extends Value {
     public boolean equals(Object o) {
         if (o == this) {
             return true;
-        } else if (o instanceof PatternMatchers) {
-            PatternMatchers other = (PatternMatchers) o;
+        } else if (o instanceof PatternMatcher) {
+            PatternMatcher other = (PatternMatcher) o;
             return Objects.equals(matchers, other.matchers)
                 && Objects.equals(type, other.type);
         } else {
@@ -117,7 +117,7 @@ public class PatternMatchers extends Value {
         }};
     }
 
-    public List<PatternMatcher> getMatchers() {
+    public List<PatternCase> getMatchers() {
         return matchers;
     }
 
@@ -164,24 +164,24 @@ public class PatternMatchers extends Value {
         );
     }
 
-    public PatternMatchers withMatchers(List<PatternMatcher> matchers) {
-        return new PatternMatchers(sourceRange, matchers, type);
+    public PatternMatcher withMatchers(List<PatternCase> matchers) {
+        return new PatternMatcher(sourceRange, matchers, type);
     }
 
-    public PatternMatchers withSourceRange(SourceRange sourceRange) {
-        return new PatternMatchers(sourceRange, matchers, type);
+    public PatternMatcher withSourceRange(SourceRange sourceRange) {
+        return new PatternMatcher(sourceRange, matchers, type);
     }
 
     @Override
-    public PatternMatchers withType(Type type) {
-        return new PatternMatchers(sourceRange, matchers, type);
+    public PatternMatcher withType(Type type) {
+        return new PatternMatcher(sourceRange, matchers, type);
     }
 
-    public static class Builder implements SyntaxBuilder<PatternMatchers> {
+    public static class Builder implements SyntaxBuilder<PatternMatcher> {
 
-        private Optional<SourceRange>          sourceRange;
-        private Optional<List<PatternMatcher>> patterns;
-        private Optional<Type>                 type;
+        private Optional<SourceRange>       sourceRange;
+        private Optional<List<PatternCase>> patterns;
+        private Optional<Type>              type;
 
         private Builder() {
             sourceRange = Optional.empty();
@@ -190,7 +190,7 @@ public class PatternMatchers extends Value {
         }
 
         @Override
-        public PatternMatchers build() {
+        public PatternMatcher build() {
             return patterns(
                 require(sourceRange, "Source range"),
                 require(type, "Pattern type"),
@@ -198,7 +198,7 @@ public class PatternMatchers extends Value {
             );
         }
 
-        public Builder withPatterns(List<PatternMatcher> patterns) {
+        public Builder withPatterns(List<PatternCase> patterns) {
             this.patterns = Optional.of(patterns);
             return this;
         }

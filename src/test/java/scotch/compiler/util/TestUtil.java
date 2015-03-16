@@ -42,7 +42,7 @@ import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.pattern.CaptureMatch;
 import scotch.compiler.syntax.pattern.EqualMatch;
 import scotch.compiler.syntax.pattern.PatternMatch;
-import scotch.compiler.syntax.pattern.PatternMatcher;
+import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.syntax.pattern.Patterns;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.DataReference;
@@ -65,7 +65,7 @@ import scotch.compiler.syntax.value.InitializerField;
 import scotch.compiler.syntax.value.Instance;
 import scotch.compiler.syntax.value.IntLiteral;
 import scotch.compiler.syntax.value.Let;
-import scotch.compiler.syntax.value.PatternMatchers;
+import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.StringLiteral;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
@@ -254,11 +254,11 @@ public class TestUtil {
         return DefinitionReference.operatorRef(symbol(name));
     }
 
-    public static PatternMatcher pattern(String name, List<PatternMatch> matches, Value body) {
-        return PatternMatcher.pattern(NULL_SOURCE, symbol(name), matches, body);
+    public static PatternCase pattern(String name, List<PatternMatch> matches, Value body) {
+        return Patterns.pattern(NULL_SOURCE, symbol(name), matches, body);
     }
 
-    public static PatternMatchers patterns(Type type, PatternMatcher... matchers) {
+    public static PatternMatcher patterns(Type type, PatternCase... matchers) {
         return Values.patterns(NULL_SOURCE, type, asList(matchers));
     }
 

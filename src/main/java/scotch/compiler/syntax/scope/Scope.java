@@ -25,7 +25,7 @@ import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ModuleReference;
 import scotch.compiler.syntax.reference.ValueReference;
-import scotch.compiler.syntax.pattern.PatternMatcher;
+import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 
@@ -60,7 +60,7 @@ public abstract class Scope implements TypeScope {
         throw new IllegalStateException();
     }
 
-    public abstract void addPattern(Symbol symbol, PatternMatcher pattern);
+    public abstract void addPattern(Symbol symbol, PatternCase pattern);
 
     public void redefineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor) {
         Optional<SymbolEntry> optionalEntry = getEntry(symbol);
@@ -133,7 +133,7 @@ public abstract class Scope implements TypeScope {
 
     public abstract Scope getParent();
 
-    public abstract Map<Symbol, List<PatternMatcher>> getPatterns();
+    public abstract Map<Symbol, List<PatternCase>> getPatterns();
 
     public Optional<Type> getRawValue(ValueReference reference) {
         return getRawValue(reference.getSymbol());

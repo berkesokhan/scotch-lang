@@ -25,7 +25,7 @@ import scotch.compiler.syntax.definition.DefinitionEntry;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.syntax.pattern.PatternMatcher;
+import scotch.compiler.syntax.pattern.PatternCase;
 
 public class NameAccumulator {
 
@@ -67,7 +67,7 @@ public class NameAccumulator {
         return definition;
     }
 
-    public Definition collect(PatternMatcher pattern) {
+    public Definition collect(PatternCase pattern) {
         return collect(scopeDef(pattern));
     }
 
