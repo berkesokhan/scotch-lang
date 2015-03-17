@@ -45,8 +45,8 @@ public class InitializerField {
         return withValue(value.accumulateNames(state));
     }
 
-    public InitializerField bindMethods(TypeChecker state, InstanceMap instances) {
-        return withValue(value.bindMethods(state, instances));
+    public InitializerField bindMethods(TypeChecker state) {
+        return withValue(value.bindMethods(state));
     }
 
     public InitializerField bindTypes(TypeChecker state) {

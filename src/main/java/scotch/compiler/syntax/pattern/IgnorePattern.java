@@ -16,7 +16,6 @@ import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.syntax.value.InstanceMap;
 import scotch.compiler.text.SourceRange;
 
 @AllArgsConstructor(access = PACKAGE)
@@ -47,7 +46,7 @@ public class IgnorePattern extends PatternMatch {
     }
 
     @Override
-    public PatternMatch bindMethods(TypeChecker state, InstanceMap instances) {
+    public PatternMatch bindMethods(TypeChecker state) {
         return this;
     }
 

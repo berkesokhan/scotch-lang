@@ -72,8 +72,8 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
-    public Value bindMethods(TypeChecker state, InstanceMap instances) {
-        return state.scoped(this, () -> withBody(body.bindMethods(state, instances)));
+    public Value bindMethods(TypeChecker state) {
+        return state.scoped(this, () -> withBody(body.bindMethods(state)));
     }
 
     @Override

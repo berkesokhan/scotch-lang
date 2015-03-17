@@ -24,7 +24,6 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Identifier;
-import scotch.compiler.syntax.value.InstanceMap;
 import scotch.compiler.text.SourceRange;
 import scotch.compiler.util.Either;
 import scotch.compiler.util.Pair;
@@ -77,7 +76,7 @@ public class CaptureMatch extends PatternMatch {
     }
 
     @Override
-    public PatternMatch bindMethods(TypeChecker state, InstanceMap instances) {
+    public PatternMatch bindMethods(TypeChecker state) {
         return this;
     }
 

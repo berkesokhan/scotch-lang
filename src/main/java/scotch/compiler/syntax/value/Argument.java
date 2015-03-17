@@ -50,7 +50,7 @@ public class Argument extends Value {
     }
 
     @Override
-    public Argument bindMethods(TypeChecker state, InstanceMap instances) {
+    public Argument bindMethods(TypeChecker state) {
         return this;
     }
 

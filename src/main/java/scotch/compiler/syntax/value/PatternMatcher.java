@@ -83,9 +83,9 @@ public class PatternMatcher extends Value implements Scoped {
     }
 
     @Override
-    public Value bindMethods(TypeChecker state, InstanceMap instances) {
+    public Value bindMethods(TypeChecker state) {
         return withPatternCases(patternCases.stream()
-            .map(matcher -> matcher.bindMethods(state, instances))
+            .map(matcher -> matcher.bindMethods(state))
             .collect(toList()));
     }
 

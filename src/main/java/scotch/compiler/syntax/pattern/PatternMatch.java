@@ -37,7 +37,7 @@ public abstract class PatternMatch {
 
     public abstract PatternMatch bind(String argument, Scope scope);
 
-    public abstract PatternMatch bindMethods(TypeChecker state, InstanceMap instances);
+    public abstract PatternMatch bindMethods(TypeChecker state);
 
     public abstract PatternMatch bindTypes(TypeChecker state);
 

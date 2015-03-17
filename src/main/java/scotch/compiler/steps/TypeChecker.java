@@ -277,7 +277,7 @@ public class TypeChecker implements TypeScope {
         InstanceMap instances = buildInstanceMap(definition);
         return scoped(definition, () -> {
             if (instances.isEmpty()) {
-                return definition.withBody(definition.getBody().bindMethods(this, instances));
+                return definition.withBody(definition.getBody().bindMethods(this));
             } else {
                 List<Argument> instanceArguments = getAdditionalArguments(definition, instances);
                 arguments.push(instanceArguments.stream()
@@ -321,7 +321,7 @@ public class TypeChecker implements TypeScope {
                             });
                             return function;
                         })
-                        .bindMethods(this, instances));
+                        .bindMethods(this));
                 } finally {
                     arguments.pop();
                 }
@@ -383,9 +383,9 @@ public class TypeChecker implements TypeScope {
         scopes.pop();
     }
 
-    public List<Value> bindMethods(List<Value> values, InstanceMap instances) {
+    public List<Value> bindMethods(List<Value> values) {
         return values.stream()
-            .map(value -> value.bindMethods(this, instances))
+            .map(value -> value.bindMethods(this))
             .collect(toList());
     }
 

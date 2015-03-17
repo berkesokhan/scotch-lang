@@ -56,7 +56,7 @@ public abstract class Value {
 
     public abstract Value bindTypes(TypeChecker state);
 
-    public abstract Value bindMethods(TypeChecker state, InstanceMap instances);
+    public abstract Value bindMethods(TypeChecker state);
 
     public abstract Value checkTypes(TypeChecker state);
 
