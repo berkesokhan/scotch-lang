@@ -3,7 +3,7 @@ package scotch.compiler.syntax.reference;
 import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
-import scotch.compiler.symbol.Symbol;
+import scotch.symbol.Symbol;
 
 public class OperatorReference extends DefinitionReference {
 

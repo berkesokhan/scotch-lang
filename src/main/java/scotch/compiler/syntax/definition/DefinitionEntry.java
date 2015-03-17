@@ -1,7 +1,7 @@
 package scotch.compiler.syntax.definition;
 
 import java.util.Set;
-import scotch.compiler.symbol.Symbol;
+import scotch.symbol.Symbol;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceRange;

@@ -1,12 +1,12 @@
 package scotch.compiler.parser;
 
-import static scotch.compiler.symbol.Symbol.qualified;
+import static scotch.symbol.Symbol.qualified;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.Initializer;

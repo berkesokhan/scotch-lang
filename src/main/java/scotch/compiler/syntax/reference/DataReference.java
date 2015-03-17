@@ -5,7 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
-import scotch.compiler.symbol.Symbol;
+import scotch.symbol.Symbol;
 
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)

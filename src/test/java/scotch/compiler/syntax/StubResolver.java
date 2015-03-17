@@ -2,17 +2,17 @@ package scotch.compiler.syntax;
 
 import static java.util.Arrays.asList;
 import static org.mockito.Mockito.mock;
-import static scotch.compiler.symbol.Operator.operator;
-import static scotch.compiler.symbol.Symbol.qualified;
-import static scotch.compiler.symbol.Symbol.symbol;
-import static scotch.compiler.symbol.SymbolEntry.immutableEntry;
-import static scotch.compiler.symbol.descriptor.TypeClassDescriptor.typeClass;
-import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
-import static scotch.compiler.symbol.Value.Fixity.RIGHT_INFIX;
-import static scotch.compiler.symbol.type.Types.ctor;
-import static scotch.compiler.symbol.type.Types.fn;
-import static scotch.compiler.symbol.type.Types.sum;
-import static scotch.compiler.symbol.type.Types.var;
+import static scotch.symbol.Operator.operator;
+import static scotch.symbol.Symbol.qualified;
+import static scotch.symbol.Symbol.symbol;
+import static scotch.symbol.SymbolEntry.immutableEntry;
+import static scotch.symbol.descriptor.TypeClassDescriptor.typeClass;
+import static scotch.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.symbol.Value.Fixity.RIGHT_INFIX;
+import static scotch.symbol.type.Types.ctor;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.var;
 import static scotch.compiler.util.TestUtil.intType;
 import static scotch.compiler.util.TestUtil.typeInstance;
 
@@ -23,16 +23,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableSet;
-import scotch.compiler.symbol.MethodSignature;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.SymbolEntry;
-import scotch.compiler.symbol.SymbolEntry.ImmutableEntry;
-import scotch.compiler.symbol.SymbolEntry.ImmutableEntryBuilder;
-import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.compiler.symbol.descriptor.TypeParameterDescriptor;
-import scotch.compiler.symbol.type.SumType;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.MethodSignature;
+import scotch.symbol.Symbol;
+import scotch.symbol.SymbolEntry;
+import scotch.symbol.SymbolEntry.ImmutableEntry;
+import scotch.symbol.SymbolEntry.ImmutableEntryBuilder;
+import scotch.symbol.SymbolResolver;
+import scotch.symbol.descriptor.TypeInstanceDescriptor;
+import scotch.symbol.descriptor.TypeParameterDescriptor;
+import scotch.symbol.type.SumType;
+import scotch.symbol.type.Type;
 
 public class StubResolver implements SymbolResolver {
 

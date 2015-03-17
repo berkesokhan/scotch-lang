@@ -12,7 +12,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.function.Function;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.Value;

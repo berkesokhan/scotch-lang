@@ -1,8 +1,8 @@
 package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.symbol.type.Types.sum;
-import static scotch.compiler.symbol.type.Types.t;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.t;
 import static scotch.compiler.syntax.StubResolver.defaultBind;
 import static scotch.compiler.syntax.StubResolver.defaultEither;
 import static scotch.compiler.syntax.StubResolver.defaultLeft;

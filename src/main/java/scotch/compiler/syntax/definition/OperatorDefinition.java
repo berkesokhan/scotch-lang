@@ -1,6 +1,6 @@
 package scotch.compiler.syntax.definition;
 
-import static scotch.compiler.symbol.Operator.operator;
+import static scotch.symbol.Operator.operator;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.reference.DefinitionReference.operatorRef;
 import static scotch.util.StringUtil.stringify;
@@ -15,9 +15,9 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.Operator;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Value.Fixity;
+import scotch.symbol.Operator;
+import scotch.symbol.Symbol;
+import scotch.symbol.Value.Fixity;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;

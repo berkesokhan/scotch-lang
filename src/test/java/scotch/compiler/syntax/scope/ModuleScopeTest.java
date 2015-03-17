@@ -11,10 +11,10 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static scotch.compiler.symbol.Symbol.qualified;
-import static scotch.compiler.symbol.Symbol.symbol;
-import static scotch.compiler.symbol.Symbol.unqualified;
-import static scotch.compiler.symbol.type.Types.t;
+import static scotch.symbol.Symbol.qualified;
+import static scotch.symbol.Symbol.symbol;
+import static scotch.symbol.Symbol.unqualified;
+import static scotch.symbol.type.Types.t;
 import static scotch.compiler.syntax.scope.Scope.scope;
 import static scotch.compiler.util.TestUtil.intType;
 
@@ -27,9 +27,9 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import scotch.compiler.symbol.Operator;
-import scotch.compiler.symbol.util.SymbolGenerator;
-import scotch.compiler.symbol.SymbolResolver;
+import scotch.symbol.Operator;
+import scotch.symbol.util.SymbolGenerator;
+import scotch.symbol.SymbolResolver;
 import scotch.compiler.syntax.definition.Import;
 
 @RunWith(MockitoJUnitRunner.class)

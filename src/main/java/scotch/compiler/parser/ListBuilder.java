@@ -1,11 +1,11 @@
 package scotch.compiler.parser;
 
-import static scotch.compiler.symbol.Symbol.symbol;
+import static scotch.symbol.Symbol.symbol;
 import static scotch.compiler.syntax.value.InitializerField.field;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-import scotch.compiler.symbol.util.SymbolGenerator;
+import scotch.symbol.util.SymbolGenerator;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.value.Constant;
 import scotch.compiler.syntax.value.Identifier;

@@ -2,8 +2,8 @@ package scotch.compiler.syntax.pattern;
 
 import java.util.List;
 import java.util.Optional;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.Symbol;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 

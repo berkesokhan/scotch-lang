@@ -12,7 +12,7 @@ import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.parser.InputParser;
 import scotch.compiler.scanner.Scanner;
-import scotch.compiler.symbol.SymbolResolver;
+import scotch.symbol.SymbolResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 
 // TODO multiple file compilation

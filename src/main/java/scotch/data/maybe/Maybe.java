@@ -1,9 +1,9 @@
 package scotch.data.maybe;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.symbol.type.Types.fn;
-import static scotch.compiler.symbol.type.Types.sum;
-import static scotch.compiler.symbol.type.Types.var;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.var;
 import static scotch.runtime.Callable.box;
 import static scotch.runtime.RuntimeUtil.applicable;
 import static scotch.runtime.RuntimeUtil.callable;
@@ -11,15 +11,15 @@ import static scotch.runtime.RuntimeUtil.flatCallable;
 
 import java.util.List;
 import java.util.Objects;
-import scotch.compiler.symbol.DataConstructor;
-import scotch.compiler.symbol.DataField;
-import scotch.compiler.symbol.DataFieldType;
-import scotch.compiler.symbol.DataType;
-import scotch.compiler.symbol.TypeParameter;
-import scotch.compiler.symbol.TypeParameters;
-import scotch.compiler.symbol.Value;
-import scotch.compiler.symbol.ValueType;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.DataConstructor;
+import scotch.symbol.DataField;
+import scotch.symbol.DataFieldType;
+import scotch.symbol.DataType;
+import scotch.symbol.TypeParameter;
+import scotch.symbol.TypeParameters;
+import scotch.symbol.Value;
+import scotch.symbol.ValueType;
+import scotch.symbol.type.Type;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 

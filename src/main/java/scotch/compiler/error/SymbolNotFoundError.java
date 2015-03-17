@@ -7,7 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
-import scotch.compiler.symbol.Symbol;
+import scotch.symbol.Symbol;
 import scotch.compiler.text.SourceRange;
 
 @AllArgsConstructor(access = PRIVATE)

@@ -18,10 +18,10 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.FunctionType;
-import scotch.compiler.symbol.type.InstanceType;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.Symbol;
+import scotch.symbol.type.FunctionType;
+import scotch.symbol.type.InstanceType;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.text.SourceRange;
 

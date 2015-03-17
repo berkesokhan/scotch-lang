@@ -2,7 +2,7 @@ package scotch.compiler.syntax.definition;
 
 import java.util.HashSet;
 import java.util.Set;
-import scotch.compiler.symbol.Symbol;
+import scotch.symbol.Symbol;
 import scotch.compiler.text.SourceRange;
 
 public final class DefinitionNode {

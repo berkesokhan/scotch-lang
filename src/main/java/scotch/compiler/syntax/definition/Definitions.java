@@ -1,9 +1,9 @@
 package scotch.compiler.syntax.definition;
 
 import java.util.List;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Value.Fixity;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.Symbol;
+import scotch.symbol.Value.Fixity;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.pattern.PatternMatch;

@@ -3,13 +3,13 @@ package scotch.compiler.steps;
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.compiler.symbol.descriptor.TypeParameterDescriptor.typeParam;
-import static scotch.compiler.symbol.type.Types.fn;
-import static scotch.compiler.symbol.type.Types.instance;
-import static scotch.compiler.symbol.type.Types.sum;
-import static scotch.compiler.symbol.type.Types.t;
-import static scotch.compiler.symbol.type.Types.var;
-import static scotch.compiler.symbol.type.Unification.mismatch;
+import static scotch.symbol.descriptor.TypeParameterDescriptor.typeParam;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Types.instance;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.t;
+import static scotch.symbol.type.Types.var;
+import static scotch.symbol.type.Unification.mismatch;
 import static scotch.compiler.syntax.StubResolver.defaultBind;
 import static scotch.compiler.syntax.StubResolver.defaultDollarSign;
 import static scotch.compiler.syntax.StubResolver.defaultEither;
@@ -52,8 +52,8 @@ import java.util.function.Function;
 import org.junit.Test;
 import scotch.compiler.Compiler;
 import scotch.compiler.ParserTest;
-import scotch.compiler.symbol.type.InstanceType;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.type.InstanceType;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.reference.DefinitionReference;
@@ -391,18 +391,18 @@ public class TypeCheckerTest extends ParserTest {
             asList(arg("#0i", instance), arg("#0", t), arg("#1", t)),
             pattern(
                 "scotch.test.(fn#0#1)", asList(capture("#0", "x", t), capture("#1", "y", t)), apply(
-                apply(
                     apply(
-                        method("scotch.data.num.(+)", asList(instance(num, var("a"))), fn(instance, fn(t, fn(t, t)))),
-                        arg("#0i", instance),
-                        fn(t, fn(t, t))
+                        apply(
+                            method("scotch.data.num.(+)", asList(instance(num, var("a"))), fn(instance, fn(t, fn(t, t)))),
+                            arg("#0i", instance),
+                            fn(t, fn(t, t))
+                        ),
+                        arg("x", t),
+                        fn(t, t)
                     ),
-                    arg("x", t),
-                    fn(t, t)
-                ),
-                arg("y", t),
-                t
-            ))
+                    arg("y", t),
+                    t
+                ))
         ));
     }
 

@@ -11,7 +11,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import scotch.compiler.symbol.type.VariableType;
+import scotch.symbol.type.VariableType;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.util.Pair;
 

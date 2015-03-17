@@ -8,7 +8,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import scotch.compiler.symbol.type.Types;
+import scotch.symbol.type.Types;
 
 public class ClassDefinitionTest {
 

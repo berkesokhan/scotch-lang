@@ -2,10 +2,10 @@ package scotch.compiler.syntax.value;
 
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
-import static scotch.compiler.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.sum;
 
 import me.qmx.jitescript.CodeBlock;
-import scotch.compiler.symbol.type.Types;
+import scotch.symbol.type.Types;
 import scotch.compiler.text.SourceRange;
 
 public class CharLiteral extends LiteralValue<Character> {

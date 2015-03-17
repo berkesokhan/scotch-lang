@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static scotch.compiler.Compiler.compiler;
-import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.syntax.reference.DefinitionReference.signatureRef;
 import static scotch.compiler.util.TestUtil.classDef;
 import static scotch.compiler.util.TestUtil.classRef;
@@ -15,6 +14,7 @@ import static scotch.compiler.util.TestUtil.dataDef;
 import static scotch.compiler.util.TestUtil.dataRef;
 import static scotch.compiler.util.TestUtil.value;
 import static scotch.compiler.util.TestUtil.valueRef;
+import static scotch.symbol.Symbol.symbol;
 import static scotch.util.StringUtil.quote;
 
 import java.net.URI;
@@ -24,7 +24,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DataFieldDefinition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
@@ -33,6 +32,7 @@ import scotch.compiler.syntax.definition.ValueSignature;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Value;
+import scotch.symbol.type.Type;
 
 public abstract class ParserTest {
 

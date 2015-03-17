@@ -2,9 +2,9 @@ package scotch.compiler.steps;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.compiler.symbol.Operator.operator;
-import static scotch.compiler.symbol.Symbol.symbol;
-import static scotch.compiler.symbol.Value.Fixity.RIGHT_INFIX;
+import static scotch.symbol.Operator.operator;
+import static scotch.symbol.Symbol.symbol;
+import static scotch.symbol.Value.Fixity.RIGHT_INFIX;
 import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
 import static scotch.compiler.syntax.reference.DefinitionReference.operatorRef;
 
@@ -12,7 +12,7 @@ import java.util.function.Function;
 import org.junit.Test;
 import scotch.compiler.Compiler;
 import scotch.compiler.ParserTest;
-import scotch.compiler.symbol.Value.Fixity;
+import scotch.symbol.Value.Fixity;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.definition.OperatorDefinition;

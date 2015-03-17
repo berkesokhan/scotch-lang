@@ -4,7 +4,7 @@ import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 
 import me.qmx.jitescript.CodeBlock;
-import scotch.compiler.symbol.type.Types;
+import scotch.symbol.type.Types;
 import scotch.compiler.text.SourceRange;
 
 public class IntLiteral extends LiteralValue<Integer> {

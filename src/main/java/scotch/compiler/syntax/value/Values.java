@@ -2,8 +2,8 @@ package scotch.compiler.syntax.value;
 
 import java.util.List;
 import java.util.Optional;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.Symbol;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.definition.DefinitionEntry;
 import scotch.compiler.syntax.definition.Definitions;
 import scotch.compiler.syntax.pattern.PatternCase;

@@ -2,10 +2,10 @@ package scotch.runner;
 
 import static java.lang.System.out;
 import static java.util.stream.Collectors.toList;
-import static scotch.compiler.Compiler.compiler;
 import static scotch.compiler.ClassLoaderResolver.resolver;
-import static scotch.compiler.symbol.Symbol.getPackagePath;
-import static scotch.compiler.symbol.Symbol.toJavaName;
+import static scotch.compiler.Compiler.compiler;
+import static scotch.symbol.Symbol.getPackagePath;
+import static scotch.symbol.Symbol.toJavaName;
 
 import java.io.File;
 import java.nio.file.Files;

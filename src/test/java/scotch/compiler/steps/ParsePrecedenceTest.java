@@ -1,7 +1,7 @@
 package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.symbol.type.Types.t;
+import static scotch.symbol.type.Types.t;
 import static scotch.compiler.syntax.value.Values.apply;
 import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;

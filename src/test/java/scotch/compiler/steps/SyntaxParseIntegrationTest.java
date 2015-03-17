@@ -1,12 +1,12 @@
 package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.symbol.Symbol.qualified;
-import static scotch.compiler.symbol.SymbolEntry.immutableEntry;
-import static scotch.compiler.symbol.type.Types.fn;
-import static scotch.compiler.symbol.type.Types.sum;
-import static scotch.compiler.symbol.type.Types.t;
-import static scotch.compiler.symbol.type.Types.var;
+import static scotch.symbol.Symbol.qualified;
+import static scotch.symbol.SymbolEntry.immutableEntry;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.t;
+import static scotch.symbol.type.Types.var;
 import static scotch.compiler.syntax.StubResolver.defaultEq;
 import static scotch.compiler.syntax.StubResolver.defaultInt;
 import static scotch.compiler.syntax.StubResolver.defaultPlus;

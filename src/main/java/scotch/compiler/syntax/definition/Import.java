@@ -5,10 +5,10 @@ import static java.util.stream.Collectors.toSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.Symbol;
+import scotch.symbol.SymbolResolver;
+import scotch.symbol.descriptor.TypeInstanceDescriptor;
+import scotch.symbol.type.Type;
 import scotch.compiler.text.SourceRange;
 
 public abstract class Import {
