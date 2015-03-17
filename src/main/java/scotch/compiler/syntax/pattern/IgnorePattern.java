@@ -33,12 +33,12 @@ public class IgnorePattern extends PatternMatch {
 
     @Override
     public PatternMatch accumulateDependencies(DependencyAccumulator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
     public PatternMatch accumulateNames(NameAccumulator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
@@ -48,22 +48,22 @@ public class IgnorePattern extends PatternMatch {
 
     @Override
     public PatternMatch bindMethods(TypeChecker state, InstanceMap instances) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
     public PatternMatch bindTypes(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+        return withType(state.generate(type));
     }
 
     @Override
     public PatternMatch checkTypes(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return new CodeBlock();
     }
 
     @Override
@@ -78,12 +78,12 @@ public class IgnorePattern extends PatternMatch {
 
     @Override
     public PatternMatch qualifyNames(ScopedNameQualifier state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
-    public PatternMatch withType(Type generate) {
-        throw new UnsupportedOperationException(); // TODO
+    public PatternMatch withType(Type type) {
+        return new IgnorePattern(sourceRange, type);
     }
 
     public static class Builder implements SyntaxBuilder<IgnorePattern> {

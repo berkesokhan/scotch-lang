@@ -325,6 +325,16 @@ public class BytecodeGeneratorTest {
         assertThat(result, is(true));
     }
 
+    @Test
+    public void shouldParseIgnoredPattern() {
+        int result = exec(
+            "module scotch.test",
+            "fn = \\_ -> 2",
+            "run = fn 3"
+        );
+        assertThat(result, is(2));
+    }
+
     @Ignore
     @Test
     public void shouldCompileShow() {
