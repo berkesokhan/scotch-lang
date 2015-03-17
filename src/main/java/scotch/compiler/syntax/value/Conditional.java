@@ -20,6 +20,7 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
+import scotch.runtime.RuntimeSupport;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
@@ -106,7 +107,7 @@ public class Conditional extends Value {
             LabelNode falseBranch = new LabelNode();
             LabelNode end = new LabelNode();
             append(condition.generateBytecode(state));
-            invokestatic(p(Callable.class), "unboxBool", sig(boolean.class, Callable.class));
+            invokestatic(p(RuntimeSupport.class), "unboxBool", sig(boolean.class, Callable.class));
             iffalse(falseBranch);
             append(whenTrue.generateBytecode(state));
             go_to(end);

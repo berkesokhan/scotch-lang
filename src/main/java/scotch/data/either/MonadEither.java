@@ -5,7 +5,7 @@ import static scotch.symbol.type.Types.sum;
 import static scotch.symbol.type.Types.var;
 import static scotch.data.either.Either.left;
 import static scotch.data.either.Either.right;
-import static scotch.runtime.RuntimeUtil.callable;
+import static scotch.runtime.RuntimeSupport.callable;
 
 import java.util.List;
 import scotch.symbol.InstanceGetter;

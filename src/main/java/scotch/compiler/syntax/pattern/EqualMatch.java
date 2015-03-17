@@ -16,6 +16,7 @@ import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
+import scotch.runtime.RuntimeSupport;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
@@ -99,7 +100,7 @@ public class EqualMatch extends PatternMatch {
     public CodeBlock generateBytecode(BytecodeGenerator state) {
         return new CodeBlock() {{
             append(value.generateBytecode(state));
-            invokestatic(p(Callable.class), "unboxBool", sig(boolean.class, Callable.class));
+            invokestatic(p(RuntimeSupport.class), "unboxBool", sig(boolean.class, Callable.class));
             iffalse(state.nextCase());
         }};
     }

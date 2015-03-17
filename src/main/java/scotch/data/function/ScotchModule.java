@@ -3,9 +3,9 @@ package scotch.data.function;
 import static scotch.symbol.Value.Fixity.RIGHT_INFIX;
 import static scotch.symbol.type.Types.fn;
 import static scotch.symbol.type.Types.var;
-import static scotch.runtime.RuntimeUtil.applicable;
-import static scotch.runtime.RuntimeUtil.callable;
-import static scotch.runtime.RuntimeUtil.flatCallable;
+import static scotch.runtime.RuntimeSupport.applicable;
+import static scotch.runtime.RuntimeSupport.callable;
+import static scotch.runtime.RuntimeSupport.flatCallable;
 
 import scotch.symbol.Value;
 import scotch.symbol.ValueType;

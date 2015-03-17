@@ -19,6 +19,7 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
+import scotch.runtime.RuntimeSupport;
 import scotch.symbol.type.Type;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
@@ -102,7 +103,7 @@ public class CopyInitializer extends Value {
                         pop();
                     });
                     invokeinterface(p(Copyable.class), "copy", sig(Copyable.class, Map.class));
-                    invokestatic(p(Callable.class), "box", sig(Callable.class, Object.class));
+                    invokestatic(p(RuntimeSupport.class), "box", sig(Callable.class, Object.class));
                     areturn();
                 }});
             }});

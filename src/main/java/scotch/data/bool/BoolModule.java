@@ -2,8 +2,8 @@ package scotch.data.bool;
 
 import static scotch.symbol.type.Types.fn;
 import static scotch.symbol.type.Types.sum;
-import static scotch.runtime.RuntimeUtil.applicable;
-import static scotch.runtime.RuntimeUtil.callable;
+import static scotch.runtime.RuntimeSupport.applicable;
+import static scotch.runtime.RuntimeSupport.callable;
 
 import scotch.symbol.type.Type;
 import scotch.symbol.Value;

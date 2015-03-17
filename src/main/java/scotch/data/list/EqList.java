@@ -3,7 +3,7 @@ package scotch.data.list;
 import static java.util.Arrays.asList;
 import static scotch.symbol.type.Types.sum;
 import static scotch.symbol.type.Types.var;
-import static scotch.runtime.RuntimeUtil.callable;
+import static scotch.runtime.RuntimeSupport.callable;
 
 import java.util.List;
 import scotch.symbol.InstanceGetter;

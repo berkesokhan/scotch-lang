@@ -4,13 +4,14 @@ import static java.util.Arrays.asList;
 import static scotch.symbol.type.Types.fn;
 import static scotch.symbol.type.Types.sum;
 import static scotch.symbol.type.Types.var;
-import static scotch.runtime.Callable.box;
-import static scotch.runtime.RuntimeUtil.applicable;
-import static scotch.runtime.RuntimeUtil.callable;
-import static scotch.runtime.RuntimeUtil.flatCallable;
+import static scotch.runtime.RuntimeSupport.box;
+import static scotch.runtime.RuntimeSupport.applicable;
+import static scotch.runtime.RuntimeSupport.callable;
+import static scotch.runtime.RuntimeSupport.flatCallable;
 
 import java.util.List;
 import java.util.Objects;
+import scotch.runtime.RuntimeSupport;
 import scotch.symbol.DataConstructor;
 import scotch.symbol.DataField;
 import scotch.symbol.DataFieldType;
@@ -39,7 +40,7 @@ public abstract class Maybe<A> {
 
     @SuppressWarnings("unchecked")
     public static <A> Maybe<A> just(A value) {
-        return (Maybe<A>) just().apply(box(value)).call();
+        return (Maybe<A>) just().apply(RuntimeSupport.box(value)).call();
     }
 
     @ValueType(forMember = "Just")

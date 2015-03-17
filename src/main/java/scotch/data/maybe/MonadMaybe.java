@@ -4,7 +4,7 @@ import static java.util.Arrays.asList;
 import static scotch.symbol.type.Types.sum;
 import static scotch.data.maybe.Maybe.just;
 import static scotch.data.maybe.Maybe.nothing;
-import static scotch.runtime.RuntimeUtil.callable;
+import static scotch.runtime.RuntimeSupport.callable;
 
 import java.util.List;
 import scotch.symbol.InstanceGetter;

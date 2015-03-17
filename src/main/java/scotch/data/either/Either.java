@@ -4,12 +4,13 @@ import static java.util.Arrays.asList;
 import static scotch.symbol.type.Types.fn;
 import static scotch.symbol.type.Types.sum;
 import static scotch.symbol.type.Types.var;
-import static scotch.runtime.Callable.box;
-import static scotch.runtime.RuntimeUtil.applicable;
-import static scotch.runtime.RuntimeUtil.callable;
+import static scotch.runtime.RuntimeSupport.box;
+import static scotch.runtime.RuntimeSupport.applicable;
+import static scotch.runtime.RuntimeSupport.callable;
 
 import java.util.List;
 import java.util.Objects;
+import scotch.runtime.RuntimeSupport;
 import scotch.symbol.DataConstructor;
 import scotch.symbol.DataType;
 import scotch.symbol.TypeParameter;
@@ -33,7 +34,7 @@ public abstract class Either<A, B> {
     }
 
     public static <A, B> Either<A, B> left(A value) {
-        return Either.<A, B>left().apply(box(value)).call();
+        return Either.<A, B>left().apply(RuntimeSupport.box(value)).call();
     }
 
     @ValueType(forMember = "Left")

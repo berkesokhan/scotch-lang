@@ -5,10 +5,11 @@ import static scotch.symbol.Value.Fixity.LEFT_INFIX;
 import static scotch.symbol.type.Types.fn;
 import static scotch.symbol.type.Types.sum;
 import static scotch.symbol.type.Types.var;
-import static scotch.runtime.Callable.box;
-import static scotch.runtime.RuntimeUtil.applicable;
-import static scotch.runtime.RuntimeUtil.flatCallable;
+import static scotch.runtime.RuntimeSupport.box;
+import static scotch.runtime.RuntimeSupport.applicable;
+import static scotch.runtime.RuntimeSupport.flatCallable;
 
+import scotch.runtime.RuntimeSupport;
 import scotch.symbol.Member;
 import scotch.symbol.TypeClass;
 import scotch.symbol.TypeParameter;
@@ -116,7 +117,7 @@ public interface Num<A> {
 
     @Member("negate")
     default Callable<A> negate(Callable<A> operand) {
-        return sub(fromInteger(box(0)), operand);
+        return sub(fromInteger(RuntimeSupport.box(0)), operand);
     }
 
     @Member("signum")
