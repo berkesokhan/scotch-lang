@@ -26,11 +26,14 @@ import static scotch.compiler.util.TestUtil.field;
 import static scotch.compiler.util.TestUtil.fieldDef;
 import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
+import static scotch.compiler.util.TestUtil.ignore;
 import static scotch.compiler.util.TestUtil.initializer;
 import static scotch.compiler.util.TestUtil.let;
 import static scotch.compiler.util.TestUtil.literal;
+import static scotch.compiler.util.TestUtil.matcher;
 import static scotch.compiler.util.TestUtil.operatorDef;
 import static scotch.compiler.util.TestUtil.operatorRef;
+import static scotch.compiler.util.TestUtil.pattern;
 import static scotch.compiler.util.TestUtil.root;
 import static scotch.compiler.util.TestUtil.scopeRef;
 import static scotch.compiler.util.TestUtil.signatureRef;
@@ -238,25 +241,48 @@ public class InputParserTest extends ParserTest {
     }
 
     @Test
-    public void shouldParseFunction1() {
+    public void shouldParseCapturingPatternLiteral1() {
         parse(
             "module scotch.test",
             "id = \\x -> x"
         );
-        shouldHaveValue("scotch.test.id", t(0), fn("scotch.test.(id#0)", arg("x", t(1)), id("x", t(2))));
+        shouldHaveValue("scotch.test.id", matcher("scotch.test.(id#0)", t(1), arg("#0", t(3)),
+            pattern("scotch.test.(id#0#0)", asList(capture("x", t(2))), unshuffled(id("x", t(4))))));
     }
 
     @Test
-    public void shouldParseFunction2() {
+    public void shouldParseCapturingPatternLiteral2() {
         parse(
             "module scotch.test",
             "apply2 = \\x y z -> x y z"
         );
-        shouldHaveValue("scotch.test.apply2", t(0), fn(
-            "scotch.test.(apply2#0)",
-            asList(arg("x", t(1)), arg("y", t(2)), arg("z", t(3))),
-            unshuffled(id("x", t(4)), id("y", t(5)), id("z", t(6)))
-        ));
+        shouldHaveValue("scotch.test.apply2", matcher("scotch.test.(apply2#0)", t(1), asList(arg("#0", t(5)), arg("#1", t(6)), arg("#2", t(7))), pattern(
+            "scotch.test.(apply2#0#0)",
+            asList(capture("x", t(2)), capture("y", t(3)), capture("z", t(4))),
+            unshuffled(id("x", t(8)), id("y", t(9)), id("z", t(10)))
+        )));
+    }
+
+    @Test
+    public void shouldNotParseEqualsPatternLiteral() {
+        exception.expect(ParseException.class);
+        exception.expectMessage(containsString("wanted IDENTIFIER [test://shouldNotParseEqualsPatternLiteral (2, 11), (2, 12)]"));
+        parse(
+            "module scotch.test",
+            "apply2 = \\1 y z = y z"
+        );
+    }
+
+    @Test
+    public void shouldParseIgnoredPatternLiteral() {
+        parse(
+            "module scotch.test",
+            "fn = \\_ -> ignored"
+        );
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.fn", matcher("scotch.test.(fn#0)", t(1), arg("#0", t(3)), pattern(
+            "scotch.test.(fn#0#0)", asList(ignore(t(2))), unshuffled(id("ignored", t(4)))
+        )));
     }
 
     @Test

@@ -41,7 +41,7 @@ public class PrecedenceParser {
 
     private final DefinitionGraph                           graph;
     private final Deque<Scope>                              scopes;
-    private final Map<DefinitionReference, Scope>           functionScopes;
+    private final Map<DefinitionReference, Scope>           patternScopes;
     private final Map<DefinitionReference, DefinitionEntry> entries;
     private final Deque<List<String>>                       memberNames;
     private final List<SyntaxError>                         errors;
@@ -49,7 +49,7 @@ public class PrecedenceParser {
     public PrecedenceParser(DefinitionGraph graph) {
         this.graph = graph;
         this.scopes = new ArrayDeque<>();
-        this.functionScopes = new HashMap<>();
+        this.patternScopes = new HashMap<>();
         this.entries = new HashMap<>();
         this.memberNames = new ArrayDeque<>(asList(ImmutableList.of()));
         this.errors = new ArrayList<>();
@@ -133,7 +133,7 @@ public class PrecedenceParser {
                 .forEach(scope -> scope.setParent(getScope(function.getReference())));
 
             Scope scope = scope().enterScope();
-            functionScopes.put(valueRef(symbol), scope);
+            patternScopes.put(valueRef(symbol), scope);
             getScope(function.getReference()).setParent(scope);
             ValueDefinition.builder()
                 .withSourceRange(sourceRange)
@@ -144,7 +144,7 @@ public class PrecedenceParser {
                 .parsePrecedence(this)
                 .map(Definition::getReference)
                 .map(members::add);
-            functionScopes.remove(valueRef(symbol));
+            patternScopes.remove(valueRef(symbol));
         });
         return members;
     }
@@ -225,7 +225,7 @@ public class PrecedenceParser {
             .withArguments(arguments)
             .withPatterns(patternCases)
             .build();
-        functionScopes.put(matcher.getReference(), scope().enterScope());
+        patternScopes.put(matcher.getReference(), scope().enterScope());
         return matcher;
     }
 
@@ -256,7 +256,9 @@ public class PrecedenceParser {
     }
 
     private Scope getScope(DefinitionReference reference) {
-        return graph.tryGetScope(reference).orElseGet(() -> functionScopes.get(reference));
+        return graph.tryGetScope(reference).orElseGet(
+            () -> Optional.ofNullable(patternScopes.get(reference)).orElseGet(
+                () -> entries.get(reference).getScope()));
     }
 
     public void defineOperator(Symbol symbol, Operator operator) {

@@ -83,12 +83,12 @@ public class Values {
         return new StringLiteral(sourceRange, value);
     }
 
-    public static Value method(SourceRange sourceRange, ValueReference valueRef, List<? extends Type> instances, Type type) {
-        return new Method(sourceRange, valueRef, instances, type);
+    public static PatternMatcher matcher(SourceRange sourceRange, Symbol symbol, Type type, List<Argument> arguments, List<PatternCase> patterns) {
+        return new PatternMatcher(sourceRange, symbol, arguments, patterns, type);
     }
 
-    public static PatternMatcher patterns(SourceRange sourceRange, Symbol symbol, Type type, List<Argument> arguments, List<PatternCase> patterns) {
-        return new PatternMatcher(sourceRange, symbol, arguments, patterns, type);
+    public static Value method(SourceRange sourceRange, ValueReference valueRef, List<? extends Type> instances, Type type) {
+        return new Method(sourceRange, valueRef, instances, type);
     }
 
     public static UnboundMethod unboundMethod(SourceRange sourceRange, ValueReference valueRef, Type type) {

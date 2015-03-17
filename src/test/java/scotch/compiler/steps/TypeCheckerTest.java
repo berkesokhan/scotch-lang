@@ -37,14 +37,13 @@ import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.doubleType;
 import static scotch.compiler.util.TestUtil.equal;
 import static scotch.compiler.util.TestUtil.fieldDef;
-import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.instance;
 import static scotch.compiler.util.TestUtil.instanceRef;
 import static scotch.compiler.util.TestUtil.intType;
 import static scotch.compiler.util.TestUtil.literal;
+import static scotch.compiler.util.TestUtil.matcher;
 import static scotch.compiler.util.TestUtil.method;
 import static scotch.compiler.util.TestUtil.pattern;
-import static scotch.compiler.util.TestUtil.patterns;
 import static scotch.compiler.util.TestUtil.scopeRef;
 import static scotch.compiler.util.TestUtil.stringType;
 
@@ -58,6 +57,7 @@ import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.reference.DefinitionReference;
+import scotch.compiler.util.TestUtil;
 
 public class TypeCheckerTest extends ParserTest {
 
@@ -195,7 +195,7 @@ public class TypeCheckerTest extends ParserTest {
             "module scotch.test",
             "apply = \\x y -> x y"
         );
-        shouldHaveValue("scotch.test.apply", fn(fn(t(7), t(8)), fn(t(7), t(8))));
+        shouldHaveValue("scotch.test.apply", fn(fn(t(3), t(8)), fn(t(3), t(8))));
     }
 
     @Test
@@ -237,7 +237,7 @@ public class TypeCheckerTest extends ParserTest {
         InstanceType numType = instance("scotch.data.num.Num", t(17));
         InstanceType eqType = instance("scotch.data.eq.Eq", t(17));
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.fn", patterns("scotch.test.(fn#0)", fn(t, fn(t, bool)),
+        shouldHaveValue("scotch.test.fn", TestUtil.matcher("scotch.test.(fn#0)", fn(t, fn(t, bool)),
             asList(arg("#0i", eqType), arg("#1i", numType), arg("#0", t), arg("#1", t)),
             pattern("scotch.test.(fn#0#0)", asList(capture("#0", "a", t), capture("#1", "b", t)), apply(
                 apply(
@@ -293,7 +293,7 @@ public class TypeCheckerTest extends ParserTest {
         InstanceType numType = instance("scotch.data.num.Num", t(12));
         InstanceType eqType = instance("scotch.data.eq.Eq", t(12));
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.(commutative?)", patterns(
+        shouldHaveValue("scotch.test.(commutative?)", TestUtil.matcher(
             "scotch.test.(commutative?#0)", fn(t, fn(t, bool)), asList(arg("#0i", eqType), arg("#1i", numType), arg("#0", t), arg("#1", t)),
             pattern("scotch.test.(commutative?#0#0)", asList(capture("#0", "a", t), capture("#1", "b", t)), apply(
                 apply(
@@ -356,7 +356,7 @@ public class TypeCheckerTest extends ParserTest {
         Type t = t(11, asList(num));
         InstanceType instance = instance(num, t(11));
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.fn", patterns("scotch.test.(fn#0)", fn(t, fn(t, t)),
+        shouldHaveValue("scotch.test.fn", TestUtil.matcher("scotch.test.(fn#0)", fn(t, fn(t, t)),
             asList(arg("#0i", instance), arg("#0", t), arg("#1", t)),
             pattern("scotch.test.(fn#0#0)", asList(capture("#0", "a", t), capture("#1", "b", t)), apply(
                 apply(
@@ -382,16 +382,18 @@ public class TypeCheckerTest extends ParserTest {
             "fn = \\x y -> x + y"
         );
         String num = "scotch.data.num.Num";
-        Type t = t(11, asList(num));
-        InstanceType instance = instance(num, t(11));
+        Type t = t(10, asList(num));
+        InstanceType instance = instance(num, t(10));
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.fn", fn(
+        shouldHaveValue("scotch.test.fn", matcher(
             "scotch.test.(fn#0)",
-            asList(arg("#0i", instance), arg("x", t), arg("y", t)),
-            apply(
+            fn(t, fn(t, t)),
+            asList(arg("#0i", instance), arg("#0", t), arg("#1", t)),
+            pattern(
+                "scotch.test.(fn#0#1)", asList(capture("#0", "x", t), capture("#1", "y", t)), apply(
                 apply(
                     apply(
-                        method("scotch.data.num.(+)", asList(instance), fn(instance, fn(t, fn(t, t)))),
+                        method("scotch.data.num.(+)", asList(instance(num, var("a"))), fn(instance, fn(t, fn(t, t)))),
                         arg("#0i", instance),
                         fn(t, fn(t, t))
                     ),
@@ -400,7 +402,7 @@ public class TypeCheckerTest extends ParserTest {
                 ),
                 arg("y", t),
                 t
-            )
+            ))
         ));
     }
 
@@ -448,7 +450,7 @@ public class TypeCheckerTest extends ParserTest {
             "fn a b = \\x y -> x a b y"
         );
         shouldNotHaveErrors();
-        shouldHaveLocals(scopeRef("scotch.test.(fn#0#1)"), asList("x", "y"));
+        shouldHaveLocals(scopeRef("scotch.test.(fn#0#1)"), asList("#0", "#1", "x", "y"));
         shouldHaveLocals(scopeRef("scotch.test.(fn#0)"), asList("#0", "#1", "a", "b"));
     }
 
@@ -479,7 +481,7 @@ public class TypeCheckerTest extends ParserTest {
         );
         InstanceType instance = instance("scotch.data.eq.Eq", intType);
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.fib", patterns("scotch.test.(fib#0)", fn(intType, intType), arg("#0", intType), pattern(
+        shouldHaveValue("scotch.test.fib", matcher("scotch.test.(fib#0)", fn(intType, intType), arg("#0", intType), pattern(
             "scotch.test.fib#0#0",
             asList(equal("#0", apply(
                 apply(
@@ -529,7 +531,7 @@ public class TypeCheckerTest extends ParserTest {
             "run = Right 1 >>= \\i -> Left \"Oops\""
         );
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.run", sum("scotch.data.either.Either", stringType, t(15)));
+        shouldHaveValue("scotch.test.run", sum("scotch.data.either.Either", stringType, t(18)));
     }
 
     @Test

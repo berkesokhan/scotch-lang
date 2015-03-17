@@ -10,7 +10,7 @@ import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.definition.Definitions.scopeDef;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
-import static scotch.compiler.syntax.value.Values.patterns;
+import static scotch.compiler.syntax.value.Values.matcher;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
@@ -44,7 +45,7 @@ import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange")
+@ToString(exclude = "sourceRange", doNotUseGetters = true)
 public class PatternMatcher extends Value implements Scoped {
 
     public static Builder builder() {
@@ -95,42 +96,33 @@ public class PatternMatcher extends Value implements Scoped {
 
     @Override
     public Value checkTypes(TypeChecker state) {
-        return state.enclose(this, () -> {
-            arguments.stream()
-                .map(Argument::getType)
-                .forEach(state::specialize);
-            arguments.stream()
-                .map(Argument::getSymbol)
-                .forEach(state::addLocal);
-            try {
-                AtomicReference<Type> type = new AtomicReference<>(state.reserveType());
-                List<PatternCase> patterns = patternCases.stream()
-                    .map(matcher -> matcher.checkTypes(state))
-                    .collect(toList());
-                patterns = patterns.stream()
-                    .map(pattern -> pattern.withType(pattern.getType().unify(type.get(), state)
-                        .map(unifiedType -> {
-                            Type result = state.scope().generate(unifiedType);
-                            type.set(result);
-                            return unified(unifiedType);
-                        })
-                        .orElseGet(unification -> {
-                            state.error(typeError(unification.flip(), pattern.getSourceRange()));
-                            return pattern.getType();
-                        })))
-                    .collect(toList());
-                return withPatternCases(patterns).withType(calculateType(type.get()));
-            } finally {
-                arguments.stream()
-                    .map(Argument::getType)
-                    .forEach(state::generalize);
-            }
+        return encloseArguments(state, () -> {
+            AtomicReference<Type> resultType = new AtomicReference<>(state.reserveType());
+            List<PatternCase> patterns = patternCases.stream()
+                .map(matcher -> matcher.checkTypes(state))
+                .collect(toList());
+            patterns = patterns.stream()
+                .map(pattern -> pattern.withType(pattern.getType().unify(resultType.get(), state)
+                    .map(unifiedType -> {
+                        Type result = state.scope().generate(unifiedType);
+                        resultType.set(result);
+                        return unified(unifiedType);
+                    })
+                    .orElseGet(unification -> {
+                        state.error(typeError(unification.flip(), pattern.getSourceRange()));
+                        return pattern.getType();
+                    })))
+                .collect(toList());
+            return withPatternCases(patterns).withType(calculateType(resultType.get()));
         });
     }
 
     @Override
     public Value defineOperators(OperatorAccumulator state) {
-        throw new UnsupportedOperationException();
+        return state.scoped(this, () -> map(
+            argument -> argument,
+            patternCase -> patternCase.defineOperators(state)
+        ));
     }
 
     @Override
@@ -233,6 +225,24 @@ public class PatternMatcher extends Value implements Scoped {
         }
     }
 
+    private PatternMatcher encloseArguments(TypeChecker state, Supplier<PatternMatcher> supplier) {
+        return state.enclose(this, () -> {
+            arguments.stream()
+                .map(Argument::getType)
+                .forEach(state::specialize);
+            arguments.stream()
+                .map(Argument::getSymbol)
+                .forEach(state::addLocal);
+            try {
+                return supplier.get();
+            } finally {
+                arguments.stream()
+                    .map(Argument::getType)
+                    .forEach(state::generalize);
+            }
+        });
+    }
+
     private PatternMatcher map(Function<Argument, Argument> argumentMapper, Function<PatternCase, PatternCase> patternCaseMapper) {
         return new PatternMatcher(
             sourceRange, symbol,
@@ -263,7 +273,7 @@ public class PatternMatcher extends Value implements Scoped {
 
         @Override
         public PatternMatcher build() {
-            return patterns(
+            return matcher(
                 require(sourceRange, "Source range"),
                 require(symbol, "Symbol"),
                 require(type, "Pattern type"),

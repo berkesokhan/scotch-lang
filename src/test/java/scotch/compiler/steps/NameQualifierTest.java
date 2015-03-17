@@ -12,11 +12,10 @@ import static scotch.compiler.syntax.StubResolver.defaultRight;
 import static scotch.compiler.syntax.value.Values.apply;
 import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
-import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
 import static scotch.compiler.util.TestUtil.literal;
+import static scotch.compiler.util.TestUtil.matcher;
 import static scotch.compiler.util.TestUtil.pattern;
-import static scotch.compiler.util.TestUtil.patterns;
 
 import java.util.function.Function;
 import org.junit.Test;
@@ -36,7 +35,7 @@ public class NameQualifierTest extends ParserTest {
         );
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.fn1",
-            patterns("scotch.test.(fn1#0)", t(13), asList(arg("#0", t(11)), arg("#1", t(12))), pattern(
+            matcher("scotch.test.(fn1#0)", t(13), asList(arg("#0", t(11)), arg("#1", t(12))), pattern(
                 "scotch.test.(fn1#0#0)",
                 asList(capture("#0", "a", t(1)), capture("#1", "b", t(2))),
                 apply(
@@ -59,15 +58,14 @@ public class NameQualifierTest extends ParserTest {
         shouldHaveValue("scotch.test.run", apply(
             apply(
                 id("scotch.control.monad.(>>=)", t(2)),
-                apply(id("scotch.data.either.Right", t(1)), literal("Yes"), t(5)),
-                t(6)
-            ),
-            fn("scotch.test.(run#0)", arg("which", t(3)), apply(
-                id("scotch.data.either.Left", t(4)),
-                literal("No"),
+                apply(id("scotch.data.either.Right", t(1)), literal("Yes"), t(7)),
                 t(8)
+            ),
+            matcher("scotch.test.(run#0)", t(3), arg("#0", t(5)), pattern(
+                "scotch.test.(run#0#1)", asList(capture("#0", "which", t(4))),
+                apply(id("scotch.data.either.Left", t(6)), literal("No"), t(10))
             )),
-            t(7)
+            t(9)
         ));
     }
 

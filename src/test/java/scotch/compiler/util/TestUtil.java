@@ -41,8 +41,9 @@ import scotch.compiler.syntax.definition.UnshuffledDefinition;
 import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.pattern.CaptureMatch;
 import scotch.compiler.syntax.pattern.EqualMatch;
-import scotch.compiler.syntax.pattern.PatternMatch;
+import scotch.compiler.syntax.pattern.IgnorePattern;
 import scotch.compiler.syntax.pattern.PatternCase;
+import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.syntax.pattern.Patterns;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.DataReference;
@@ -190,12 +191,12 @@ public class TestUtil {
         return compiler(resolver, URI.create("test://" + methodName), lines).generateBytecode();
     }
 
-    public static DefinitionGraph integratedParse(String methodName, ClassLoaderResolver resolver, String... lines) {
-        return compiler(resolver, URI.create("test://" + methodName), lines).checkTypes();
-    }
-
     public static Identifier id(String name, Type type) {
         return Values.id(NULL_SOURCE, symbol(name), type);
+    }
+
+    public static IgnorePattern ignore(Type type) {
+        return Patterns.ignore(NULL_SOURCE, type);
     }
 
     public static Initializer initializer(Type type, Value value, List<InitializerField> fields) {
@@ -212,6 +213,10 @@ public class TestUtil {
 
     public static Type intType() {
         return sum("scotch.data.int.Int");
+    }
+
+    public static DefinitionGraph integratedParse(String methodName, ClassLoaderResolver resolver, String... lines) {
+        return compiler(resolver, URI.create("test://" + methodName), lines).checkTypes();
     }
 
     public static Let let(String name, List<DefinitionReference> definitions, Value body) {
@@ -238,6 +243,14 @@ public class TestUtil {
         return Values.literal(NULL_SOURCE, value);
     }
 
+    public static PatternMatcher matcher(String symbol, Type type, Argument argument, PatternCase... matchers) {
+        return matcher(symbol, type, asList(argument), matchers);
+    }
+
+    public static PatternMatcher matcher(String symbol, Type type, List<Argument> arguments, PatternCase... matchers) {
+        return Values.matcher(NULL_SOURCE, symbol(symbol), type, arguments, asList(matchers));
+    }
+
     public static Value method(String name, List<Type> instances, Type type) {
         return Values.method(NULL_SOURCE, valueRef(name), instances, type);
     }
@@ -256,14 +269,6 @@ public class TestUtil {
 
     public static PatternCase pattern(String name, List<PatternMatch> matches, Value body) {
         return Patterns.pattern(NULL_SOURCE, symbol(name), matches, body);
-    }
-
-    public static PatternMatcher patterns(String symbol, Type type, Argument argument, PatternCase... matchers) {
-        return patterns(symbol, type, asList(argument), matchers);
-    }
-
-    public static PatternMatcher patterns(String symbol, Type type, List<Argument> arguments, PatternCase... matchers) {
-        return Values.patterns(NULL_SOURCE, symbol(symbol), type, arguments, asList(matchers));
     }
 
     public static RootDefinition root(List<DefinitionReference> definitions) {

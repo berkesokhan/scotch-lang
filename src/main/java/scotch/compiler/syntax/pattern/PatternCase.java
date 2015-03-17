@@ -1,31 +1,41 @@
 package scotch.compiler.syntax.pattern;
 
 import static java.util.stream.Collectors.toList;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.definition.Definitions.scopeDef;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
-import static scotch.util.StringUtil.stringify;
 
 import java.util.List;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import com.google.common.collect.ImmutableList;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
+import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.symbol.Symbol;
 import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
+import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.InstanceMap;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceRange;
 
+@EqualsAndHashCode(callSuper = false)
+@ToString(exclude = "sourceRange")
 public class PatternCase implements Scoped {
+
+    public static Builder builder() {
+        return new Builder();
+    }
 
     private final SourceRange        sourceRange;
     private final Symbol             symbol;
@@ -49,6 +59,22 @@ public class PatternCase implements Scoped {
             .withBody(body.accumulateNames(state)));
     }
 
+    public PatternCase bindMethods(TypeChecker state, InstanceMap instances) {
+        return state.scoped(this,
+            () -> withMatches(matches.stream()
+                .map(match -> match.bindMethods(state, instances))
+                .collect(toList()))
+                .withBody(body.bindMethods(state, instances)));
+    }
+
+    public PatternCase bindTypes(TypeChecker state) {
+        return state.scoped(this,
+            () -> withMatches(matches.stream()
+                .map(match -> match.bindTypes(state))
+                .collect(toList()))
+                .withBody(body.bindTypes(state)));
+    }
+
     public PatternCase checkTypes(TypeChecker state) {
         return state.scoped(this, () -> {
             matches.stream()
@@ -67,34 +93,8 @@ public class PatternCase implements Scoped {
         });
     }
 
-    public PatternCase bindMethods(TypeChecker state, InstanceMap instances) {
-        return state.scoped(this,
-            () -> withMatches(matches.stream()
-                .map(match -> match.bindMethods(state, instances))
-                .collect(toList()))
-            .withBody(body.bindMethods(state, instances)));
-    }
-
-    public PatternCase bindTypes(TypeChecker state) {
-        return state.scoped(this,
-            () -> withMatches(matches.stream()
-                .map(match -> match.bindTypes(state))
-                .collect(toList()))
-            .withBody(body.bindTypes(state)));
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof PatternCase) {
-            PatternCase other = (PatternCase) o;
-            return Objects.equals(symbol, other.symbol)
-                && Objects.equals(matches, other.matches)
-                && Objects.equals(body, other.body);
-        } else {
-            return false;
-        }
+    public PatternCase defineOperators(OperatorAccumulator state) {
+        return state.scoped(this, () -> withBody(body.defineOperators(state)));
     }
 
     public CodeBlock generateBytecode(BytecodeGenerator state) {
@@ -143,11 +143,6 @@ public class PatternCase implements Scoped {
         return body.getType();
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(symbol, matches, body);
-    }
-
     public PatternCase parsePrecedence(PrecedenceParser state) {
         return state.scoped(this, () -> {
             AtomicInteger counter = new AtomicInteger();
@@ -164,16 +159,7 @@ public class PatternCase implements Scoped {
         return state.scoped(this, () -> withMatches(matches.stream()
             .map(match -> match.qualifyNames(state))
             .collect(toList()))
-        .withBody(body.qualifyNames(state)));
-    }
-
-    private PatternCase withSymbol(Symbol symbol) {
-        return new PatternCase(sourceRange, symbol, matches, body);
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this) + "(" + symbol + ")";
+            .withBody(body.qualifyNames(state)));
     }
 
     public PatternCase withBody(Value body) {
@@ -186,5 +172,48 @@ public class PatternCase implements Scoped {
 
     public PatternCase withType(Type type) {
         return new PatternCase(sourceRange, symbol, matches, body.withType(type));
+    }
+
+    private PatternCase withSymbol(Symbol symbol) {
+        return new PatternCase(sourceRange, symbol, matches, body);
+    }
+
+    public static class Builder implements SyntaxBuilder<PatternCase> {
+
+        private Optional<SourceRange> sourceRange = Optional.empty();
+        private Optional<Symbol> symbol = Optional.empty();
+        private Optional<List<PatternMatch>> matches = Optional.empty();
+        private Optional<Value> body = Optional.empty();
+
+        @Override
+        public PatternCase build() {
+            return new PatternCase(
+                require(sourceRange, "Source range"),
+                require(symbol, "Symbol"),
+                require(matches, "Pattern matches"),
+                require(body, "Pattern body")
+            );
+        }
+
+        public Builder withBody(Value body) {
+            this.body = Optional.of(body);
+            return this;
+        }
+
+        public Builder withMatches(List<PatternMatch> matches) {
+            this.matches = Optional.of(matches);
+            return this;
+        }
+
+        @Override
+        public Builder withSourceRange(SourceRange sourceRange) {
+            this.sourceRange = Optional.of(sourceRange);
+            return this;
+        }
+
+        public Builder withSymbol(Symbol symbol) {
+            this.symbol = Optional.of(symbol);
+            return this;
+        }
     }
 }

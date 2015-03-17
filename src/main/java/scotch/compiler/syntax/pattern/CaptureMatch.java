@@ -31,7 +31,7 @@ import scotch.compiler.util.Pair;
 
 @AllArgsConstructor(access = PACKAGE)
 @EqualsAndHashCode(callSuper = false, doNotUseGetters = true)
-@ToString(exclude = "sourceRange")
+@ToString(exclude = "sourceRange", doNotUseGetters = true)
 public class CaptureMatch extends PatternMatch {
 
     public static Builder builder() {
@@ -69,8 +69,8 @@ public class CaptureMatch extends PatternMatch {
 
     @Override
     public PatternMatch bind(String argument, Scope scope) {
-        if (this.argument.isPresent()) {
-            throw new IllegalStateException();
+        if (this.argument.isPresent() && !argument.equals(this.argument.get())) {
+            throw new IllegalStateException("Can't rebind-bind capture match argument '" + this.argument.get() + "' to argument '" + argument + "'");
         } else {
             return Patterns.capture(sourceRange, Optional.of(argument), symbol, type);
         }

@@ -99,6 +99,7 @@ import scotch.compiler.syntax.definition.ValueSignature;
 import scotch.compiler.syntax.pattern.CaptureMatch;
 import scotch.compiler.syntax.pattern.EqualMatch;
 import scotch.compiler.syntax.pattern.IgnorePattern;
+import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
@@ -113,6 +114,7 @@ import scotch.compiler.syntax.value.Initializer;
 import scotch.compiler.syntax.value.InitializerField;
 import scotch.compiler.syntax.value.Let;
 import scotch.compiler.syntax.value.Literal;
+import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.NamedSourcePoint;
@@ -290,6 +292,15 @@ public class InputParser {
         positions.push(scanner.getPosition());
     }
 
+    private void named(Symbol symbol, Consumer<Symbol> function) {
+        memberNames.push(symbol.getMemberNames());
+        try {
+            function.accept(symbol);
+        } finally {
+            memberNames.pop();
+        }
+    }
+
     private Token nextToken() {
         return scanner.nextToken();
     }
@@ -337,15 +348,6 @@ public class InputParser {
         return node(Argument.builder(), builder -> builder
             .withName(requireWord())
             .withType(reserveType()));
-    }
-
-    private List<Argument> parseArguments() {
-        List<Argument> arguments = new ArrayList<>();
-        arguments.add(parseArgument());
-        while (expectsWord()) {
-            arguments.add(parseArgument());
-        }
-        return arguments;
     }
 
     private List<Type> parseClassArguments() {
@@ -588,20 +590,6 @@ public class InputParser {
         return fields;
     }
 
-    private FunctionValue parseFunction() {
-        return scoped(() -> node(FunctionValue.builder(),
-            function -> definition(ScopeDefinition.builder(), scope -> {
-                Symbol symbol = reserveSymbol();
-                require(BACKSLASH);
-                function.withSymbol(symbol);
-                function.withArguments(parseArguments());
-                require(ARROW);
-                function.withBody(parseExpression());
-                scope.withSymbol(symbol);
-            })
-        ));
-    }
-
     private Import parseImport() {
         return node(ModuleImport.builder(), builder -> {
             requireWord("import");
@@ -689,6 +677,21 @@ public class InputParser {
                 throw unexpected(literals);
             }
         });
+    }
+
+    private Optional<PatternMatch> parseLiteralMatch(boolean required) {
+        PatternMatch match = null;
+        if (expectsWord("_")) {
+            match = node(IgnorePattern.builder(), builder -> {
+                requireWord("_");
+                builder.withType(reserveType());
+            });
+        } else if (expectsWord()) {
+            match = node(CaptureMatch.builder(), builder -> builder.withIdentifier(parseWordReference()));
+        } else if (required) {
+            throw unexpected(IDENTIFIER);
+        }
+        return Optional.ofNullable(match);
     }
 
     private Optional<PatternMatch> parseMatch(boolean required) {
@@ -791,12 +794,63 @@ public class InputParser {
         }
     }
 
+    private Optional<PatternMatch> parseOptionalLiteralMatch() {
+        return parseLiteralMatch(false);
+    }
+
     private Optional<PatternMatch> parseOptionalMatch() {
         return parseMatch(false);
     }
 
     private Optional<Value> parseOptionalPrimary() {
         return parsePrimary(false);
+    }
+
+    private PatternMatcher parsePatternLiteral() {
+        return scoped(() -> node(PatternMatcher.builder(),
+            patternMatcher -> definition(ScopeDefinition.builder(),
+                matcherScope -> named(reserveSymbol(),
+                    matcherSymbol -> {
+                        matcherScope.withSymbol(matcherSymbol);
+                        patternMatcher.withSymbol(matcherSymbol);
+                        patternMatcher.withType(reserveType());
+                        patternMatcher.withPatterns(asList(scoped(() -> node(PatternCase.builder(),
+                            patternCaseBuilder -> definition(ScopeDefinition.builder(),
+                                patternCaseScope -> named(reserveSymbol(), patternSymbol -> {
+                                    patternCaseScope.withSymbol(patternSymbol);
+                                    patternCaseBuilder.withSymbol(patternSymbol);
+                                    require(BACKSLASH);
+                                    AtomicInteger counter = new AtomicInteger();
+                                    List<PatternMatch> matches = parsePatternLiteralMatches();
+                                    List<Argument> arguments = matches.stream()
+                                        .map(match -> Argument.builder()
+                                            .withName("#" + counter.getAndIncrement())
+                                            .withType(reserveType())
+                                            .withSourceRange(match.getSourceRange())
+                                            .build())
+                                        .collect(toList());
+                                    patternCaseBuilder.withMatches(matches);
+                                    patternMatcher.withArguments(arguments);
+                                    require(ARROW);
+                                    patternCaseBuilder.withBody(parseExpression());
+                                })
+                            )
+                        ))));
+                    }
+                )
+            )
+        ));
+    }
+
+    private List<PatternMatch> parsePatternLiteralMatches() {
+        List<PatternMatch> matches = new ArrayList<>();
+        matches.add(parseRequiredLiteralMatch());
+        Optional<PatternMatch> match = parseOptionalLiteralMatch();
+        while (match.isPresent()) {
+            matches.add(match.get());
+            match = parseOptionalLiteralMatch();
+        }
+        return matches;
     }
 
     private List<PatternMatch> parsePatternMatches() {
@@ -823,7 +877,7 @@ public class InputParser {
         } else if (expects(LEFT_SQUARE_BRACE)) {
             value = parseList();
         } else if (expects(BACKSLASH)) {
-            value = parseFunction();
+            value = parsePatternLiteral();
         } else if (expects(KEYWORD_LET)) {
             value = parseLet();
         } else if (expects(KEYWORD_DO)) {
@@ -844,6 +898,10 @@ public class InputParser {
             parts.add(requireWord());
         }
         return join(".", parts);
+    }
+
+    private PatternMatch parseRequiredLiteralMatch() {
+        return parseLiteralMatch(true).get();
     }
 
     private PatternMatch parseRequiredMatch() {
@@ -993,15 +1051,14 @@ public class InputParser {
 
     private DefinitionReference parseValueDefinition() {
         if (expectsAt(1, ASSIGN)) {
-            return scoped(() -> definition(ValueDefinition.builder(), builder -> {
-                Symbol symbol = qualify(requireMemberName());
-                builder.withSymbol(symbol);
-                memberNames.push(symbol.getMemberNames());
-                require(ASSIGN);
-                builder.withType(reserveType())
-                    .withBody(parseExpression());
-                memberNames.pop();
-            }));
+            return scoped(() -> definition(ValueDefinition.builder(),
+                builder -> named(qualify(requireMemberName()),
+                    symbol -> {
+                        builder.withSymbol(symbol);
+                        require(ASSIGN);
+                        builder.withType(reserveType())
+                            .withBody(parseExpression());
+                    })));
         } else {
             return scoped(() -> definition(UnshuffledDefinition.builder(), builder -> {
                 builder.withMatches(parsePatternMatches());
@@ -1173,7 +1230,7 @@ public class InputParser {
     private ParseException unexpected(TokenKind wantedKind) {
         return parseException(
             "Unexpected " + scanner.peekAt(0).getKind()
-                + "; wanted " + wantedKind + " ",
+                + "; wanted " + wantedKind,
             scanner.peekAt(0).getSourceRange()
         );
     }
