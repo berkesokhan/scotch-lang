@@ -37,6 +37,7 @@ public class SourceRange {
     public static SourceRange source(URI source, SourcePoint start, SourcePoint end) {
         return new SourceRange(source, start, end);
     }
+
     private final URI         source;
     private final SourcePoint start;
     private final SourcePoint end;
@@ -115,7 +116,7 @@ public class SourceRange {
             int line = start.getLine();
             if (line != -1) {
                 block.label(label);
-                block.line(line, label);
+                block.line(line - 1, label);
             }
         }
     }

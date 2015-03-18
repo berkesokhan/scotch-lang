@@ -351,6 +351,21 @@ public class BytecodeGeneratorTest {
         assertThat(result, is("5"));
     }
 
+    @Test
+    public void shouldCreatePickleWithEnumConstants() {
+        Object pickle = exec(
+            "module scotch.test",
+            "import scotch.data.num",
+            "import scotch.data.int",
+            "",
+            "data Texture = Soft | Crunchy",
+            "data Pickle { kind Texture, pimples Int }",
+            "pickle = Pickle Crunchy 15",
+            "run = pickle"
+        );
+        assertThat(pickle.toString(), is("Pickle { kind = Crunchy, pimples = 15 }"));
+    }
+
     @SuppressWarnings("unchecked")
     private <A> A exec(String... lines) {
         try {

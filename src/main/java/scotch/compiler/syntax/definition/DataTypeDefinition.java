@@ -21,12 +21,12 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.symbol.descriptor.DataTypeDescriptor;
-import scotch.symbol.Symbol;
-import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
+import scotch.symbol.Symbol;
+import scotch.symbol.descriptor.DataTypeDescriptor;
+import scotch.symbol.type.Type;
 
 @EqualsAndHashCode(callSuper = false)
 public class DataTypeDefinition extends Definition {

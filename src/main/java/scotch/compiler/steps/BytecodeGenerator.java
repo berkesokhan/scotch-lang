@@ -5,6 +5,8 @@ import static java.util.stream.Collectors.toList;
 import static me.qmx.jitescript.JDKVersion.V1_8;
 import static me.qmx.jitescript.util.CodegenUtils.c;
 import static me.qmx.jitescript.util.CodegenUtils.p;
+import static me.qmx.jitescript.util.CodegenUtils.sig;
+import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static scotch.compiler.output.GeneratedClass.ClassType.DATA_CONSTRUCTOR;
 import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
 import static scotch.compiler.util.Pair.pair;
@@ -80,8 +82,13 @@ public class BytecodeGenerator {
     }
 
     public void beginConstant(String className, SourceRange sourceRange) {
-        jiteClasses.push(pair(new JiteClass(className, currentClass().getClassName(), new String[0]), DATA_CONSTRUCTOR));
+        jiteClasses.push(pair(new JiteClass(className, currentClass().getClassName(), new String[] { p(Callable.class) }), DATA_CONSTRUCTOR));
         currentClass().setSourceFile(sourceRange.getPath());
+        currentClass().defineDefaultConstructor();
+        currentClass().defineMethod("call", ACC_PUBLIC, sig(Object.class), new CodeBlock() {{
+            aload(0);
+            areturn();
+        }});
     }
 
     public void beginConstructor(String className, SourceRange sourceRange) {
