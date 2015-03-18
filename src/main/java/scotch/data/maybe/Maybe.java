@@ -1,16 +1,17 @@
 package scotch.data.maybe;
 
 import static java.util.Arrays.asList;
-import static scotch.symbol.type.Types.fn;
-import static scotch.symbol.type.Types.sum;
-import static scotch.symbol.type.Types.var;
-import static scotch.runtime.RuntimeSupport.box;
 import static scotch.runtime.RuntimeSupport.applicable;
 import static scotch.runtime.RuntimeSupport.callable;
 import static scotch.runtime.RuntimeSupport.flatCallable;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.var;
 
 import java.util.List;
 import java.util.Objects;
+import scotch.runtime.Applicable;
+import scotch.runtime.Callable;
 import scotch.runtime.RuntimeSupport;
 import scotch.symbol.DataConstructor;
 import scotch.symbol.DataField;
@@ -21,8 +22,6 @@ import scotch.symbol.TypeParameters;
 import scotch.symbol.Value;
 import scotch.symbol.ValueType;
 import scotch.symbol.type.Type;
-import scotch.runtime.Applicable;
-import scotch.runtime.Callable;
 
 @SuppressWarnings("unused")
 @DataType(memberName = "Maybe", parameters = {
@@ -100,9 +99,7 @@ public abstract class Maybe<A> {
         }
     }
 
-    @DataConstructor(ordinal = 1, memberName = "Just", dataType = "Maybe", parameters = {
-        @TypeParameter(name = "a"),
-    })
+    @DataConstructor(ordinal = 1, memberName = "Just", dataType = "Maybe")
     public static class Just<A> extends Maybe<A> {
 
         @DataFieldType(forMember = "value")

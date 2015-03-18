@@ -117,7 +117,7 @@ class GenerateTuples extends DefaultTask {
             content << "    ${generated}"
             content << '    @AllArgsConstructor'
             content << '    @Getter'
-            content << "    @DataConstructor(ordinal = 0, memberName = \"(${",".multiply(it)})\", dataType = \"(${",".multiply(it)})\", parameters = { ${range.collect { t -> "@TypeParameter(name = \"${(char) (97 + t)}\")" }.join(', ') } })"
+            content << "    @DataConstructor(ordinal = 0, memberName = \"(${",".multiply(it)})\", dataType = \"(${",".multiply(it)})\")"
             content << "    public static final class Tuple${size}Data<${range.collect { t -> "T${t}" }.join(', ')}> extends Tuple${size}<${range.collect { t -> "T${t}" }.join(', ')}> {"
             content << ''
 

@@ -1,15 +1,16 @@
 package scotch.data.either;
 
 import static java.util.Arrays.asList;
+import static scotch.runtime.RuntimeSupport.applicable;
+import static scotch.runtime.RuntimeSupport.callable;
 import static scotch.symbol.type.Types.fn;
 import static scotch.symbol.type.Types.sum;
 import static scotch.symbol.type.Types.var;
-import static scotch.runtime.RuntimeSupport.box;
-import static scotch.runtime.RuntimeSupport.applicable;
-import static scotch.runtime.RuntimeSupport.callable;
 
 import java.util.List;
 import java.util.Objects;
+import scotch.runtime.Applicable;
+import scotch.runtime.Callable;
 import scotch.runtime.RuntimeSupport;
 import scotch.symbol.DataConstructor;
 import scotch.symbol.DataType;
@@ -18,8 +19,6 @@ import scotch.symbol.TypeParameters;
 import scotch.symbol.Value;
 import scotch.symbol.ValueType;
 import scotch.symbol.type.Type;
-import scotch.runtime.Applicable;
-import scotch.runtime.Callable;
 
 @SuppressWarnings("unused")
 @DataType(memberName = "Either", parameters = {
@@ -72,9 +71,7 @@ public abstract class Either<A, B> {
     @Override
     public abstract String toString();
 
-    @DataConstructor(ordinal = 0, memberName = "Left", dataType="Either", parameters = {
-        @TypeParameter(name = "a"),
-    })
+    @DataConstructor(ordinal = 0, memberName = "Left", dataType="Either")
     public static class Left<A, B> extends Either<A, B> {
 
         private final Callable<A> value;
@@ -105,9 +102,7 @@ public abstract class Either<A, B> {
         }
     }
 
-    @DataConstructor(ordinal = 1, memberName = "Right", dataType = "Either", parameters = {
-        @TypeParameter(name = "b"),
-    })
+    @DataConstructor(ordinal = 1, memberName = "Right", dataType = "Either")
     public static class Right<A, B> extends Either<A, B> {
 
         private final Callable<B> value;

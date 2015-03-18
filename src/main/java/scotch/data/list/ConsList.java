@@ -77,9 +77,7 @@ public abstract class ConsList<A> {
     protected abstract List<A> toString_();
 
     @AllArgsConstructor
-    @DataConstructor(ordinal = 1, memberName = ":", dataType = "[]", parameters = {
-        @TypeParameter(name = "a")
-    })
+    @DataConstructor(ordinal = 1, memberName = ":", dataType = "[]")
     public static class ConsCell<A> extends ConsList<A> {
 
         @DataFieldType(forMember = "_0")
