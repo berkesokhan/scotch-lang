@@ -2,6 +2,7 @@ package scotch.compiler.syntax.value;
 
 import java.util.List;
 import java.util.Optional;
+import scotch.symbol.FieldSignature;
 import scotch.symbol.Symbol;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.definition.DefinitionEntry;
@@ -27,8 +28,12 @@ public class Values {
         return new Conditional(sourceRange, condition, whenTrue, whenFalse, type);
     }
 
-    public static Constant constant(SourceRange sourceRange, Symbol symbol, Symbol dataType, Type type) {
-        return new Constant(sourceRange, dataType, symbol, type);
+    public static ConstantReference constantRef(SourceRange sourceRange, Symbol symbol, Symbol dataType, FieldSignature fieldSignature, Type type) {
+        return new ConstantReference(sourceRange, symbol, dataType, fieldSignature, type);
+    }
+
+    public static ConstantValue constantValue(SourceRange sourceRange, Symbol symbol, Symbol dataType, Type type) {
+        return new ConstantValue(sourceRange, dataType, symbol, type);
     }
 
     public static DataConstructor construct(SourceRange sourceRange, Symbol symbol, Type type, List<Value> arguments) {

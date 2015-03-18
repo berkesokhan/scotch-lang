@@ -96,7 +96,7 @@ public class ValueDefinition extends Definition {
     @Override
     public void generateBytecode(BytecodeGenerator state) {
         state.generate(this, () -> state.method(getMethodName(), ACC_STATIC | ACC_PUBLIC, sig(state.typeOf(getType())), new CodeBlock() {{
-            annotate(Value.class).value("memberName", symbol.getSimpleName());
+            annotate(scotch.symbol.Value.class).value("memberName", symbol.getSimpleName());
             markLine(this);
             append(body.generateBytecode(state));
             areturn();
@@ -161,13 +161,11 @@ public class ValueDefinition extends Definition {
     public static class Builder implements SyntaxBuilder<ValueDefinition> {
 
         private Optional<Symbol>      symbol;
-        private Optional<Type>        type;
         private Optional<Value>       body;
         private Optional<SourceRange> sourceRange;
 
         private Builder() {
             symbol = Optional.empty();
-            type = Optional.empty();
             body = Optional.empty();
             sourceRange = Optional.empty();
         }
@@ -194,11 +192,6 @@ public class ValueDefinition extends Definition {
 
         public Builder withSymbol(Symbol symbol) {
             this.symbol = Optional.of(symbol);
-            return this;
-        }
-
-        public Builder withType(Type type) {
-            this.type = Optional.of(type);
             return this;
         }
     }

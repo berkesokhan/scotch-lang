@@ -7,8 +7,13 @@ import static me.qmx.jitescript.util.CodegenUtils.ci;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static org.apache.commons.lang.StringUtils.capitalize;
+import static org.objectweb.asm.Opcodes.ACC_FINAL;
+import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
+import static org.objectweb.asm.Opcodes.ACC_STATIC;
+import static org.objectweb.asm.Opcodes.ACC_SYNTHETIC;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.symbol.FieldSignature.fieldSignature;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -24,14 +29,15 @@ import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.ScopedNameQualifier;
-import scotch.symbol.Symbol;
-import scotch.symbol.descriptor.DataConstructorDescriptor;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
 import scotch.runtime.Copyable;
+import scotch.symbol.FieldSignature;
+import scotch.symbol.Symbol;
+import scotch.symbol.descriptor.DataConstructorDescriptor;
 
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = false, doNotUseGetters = true)
 public class DataConstructorDefinition implements Comparable<DataConstructorDefinition> {
 
     public static Builder builder() {
@@ -43,6 +49,7 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
     private final Symbol                           dataType;
     private final Symbol                           symbol;
     private final Map<String, DataFieldDefinition> fields;
+    private final Optional<FieldSignature>         constantField;
 
     private DataConstructorDefinition(SourceRange sourceRange, int ordinal, Symbol dataType, Symbol symbol, List<DataFieldDefinition> fields) {
         List<DataFieldDefinition> sortedFields = new ArrayList<>(fields);
@@ -53,6 +60,12 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
         this.symbol = symbol;
         this.fields = new LinkedHashMap<>();
         sortedFields.forEach(field -> this.fields.put(field.getName(), field));
+        if (fields.isEmpty()) {
+            String className = symbol.getClassNameAsChildOf(dataType);
+            constantField = Optional.of(fieldSignature(className, ACC_STATIC | ACC_PUBLIC | ACC_FINAL, "INSTANCE", "L" + className + ";"));
+        } else {
+            constantField = Optional.empty();
+        }
     }
 
     public void accumulateNames(NameAccumulator state) {
@@ -64,11 +77,16 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
         return ordinal - o.ordinal;
     }
 
+    public FieldSignature getConstantField() {
+        return constantField.orElseThrow(() -> new IllegalStateException("Data constructor " + symbol + " is not niladic"));
+    }
+
     public void generateBytecode(BytecodeGenerator state) {
         JiteClass parentClass = state.currentClass();
         if (isNiladic()) {
             state.beginConstant(state.getDataConstructorClass(symbol), sourceRange);
             parentClass.addChildClass(state.currentClass());
+            generateInstanceField(state);
             generateToString(state);
             state.endClass();
         } else {
@@ -256,6 +274,19 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
                 invokestatic(p(Objects.class), "hash", sig(int.class, Object[].class));
             }
             ireturn();
+        }});
+    }
+
+    private void generateInstanceField(BytecodeGenerator state) {
+        JiteClass jiteClass = state.currentClass();
+        String className = jiteClass.getClassName();
+        getConstantField().defineOn(jiteClass);
+        jiteClass.defineMethod("<clinit>", ACC_STATIC | ACC_SYNTHETIC | ACC_PRIVATE, sig(void.class), new CodeBlock() {{
+            newobj(className);
+            dup();
+            invokespecial(className, "<init>", sig(void.class));
+            append(getConstantField().putValue());
+            voidreturn();
         }});
     }
 

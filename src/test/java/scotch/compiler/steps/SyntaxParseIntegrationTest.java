@@ -1,12 +1,6 @@
 package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
-import static scotch.symbol.Symbol.qualified;
-import static scotch.symbol.SymbolEntry.immutableEntry;
-import static scotch.symbol.type.Types.fn;
-import static scotch.symbol.type.Types.sum;
-import static scotch.symbol.type.Types.t;
-import static scotch.symbol.type.Types.var;
 import static scotch.compiler.syntax.StubResolver.defaultEq;
 import static scotch.compiler.syntax.StubResolver.defaultInt;
 import static scotch.compiler.syntax.StubResolver.defaultPlus;
@@ -17,8 +11,15 @@ import static scotch.compiler.util.TestUtil.equal;
 import static scotch.compiler.util.TestUtil.id;
 import static scotch.compiler.util.TestUtil.let;
 import static scotch.compiler.util.TestUtil.literal;
+import static scotch.compiler.util.TestUtil.matcher;
 import static scotch.compiler.util.TestUtil.pattern;
 import static scotch.compiler.util.TestUtil.valueRef;
+import static scotch.symbol.Symbol.qualified;
+import static scotch.symbol.SymbolEntry.immutableEntry;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.t;
+import static scotch.symbol.type.Types.var;
 
 import java.util.function.Function;
 import org.junit.Ignore;
@@ -27,7 +28,6 @@ import scotch.compiler.Compiler;
 import scotch.compiler.ParserTest;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DefinitionGraph;
-import scotch.compiler.util.TestUtil;
 
 public class SyntaxParseIntegrationTest extends ParserTest {
 
@@ -40,15 +40,15 @@ public class SyntaxParseIntegrationTest extends ParserTest {
             "left infix 6 (==), (/=)",
             "x == y = not (x /= y)"
         );
-        shouldHaveValue("scotch.test.(==)", t(12), TestUtil.matcher("scotch.test.(==#0)", t(11), asList(arg("#0", t(9)), arg("#1", t(10))),
+        shouldHaveValue("scotch.test.(==)", t(11), matcher("scotch.test.(==#0)", t(11), asList(arg("#0", t(9)), arg("#1", t(10))),
             pattern("scotch.test.(==#0#0)", asList(capture("#0", "x", t(0)), capture("#1", "y", t(2))), apply(
                 id("scotch.data.bool.not", t(3)),
                 apply(
-                    apply(id("scotch.test.(/=)", t(5)), id("x", t(4)), t(13)),
+                    apply(id("scotch.test.(/=)", t(5)), id("x", t(4)), t(12)),
                     id("y", t(6)),
-                    t(14)
+                    t(13)
                 ),
-                t(15)
+                t(14)
             ))
         ));
     }
@@ -62,16 +62,16 @@ public class SyntaxParseIntegrationTest extends ParserTest {
             "fib 1 = 1",
             "fib n = fib (n - 1) + fib (n - 2)"
         );
-        shouldHaveValue("scotch.test.fib", t(17), TestUtil.matcher("scotch.test.(fib#0)", t(16), asList(arg("#0", t(15))),
+        shouldHaveValue("scotch.test.fib", t(17), matcher("scotch.test.(fib#0)", t(16), asList(arg("#0", t(15))),
             pattern("scotch.test.(fib#0#0)", asList(equal("#0", apply(
-                apply(id("scotch.data.eq.(==)", t(18)), id("#0", t(19)), t(20)),
+                apply(id("scotch.data.eq.(==)", t(17)), id("#0", t(18)), t(19)),
                 literal(0),
-                t(21)
+                t(20)
             ))), literal(0)),
             pattern("scotch.test.(fib#0#1)", asList(equal("#0", apply(
-                apply(id("scotch.data.eq.(==)", t(22)), id("#0", t(23)), t(24)),
+                apply(id("scotch.data.eq.(==)", t(21)), id("#0", t(22)), t(23)),
                 literal(1),
-                t(25)
+                t(24)
             ))), literal(1)),
             pattern("scotch.test.(fib#0#2)", asList(capture("#0", "n", t(3))), apply(
                 apply(
@@ -79,24 +79,24 @@ public class SyntaxParseIntegrationTest extends ParserTest {
                     apply(
                         id("scotch.test.fib", t(4)),
                         apply(
-                            apply(id("scotch.test.(-)", t(6)), id("n", t(5)), t(26)),
+                            apply(id("scotch.test.(-)", t(6)), id("n", t(5)), t(25)),
                             literal(1),
-                            t(27)
+                            t(26)
                         ),
-                        t(28)
+                        t(27)
                     ),
-                    t(32)
+                    t(31)
                 ),
                 apply(
                     id("scotch.test.fib", t(10)),
                     apply(
-                        apply(id("scotch.test.(-)", t(12)), id("n", t(11)), t(29)),
+                        apply(id("scotch.test.(-)", t(12)), id("n", t(11)), t(28)),
                         literal(2),
-                        t(30)
+                        t(29)
                     ),
-                    t(31)
+                    t(30)
                 ),
-                t(33)
+                t(32)
             ))
         ));
     }
@@ -114,7 +114,7 @@ public class SyntaxParseIntegrationTest extends ParserTest {
             "commutative? a b = fn a b"
         );
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.(commutative?)", TestUtil.matcher("scotch.test.(commutative?#0)", t(28), asList(arg("#0", t(26)), arg("#1", t(27))),
+        shouldHaveValue("scotch.test.(commutative?)", matcher("scotch.test.(commutative?#0)", t(27), asList(arg("#0", t(25)), arg("#1", t(26))),
             pattern(
                 "scotch.test.(commutative?#0#0)",
                 asList(capture("#0", "a", t(11)), capture("#1", "b", t(12))),
@@ -122,10 +122,10 @@ public class SyntaxParseIntegrationTest extends ParserTest {
                     apply(
                         id("scotch.test.fn", t(13)),
                         id("a", t(14)),
-                        t(30)
+                        t(28)
                     ),
                     id("b", t(15)),
-                    t(31)
+                    t(29)
                 )
             )
         ));
@@ -142,20 +142,20 @@ public class SyntaxParseIntegrationTest extends ParserTest {
             "  f 2"
         );
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.(main#f)", TestUtil.matcher("scotch.test.(main#f#0)", t(13), asList(arg("#0", t(12))), pattern(
+        shouldHaveValue("scotch.test.(main#f)", matcher("scotch.test.(main#f#0)", t(12), asList(arg("#0", t(11))), pattern(
             "scotch.test.(main#f#0#0)",
-            asList(capture("#0", "x", t(2))),
-            apply(id("scotch.test.(main#a)", t(3)), id("x", t(4)), t(15))
+            asList(capture("#0", "x", t(1))),
+            apply(id("scotch.test.(main#a)", t(2)), id("x", t(3)), t(13))
         )));
-        shouldHaveValue("scotch.test.(main#a)", TestUtil.matcher("scotch.test.(main#a#0)", t(17), asList(arg("#0", t(16))), pattern(
+        shouldHaveValue("scotch.test.(main#a)", matcher("scotch.test.(main#a#0)", t(15), asList(arg("#0", t(14))), pattern(
             "scotch.test.(main#a#0#0)",
-            asList(capture("#0", "g", t(6))),
-            apply(apply(id("scotch.test.(+)", t(8)), id("g", t(7)), t(19)), id("g", t(9)), t(20))
+            asList(capture("#0", "g", t(5))),
+            apply(apply(id("scotch.test.(+)", t(7)), id("g", t(6)), t(16)), id("g", t(8)), t(17))
         )));
         shouldHaveValue("scotch.test.main", let(
             "scotch.test.(main#0)",
             asList(valueRef("scotch.test.(main#f)"), valueRef("scotch.test.(main#a)")),
-            apply(id("scotch.test.(main#f)", t(10)), literal(2), t(11))
+            apply(id("scotch.test.(main#f)", t(9)), literal(2), t(10))
         ));
     }
 

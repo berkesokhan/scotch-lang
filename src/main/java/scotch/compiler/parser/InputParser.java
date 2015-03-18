@@ -72,6 +72,7 @@ import lombok.NonNull;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
+import scotch.compiler.syntax.value.ConstantReference;
 import scotch.symbol.Symbol;
 import scotch.symbol.SymbolResolver;
 import scotch.symbol.Value.Fixity;
@@ -105,7 +106,6 @@ import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.Conditional;
-import scotch.compiler.syntax.value.Constant;
 import scotch.compiler.syntax.value.DataConstructor;
 import scotch.compiler.syntax.value.DefaultOperator;
 import scotch.compiler.syntax.value.FunctionValue;
@@ -162,20 +162,18 @@ public class InputParser {
         return scoped(() -> definition(ValueDefinition.builder(),
             value -> {
                 Value body = createConstructorBody(constructor, type);
-                value
-                    .withSymbol(constructor.getSymbol())
-                    .withBody(body)
-                    .withType(body.getType());
+                value.withSymbol(constructor.getSymbol()).withBody(body);
             }
         ));
     }
 
     private Value createConstructorBody(DataConstructorDefinition constructor, SumType type) {
         if (constructor.isNiladic()) {
-            return node(Constant.builder(),
+            return node(ConstantReference.builder(),
                 constant -> constant
                     .withDataType(constructor.getDataType())
                     .withSymbol(constructor.getSymbol())
+                    .withConstantField(constructor.getConstantField())
                     .withType(type));
         } else {
             return scoped(() -> node(
@@ -1056,8 +1054,7 @@ public class InputParser {
                     symbol -> {
                         builder.withSymbol(symbol);
                         require(ASSIGN);
-                        builder.withType(reserveType())
-                            .withBody(parseExpression());
+                        builder.withBody(parseExpression());
                     })));
         } else {
             return scoped(() -> definition(UnshuffledDefinition.builder(), builder -> {

@@ -2,15 +2,16 @@ package scotch.compiler.syntax.value;
 
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
-import static scotch.symbol.type.Types.sum;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.value.Values.conditional;
-import static scotch.util.StringUtil.stringify;
+import static scotch.symbol.type.Types.sum;
 
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.steps.BytecodeGenerator;
@@ -20,23 +21,27 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.runtime.RuntimeSupport;
-import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
+import scotch.runtime.RuntimeSupport;
+import scotch.symbol.type.Type;
 
+@EqualsAndHashCode(callSuper = false)
+@ToString(exclude = "sourceRange")
 public class Conditional extends Value {
 
     public static Builder builder() {
         return new Builder();
     }
 
+    @Getter
     private final SourceRange sourceRange;
+    @Getter
+    private final Type        type;
     private final Value       condition;
     private final Value       whenTrue;
     private final Value       whenFalse;
-    private final Type        type;
 
     Conditional(SourceRange sourceRange, Value condition, Value whenTrue, Value whenFalse, Type type) {
         this.sourceRange = sourceRange;
@@ -86,22 +91,6 @@ public class Conditional extends Value {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof Conditional) {
-            Conditional other = (Conditional) o;
-            return Objects.equals(sourceRange, other.sourceRange)
-                && Objects.equals(condition, other.condition)
-                && Objects.equals(whenTrue, other.whenTrue)
-                && Objects.equals(whenFalse, other.whenFalse)
-                && Objects.equals(type, other.type);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
         return new CodeBlock() {{
             LabelNode falseBranch = new LabelNode();
@@ -118,21 +107,6 @@ public class Conditional extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
-    }
-
-    @Override
-    public Type getType() {
-        return type;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(condition, whenTrue, whenFalse, type);
-    }
-
-    @Override
     public Value parsePrecedence(PrecedenceParser state) {
         return parse(state, Value::parsePrecedence);
     }
@@ -141,11 +115,6 @@ public class Conditional extends Value {
     public Value qualifyNames(ScopedNameQualifier state) {
         return parse(state, Value::qualifyNames)
             .withType(type.qualifyNames(state));
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this);
     }
 
     @Override

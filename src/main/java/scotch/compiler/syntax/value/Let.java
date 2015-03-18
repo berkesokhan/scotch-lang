@@ -4,13 +4,13 @@ import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.definition.Definitions.scopeDef;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
 import static scotch.compiler.syntax.value.Values.let;
-import static scotch.util.StringUtil.stringify;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
@@ -19,14 +19,15 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.symbol.Symbol;
-import scotch.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceRange;
+import scotch.symbol.Symbol;
+import scotch.symbol.type.Type;
 
+@ToString(exclude = "sourceRange", doNotUseGetters = true)
 public class Let extends Value implements Scoped {
 
     public static Builder builder() {
@@ -144,11 +145,6 @@ public class Let extends Value implements Scoped {
     public Value qualifyNames(ScopedNameQualifier state) {
         return state.scoped(this, () -> withDefinitions(state.qualifyDefinitionNames(definitions))
             .withBody(body.qualifyNames(state)));
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this);
     }
 
     public Let withBody(Value body) {

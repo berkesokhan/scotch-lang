@@ -4,7 +4,6 @@ import static java.util.Arrays.stream;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
@@ -14,15 +13,6 @@ public class MethodSignature {
 
     public static MethodSignature constructor(String descriptor) {
         return fromString(MethodType.SPECIAL, descriptor);
-    }
-
-    public static MethodSignature fromConstructor(Constructor constructor) {
-        return new MethodSignature(
-            MethodType.SPECIAL,
-            p(constructor.getDeclaringClass()),
-            "<init>",
-            sig(void.class, constructor.getParameterTypes())
-        );
     }
 
     public static MethodSignature fromMethod(Method method) {

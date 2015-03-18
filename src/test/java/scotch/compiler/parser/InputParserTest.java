@@ -4,20 +4,18 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static me.qmx.jitescript.CodeBlock.ACC_STATIC;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.symbol.Value.Fixity.LEFT_INFIX;
-import static scotch.symbol.Value.Fixity.PREFIX;
-import static scotch.symbol.type.Types.fn;
-import static scotch.symbol.type.Types.sum;
-import static scotch.symbol.type.Types.t;
-import static scotch.symbol.type.Types.var;
+import static org.objectweb.asm.Opcodes.ACC_FINAL;
+import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
 import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.conditional;
-import static scotch.compiler.util.TestUtil.constant;
+import static scotch.compiler.util.TestUtil.constantRef;
+import static scotch.compiler.util.TestUtil.constantValue;
 import static scotch.compiler.util.TestUtil.construct;
 import static scotch.compiler.util.TestUtil.ctorDef;
 import static scotch.compiler.util.TestUtil.dataDef;
@@ -39,6 +37,13 @@ import static scotch.compiler.util.TestUtil.scopeRef;
 import static scotch.compiler.util.TestUtil.signatureRef;
 import static scotch.compiler.util.TestUtil.unshuffled;
 import static scotch.control.monad.Monad.fail;
+import static scotch.symbol.FieldSignature.fieldSignature;
+import static scotch.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.symbol.Value.Fixity.PREFIX;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.t;
+import static scotch.symbol.type.Types.var;
 
 import java.util.List;
 import java.util.function.Function;
@@ -47,14 +52,14 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import scotch.compiler.Compiler;
 import scotch.compiler.ParserTest;
-import scotch.symbol.Value.Fixity;
-import scotch.symbol.type.VariableType;
 import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DataTypeDefinition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.Value;
+import scotch.symbol.Value.Fixity;
+import scotch.symbol.type.VariableType;
 
 public class InputParserTest extends ParserTest {
 
@@ -128,8 +133,8 @@ public class InputParserTest extends ParserTest {
             "value = fn (a b)"
         );
         shouldHaveValue("scotch.test.value", unshuffled(
-            id("fn", t(1)),
-            unshuffled(id("a", t(2)), id("b", t(3)))
+            id("fn", t(0)),
+            unshuffled(id("a", t(1)), id("b", t(2)))
         ));
     }
 
@@ -246,8 +251,8 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "id = \\x -> x"
         );
-        shouldHaveValue("scotch.test.id", matcher("scotch.test.(id#0)", t(1), arg("#0", t(3)),
-            pattern("scotch.test.(id#0#0)", asList(capture("x", t(2))), unshuffled(id("x", t(4))))));
+        shouldHaveValue("scotch.test.id", matcher("scotch.test.(id#0)", t(0), arg("#0", t(2)),
+            pattern("scotch.test.(id#0#0)", asList(capture("x", t(1))), unshuffled(id("x", t(3))))));
     }
 
     @Test
@@ -256,10 +261,10 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "apply2 = \\x y z -> x y z"
         );
-        shouldHaveValue("scotch.test.apply2", matcher("scotch.test.(apply2#0)", t(1), asList(arg("#0", t(5)), arg("#1", t(6)), arg("#2", t(7))), pattern(
+        shouldHaveValue("scotch.test.apply2", matcher("scotch.test.(apply2#0)", t(0), asList(arg("#0", t(4)), arg("#1", t(5)), arg("#2", t(6))), pattern(
             "scotch.test.(apply2#0#0)",
-            asList(capture("x", t(2)), capture("y", t(3)), capture("z", t(4))),
-            unshuffled(id("x", t(8)), id("y", t(9)), id("z", t(10)))
+            asList(capture("x", t(1)), capture("y", t(2)), capture("z", t(3))),
+            unshuffled(id("x", t(7)), id("y", t(8)), id("z", t(9)))
         )));
     }
 
@@ -280,8 +285,8 @@ public class InputParserTest extends ParserTest {
             "fn = \\_ -> ignored"
         );
         shouldNotHaveErrors();
-        shouldHaveValue("scotch.test.fn", matcher("scotch.test.(fn#0)", t(1), arg("#0", t(3)), pattern(
-            "scotch.test.(fn#0#0)", asList(ignore(t(2))), unshuffled(id("ignored", t(4)))
+        shouldHaveValue("scotch.test.fn", matcher("scotch.test.(fn#0)", t(0), arg("#0", t(2)), pattern(
+            "scotch.test.(fn#0#0)", asList(ignore(t(1))), unshuffled(id("ignored", t(3)))
         )));
     }
 
@@ -294,12 +299,12 @@ public class InputParserTest extends ParserTest {
             "    a g = g + g",
             "  f 2"
         );
-        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(1)), capture("x", t(2))), unshuffled(id("a", t(3)), id("x", t(4))));
-        shouldHavePattern("scotch.test.(main#2)", asList(capture("a", t(5)), capture("g", t(6))), unshuffled(id("g", t(7)), id("+", t(8)), id("g", t(9))));
+        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(0)), capture("x", t(1))), unshuffled(id("a", t(2)), id("x", t(3))));
+        shouldHavePattern("scotch.test.(main#2)", asList(capture("a", t(4)), capture("g", t(5))), unshuffled(id("g", t(6)), id("+", t(7)), id("g", t(8))));
         shouldHaveValue("scotch.test.main", let(
             "scotch.test.(main#0)",
             asList(scopeRef("scotch.test.(main#1)"), scopeRef("scotch.test.(main#2)")),
-            unshuffled(id("f", t(10)), literal(2))
+            unshuffled(id("f", t(9)), literal(2))
         ));
     }
 
@@ -313,11 +318,11 @@ public class InputParserTest extends ParserTest {
             "  f 2"
         );
         shouldHaveSignature("scotch.test.(main#f)", fn(sum("Int"), sum("Int")));
-        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(1)), capture("x", t(2))), unshuffled(id("x", t(3)), id("*", t(4)), id("x", t(5))));
+        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(0)), capture("x", t(1))), unshuffled(id("x", t(2)), id("*", t(3)), id("x", t(4))));
         shouldHaveValue("scotch.test.main", let(
             "scotch.test.(main#0)",
             asList(signatureRef("scotch.test.(main#f)"), scopeRef("scotch.test.(main#1)")),
-            unshuffled(id("f", t(6)), literal(2))
+            unshuffled(id("f", t(5)), literal(2))
         ));
     }
 
@@ -346,7 +351,7 @@ public class InputParserTest extends ParserTest {
             literal(true),
             literal("Yes"),
             literal("No"),
-            t(1)
+            t(0)
         ));
     }
 
@@ -362,12 +367,12 @@ public class InputParserTest extends ParserTest {
             literal(true),
             literal("Yes"),
             conditional(
-                id("Maybe", t(1)),
+                id("Maybe", t(0)),
                 literal("Maybe"),
                 literal("Nope"),
-                t(2)
+                t(1)
             ),
-            t(3)
+            t(2)
         ));
     }
 
@@ -384,10 +389,10 @@ public class InputParserTest extends ParserTest {
                 literal(false),
                 literal("Wat"),
                 literal("Maybe?"),
-                t(1)
+                t(0)
             ),
             literal("Nope"),
-            t(2)
+            t(1)
         ));
     }
 
@@ -399,10 +404,10 @@ public class InputParserTest extends ParserTest {
             "    type = Rye, butter = Yes, jam = No",
             "}"
         );
-        shouldHaveValue("scotch.test.toast", initializer(t(2), id("Toast", t(1)), asList(
-            field("type", id("Rye", t(3))),
-            field("butter", id("Yes", t(4))),
-            field("jam", id("No", t(5)))
+        shouldHaveValue("scotch.test.toast", initializer(t(1), id("Toast", t(0)), asList(
+            field("type", id("Rye", t(2))),
+            field("butter", id("Yes", t(3))),
+            field("jam", id("No", t(4)))
         )));
     }
 
@@ -485,7 +490,12 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "data Maybe a = Nothing | Just a"
         );
-        shouldHaveValue("scotch.test.Nothing", constant("scotch.test.Nothing", "scotch.test.Maybe", sum("scotch.test.Maybe", var("a"))));
+        shouldHaveValue("scotch.test.Nothing", constantRef(
+            "scotch.test.Nothing",
+            "scotch.test.Maybe",
+            fieldSignature("scotch/test/Maybe$Nothing", ACC_STATIC | ACC_PUBLIC | ACC_FINAL, "INSTANCE", "Lscotch/test/Maybe$Nothing;"),
+            sum("scotch.test.Maybe", var("a"))
+        ));
     }
 
     @Test
@@ -558,11 +568,11 @@ public class InputParserTest extends ParserTest {
         );
         shouldHaveValue("scotch.test.val", unshuffled(
             unshuffled(
-                id("f", t(1)),
-                id(".", t(2)),
-                id("g", t(3))
+                id("f", t(0)),
+                id(".", t(1)),
+                id("g", t(2))
             ),
-            id("x", t(6))
+            id("x", t(5))
         ));
     }
 
@@ -575,9 +585,9 @@ public class InputParserTest extends ParserTest {
             "    println \"Debilitating coffee addiction\""
         );
         shouldHaveValue("scotch.test.messaged", unshuffled(
-            unshuffled(id("println", t(1)), literal("Hello World!")),
-            id("scotch.control.monad.(>>)", t(3)),
-            unshuffled(id("println", t(2)), literal("Debilitating coffee addiction"))
+            unshuffled(id("println", t(0)), literal("Hello World!")),
+            id("scotch.control.monad.(>>)", t(2)),
+            unshuffled(id("println", t(1)), literal("Debilitating coffee addiction"))
         ));
     }
 
@@ -590,11 +600,11 @@ public class InputParserTest extends ParserTest {
             "    println (\"ponging back! \" ++ ping)"
         );
         shouldHaveValue("scotch.test.pingpong", unshuffled(
-            unshuffled(id("readln", t(2))),
-            id("scotch.control.monad.(>>=)", t(8)),
-            fn("scotch.test.(pingpong#0)", arg("ping", t(1)), unshuffled(
-                id("println", t(3)),
-                unshuffled(literal("ponging back! "), id("++", t(4)), id("ping", t(5)))
+            unshuffled(id("readln", t(1))),
+            id("scotch.control.monad.(>>=)", t(7)),
+            fn("scotch.test.(pingpong#0)", arg("ping", t(0)), unshuffled(
+                id("println", t(2)),
+                unshuffled(literal("ponging back! "), id("++", t(3)), id("ping", t(4)))
             ))
         ));
     }
@@ -618,7 +628,7 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "tuple = (1, 2, 3)"
         );
-        shouldHaveValue("scotch.test.tuple", initializer(t(1), id("scotch.data.tuple.(,,)", t(2)), asList(
+        shouldHaveValue("scotch.test.tuple", initializer(t(0), id("scotch.data.tuple.(,,)", t(1)), asList(
             field("_0", unshuffled(literal(1))),
             field("_1", unshuffled(literal(2))),
             field("_2", unshuffled(literal(3)))
@@ -640,11 +650,11 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "list = [1, 2]"
         );
-        shouldHaveValue("scotch.test.list", initializer(t(4), id("scotch.data.list.(:)", t(5)), asList(
+        shouldHaveValue("scotch.test.list", initializer(t(3), id("scotch.data.list.(:)", t(4)), asList(
             field("_0", unshuffled(literal(1))),
-            field("_1", initializer(t(2), id("scotch.data.list.(:)", t(3)), asList(
+            field("_1", initializer(t(1), id("scotch.data.list.(:)", t(2)), asList(
                 field("_0", unshuffled(literal(2))),
-                field("_1", constant("scotch.data.list.[]", "scotch.data.list.[]", t(1)))
+                field("_1", constantValue("scotch.data.list.[]", "scotch.data.list.[]", t(0)))
             )))
         )));
     }
@@ -655,11 +665,11 @@ public class InputParserTest extends ParserTest {
             "module scotch.test",
             "list = [1, 2,]"
         );
-        shouldHaveValue("scotch.test.list", initializer(t(4), id("scotch.data.list.(:)", t(5)), asList(
+        shouldHaveValue("scotch.test.list", initializer(t(3), id("scotch.data.list.(:)", t(4)), asList(
             field("_0", unshuffled(literal(1))),
-            field("_1", initializer(t(2), id("scotch.data.list.(:)", t(3)), asList(
+            field("_1", initializer(t(1), id("scotch.data.list.(:)", t(2)), asList(
                 field("_0", unshuffled(literal(2))),
-                field("_1", constant("scotch.data.list.[]", "scotch.data.list.[]", t(1)))
+                field("_1", constantValue("scotch.data.list.[]", "scotch.data.list.[]", t(0)))
             )))
         )));
     }

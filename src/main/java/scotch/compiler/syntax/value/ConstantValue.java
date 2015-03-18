@@ -1,10 +1,10 @@
 package scotch.compiler.syntax.value;
 
-import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
-import java.util.Objects;
 import java.util.Optional;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
@@ -18,7 +18,9 @@ import scotch.compiler.text.SourceRange;
 import scotch.symbol.Symbol;
 import scotch.symbol.type.Type;
 
-public class Constant extends Value {
+@EqualsAndHashCode(callSuper = false)
+@ToString(exclude = "sourceRange")
+public class ConstantValue extends Value {
 
     public static Builder builder() {
         return new Builder();
@@ -29,7 +31,7 @@ public class Constant extends Value {
     private final Symbol      dataType;
     private final Type        type;
 
-    Constant(SourceRange sourceRange, Symbol dataType, Symbol symbol, Type type) {
+    ConstantValue(SourceRange sourceRange, Symbol dataType, Symbol symbol, Type type) {
         this.sourceRange = sourceRange;
         this.dataType = dataType;
         this.symbol = symbol;
@@ -67,28 +69,8 @@ public class Constant extends Value {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof Constant) {
-            Constant other = (Constant) o;
-            return Objects.equals(sourceRange, other.sourceRange)
-                && Objects.equals(symbol, other.symbol)
-                && Objects.equals(dataType, other.dataType)
-                && Objects.equals(type, other.type);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        return new CodeBlock() {{
-            String constantClass = symbol.getClassNameAsChildOf(dataType);
-            newobj(constantClass);
-            dup();
-            invokespecial(constantClass, "<init>", sig(void.class));
-        }};
+        return state.getValueSignature(symbol).reference();
     }
 
     @Override
@@ -102,11 +84,6 @@ public class Constant extends Value {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(symbol, dataType, type);
-    }
-
-    @Override
     public Value parsePrecedence(PrecedenceParser state) {
         return this;
     }
@@ -117,16 +94,11 @@ public class Constant extends Value {
     }
 
     @Override
-    public String toString() {
-        return symbol.toString();
-    }
-
-    @Override
     public Value withType(Type type) {
-        return new Constant(sourceRange, dataType, symbol, type);
+        return new ConstantValue(sourceRange, dataType, symbol, type);
     }
 
-    public static class Builder implements SyntaxBuilder<Constant> {
+    public static class Builder implements SyntaxBuilder<ConstantValue> {
 
         private Optional<SourceRange> sourceRange;
         private Optional<Symbol>      dataType;
@@ -141,8 +113,8 @@ public class Constant extends Value {
         }
 
         @Override
-        public Constant build() {
-            return new Constant(
+        public ConstantValue build() {
+            return new ConstantValue(
                 require(sourceRange, "Source range"),
                 require(dataType, "Data type"),
                 require(symbol, "Constant symbol"),

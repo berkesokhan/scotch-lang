@@ -39,9 +39,9 @@ public class NameQualifierTest extends ParserTest {
                 "scotch.test.(fn1#0#0)",
                 asList(capture("#0", "a", t(1)), capture("#1", "b", t(2))),
                 apply(
-                    apply(id("scotch.test.fn2", t(3)), id("a", t(4)), t(15)),
+                    apply(id("scotch.test.fn2", t(3)), id("a", t(4)), t(14)),
                     id("b", t(5)),
-                    t(16)
+                    t(15)
                 )
             ))
         );
@@ -57,15 +57,15 @@ public class NameQualifierTest extends ParserTest {
         );
         shouldHaveValue("scotch.test.run", apply(
             apply(
-                id("scotch.control.monad.(>>=)", t(2)),
-                apply(id("scotch.data.either.Right", t(1)), literal("Yes"), t(7)),
-                t(8)
+                id("scotch.control.monad.(>>=)", t(1)),
+                apply(id("scotch.data.either.Right", t(0)), literal("Yes"), t(6)),
+                t(7)
             ),
-            matcher("scotch.test.(run#0)", t(3), arg("#0", t(5)), pattern(
-                "scotch.test.(run#0#1)", asList(capture("#0", "which", t(4))),
-                apply(id("scotch.data.either.Left", t(6)), literal("No"), t(10))
+            matcher("scotch.test.(run#0)", t(2), arg("#0", t(4)), pattern(
+                "scotch.test.(run#0#1)", asList(capture("#0", "which", t(3))),
+                apply(id("scotch.data.either.Left", t(5)), literal("No"), t(9))
             )),
-            t(9)
+            t(8)
         ));
     }
 

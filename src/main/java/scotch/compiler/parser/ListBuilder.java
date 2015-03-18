@@ -7,7 +7,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import scotch.symbol.util.SymbolGenerator;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.syntax.value.Constant;
+import scotch.compiler.syntax.value.ConstantValue;
 import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.Initializer;
 import scotch.compiler.syntax.value.Value;
@@ -29,7 +29,7 @@ public class ListBuilder implements SyntaxBuilder<Value> {
 
     @Override
     public Value build() {
-        Value tail = Constant.builder()
+        Value tail = ConstantValue.builder()
             .withDataType(symbol("scotch.data.list.[]"))
             .withSymbol(symbol("scotch.data.list.[]"))
             .withType(generator.reserveType())

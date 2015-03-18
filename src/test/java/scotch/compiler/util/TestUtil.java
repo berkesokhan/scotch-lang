@@ -17,6 +17,7 @@ import scotch.compiler.output.GeneratedClass;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
+import scotch.symbol.FieldSignature;
 import scotch.symbol.MethodSignature;
 import scotch.symbol.Symbol;
 import scotch.symbol.Value.Fixity;
@@ -102,8 +103,12 @@ public class TestUtil {
         return Values.conditional(NULL_SOURCE, condition, whenTrue, whenFalse, type);
     }
 
-    public static Value constant(String name, String dataType, Type type) {
-        return Values.constant(NULL_SOURCE, symbol(name), symbol(dataType), type);
+    public static Value constantRef(String name, String dataType, FieldSignature fieldSignature, Type type) {
+        return Values.constantRef(NULL_SOURCE, symbol(name), symbol(dataType), fieldSignature, type);
+    }
+
+    public static Value constantValue(String name, String dataType, Type type) {
+        return Values.constantValue(NULL_SOURCE, symbol(name), symbol(dataType), type);
     }
 
     public static DataConstructor construct(String name, Type type, List<Value> arguments) {

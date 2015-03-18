@@ -138,7 +138,6 @@ public class PrecedenceParser {
             ValueDefinition.builder()
                 .withSourceRange(sourceRange)
                 .withSymbol(symbol)
-                .withType(scope().reserveType())
                 .withBody(function)
                 .build()
                 .parsePrecedence(this)
