@@ -418,9 +418,9 @@ public class InputParserTest extends ParserTest {
         parse(
             "module scotch.test",
             "data Toast {",
-            "    type Bread,",
-            "    butter Verbool,",
-            "    jam Verbool",
+            "    type :: Bread,",
+            "    butter :: Verbool,",
+            "    jam :: Verbool",
             "}"
         );
         shouldHaveDataType("scotch.test.Toast", dataDef("scotch.test.Toast", emptyList(), asList(
@@ -451,7 +451,7 @@ public class InputParserTest extends ParserTest {
     public void shouldParseDataDeclarationWithNamedField() {
         parse(
             "module scotch.test",
-            "data Map a b = Empty | Entry { key a, value b }"
+            "data Map a b = Empty | Entry { key :: a, value :: b }"
         );
         shouldHaveDataType(
             "scotch.test.Map",
@@ -472,9 +472,9 @@ public class InputParserTest extends ParserTest {
         parse(
             "module scotch.test",
             "data Toast {",
-            "    type Bread,",
-            "    butter Verbool,",
-            "    jam Verbool",
+            "    type :: Bread,",
+            "    butter :: Verbool,",
+            "    jam :: Verbool",
             "}"
         );
         shouldHaveValue("scotch.test.Toast", fn(
@@ -546,7 +546,7 @@ public class InputParserTest extends ParserTest {
     public void shouldParseDataDeclarationWithNamedFieldAndTypeConstraints() {
         parse(
             "module scotch.test",
-            "data (Eq a, Eq b) => Map a b = Empty | Entry { key a, value b }"
+            "data (Eq a, Eq b) => Map a b = Empty | Entry { key :: a, value :: b }"
         );
         shouldHaveDataType(
             "scotch.test.Map",

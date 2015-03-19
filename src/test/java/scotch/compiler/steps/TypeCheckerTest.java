@@ -565,7 +565,7 @@ public class TypeCheckerTest extends ParserTest {
             "module scotch.test",
             "import scotch.data.int",
             "",
-            "data QuantifiedThing a { howMany Int, thing a }"
+            "data QuantifiedThing a { howMany :: Int, thing :: a }"
         );
         shouldNotHaveErrors();
         shouldHaveValue("scotch.test.QuantifiedThing", fn(intType, fn(t(0), sum("scotch.test.QuantifiedThing", asList(t(0))))));

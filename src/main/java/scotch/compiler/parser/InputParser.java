@@ -745,10 +745,13 @@ public class InputParser {
     }
 
     private DataFieldDefinition parseNamedField_(AtomicInteger ordinal, Map<String, Type> constraints) {
-        return node(DataFieldDefinition.builder(), builder -> builder
-            .withOrdinal(ordinal.getAndIncrement())
-            .withName(requireWord())
-            .withType(parseType(constraints)));
+        return node(DataFieldDefinition.builder(), builder -> {
+            builder
+                .withOrdinal(ordinal.getAndIncrement())
+                .withName(requireWord());
+            require(DOUBLE_COLON);
+            builder.withType(parseType(constraints));
+        });
     }
 
     private List<DefinitionReference> parseOperatorDefinition() {

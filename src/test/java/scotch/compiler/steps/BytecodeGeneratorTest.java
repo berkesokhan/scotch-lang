@@ -172,7 +172,7 @@ public class BytecodeGeneratorTest {
         boolean result = exec(
             "module scotch.test",
             "import scotch.java",
-            "data Thing a { value a }",
+            "data Thing a { value :: a }",
             "run = Thing 2 `javaEq?!` Thing 2"
         );
         assertThat(result, is(true));
@@ -186,7 +186,7 @@ public class BytecodeGeneratorTest {
             "import scotch.data.eq",
             "import scotch.data.function",
             "",
-            "data Thing n { value n }",
+            "data Thing n { value :: n }",
             "",
             "run = (javaHash! $ Thing 2) == (javaHash! $ Thing 2)"
         );
@@ -203,7 +203,7 @@ public class BytecodeGeneratorTest {
             "import scotch.data.int",
             "import scotch.data.string",
             "",
-            "data QuantifiedThing a { howMany Int, what a }",
+            "data QuantifiedThing a { howMany :: Int, what :: a }",
             "",
             "run = QuantifiedThing { howMany = 32, what = \"Bananas\" } `javaEq?!`",
             "      QuantifiedThing { what = \"Bananas\", howMany = 32 }"
@@ -238,7 +238,7 @@ public class BytecodeGeneratorTest {
             "import scotch.java",
             "import scotch.data.eq",
             "",
-            "data Thing n { value n }",
+            "data Thing n { value :: n }",
             "",
             "($) :: (a -> b) -> a -> b",
             "right infix 0 ($)",
@@ -359,7 +359,7 @@ public class BytecodeGeneratorTest {
             "import scotch.data.int",
             "",
             "data Texture = Soft | Crunchy",
-            "data Pickle { kind Texture, pimples Int }",
+            "data Pickle { kind :: Texture, pimples :: Int }",
             "pickle = Pickle Crunchy 15",
             "run = pickle"
         );
