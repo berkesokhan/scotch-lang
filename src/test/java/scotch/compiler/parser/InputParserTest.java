@@ -5,6 +5,7 @@ import static java.util.Arrays.stream;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static me.qmx.jitescript.CodeBlock.ACC_STATIC;
+import static me.qmx.jitescript.util.CodegenUtils.ci;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -58,6 +59,7 @@ import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.Value;
+import scotch.runtime.Callable;
 import scotch.symbol.Value.Fixity;
 import scotch.symbol.type.VariableType;
 
@@ -493,7 +495,7 @@ public class InputParserTest extends ParserTest {
         shouldHaveValue("scotch.test.Nothing", constantRef(
             "scotch.test.Nothing",
             "scotch.test.Maybe",
-            fieldSignature("scotch/test/Maybe$Nothing", ACC_STATIC | ACC_PUBLIC | ACC_FINAL, "INSTANCE", "Lscotch/test/Maybe$Nothing;"),
+            fieldSignature("scotch/test/Maybe$Nothing", ACC_STATIC | ACC_PUBLIC | ACC_FINAL, "INSTANCE", ci(Callable.class)),
             sum("scotch.test.Maybe", var("a"))
         ));
     }

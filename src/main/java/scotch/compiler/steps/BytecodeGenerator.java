@@ -83,7 +83,7 @@ public class BytecodeGenerator {
     }
 
     public void beginConstant(String className, SourceRange sourceRange) {
-        JiteClass jiteClass = new JiteClass(className, currentClass().getClassName(), new String[] { p(Callable.class) });
+        JiteClass jiteClass = new JiteClass(className, currentClass().getClassName(), new String[0]);
         pushClass(jiteClass, DATA_CONSTRUCTOR);
         jiteClass.setSourceFile(sourceRange.getPath());
         jiteClass.defineDefaultConstructor();

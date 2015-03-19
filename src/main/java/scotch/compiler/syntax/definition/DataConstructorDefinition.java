@@ -22,9 +22,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import lombok.EqualsAndHashCode;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
+import me.qmx.jitescript.LambdaBlock;
 import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.NameAccumulator;
@@ -33,6 +35,7 @@ import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceRange;
 import scotch.runtime.Callable;
 import scotch.runtime.Copyable;
+import scotch.runtime.RuntimeSupport;
 import scotch.symbol.FieldSignature;
 import scotch.symbol.Symbol;
 import scotch.symbol.descriptor.DataConstructorDescriptor;
@@ -62,7 +65,7 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
         sortedFields.forEach(field -> this.fields.put(field.getName(), field));
         if (fields.isEmpty()) {
             String className = symbol.getClassNameAsChildOf(dataType);
-            constantField = Optional.of(fieldSignature(className, ACC_STATIC | ACC_PUBLIC | ACC_FINAL, "INSTANCE", "L" + className + ";"));
+            constantField = Optional.of(fieldSignature(className, ACC_STATIC | ACC_PUBLIC | ACC_FINAL, "INSTANCE", ci(Callable.class)));
         } else {
             constantField = Optional.empty();
         }
@@ -282,9 +285,16 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
         String className = jiteClass.getClassName();
         getConstantField().defineOn(jiteClass);
         jiteClass.defineMethod("<clinit>", ACC_STATIC | ACC_SYNTHETIC | ACC_PRIVATE, sig(void.class), new CodeBlock() {{
-            newobj(className);
-            dup();
-            invokespecial(className, "<init>", sig(void.class));
+            lambda(jiteClass, new LambdaBlock(state.reserveLambda()) {{
+                function(p(Supplier.class), "get", sig(Object.class));
+                delegateTo(ACC_STATIC, sig(Object.class), new CodeBlock() {{
+                    newobj(className);
+                    dup();
+                    invokespecial(className, "<init>", sig(void.class));
+                    areturn();
+                }});
+            }});
+            invokestatic(p(RuntimeSupport.class), "callable", sig(Callable.class, Supplier.class));
             append(getConstantField().putValue());
             voidreturn();
         }});

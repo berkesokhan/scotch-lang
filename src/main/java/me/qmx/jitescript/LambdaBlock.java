@@ -28,7 +28,7 @@ public class LambdaBlock {
     );
 
     /** The argument types to capture off the stack. */
-    private List<String> captureArguments;
+    private List<String> captureArguments = new ArrayList<String>();
     /** Access level of the implementation method. */
     private int implementationAccess;
     /** Signature of the implementation method. */
