@@ -6,12 +6,12 @@ import static scotch.symbol.type.Types.sum;
 
 import me.qmx.jitescript.CodeBlock;
 import scotch.symbol.type.Types;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class CharLiteral extends LiteralValue<Character> {
 
-    CharLiteral(SourceRange sourceRange, char value) {
-        super(sourceRange, value, Types.sum("scotch.data.char.Char"));
+    CharLiteral(SourceLocation sourceLocation, char value) {
+        super(sourceLocation, value, Types.sum("scotch.data.char.Char"));
     }
 
     @Override

@@ -13,7 +13,7 @@ import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.symbol.Symbol;
 import scotch.compiler.syntax.Scoped;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Either;
 
 public abstract class Definition implements Scoped {
@@ -52,13 +52,13 @@ public abstract class Definition implements Scoped {
         return this;
     }
 
-    public abstract SourceRange getSourceRange();
+    public abstract SourceLocation getSourceLocation();
 
     @Override
     public abstract int hashCode();
 
     public void markLine(CodeBlock codeBlock) {
-        getSourceRange().markLine(codeBlock);
+        getSourceLocation().markLine(codeBlock);
     }
 
     public abstract Optional<Definition> parsePrecedence(PrecedenceParser state);

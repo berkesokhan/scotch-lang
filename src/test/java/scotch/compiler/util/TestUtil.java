@@ -7,7 +7,7 @@ import static scotch.compiler.Compiler.compiler;
 import static scotch.symbol.Symbol.symbol;
 import static scotch.symbol.type.Types.sum;
 import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
-import static scotch.compiler.text.SourceRange.NULL_SOURCE;
+import static scotch.compiler.text.SourceLocation.NULL_SOURCE;
 
 import java.net.URI;
 import java.util.List;
@@ -131,7 +131,7 @@ public class TestUtil {
 
     public static DataConstructorDefinition ctorDef(int ordinal, String dataType, String name, List<DataFieldDefinition> fields) {
         return DataConstructorDefinition.builder()
-            .withSourceRange(NULL_SOURCE)
+            .withSourceLocation(NULL_SOURCE)
             .withOrdinal(ordinal)
             .withDataType(symbol(dataType))
             .withSymbol(symbol(name))
@@ -141,7 +141,7 @@ public class TestUtil {
 
     public static DataTypeDefinition dataDef(String name, List<Type> parameters, List<DataConstructorDefinition> constructors) {
         return DataTypeDefinition.builder()
-            .withSourceRange(NULL_SOURCE)
+            .withSourceLocation(NULL_SOURCE)
             .withSymbol(symbol(name))
             .withParameters(parameters)
             .withConstructors(constructors)
@@ -177,7 +177,7 @@ public class TestUtil {
 
     public static DataFieldDefinition fieldDef(int ordinal, String name, Type type) {
         return DataFieldDefinition.builder()
-            .withSourceRange(NULL_SOURCE)
+            .withSourceLocation(NULL_SOURCE)
             .withOrdinal(ordinal)
             .withName(name)
             .withType(type)

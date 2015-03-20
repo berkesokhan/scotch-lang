@@ -2,7 +2,7 @@ package scotch.symbol;
 
 import java.util.Optional;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public interface NameQualifier {
 
@@ -10,5 +10,5 @@ public interface NameQualifier {
 
     Optional<Symbol> qualify(Symbol symbol);
 
-    void symbolNotFound(Symbol symbol, SourceRange sourceRange);
+    void symbolNotFound(Symbol symbol, SourceLocation sourceLocation);
 }

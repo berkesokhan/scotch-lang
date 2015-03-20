@@ -19,23 +19,23 @@ import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange")
+@ToString(exclude = "sourceLocation")
 public class Initializer extends Value {
 
     public static Builder builder() {
         return new Builder();
     }
 
-    private final SourceRange            sourceRange;
+    private final SourceLocation         sourceLocation;
     private final Value                  value;
     private final List<InitializerField> fields;
     private final Type                   type;
 
-    Initializer(SourceRange sourceRange, Value value, List<InitializerField> fields, Type type) {
-        this.sourceRange = sourceRange;
+    Initializer(SourceLocation sourceLocation, Value value, List<InitializerField> fields, Type type) {
+        this.sourceLocation = sourceLocation;
         this.value = value;
         this.fields = ImmutableList.copyOf(fields);
         this.type = type;
@@ -44,7 +44,7 @@ public class Initializer extends Value {
     @Override
     public Value accumulateDependencies(DependencyAccumulator state) {
         return new Initializer(
-            sourceRange,
+            sourceLocation,
             value.accumulateDependencies(state),
             fields.stream()
                 .map(field -> field.accumulateDependencies(state))
@@ -56,7 +56,7 @@ public class Initializer extends Value {
     @Override
     public Value accumulateNames(NameAccumulator state) {
         return new Initializer(
-            sourceRange,
+            sourceLocation,
             value.accumulateNames(state),
             fields.stream()
                 .map(field -> field.accumulateNames(state))
@@ -85,7 +85,7 @@ public class Initializer extends Value {
     @Override
     public Value defineOperators(OperatorAccumulator state) {
         return new Initializer(
-            sourceRange,
+            sourceLocation,
             value.defineOperators(state),
             fields.stream()
                 .map(field -> field.defineOperators(state))
@@ -104,8 +104,8 @@ public class Initializer extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -116,7 +116,7 @@ public class Initializer extends Value {
     @Override
     public Value parsePrecedence(PrecedenceParser state) {
         return new Initializer(
-            sourceRange,
+            sourceLocation,
             value.parsePrecedence(state),
             fields.stream()
                 .map(field -> field.parsePrecedence(state))
@@ -135,26 +135,26 @@ public class Initializer extends Value {
 
     @Override
     public Value withType(Type type) {
-        return new Initializer(sourceRange, value, fields, type);
+        return new Initializer(sourceLocation, value, fields, type);
     }
 
     private Value withFields(List<InitializerField> fields) {
-        return new Initializer(sourceRange, value, fields, type);
+        return new Initializer(sourceLocation, value, fields, type);
     }
 
     private Initializer withValue(Value value) {
-        return new Initializer(sourceRange, value, fields, type);
+        return new Initializer(sourceLocation, value, fields, type);
     }
 
     public static class Builder implements SyntaxBuilder<Initializer> {
 
-        private Optional<SourceRange>            sourceRange;
+        private Optional<SourceLocation>         sourceLocation;
         private Optional<Value>                  value;
         private Optional<List<InitializerField>> fields;
         private Optional<Type>                   type;
 
         private Builder() {
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
             value = Optional.empty();
             fields = Optional.empty();
             type = Optional.empty();
@@ -171,7 +171,7 @@ public class Initializer extends Value {
         @Override
         public Initializer build() {
             return new Initializer(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(value, "Initializer value"),
                 require(fields, "Initializer fields"),
                 require(type, "Initializer type")
@@ -179,8 +179,8 @@ public class Initializer extends Value {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

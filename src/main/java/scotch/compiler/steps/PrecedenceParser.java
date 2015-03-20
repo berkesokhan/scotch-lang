@@ -35,7 +35,7 @@ import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class PrecedenceParser {
 
@@ -121,10 +121,10 @@ public class PrecedenceParser {
     public List<DefinitionReference> processPatterns() {
         List<DefinitionReference> members = new ArrayList<>();
         scope().getPatternCases().forEach((symbol, patternCases) -> {
-            SourceRange sourceRange = patternCases.subList(1, patternCases.size()).stream()
-                .map(PatternCase::getSourceRange)
-                .reduce(patternCases.get(0).getSourceRange(), SourceRange::extend);
-            PatternMatcher function = buildMatcher(patternCases, sourceRange);
+            SourceLocation sourceLocation = patternCases.subList(1, patternCases.size()).stream()
+                .map(PatternCase::getSourceLocation)
+                .reduce(patternCases.get(0).getSourceLocation(), SourceLocation::extend);
+            PatternMatcher function = buildMatcher(patternCases, sourceLocation);
 
             patternCases.stream()
                 .map(this::collect)
@@ -136,7 +136,7 @@ public class PrecedenceParser {
             patternScopes.put(valueRef(symbol), scope);
             getScope(function.getReference()).setParent(scope);
             ValueDefinition.builder()
-                .withSourceRange(sourceRange)
+                .withSourceLocation(sourceLocation)
                 .withSymbol(symbol)
                 .withBody(function)
                 .build()
@@ -211,14 +211,14 @@ public class PrecedenceParser {
             });
     }
 
-    public void symbolNotFound(Symbol symbol, SourceRange sourceRange) {
-        errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceRange));
+    public void symbolNotFound(Symbol symbol, SourceLocation sourceLocation) {
+        errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceLocation));
     }
 
-    private PatternMatcher buildMatcher(List<PatternCase> patternCases, SourceRange sourceRange) {
-        List<Argument> arguments = buildFunctionArguments(patternCases, sourceRange);
+    private PatternMatcher buildMatcher(List<PatternCase> patternCases, SourceLocation sourceLocation) {
+        List<Argument> arguments = buildFunctionArguments(patternCases, sourceLocation);
         PatternMatcher matcher = PatternMatcher.builder()
-            .withSourceRange(sourceRange)
+            .withSourceLocation(sourceLocation)
             .withSymbol(scope().reserveSymbol(ImmutableList.of()))
             .withType(scope().reserveType())
             .withArguments(arguments)
@@ -228,12 +228,12 @@ public class PrecedenceParser {
         return matcher;
     }
 
-    private List<Argument> buildFunctionArguments(List<PatternCase> patterns, SourceRange sourceRange) {
+    private List<Argument> buildFunctionArguments(List<PatternCase> patterns, SourceLocation sourceLocation) {
         int arity = patterns.get(0).getArity();
         List<Argument> arguments = new ArrayList<>();
         for (int i = 0; i < arity; i++) {
             arguments.add(Argument.builder()
-                .withSourceRange(sourceRange)
+                .withSourceLocation(sourceLocation)
                 .withName("#" + i)
                 .withType(scope().reserveType())
                 .build());

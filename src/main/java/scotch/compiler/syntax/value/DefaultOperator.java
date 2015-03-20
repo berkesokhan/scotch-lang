@@ -20,7 +20,7 @@ import scotch.symbol.Symbol;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
 
 public class DefaultOperator extends Value {
@@ -29,12 +29,12 @@ public class DefaultOperator extends Value {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final Symbol      symbol;
-    private final Type        type;
+    private final SourceLocation sourceLocation;
+    private final Symbol         symbol;
+    private final Type           type;
 
-    DefaultOperator(SourceRange sourceRange, Symbol symbol, Type type) {
-        this.sourceRange = sourceRange;
+    DefaultOperator(SourceLocation sourceLocation, Symbol symbol, Type type) {
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.type = type;
     }
@@ -46,7 +46,7 @@ public class DefaultOperator extends Value {
 
     private Identifier asIdentifier() {
         return Identifier.builder()
-            .withSourceRange(sourceRange)
+            .withSourceLocation(sourceLocation)
             .withSymbol(symbol)
             .withType(type)
             .build();
@@ -94,7 +94,7 @@ public class DefaultOperator extends Value {
             return true;
         } else if (o instanceof DefaultOperator) {
             DefaultOperator other = (DefaultOperator) o;
-            return Objects.equals(sourceRange, other.sourceRange)
+            return Objects.equals(sourceLocation, other.sourceLocation)
                 && Objects.equals(symbol, other.symbol)
                 && Objects.equals(type, other.type);
         } else {
@@ -108,8 +108,8 @@ public class DefaultOperator extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -149,22 +149,22 @@ public class DefaultOperator extends Value {
 
     public static class Builder implements SyntaxBuilder<DefaultOperator> {
 
-        private Optional<SourceRange> sourceRange = Optional.empty();
-        private Optional<Symbol>      symbol      = Optional.empty();
-        private Optional<Type>        type        = Optional.empty();
+        private Optional<SourceLocation> sourceLocation = Optional.empty();
+        private Optional<Symbol>         symbol      = Optional.empty();
+        private Optional<Type>           type        = Optional.empty();
 
         @Override
         public DefaultOperator build() {
             return new DefaultOperator(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Default operator symbol"),
                 require(type, "Default operator type")
             );
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

@@ -3,7 +3,7 @@ package scotch.compiler.syntax.definition;
 import java.util.HashSet;
 import java.util.Set;
 import scotch.symbol.Symbol;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public final class DefinitionNode {
 
@@ -23,8 +23,8 @@ public final class DefinitionNode {
         return entry;
     }
 
-    public SourceRange getSourceRange() {
-        return entry.getSourceRange();
+    public SourceLocation getSourceLocation() {
+        return entry.getSourceLocation();
     }
 
     public Symbol getSymbol() {

@@ -11,7 +11,7 @@ import scotch.symbol.Symbol;
 import scotch.symbol.SymbolResolver;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public final class ModuleImport extends Import {
 
@@ -19,11 +19,11 @@ public final class ModuleImport extends Import {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final String      moduleName;
+    private final SourceLocation sourceLocation;
+    private final String         moduleName;
 
-    ModuleImport(SourceRange sourceRange, String moduleName) {
-        this.sourceRange = sourceRange;
+    ModuleImport(SourceLocation sourceLocation, String moduleName) {
+        this.sourceLocation = sourceLocation;
         this.moduleName = moduleName;
     }
 
@@ -62,24 +62,24 @@ public final class ModuleImport extends Import {
     }
 
     @Override
-    public ModuleImport withSourceRange(SourceRange sourceRange) {
-        return new ModuleImport(sourceRange, moduleName);
+    public ModuleImport withSourceLocation(SourceLocation sourceLocation) {
+        return new ModuleImport(sourceLocation, moduleName);
     }
 
     public static class Builder implements SyntaxBuilder<ModuleImport> {
 
-        private Optional<SourceRange> sourceRange;
-        private Optional<String>      moduleName;
+        private Optional<SourceLocation> sourceLocation;
+        private Optional<String>         moduleName;
 
         private Builder() {
             moduleName = Optional.empty();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public ModuleImport build() {
             return moduleImport(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(moduleName, "Module name")
             );
         }
@@ -90,8 +90,8 @@ public final class ModuleImport extends Import {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
     }

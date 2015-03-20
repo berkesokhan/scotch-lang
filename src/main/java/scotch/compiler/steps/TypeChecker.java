@@ -53,17 +53,17 @@ import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.InstanceMap;
 import scotch.compiler.syntax.value.Method;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class TypeChecker implements TypeScope {
 
     private static final Object mark = new Object();
 
-    public static SyntaxError ambiguousTypeInstance(Symbol typeClass, List<Type> parameters, Set<TypeInstanceDescriptor> typeInstances, SourceRange location) {
+    public static SyntaxError ambiguousTypeInstance(Symbol typeClass, List<Type> parameters, Set<TypeInstanceDescriptor> typeInstances, SourceLocation location) {
         return new AmbiguousTypeInstanceError(typeClass, parameters, typeInstances, location);
     }
 
-    public static SyntaxError typeInstanceNotFound(Symbol typeClass, List<Type> parameters, SourceRange location) {
+    public static SyntaxError typeInstanceNotFound(Symbol typeClass, List<Type> parameters, SourceLocation location) {
         return new TypeInstanceNotFoundError(typeClass, parameters, location);
     }
 
@@ -153,17 +153,17 @@ public class TypeChecker implements TypeScope {
             errors.add(typeInstanceNotFound(
                 instanceType.getSymbol(),
                 asList(instanceType.getBinding()),
-                method.getSourceRange()
+                method.getSourceLocation()
             ));
         } else if (typeInstances.size() > 1) {
             errors.add(ambiguousTypeInstance(
                 instanceType.getSymbol(),
                 asList(instanceType.getBinding()),
                 typeInstances,
-                method.getSourceRange()
+                method.getSourceLocation()
             ));
         } else {
-            return instance(method.getSourceRange(), instanceRef(typeInstances.iterator().next()), instanceType);
+            return instance(method.getSourceLocation(), instanceRef(typeInstances.iterator().next()), instanceType);
         }
         return method;
     }
@@ -202,7 +202,7 @@ public class TypeChecker implements TypeScope {
             .orElseGet(() -> scope()
                 .getValue(definition.getSymbol())
                 .orElseGet(() -> {
-                    error(symbolNotFound(definition.getSymbol(), definition.getSourceRange()));
+                    error(symbolNotFound(definition.getSymbol(), definition.getSourceLocation()));
                     return reserveType();
                 }));
     }
@@ -309,7 +309,7 @@ public class TypeChecker implements TypeScope {
                             Scope functionScope = scope().enterScope();
                             scope().insertChild(functionScope);
                             FunctionValue function = FunctionValue.builder()
-                                .withSourceRange(value.getSourceRange())
+                                .withSourceLocation(value.getSourceLocation())
                                 .withSymbol(functionSymbol)
                                 .withArguments(instanceArguments)
                                 .withBody(value)
@@ -361,7 +361,7 @@ public class TypeChecker implements TypeScope {
         return instances.stream()
             .flatMap(pair -> pair.into((type, classRefs) -> classRefs.stream()
                 .map(classRef -> arg(
-                    definition.getSourceRange().getStartRange(),
+                    definition.getSourceLocation().getStartPoint(),
                     "#" + counter.getAndIncrement() + "i",
                     Types.instance(classRef.getSymbol(), type.simplify())
                 ))))
@@ -409,9 +409,9 @@ public class TypeChecker implements TypeScope {
         private final Symbol                      typeClass;
         private final List<Type>                  parameters;
         private final Set<TypeInstanceDescriptor> typeInstances;
-        private final SourceRange                 location;
+        private final SourceLocation              location;
 
-        private AmbiguousTypeInstanceError(Symbol typeClass, List<Type> parameters, Set<TypeInstanceDescriptor> typeInstances, SourceRange location) {
+        private AmbiguousTypeInstanceError(Symbol typeClass, List<Type> parameters, Set<TypeInstanceDescriptor> typeInstances, SourceLocation location) {
             this.typeClass = typeClass;
             this.parameters = parameters;
             this.typeInstances = typeInstances;
@@ -440,11 +440,11 @@ public class TypeChecker implements TypeScope {
     @ToString
     public static class TypeInstanceNotFoundError extends SyntaxError {
 
-        private final Symbol      typeClass;
-        private final List<Type>  parameters;
-        private final SourceRange location;
+        private final Symbol         typeClass;
+        private final List<Type>     parameters;
+        private final SourceLocation location;
 
-        private TypeInstanceNotFoundError(Symbol typeClass, List<Type> parameters, SourceRange location) {
+        private TypeInstanceNotFoundError(Symbol typeClass, List<Type> parameters, SourceLocation location) {
             this.typeClass = typeClass;
             this.parameters = ImmutableList.copyOf(parameters);
             this.location = location;

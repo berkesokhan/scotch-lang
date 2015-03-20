@@ -30,7 +30,7 @@ import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.reference.ScopeReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 @EqualsAndHashCode(callSuper = false)
 public class FunctionValue extends Value implements Scoped {
@@ -39,14 +39,14 @@ public class FunctionValue extends Value implements Scoped {
         return new Builder();
     }
 
-    private final SourceRange    sourceRange;
+    private final SourceLocation sourceLocation;
     private final Symbol         symbol;
     private final List<Argument> arguments;
     private final Value          body;
     private final Optional<Type> type;
 
-    FunctionValue(SourceRange sourceRange, Symbol symbol, List<Argument> arguments, Value body, Optional<Type> type) {
-        this.sourceRange = sourceRange;
+    FunctionValue(SourceLocation sourceLocation, Symbol symbol, List<Argument> arguments, Value body, Optional<Type> type) {
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.arguments = ImmutableList.copyOf(arguments);
         this.body = body;
@@ -126,7 +126,7 @@ public class FunctionValue extends Value implements Scoped {
 
     @Override
     public Definition getDefinition() {
-        return scopeDef(sourceRange, symbol);
+        return scopeDef(sourceLocation, symbol);
     }
 
     public ScopeReference getReference() {
@@ -134,8 +134,8 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -162,7 +162,7 @@ public class FunctionValue extends Value implements Scoped {
     @Override
     public Value qualifyNames(ScopedNameQualifier state) {
         return state.named(symbol, () -> state.scoped(this, () -> new FunctionValue(
-            sourceRange,
+            sourceLocation,
             symbol,
             arguments.stream()
                 .map(argument -> argument.qualifyNames(state))
@@ -178,16 +178,16 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     public FunctionValue withArguments(List<Argument> arguments) {
-        return fn(sourceRange, symbol, arguments, body);
+        return fn(sourceLocation, symbol, arguments, body);
     }
 
     public FunctionValue withBody(Value body) {
-        return fn(sourceRange, symbol, arguments, body);
+        return fn(sourceLocation, symbol, arguments, body);
     }
 
     @Override
     public FunctionValue withType(Type type) {
-        return new FunctionValue(sourceRange, symbol, arguments, body, Optional.of(type));
+        return new FunctionValue(sourceLocation, symbol, arguments, body, Optional.of(type));
     }
 
     private Value curry_(Deque<Argument> args) {
@@ -199,7 +199,7 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     private FunctionValue withSymbol(Symbol symbol) {
-        return fn(sourceRange, symbol, arguments, body);
+        return fn(sourceLocation, symbol, arguments, body);
     }
 
     public static class Builder implements SyntaxBuilder<FunctionValue> {
@@ -207,19 +207,19 @@ public class FunctionValue extends Value implements Scoped {
         private Optional<Symbol>         symbol;
         private Optional<List<Argument>> arguments;
         private Optional<Value>          body;
-        private Optional<SourceRange>    sourceRange;
+        private Optional<SourceLocation> sourceLocation;
 
         private Builder() {
             symbol = Optional.empty();
             arguments = Optional.empty();
             body = Optional.empty();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public FunctionValue build() {
             return fn(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Function symbol"),
                 require(arguments, "Function arguments"),
                 require(body, "Function body").collapse()
@@ -237,8 +237,8 @@ public class FunctionValue extends Value implements Scoped {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

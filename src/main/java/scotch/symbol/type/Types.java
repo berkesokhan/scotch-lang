@@ -4,7 +4,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static scotch.symbol.Symbol.symbol;
 import static scotch.symbol.type.Unification.contextMismatch;
-import static scotch.compiler.text.SourceRange.NULL_SOURCE;
+import static scotch.compiler.text.SourceLocation.NULL_SOURCE;
 
 import java.util.Collection;
 import java.util.List;

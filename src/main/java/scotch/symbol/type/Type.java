@@ -20,7 +20,7 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import scotch.symbol.NameQualifier;
 import scotch.symbol.Symbol;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
 
 public abstract class Type {
@@ -110,7 +110,7 @@ public abstract class Type {
 
     public abstract String getSignature();
 
-    public abstract SourceRange getSourceRange();
+    public abstract SourceLocation getSourceLocation();
 
     public boolean hasContext() {
         return !getContexts().isEmpty();
@@ -243,7 +243,7 @@ public abstract class Type {
         }
 
         @Override
-        public SourceRange getSourceRange() {
+        public SourceLocation getSourceLocation() {
             throw new UnsupportedOperationException(); // TODO
         }
 

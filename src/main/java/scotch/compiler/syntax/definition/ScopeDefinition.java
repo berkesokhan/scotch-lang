@@ -16,7 +16,7 @@ import scotch.compiler.steps.TypeChecker;
 import scotch.symbol.Symbol;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class ScopeDefinition extends Definition {
 
@@ -24,11 +24,11 @@ public class ScopeDefinition extends Definition {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final Symbol      symbol;
+    private final SourceLocation sourceLocation;
+    private final Symbol         symbol;
 
-    ScopeDefinition(SourceRange sourceRange, Symbol symbol) {
-        this.sourceRange = sourceRange;
+    ScopeDefinition(SourceLocation sourceLocation, Symbol symbol) {
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
     }
 
@@ -58,7 +58,7 @@ public class ScopeDefinition extends Definition {
             return true;
         } else if (o instanceof ScopeDefinition) {
             ScopeDefinition other = (ScopeDefinition) o;
-            return Objects.equals(sourceRange, other.sourceRange)
+            return Objects.equals(sourceLocation, other.sourceLocation)
                 && Objects.equals(symbol, other.symbol);
         } else {
             return false;
@@ -76,8 +76,8 @@ public class ScopeDefinition extends Definition {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -102,25 +102,25 @@ public class ScopeDefinition extends Definition {
 
     public static class Builder implements SyntaxBuilder<ScopeDefinition> {
 
-        private Optional<Symbol>      symbol;
-        private Optional<SourceRange> sourceRange;
+        private Optional<Symbol>         symbol;
+        private Optional<SourceLocation> sourceLocation;
 
         private Builder() {
             symbol = Optional.empty();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public ScopeDefinition build() {
             return Definitions.scopeDef(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Scope symbol")
             );
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

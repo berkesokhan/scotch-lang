@@ -18,22 +18,22 @@ import scotch.compiler.steps.TypeChecker;
 import scotch.symbol.Symbol;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange")
+@ToString(exclude = "sourceLocation")
 public class Argument extends Value {
 
     public static Builder builder() {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final String      name;
-    private final Type        type;
+    private final SourceLocation sourceLocation;
+    private final String         name;
+    private final Type           type;
 
-    Argument(SourceRange sourceRange, String name, Type type) {
-        this.sourceRange = sourceRange;
+    Argument(SourceLocation sourceLocation, String name, Type type) {
+        this.sourceLocation = sourceLocation;
         this.name = name;
         this.type = type;
     }
@@ -82,8 +82,8 @@ public class Argument extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -102,30 +102,30 @@ public class Argument extends Value {
 
     @Override
     public Argument qualifyNames(ScopedNameQualifier state) {
-        return new Argument(sourceRange, name, type.qualifyNames(state));
+        return new Argument(sourceLocation, name, type.qualifyNames(state));
     }
 
     @Override
     public Argument withType(Type type) {
-        return arg(sourceRange, name, type);
+        return arg(sourceLocation, name, type);
     }
 
     public static class Builder implements SyntaxBuilder<Argument> {
 
-        private Optional<String>      name;
-        private Optional<Type>        type;
-        private Optional<SourceRange> sourceRange;
+        private Optional<String>         name;
+        private Optional<Type>           type;
+        private Optional<SourceLocation> sourceLocation;
 
         private Builder() {
             name = Optional.empty();
             type = Optional.empty();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public Argument build() {
             return arg(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(name, "Argument name"),
                 require(type, "Argument type")
             );
@@ -137,8 +137,8 @@ public class Argument extends Value {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

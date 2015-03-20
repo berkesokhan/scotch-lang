@@ -23,23 +23,23 @@ import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange")
+@ToString(exclude = "sourceLocation")
 public class UnshuffledDefinition extends Definition {
 
     public static Builder builder() {
         return new Builder();
     }
 
-    private final SourceRange        sourceRange;
+    private final SourceLocation     sourceLocation;
     private final Symbol             symbol;
     private final List<PatternMatch> matches;
     private final Value              body;
 
-    UnshuffledDefinition(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
-        this.sourceRange = sourceRange;
+    UnshuffledDefinition(SourceLocation sourceLocation, Symbol symbol, List<PatternMatch> matches, Value body) {
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.matches = ImmutableList.copyOf(matches);
         this.body = body;
@@ -58,7 +58,7 @@ public class UnshuffledDefinition extends Definition {
     }
 
     public PatternCase asPatternMatcher(List<PatternMatch> matches) {
-        return pattern(sourceRange, symbol, matches, body);
+        return pattern(sourceLocation, symbol, matches, body);
     }
 
     @Override
@@ -90,8 +90,8 @@ public class UnshuffledDefinition extends Definition {
         return scopeRef(symbol);
     }
 
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -110,11 +110,11 @@ public class UnshuffledDefinition extends Definition {
     }
 
     public UnshuffledDefinition withBody(Value body) {
-        return new UnshuffledDefinition(sourceRange, symbol, matches, body);
+        return new UnshuffledDefinition(sourceLocation, symbol, matches, body);
     }
 
     public UnshuffledDefinition withMatches(List<PatternMatch> matches) {
-        return new UnshuffledDefinition(sourceRange, symbol, matches, body);
+        return new UnshuffledDefinition(sourceLocation, symbol, matches, body);
     }
 
     public static class Builder implements SyntaxBuilder<UnshuffledDefinition> {
@@ -122,19 +122,19 @@ public class UnshuffledDefinition extends Definition {
         private Optional<Symbol>             symbol;
         private Optional<List<PatternMatch>> matches;
         private Optional<Value>              body;
-        private Optional<SourceRange>        sourceRange;
+        private Optional<SourceLocation>     sourceLocation;
 
         private Builder() {
             symbol = Optional.empty();
             matches = Optional.empty();
             body = Optional.empty();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public UnshuffledDefinition build() {
             return Definitions.unshuffled(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Unshuffled pattern symbol"),
                 require(matches, "Unshuffled pattern matches"),
                 require(body, "Unshuffled pattern body")
@@ -152,8 +152,8 @@ public class UnshuffledDefinition extends Definition {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

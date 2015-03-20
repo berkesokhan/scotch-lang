@@ -23,7 +23,7 @@ import static scotch.compiler.syntax.StubResolver.defaultString;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.value.Values.apply;
 import static scotch.compiler.text.SourcePoint.point;
-import static scotch.compiler.text.SourceRange.source;
+import static scotch.compiler.text.SourceLocation.source;
 import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.boolType;
 import static scotch.compiler.util.TestUtil.capture;

@@ -9,7 +9,7 @@ import static scotch.symbol.type.Types.sum;
 import static scotch.symbol.type.Unification.mismatch;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.text.SourcePoint.point;
-import static scotch.compiler.text.SourceRange.source;
+import static scotch.compiler.text.SourceLocation.source;
 import static scotch.compiler.util.TestUtil.intType;
 import static scotch.compiler.util.TestUtil.integratedParse;
 import static scotch.compiler.util.TestUtil.stringType;

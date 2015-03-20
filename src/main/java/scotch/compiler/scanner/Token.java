@@ -5,22 +5,22 @@ import static scotch.util.StringUtil.quote;
 import java.util.Objects;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import scotch.compiler.text.NamedSourcePoint;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class Token {
 
-    public static Token token(TokenKind kind, Object value, SourceRange sourceRange) {
-        return new Token(sourceRange, kind, value);
+    public static Token token(TokenKind kind, Object value, SourceLocation sourceLocation) {
+        return new Token(sourceLocation, kind, value);
     }
 
-    private final TokenKind   kind;
-    private final Object      value;
-    private final SourceRange sourceRange;
+    private final TokenKind      kind;
+    private final Object         value;
+    private final SourceLocation sourceLocation;
 
-    private Token(SourceRange sourceRange, TokenKind kind, Object value) {
+    private Token(SourceLocation sourceLocation, TokenKind kind, Object value) {
         this.kind = kind;
         this.value = value;
-        this.sourceRange = sourceRange;
+        this.sourceLocation = sourceLocation;
     }
 
     @Override
@@ -32,7 +32,7 @@ public class Token {
             return new EqualsBuilder()
                 .append(kind, other.kind)
                 .append(value, other.value)
-                .append(sourceRange, other.sourceRange)
+                .append(sourceLocation, other.sourceLocation)
                 .isEquals();
         } else {
             return false;
@@ -40,31 +40,31 @@ public class Token {
     }
 
     public int getColumn() {
-        return sourceRange.getStart().getColumn();
+        return sourceLocation.getStart().getColumn();
     }
 
     public NamedSourcePoint getEnd() {
-        return sourceRange.getEnd();
+        return sourceLocation.getEnd();
     }
 
     public TokenKind getKind() {
         return kind;
     }
 
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public NamedSourcePoint getStart() {
-        return sourceRange.getStart();
+        return sourceLocation.getStart();
     }
 
     public int getStartOffset() {
-        return sourceRange.getStartOffset();
+        return sourceLocation.getStartOffset();
     }
 
     public int getEndOffset() {
-        return sourceRange.getEndOffset();
+        return sourceLocation.getEndOffset();
     }
 
     public Object getValue() {
@@ -90,7 +90,7 @@ public class Token {
     }
 
     public Token withKind(TokenKind kind) {
-        return new Token(sourceRange, kind, value);
+        return new Token(sourceLocation, kind, value);
     }
 
     public enum TokenKind {

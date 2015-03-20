@@ -18,7 +18,7 @@ import scotch.symbol.Operator;
 import scotch.symbol.type.SumType;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Either;
 import scotch.compiler.util.Pair;
 
@@ -40,7 +40,7 @@ public abstract class Value {
         Value checkedValue = checkTypes(state);
         if (checkedValue.getType() instanceof SumType) {
             return Optional.of(new CopyInitializer(
-                initializer.getSourceRange(),
+                initializer.getSourceLocation(),
                 checkedValue,
                 initializer.getFields().stream()
                     .map(field -> field.checkTypes(state))
@@ -75,7 +75,7 @@ public abstract class Value {
 
     public abstract CodeBlock generateBytecode(BytecodeGenerator state);
 
-    public abstract SourceRange getSourceRange();
+    public abstract SourceLocation getSourceLocation();
 
     public abstract Type getType();
 

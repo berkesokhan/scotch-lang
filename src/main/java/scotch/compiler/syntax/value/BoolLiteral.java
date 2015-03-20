@@ -6,12 +6,12 @@ import static scotch.symbol.type.Types.sum;
 
 import me.qmx.jitescript.CodeBlock;
 import scotch.symbol.type.Types;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class BoolLiteral extends LiteralValue<Boolean> {
 
-    BoolLiteral(SourceRange sourceRange, boolean value) {
-        super(sourceRange, value, Types.sum("scotch.data.bool.Bool"));
+    BoolLiteral(SourceLocation sourceLocation, boolean value) {
+        super(sourceLocation, value, Types.sum("scotch.data.bool.Bool"));
     }
 
     @Override

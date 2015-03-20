@@ -1,10 +1,10 @@
 package scotch.compiler.syntax.builder;
 
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public interface SyntaxBuilder<T> {
 
     T build();
 
-    SyntaxBuilder<T> withSourceRange(SourceRange sourceRange);
+    SyntaxBuilder<T> withSourceLocation(SourceLocation sourceLocation);
 }

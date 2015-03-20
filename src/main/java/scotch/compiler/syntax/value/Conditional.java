@@ -22,13 +22,13 @@ import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Callable;
 import scotch.runtime.RuntimeSupport;
 import scotch.symbol.type.Type;
 
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange")
+@ToString(exclude = "sourceLocation")
 public class Conditional extends Value {
 
     public static Builder builder() {
@@ -36,15 +36,15 @@ public class Conditional extends Value {
     }
 
     @Getter
-    private final SourceRange sourceRange;
+    private final SourceLocation sourceLocation;
     @Getter
-    private final Type        type;
-    private final Value       condition;
-    private final Value       whenTrue;
-    private final Value       whenFalse;
+    private final Type           type;
+    private final Value          condition;
+    private final Value          whenTrue;
+    private final Value          whenFalse;
 
-    Conditional(SourceRange sourceRange, Value condition, Value whenTrue, Value whenFalse, Type type) {
-        this.sourceRange = sourceRange;
+    Conditional(SourceLocation sourceLocation, Value condition, Value whenTrue, Value whenFalse, Type type) {
+        this.sourceLocation = sourceLocation;
         this.condition = condition;
         this.whenTrue = whenTrue;
         this.whenFalse = whenFalse;
@@ -79,10 +79,10 @@ public class Conditional extends Value {
         Type resultType = sum("scotch.data.bool.Bool").unify(c.getType(), state)
             .map(ct -> t.getType().unify(f.getType(), state))
             .orElseGet(unification -> {
-                state.error(typeError(unification, sourceRange));
+                state.error(typeError(unification, sourceLocation));
                 return type;
             });
-        return conditional(sourceRange, c, t, f, resultType);
+        return conditional(sourceLocation, c, t, f, resultType);
     }
 
     @Override
@@ -119,12 +119,12 @@ public class Conditional extends Value {
 
     @Override
     public Conditional withType(Type type) {
-        return new Conditional(sourceRange, condition, whenTrue, whenFalse, type);
+        return new Conditional(sourceLocation, condition, whenTrue, whenFalse, type);
     }
 
     private <T> Value parse(T state, BiFunction<Value, T, Value> function) {
         return builder()
-            .withSourceRange(sourceRange)
+            .withSourceLocation(sourceLocation)
             .withCondition(function.apply(condition, state))
             .withWhenTrue(function.apply(whenTrue, state))
             .withWhenFalse(function.apply(whenFalse, state))
@@ -134,24 +134,24 @@ public class Conditional extends Value {
 
     public static class Builder implements SyntaxBuilder<Conditional> {
 
-        private Optional<Value>       condition;
-        private Optional<Value>       whenTrue;
-        private Optional<Value>       whenFalse;
-        private Optional<Type>        type;
-        private Optional<SourceRange> sourceRange;
+        private Optional<Value>          condition;
+        private Optional<Value>          whenTrue;
+        private Optional<Value>          whenFalse;
+        private Optional<Type>           type;
+        private Optional<SourceLocation> sourceLocation;
 
         private Builder() {
             condition = Optional.empty();
             whenTrue = Optional.empty();
             whenFalse = Optional.empty();
             type = Optional.empty();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public Conditional build() {
             return conditional(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(condition, "Condition"),
                 require(whenTrue, "True case"),
                 require(whenFalse, "False case"),
@@ -165,8 +165,8 @@ public class Conditional extends Value {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

@@ -23,17 +23,17 @@ import scotch.symbol.type.FunctionType;
 import scotch.symbol.type.InstanceType;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.reference.ValueReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class Method extends Value {
 
-    private final SourceRange    sourceRange;
+    private final SourceLocation sourceLocation;
     private final ValueReference reference;
     private final List<Type>     instances;
     private final Type           type;
 
-    Method(SourceRange sourceRange, ValueReference reference, List<? extends Type> instances, Type type) {
-        this.sourceRange = sourceRange;
+    Method(SourceLocation sourceLocation, ValueReference reference, List<? extends Type> instances, Type type) {
+        this.sourceLocation = sourceLocation;
         this.reference = reference;
         this.instances = ImmutableList.copyOf(instances);
         this.type = type;
@@ -67,7 +67,7 @@ public class Method extends Value {
                 if (optionalTypeArgument.isPresent()) {
                     typeArgument = optionalTypeArgument.get();
                 } else {
-                    state.error(noBinding(reference.getSymbol(), sourceRange));
+                    state.error(noBinding(reference.getSymbol(), sourceLocation));
                     return this;
                 }
             }
@@ -97,7 +97,7 @@ public class Method extends Value {
             return true;
         } else if (o instanceof Method) {
             Method other = (Method) o;
-            return Objects.equals(sourceRange, other.sourceRange)
+            return Objects.equals(sourceLocation, other.sourceLocation)
                 && Objects.equals(reference, other.reference)
                 && Objects.equals(instances, other.instances)
                 && Objects.equals(type, other.type);
@@ -116,8 +116,8 @@ public class Method extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -151,6 +151,6 @@ public class Method extends Value {
 
     @Override
     public Method withType(Type type) {
-        return new Method(sourceRange, reference, instances, type);
+        return new Method(sourceLocation, reference, instances, type);
     }
 }

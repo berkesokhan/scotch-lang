@@ -21,7 +21,7 @@ import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Callable;
 
 public class EqualMatch extends PatternMatch {
@@ -30,12 +30,12 @@ public class EqualMatch extends PatternMatch {
         return new Builder();
     }
 
-    private final SourceRange      sourceRange;
+    private final SourceLocation   sourceLocation;
     private final Optional<String> argument;
     private final Value            value;
 
-    EqualMatch(SourceRange sourceRange, Optional<String> argument, Value value) {
-        this.sourceRange = sourceRange;
+    EqualMatch(SourceLocation sourceLocation, Optional<String> argument, Value value) {
+        this.sourceLocation = sourceLocation;
         this.argument = argument;
         this.value = value;
     }
@@ -55,10 +55,10 @@ public class EqualMatch extends PatternMatch {
         if (this.argument.isPresent()) {
             throw new IllegalStateException();
         } else {
-            return new EqualMatch(sourceRange, Optional.of(argument), apply(
+            return new EqualMatch(sourceLocation, Optional.of(argument), apply(
                 apply(
-                    id(sourceRange, symbol("scotch.data.eq.(==)"), scope.reserveType()),
-                    id(sourceRange, symbol(argument), scope.reserveType()),
+                    id(sourceLocation, symbol("scotch.data.eq.(==)"), scope.reserveType()),
+                    id(sourceLocation, symbol(argument), scope.reserveType()),
                     scope.reserveType()
                 ),
                 value,
@@ -88,7 +88,7 @@ public class EqualMatch extends PatternMatch {
             return true;
         } else if (o instanceof EqualMatch) {
             EqualMatch other = (EqualMatch) o;
-            return Objects.equals(sourceRange, other.sourceRange)
+            return Objects.equals(sourceLocation, other.sourceLocation)
                 && Objects.equals(argument, other.argument)
                 && Objects.equals(value, other.value);
         } else {
@@ -106,8 +106,8 @@ public class EqualMatch extends PatternMatch {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -134,23 +134,23 @@ public class EqualMatch extends PatternMatch {
         return stringify(this) + "(" + value + ")";
     }
 
-    public EqualMatch withSourceRange(SourceRange sourceRange) {
-        return new EqualMatch(sourceRange, argument, value);
+    public EqualMatch withSourceLocation(SourceLocation sourceLocation) {
+        return new EqualMatch(sourceLocation, argument, value);
     }
 
     @Override
     public EqualMatch withType(Type generate) {
-        return new EqualMatch(sourceRange, argument, value);
+        return new EqualMatch(sourceLocation, argument, value);
     }
 
     public EqualMatch withValue(Value value) {
-        return new EqualMatch(sourceRange, argument, value);
+        return new EqualMatch(sourceLocation, argument, value);
     }
 
     public static class Builder implements SyntaxBuilder<EqualMatch> {
 
-        private Optional<Value>       value;
-        private Optional<SourceRange> sourceRange;
+        private Optional<Value>          value;
+        private Optional<SourceLocation> sourceLocation;
 
         private Builder() {
             // intentionally empty
@@ -159,15 +159,15 @@ public class EqualMatch extends PatternMatch {
         @Override
         public EqualMatch build() {
             return Patterns.equal(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 Optional.empty(),
                 require(value, "Capture value")
             );
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

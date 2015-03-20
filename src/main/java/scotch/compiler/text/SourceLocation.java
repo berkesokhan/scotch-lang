@@ -13,29 +13,29 @@ import me.qmx.jitescript.CodeBlock;
 import org.objectweb.asm.tree.LabelNode;
 
 @AllArgsConstructor(access = PRIVATE)
-public class SourceRange {
+public class SourceLocation {
 
-    public static final SourceRange NULL_SOURCE = source(URI.create("null://nowhere"), point(-1, -1, -1), point(-1, -1, -1));
+    public static final SourceLocation NULL_SOURCE = source(URI.create("null://nowhere"), point(-1, -1, -1), point(-1, -1, -1));
 
-    public static SourceRange extent(Collection<SourceRange> ranges) {
-        Iterator<SourceRange> iterator = ranges.iterator();
+    public static SourceLocation extent(Collection<SourceLocation> locations) {
+        Iterator<SourceLocation> iterator = locations.iterator();
         if (iterator.hasNext()) {
-            SourceRange range = iterator.next();
+            SourceLocation location = iterator.next();
             while (iterator.hasNext()) {
-                range = range.extend(iterator.next());
+                location = location.extend(iterator.next());
             }
-            return range;
+            return location;
         } else {
             return NULL_SOURCE;
         }
     }
 
-    public static SourceRange source(String source, SourcePoint start, SourcePoint end) {
+    public static SourceLocation source(String source, SourcePoint start, SourcePoint end) {
         return source(URI.create(source), start, end);
     }
 
-    public static SourceRange source(URI source, SourcePoint start, SourcePoint end) {
-        return new SourceRange(source, start, end);
+    public static SourceLocation source(URI source, SourcePoint start, SourcePoint end) {
+        return new SourceLocation(source, start, end);
     }
 
     private final URI         source;
@@ -46,8 +46,8 @@ public class SourceRange {
     public boolean equals(Object o) {
         if (o == this) {
             return true;
-        } else if (o instanceof SourceRange) {
-            SourceRange other = (SourceRange) o;
+        } else if (o instanceof SourceLocation) {
+            SourceLocation other = (SourceLocation) o;
             return this == NULL_SOURCE || other == NULL_SOURCE || (
                 Objects.equals(source, other.source)
                     && Objects.equals(start, other.start)
@@ -58,13 +58,13 @@ public class SourceRange {
         }
     }
 
-    public SourceRange extend(SourceRange sourceRange) {
+    public SourceLocation extend(SourceLocation sourceLocation) {
         if (this == NULL_SOURCE) {
-            return sourceRange;
-        } else if (sourceRange == NULL_SOURCE) {
+            return sourceLocation;
+        } else if (sourceLocation == NULL_SOURCE) {
             return this;
         } else {
-            return source(source, start.min(sourceRange.start), end.max(sourceRange.end));
+            return source(source, start.min(sourceLocation.start), end.max(sourceLocation.end));
         }
     }
 
@@ -76,8 +76,8 @@ public class SourceRange {
         return end.getOffset();
     }
 
-    public SourceRange getEndRange() {
-        return new SourceRange(source, end, end);
+    public SourceLocation getEndPoint() {
+        return new SourceLocation(source, end, end);
     }
 
     public String getPath() {
@@ -101,8 +101,8 @@ public class SourceRange {
         return start.getOffset();
     }
 
-    public SourceRange getStartRange() {
-        return new SourceRange(source, start, start);
+    public SourceLocation getStartPoint() {
+        return new SourceLocation(source, start, start);
     }
 
     @Override

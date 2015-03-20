@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import lombok.EqualsAndHashCode;
 import scotch.symbol.NameQualifier;
 import scotch.symbol.Symbol;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
 import scotch.runtime.Callable;
 
@@ -44,13 +44,13 @@ public class SumType extends Type {
         return result;
     }
 
-    private final SourceRange sourceRange;
-    private final Symbol      symbol;
-    private final List<Type>  parameters;
+    private final SourceLocation sourceLocation;
+    private final Symbol         symbol;
+    private final List<Type>     parameters;
 
-    SumType(SourceRange sourceRange, Symbol symbol, List<Type> parameters) {
+    SumType(SourceLocation sourceLocation, Symbol symbol, List<Type> parameters) {
         shouldBeSumName(symbol);
-        this.sourceRange = sourceRange;
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.parameters = ImmutableList.copyOf(parameters);
     }
@@ -72,7 +72,7 @@ public class SumType extends Type {
 
     @Override
     public Type flatten() {
-        return new SumType(sourceRange, symbol, parameters.stream()
+        return new SumType(sourceLocation, symbol, parameters.stream()
             .map(Type::flatten)
             .collect(toList()));
     }
@@ -97,8 +97,8 @@ public class SumType extends Type {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -109,7 +109,7 @@ public class SumType extends Type {
     public Type qualifyNames(NameQualifier qualifier) {
         return withSymbol(qualifier.qualify(symbol)
             .orElseGet(() -> {
-                qualifier.symbolNotFound(symbol, sourceRange);
+                qualifier.symbolNotFound(symbol, sourceLocation);
                 return symbol;
             }))
             .withParameters(parameters.stream()
@@ -118,15 +118,15 @@ public class SumType extends Type {
     }
 
     public SumType withParameters(List<Type> arguments) {
-        return new SumType(sourceRange, symbol, arguments);
+        return new SumType(sourceLocation, symbol, arguments);
     }
 
-    public SumType withSourceRange(SourceRange sourceRange) {
-        return new SumType(sourceRange, symbol, parameters);
+    public SumType withSourceLocation(SourceLocation sourceLocation) {
+        return new SumType(sourceLocation, symbol, parameters);
     }
 
     public SumType withSymbol(Symbol symbol) {
-        return new SumType(sourceRange, symbol, parameters);
+        return new SumType(sourceLocation, symbol, parameters);
     }
 
     @Override
@@ -165,7 +165,7 @@ public class SumType extends Type {
 
     @Override
     protected Type genericCopy(TypeScope scope, Map<Type, Type> mappings) {
-        return new SumType(sourceRange, symbol, parameters.stream()
+        return new SumType(sourceLocation, symbol, parameters.stream()
             .map(parameter -> parameter.genericCopy(scope, mappings))
             .collect(toList()));
     }

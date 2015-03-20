@@ -33,7 +33,7 @@ import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class ScopedNameQualifier implements NameQualifier {
 
@@ -194,8 +194,8 @@ public class ScopedNameQualifier implements NameQualifier {
     }
 
     @Override
-    public void symbolNotFound(Symbol symbol, SourceRange sourceRange) {
-        errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceRange));
+    public void symbolNotFound(Symbol symbol, SourceLocation sourceLocation) {
+        errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceLocation));
     }
 
     private void enterScope(DefinitionReference reference) {

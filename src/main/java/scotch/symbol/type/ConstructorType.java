@@ -16,7 +16,7 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import scotch.symbol.NameQualifier;
 import scotch.symbol.Symbol;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
 
 @AllArgsConstructor(access = PACKAGE)
@@ -50,7 +50,7 @@ public class ConstructorType extends Type {
     }
 
     @Override
-    public SourceRange getSourceRange() {
+    public SourceLocation getSourceLocation() {
         throw new UnsupportedOperationException(); // TODO
     }
 

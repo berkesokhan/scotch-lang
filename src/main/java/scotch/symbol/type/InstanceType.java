@@ -9,7 +9,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import scotch.symbol.NameQualifier;
 import scotch.symbol.Symbol;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
 
 public class InstanceType extends Type {
@@ -57,7 +57,7 @@ public class InstanceType extends Type {
     }
 
     @Override
-    public SourceRange getSourceRange() {
+    public SourceLocation getSourceLocation() {
         throw new UnsupportedOperationException(); // TODO
     }
 

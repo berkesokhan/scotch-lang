@@ -11,16 +11,16 @@ import com.google.common.collect.ImmutableList;
 import scotch.symbol.Symbol;
 import scotch.symbol.SymbolResolver;
 import scotch.symbol.type.Type;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public final class InclusionImport extends Import {
 
-    private final SourceRange  sourceRange;
-    private final String       moduleName;
-    private final List<String> includes;
+    private final SourceLocation sourceLocation;
+    private final String         moduleName;
+    private final List<String>   includes;
 
-    InclusionImport(SourceRange sourceRange, String moduleName, List<String> includes) {
-        this.sourceRange = sourceRange;
+    InclusionImport(SourceLocation sourceLocation, String moduleName, List<String> includes) {
+        this.sourceLocation = sourceLocation;
         this.moduleName = moduleName;
         this.includes = ImmutableList.copyOf(includes);
     }
@@ -68,7 +68,7 @@ public final class InclusionImport extends Import {
     }
 
     @Override
-    public InclusionImport withSourceRange(SourceRange sourceRange) {
-        return new InclusionImport(sourceRange, moduleName, includes);
+    public InclusionImport withSourceLocation(SourceLocation sourceLocation) {
+        return new InclusionImport(sourceLocation, moduleName, includes);
     }
 }

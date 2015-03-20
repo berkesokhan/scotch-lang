@@ -8,44 +8,44 @@ import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class Definitions {
 
-    public static ClassDefinition classDef(SourceRange sourceRange, Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
-        return new ClassDefinition(sourceRange, symbol, arguments, members);
+    public static ClassDefinition classDef(SourceLocation sourceLocation, Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
+        return new ClassDefinition(sourceLocation, symbol, arguments, members);
     }
 
-    public static ModuleDefinition module(SourceRange sourceRange, String symbol, List<Import> imports, List<DefinitionReference> definitions) {
-        return new ModuleDefinition(sourceRange, symbol, imports, definitions);
+    public static ModuleDefinition module(SourceLocation sourceLocation, String symbol, List<Import> imports, List<DefinitionReference> definitions) {
+        return new ModuleDefinition(sourceLocation, symbol, imports, definitions);
     }
 
-    public static OperatorDefinition operatorDef(SourceRange sourceRange, Symbol symbol, Fixity fixity, int precedence) {
-        return new OperatorDefinition(sourceRange, symbol, fixity, precedence);
+    public static OperatorDefinition operatorDef(SourceLocation sourceLocation, Symbol symbol, Fixity fixity, int precedence) {
+        return new OperatorDefinition(sourceLocation, symbol, fixity, precedence);
     }
 
-    public static RootDefinition root(SourceRange sourceRange, List<DefinitionReference> definitions) {
-        return new RootDefinition(sourceRange, definitions);
+    public static RootDefinition root(SourceLocation sourceLocation, List<DefinitionReference> definitions) {
+        return new RootDefinition(sourceLocation, definitions);
     }
 
-    public static ScopeDefinition scopeDef(SourceRange sourceRange, Symbol symbol) {
-        return new ScopeDefinition(sourceRange, symbol);
+    public static ScopeDefinition scopeDef(SourceLocation sourceLocation, Symbol symbol) {
+        return new ScopeDefinition(sourceLocation, symbol);
     }
 
     public static Definition scopeDef(Scoped scoped) {
         return scoped.getDefinition();
     }
 
-    public static ValueSignature signature(SourceRange sourceRange, Symbol symbol, Type type) {
-        return new ValueSignature(sourceRange, symbol, type);
+    public static ValueSignature signature(SourceLocation sourceLocation, Symbol symbol, Type type) {
+        return new ValueSignature(sourceLocation, symbol, type);
     }
 
-    public static UnshuffledDefinition unshuffled(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
-        return new UnshuffledDefinition(sourceRange, symbol, matches, body);
+    public static UnshuffledDefinition unshuffled(SourceLocation sourceLocation, Symbol symbol, List<PatternMatch> matches, Value body) {
+        return new UnshuffledDefinition(sourceLocation, symbol, matches, body);
     }
 
-    public static ValueDefinition value(SourceRange sourceRange, Symbol symbol, Value value) {
-        return new ValueDefinition(sourceRange, symbol, value);
+    public static ValueDefinition value(SourceLocation sourceLocation, Symbol symbol, Value value) {
+        return new ValueDefinition(sourceLocation, symbol, value);
     }
 
     private Definitions() {

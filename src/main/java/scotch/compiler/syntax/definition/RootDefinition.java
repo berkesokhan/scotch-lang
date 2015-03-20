@@ -18,7 +18,7 @@ import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class RootDefinition extends Definition {
 
@@ -26,11 +26,11 @@ public class RootDefinition extends Definition {
         return new Builder();
     }
 
-    private final SourceRange               sourceRange;
+    private final SourceLocation            sourceLocation;
     private final List<DefinitionReference> definitions;
 
-    RootDefinition(SourceRange sourceRange, List<DefinitionReference> definitions) {
-        this.sourceRange = sourceRange;
+    RootDefinition(SourceLocation sourceLocation, List<DefinitionReference> definitions) {
+        this.sourceLocation = sourceLocation;
         this.definitions = ImmutableList.copyOf(definitions);
     }
 
@@ -70,8 +70,8 @@ public class RootDefinition extends Definition {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -95,22 +95,22 @@ public class RootDefinition extends Definition {
     }
 
     public RootDefinition withDefinitions(List<DefinitionReference> definitions) {
-        return new RootDefinition(sourceRange, definitions);
+        return new RootDefinition(sourceLocation, definitions);
     }
 
     public static class Builder implements SyntaxBuilder<RootDefinition> {
 
         private List<DefinitionReference> definitions;
-        private Optional<SourceRange>     sourceRange;
+        private Optional<SourceLocation>  sourceLocation;
 
         private Builder() {
             definitions = new ArrayList<>();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public RootDefinition build() {
-            return Definitions.root(require(sourceRange, "Source range"), definitions);
+            return Definitions.root(require(sourceLocation, "Source location"), definitions);
         }
 
         public Builder withModule(DefinitionReference module) {
@@ -119,8 +119,8 @@ public class RootDefinition extends Definition {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
     }

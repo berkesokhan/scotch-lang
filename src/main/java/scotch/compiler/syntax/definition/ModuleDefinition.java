@@ -21,7 +21,7 @@ import scotch.compiler.steps.TypeChecker;
 import scotch.symbol.Symbol;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 @EqualsAndHashCode(callSuper = false)
 public class ModuleDefinition extends Definition {
@@ -30,13 +30,13 @@ public class ModuleDefinition extends Definition {
         return new Builder();
     }
 
-    private final SourceRange               sourceRange;
+    private final SourceLocation            sourceLocation;
     private final String                    symbol;
     private final List<Import>              imports;
     private final List<DefinitionReference> definitions;
 
-    ModuleDefinition(SourceRange sourceRange, String symbol, List<Import> imports, List<DefinitionReference> definitions) {
-        this.sourceRange = sourceRange;
+    ModuleDefinition(SourceLocation sourceLocation, String symbol, List<Import> imports, List<DefinitionReference> definitions) {
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.imports = ImmutableList.copyOf(imports);
         this.definitions = ImmutableList.copyOf(definitions);
@@ -65,7 +65,7 @@ public class ModuleDefinition extends Definition {
     @Override
     public void generateBytecode(BytecodeGenerator state) {
         state.scoped(this, () -> {
-            state.beginClass(MODULE, Symbol.moduleClass(symbol), sourceRange);
+            state.beginClass(MODULE, Symbol.moduleClass(symbol), sourceLocation);
             state.defineDefaultConstructor(ACC_PRIVATE);
             state.generateBytecode(definitions);
             state.endClass();
@@ -83,8 +83,8 @@ public class ModuleDefinition extends Definition {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -106,7 +106,7 @@ public class ModuleDefinition extends Definition {
     }
 
     public ModuleDefinition withDefinitions(List<DefinitionReference> definitions) {
-        return new ModuleDefinition(sourceRange, symbol, imports, definitions);
+        return new ModuleDefinition(sourceLocation, symbol, imports, definitions);
     }
 
     public static class Builder implements SyntaxBuilder<ModuleDefinition> {
@@ -114,19 +114,19 @@ public class ModuleDefinition extends Definition {
         private Optional<String>                    symbol;
         private Optional<List<Import>>              imports;
         private Optional<List<DefinitionReference>> definitions;
-        private Optional<SourceRange>               sourceRange;
+        private Optional<SourceLocation>            sourceLocation;
 
         private Builder() {
             symbol = Optional.empty();
             imports = Optional.empty();
             definitions = Optional.empty();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public ModuleDefinition build() {
             return Definitions.module(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Module symbol"),
                 require(imports, "Imports are required"),
                 require(definitions, "Member definitions")
@@ -144,8 +144,8 @@ public class ModuleDefinition extends Definition {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

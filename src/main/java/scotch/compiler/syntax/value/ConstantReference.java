@@ -17,14 +17,14 @@ import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.symbol.FieldSignature;
 import scotch.symbol.Symbol;
 import scotch.symbol.type.Type;
 
 @AllArgsConstructor(access = PACKAGE)
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange")
+@ToString(exclude = "sourceLocation")
 public class ConstantReference extends Value {
 
     public static Builder builder() {
@@ -32,7 +32,7 @@ public class ConstantReference extends Value {
     }
 
     @Getter
-    private final SourceRange    sourceRange;
+    private final SourceLocation sourceLocation;
     private final Symbol         symbol;
     private final Symbol         dataType;
     private final FieldSignature constantField;
@@ -86,12 +86,12 @@ public class ConstantReference extends Value {
 
     @Override
     public Value withType(Type type) {
-        return new ConstantReference(sourceRange, symbol, dataType, constantField, type);
+        return new ConstantReference(sourceLocation, symbol, dataType, constantField, type);
     }
 
     public static class Builder implements SyntaxBuilder<ConstantReference> {
 
-        private Optional<SourceRange>    sourceRange   = Optional.empty();
+        private Optional<SourceLocation> sourceLocation   = Optional.empty();
         private Optional<Symbol>         symbol        = Optional.empty();
         private Optional<Symbol>         dataType      = Optional.empty();
         private Optional<Type>           type          = Optional.empty();
@@ -104,7 +104,7 @@ public class ConstantReference extends Value {
         @Override
         public ConstantReference build() {
             return new ConstantReference(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Symbol"),
                 require(dataType, "Data type"),
                 require(constantField, "Constant field"),
@@ -123,8 +123,8 @@ public class ConstantReference extends Value {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

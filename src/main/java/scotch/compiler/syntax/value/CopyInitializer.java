@@ -21,7 +21,7 @@ import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.runtime.RuntimeSupport;
 import scotch.symbol.type.Type;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Callable;
 import scotch.runtime.Copyable;
 import scotch.runtime.SuppliedThunk;
@@ -30,12 +30,12 @@ import scotch.runtime.SuppliedThunk;
 @ToString
 public class CopyInitializer extends Value {
 
-    private final SourceRange            sourceRange;
+    private final SourceLocation         sourceLocation;
     private final Value                  value;
     private final List<InitializerField> fields;
 
-    public CopyInitializer(SourceRange sourceRange, Value value, List<InitializerField> fields) {
-        this.sourceRange = sourceRange;
+    public CopyInitializer(SourceLocation sourceLocation, Value value, List<InitializerField> fields) {
+        this.sourceLocation = sourceLocation;
         this.value = value;
         this.fields = fields;
     }
@@ -52,14 +52,14 @@ public class CopyInitializer extends Value {
 
     @Override
     public Value bindTypes(TypeChecker state) {
-        return new CopyInitializer(sourceRange, value.bindTypes(state), fields.stream()
+        return new CopyInitializer(sourceLocation, value.bindTypes(state), fields.stream()
             .map(field -> field.bindTypes(state))
             .collect(toList()));
     }
 
     @Override
     public Value bindMethods(TypeChecker state) {
-        return new CopyInitializer(sourceRange, value.bindTypes(state), fields.stream()
+        return new CopyInitializer(sourceLocation, value.bindTypes(state), fields.stream()
             .map(field -> field.bindMethods(state))
             .collect(toList()));
     }
@@ -112,8 +112,8 @@ public class CopyInitializer extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override

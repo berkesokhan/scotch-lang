@@ -25,16 +25,16 @@ import scotch.symbol.Symbol;
 import scotch.symbol.type.InstanceType;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.reference.ValueReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class UnboundMethod extends Value {
 
-    private final SourceRange    sourceRange;
+    private final SourceLocation sourceLocation;
     private final ValueReference valueRef;
     private final Type           type;
 
-    UnboundMethod(SourceRange sourceRange, ValueReference valueRef, Type type) {
-        this.sourceRange = sourceRange;
+    UnboundMethod(SourceLocation sourceLocation, ValueReference valueRef, Type type) {
+        this.sourceLocation = sourceLocation;
         this.valueRef = valueRef;
         this.type = type;
     }
@@ -75,7 +75,7 @@ public class UnboundMethod extends Value {
             return true;
         } else if (o instanceof UnboundMethod) {
             UnboundMethod other = (UnboundMethod) o;
-            return Objects.equals(sourceRange, other.sourceRange)
+            return Objects.equals(sourceLocation, other.sourceLocation)
                 && Objects.equals(valueRef, other.valueRef)
                 && Objects.equals(type, other.type);
         } else {
@@ -89,8 +89,8 @@ public class UnboundMethod extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -124,7 +124,7 @@ public class UnboundMethod extends Value {
 
     @Override
     public Value withType(Type type) {
-        return unboundMethod(sourceRange, valueRef, type);
+        return unboundMethod(sourceLocation, valueRef, type);
     }
 
     private Value bind(TypeChecker state) {
@@ -136,9 +136,9 @@ public class UnboundMethod extends Value {
                         .map(map -> instances.stream()
                             .map(instance -> instance.withBinding(map.get(instance.getBinding())))
                             .collect(toList()))
-                        .map(instanceTypes -> method(sourceRange, valueRef, instances, state.generate(getMethodType(instanceTypes))))
+                        .map(instanceTypes -> method(sourceLocation, valueRef, instances, state.generate(getMethodType(instanceTypes))))
                         .orElseGet(() -> {
-                            state.error(noBinding(getSymbol(), sourceRange));
+                            state.error(noBinding(getSymbol(), sourceLocation));
                             return this;
                         }))
                     .orElseGet(() -> notFound(state));
@@ -147,7 +147,7 @@ public class UnboundMethod extends Value {
     }
 
     private UnboundMethod notFound(TypeChecker state) {
-        state.error(symbolNotFound(valueRef.getSymbol(), sourceRange));
+        state.error(symbolNotFound(valueRef.getSymbol(), sourceLocation));
         return this;
     }
 

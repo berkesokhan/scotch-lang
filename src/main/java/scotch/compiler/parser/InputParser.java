@@ -118,7 +118,7 @@ import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.NamedSourcePoint;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
 import scotch.util.StringUtil;
 
@@ -282,7 +282,7 @@ public class InputParser {
         return expectsAt(offset, IDENTIFIER) && Objects.equals(scanner.peekAt(offset).getValue(), value);
     }
 
-    private SourceRange getSourceRange() {
+    private SourceLocation getSourceLocation() {
         return unmarkPosition().to(scanner.getPreviousPosition());
     }
 
@@ -311,7 +311,7 @@ public class InputParser {
             unmarkPosition();
             throw exception;
         }
-        return builder.withSourceRange(getSourceRange()).build();
+        return builder.withSourceLocation(getSourceLocation()).build();
     }
 
     private DataFieldDefinition parseAnonymousField(int offset, Map<String, Type> constraints) {
@@ -542,14 +542,14 @@ public class InputParser {
         }
         UnshuffledValue.Builder builder = UnshuffledValue.builder();
         values.forEach(builder::withMember);
-        builder.withSourceRange(SourceRange.extent(values.stream()
-            .map(Value::getSourceRange)
+        builder.withSourceLocation(SourceLocation.extent(values.stream()
+            .map(Value::getSourceLocation)
             .collect(toList())));
         return builder.build();
     }
 
-    private ParseException parseException(String message, SourceRange sourceRange) {
-        throw new ParseException(message, sourceRange);
+    private ParseException parseException(String message, SourceLocation sourceLocation) {
+        throw new ParseException(message, sourceLocation);
     }
 
     private Value parseExpression() {
@@ -759,8 +759,8 @@ public class InputParser {
         int precedence = parseOperatorPrecedence();
         return parseSymbols().stream()
             .map(pair -> pair.into(
-                (symbol, sourceRange) -> OperatorDefinition.builder()
-                    .withSourceRange(sourceRange)
+                (symbol, sourceLocation) -> OperatorDefinition.builder()
+                    .withSourceLocation(sourceLocation)
                     .withSymbol(symbol)
                     .withFixity(fixity)
                     .withPrecedence(precedence)
@@ -789,7 +789,7 @@ public class InputParser {
     private int parseOperatorPrecedence() {
         int precedence = requireInt();
         if (precedence > 20) {
-            throw parseException("Can't have operator precedence higher than 20", getSourceRange());
+            throw parseException("Can't have operator precedence higher than 20", getSourceLocation());
         } else {
             return precedence;
         }
@@ -827,7 +827,7 @@ public class InputParser {
                                         .map(match -> Argument.builder()
                                             .withName("#" + counter.getAndIncrement())
                                             .withType(reserveType())
-                                            .withSourceRange(match.getSourceRange())
+                                            .withSourceLocation(match.getSourceLocation())
                                             .build())
                                         .collect(toList());
                                     patternCaseBuilder.withMatches(matches);
@@ -952,14 +952,14 @@ public class InputParser {
         }
     }
 
-    private List<Pair<Symbol, SourceRange>> parseSymbols() {
-        List<Pair<Symbol, SourceRange>> symbols = new ArrayList<>();
+    private List<Pair<Symbol, SourceLocation>> parseSymbols() {
+        List<Pair<Symbol, SourceLocation>> symbols = new ArrayList<>();
         markPosition();
-        symbols.add(pair(parseSymbol(), getSourceRange()));
+        symbols.add(pair(parseSymbol(), getSourceLocation()));
         while (expects(COMMA)) {
             nextToken();
             markPosition();
-            symbols.add(pair(parseSymbol(), getSourceRange()));
+            symbols.add(pair(parseSymbol(), getSourceLocation()));
         }
         return symbols;
     }
@@ -974,7 +974,7 @@ public class InputParser {
             }
             require(RIGHT_PARENTHESIS);
             if (builder.hasTooManyMembers()) {
-                throw parseException("Tuple can't have more than " + builder.maxMembers() + " members", scanner.peekAt(0).getSourceRange());
+                throw parseException("Tuple can't have more than " + builder.maxMembers() + " members", scanner.peekAt(0).getSourceLocation());
             } else if (builder.isTuple()) {
                 builder.withType(reserveType());
                 builder.withTupleType(reserveType());
@@ -1017,7 +1017,7 @@ public class InputParser {
                     markPosition();
                     if (isLowerCase(memberName.charAt(0))) {
                         if (optionalModuleName.isPresent()) {
-                            throw parseException("Type name must be uppercase", peekSourceRange());
+                            throw parseException("Type name must be uppercase", peekSourceLocation());
                         } else {
                             return constraints.getOrDefault(memberName, var(memberName));
                         }
@@ -1075,14 +1075,14 @@ public class InputParser {
     }
 
     private List<DefinitionReference> parseValueSignatures() {
-        List<Pair<Symbol, SourceRange>> symbolList = parseSymbols();
+        List<Pair<Symbol, SourceLocation>> symbolList = parseSymbols();
         Type type = parseValueSignature();
         return symbolList.stream()
             .map(pair -> pair.into(
-                (symbol, sourceRange) -> ValueSignature.builder()
+                (symbol, sourceLocation) -> ValueSignature.builder()
                     .withSymbol(symbol)
                     .withType(type)
-                    .withSourceRange(sourceRange)
+                    .withSourceLocation(sourceLocation)
                     .build()))
             .map(this::collect)
             .collect(toList());
@@ -1099,7 +1099,7 @@ public class InputParser {
         return scanner.peekAt(offset);
     }
 
-    private SourceRange peekSourceRange() {
+    private SourceLocation peekSourceLocation() {
         return positions.peek().to(scanner.getPosition());
     }
 
@@ -1231,7 +1231,7 @@ public class InputParser {
         return parseException(
             "Unexpected " + scanner.peekAt(0).getKind()
                 + "; wanted " + wantedKind,
-            scanner.peekAt(0).getSourceRange()
+            scanner.peekAt(0).getSourceLocation()
         );
     }
 
@@ -1239,7 +1239,7 @@ public class InputParser {
         return parseException(
             "Unexpected " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
                 + "; wanted " + wantedKind + " with value " + quote(wantedValue),
-            scanner.peekAt(0).getSourceRange()
+            scanner.peekAt(0).getSourceLocation()
         );
     }
 
@@ -1248,7 +1248,7 @@ public class InputParser {
             "Unexpected " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
                 + "; wanted " + wantedKind + " with one value of"
                 + " [" + join(", ", stream(wantedValues).map(StringUtil::quote).collect(toList())) + "]",
-            scanner.peekAt(0).getSourceRange()
+            scanner.peekAt(0).getSourceLocation()
         );
     }
 
@@ -1256,7 +1256,7 @@ public class InputParser {
         return parseException(
             "Unexpected " + scanner.peekAt(0).getKind()
                 + "; wanted one of [" + join(", ", wantedKinds.stream().map(Object::toString).collect(toList())) + "]",
-            scanner.peekAt(0).getSourceRange()
+            scanner.peekAt(0).getSourceLocation()
         );
     }
 
@@ -1267,14 +1267,14 @@ public class InputParser {
     @AllArgsConstructor
     private class BindExpression extends DoExpression {
 
-        @NonNull private final SourceRange sourceRange;
-        @NonNull private final Symbol      symbol;
-        @NonNull private final Argument    argument;
-        @NonNull private final Value       value;
+        @NonNull private final SourceLocation sourceLocation;
+        @NonNull private final Symbol         symbol;
+        @NonNull private final Argument       argument;
+        @NonNull private final Value          value;
 
         @Override
         public List<Value> toValue() {
-            throw new ParseException("Unexpected bind in do-notation", value.getSourceRange());
+            throw new ParseException("Unexpected bind in do-notation", value.getSourceLocation());
         }
 
         @Override
@@ -1282,20 +1282,20 @@ public class InputParser {
             List<Value> outerValues = new ArrayList<Value>() {{
                 UnshuffledValue.Builder unshuffled = UnshuffledValue.builder();
                 values.forEach(unshuffled::withMember);
-                unshuffled.withSourceRange(SourceRange.extent(values.stream()
-                    .map(Value::getSourceRange)
+                unshuffled.withSourceLocation(SourceLocation.extent(values.stream()
+                    .map(Value::getSourceLocation)
                     .collect(toList())));
                 add(value);
                 add(Identifier.builder()
                     .withSymbol(qualified("scotch.control.monad", ">>="))
                     .withType(reserveType())
-                    .withSourceRange(value.getSourceRange().getEndRange())
+                    .withSourceLocation(value.getSourceLocation().getEndPoint())
                     .build());
                 add(FunctionValue.builder()
                     .withSymbol(symbol)
                     .withArguments(asList(argument))
                     .withBody(unshuffled.build())
-                    .withSourceRange(sourceRange)
+                    .withSourceLocation(sourceLocation)
                     .build());
             }};
             values.clear();
@@ -1305,15 +1305,15 @@ public class InputParser {
 
     private final class BindExpressionBuilder implements SyntaxBuilder<BindExpression> {
 
-        private Optional<SourceRange> sourceRange;
-        private Optional<Symbol>      symbol;
-        private Optional<Argument>    argument;
-        private Optional<Value>       value;
+        private Optional<SourceLocation> sourceLocation;
+        private Optional<Symbol>         symbol;
+        private Optional<Argument>       argument;
+        private Optional<Value>          value;
 
         @Override
         public BindExpression build() {
             return new BindExpression(
-                BuilderUtil.require(sourceRange, "Source range"),
+                BuilderUtil.require(sourceLocation, "Source location"),
                 BuilderUtil.require(symbol, "Symbol"),
                 BuilderUtil.require(argument, "Argument"),
                 BuilderUtil.require(value, "Value")
@@ -1326,8 +1326,8 @@ public class InputParser {
         }
 
         @Override
-        public BindExpressionBuilder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public BindExpressionBuilder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 
@@ -1431,7 +1431,7 @@ public class InputParser {
             values.add(1, Identifier.builder()
                 .withSymbol(qualified("scotch.control.monad", ">>"))
                 .withType(reserveType())
-                .withSourceRange(value.getSourceRange().getEndRange())
+                .withSourceLocation(value.getSourceLocation().getEndPoint())
                 .build());
         }
     }

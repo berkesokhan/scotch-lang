@@ -16,19 +16,19 @@ import scotch.compiler.steps.TypeChecker;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 @AllArgsConstructor(access = PACKAGE)
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange")
+@ToString(exclude = "sourceLocation")
 public class IgnorePattern extends PatternMatch {
 
     public static Builder builder() {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final Type        type;
+    private final SourceLocation sourceLocation;
+    private final Type           type;
 
     @Override
     public PatternMatch accumulateDependencies(DependencyAccumulator state) {
@@ -66,8 +66,8 @@ public class IgnorePattern extends PatternMatch {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -82,13 +82,13 @@ public class IgnorePattern extends PatternMatch {
 
     @Override
     public PatternMatch withType(Type type) {
-        return new IgnorePattern(sourceRange, type);
+        return new IgnorePattern(sourceLocation, type);
     }
 
     public static class Builder implements SyntaxBuilder<IgnorePattern> {
 
-        private Optional<SourceRange> sourceRange = Optional.empty();
-        private Optional<Type>        type        = Optional.empty();
+        private Optional<SourceLocation> sourceLocation = Optional.empty();
+        private Optional<Type>           type        = Optional.empty();
 
         private Builder() {
             // intentionally empty
@@ -97,14 +97,14 @@ public class IgnorePattern extends PatternMatch {
         @Override
         public IgnorePattern build() {
             return new IgnorePattern(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(type, "Type")
             );
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

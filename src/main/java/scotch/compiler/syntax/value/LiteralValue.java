@@ -14,7 +14,7 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Callable;
 import scotch.runtime.RuntimeSupport;
 import scotch.symbol.type.Type;
@@ -22,12 +22,12 @@ import scotch.symbol.type.Type;
 @EqualsAndHashCode(callSuper = false)
 public abstract class LiteralValue<A> extends Value {
 
-    @Getter private final SourceRange sourceRange;
-    @Getter private final A           value;
-    @Getter private final Type        type;
+    @Getter private final SourceLocation sourceLocation;
+    @Getter private final A              value;
+    @Getter private final Type           type;
 
-    LiteralValue(SourceRange sourceRange, A value, Type type) {
-        this.sourceRange = sourceRange;
+    LiteralValue(SourceLocation sourceLocation, A value, Type type) {
+        this.sourceLocation = sourceLocation;
         this.value = value;
         this.type = type;
     }

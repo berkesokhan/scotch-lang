@@ -5,12 +5,12 @@ import static me.qmx.jitescript.util.CodegenUtils.sig;
 
 import me.qmx.jitescript.CodeBlock;
 import scotch.symbol.type.Types;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class IntLiteral extends LiteralValue<Integer> {
 
-    IntLiteral(SourceRange sourceRange, int value) {
-        super(sourceRange, value, Types.sum("scotch.data.int.Int"));
+    IntLiteral(SourceLocation sourceLocation, int value) {
+        super(sourceLocation, value, Types.sum("scotch.data.int.Int"));
     }
 
     @Override

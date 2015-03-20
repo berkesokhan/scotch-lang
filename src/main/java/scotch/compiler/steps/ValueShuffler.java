@@ -29,7 +29,7 @@ public class ValueShuffler {
     public Either<SyntaxError, Value> shuffle(Scope scope, List<Value> message) {
         if (message.size() == 1) {
             Value value = parser.apply(message.get(0));
-            return right(unshuffled(value.getSourceRange(), asList(value)));
+            return right(unshuffled(value.getSourceLocation(), asList(value)));
         } else {
             try {
                 return right(parser.apply(new Shuffler(scope, message).shuffleMessage()));
@@ -101,12 +101,12 @@ public class ValueShuffler {
             return value.asOperator(scope)
                 .map(pair -> pair.into((identifier, operator) -> {
                     if (expectsPrefix && !operator.isPrefix()) {
-                        throw new ShuffleException(parseError("Unexpected binary operator " + identifier.getSymbol(), identifier.getSourceRange()));
+                        throw new ShuffleException(parseError("Unexpected binary operator " + identifier.getSymbol(), identifier.getSourceLocation()));
                     } else {
                         return new OperatorPair<>(operator, identifier);
                     }
                 }))
-                .orElseThrow(() -> new ShuffleException(parseError("Value " + value.prettyPrint() + " is not an operator", value.getSourceRange())));
+                .orElseThrow(() -> new ShuffleException(parseError("Value " + value.prettyPrint() + " is not an operator", value.getSourceLocation())));
         }
 
         private boolean isOperator(Value value) {

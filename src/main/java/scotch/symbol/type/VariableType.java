@@ -25,21 +25,21 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedSet;
 import scotch.symbol.NameQualifier;
 import scotch.symbol.Symbol;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
 import scotch.runtime.Callable;
 
 public class VariableType extends Type {
 
-    private final SourceRange sourceRange;
-    private final String      name;
-    private final Set<Symbol> context;
+    private final SourceLocation sourceLocation;
+    private final String         name;
+    private final Set<Symbol>    context;
 
-    VariableType(SourceRange sourceRange, String name, Collection<Symbol> context) {
+    VariableType(SourceLocation sourceLocation, String name, Collection<Symbol> context) {
         if (!isLowerCase(name.charAt(0))) {
             throw new IllegalArgumentException("Variable type should have lower-case name: got '" + name + "'");
         }
-        this.sourceRange = sourceRange;
+        this.sourceLocation = sourceLocation;
         this.name = name;
         this.context = ImmutableSet.copyOf(context);
     }
@@ -134,8 +134,8 @@ public class VariableType extends Type {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -152,7 +152,7 @@ public class VariableType extends Type {
         return withContext(context.stream()
             .map(symbol -> pair(symbol, qualifier.qualify(symbol)))
             .map(pair -> pair.into((symbol, result) -> result.orElseGet(() -> {
-                qualifier.symbolNotFound(symbol, sourceRange);
+                qualifier.symbolNotFound(symbol, sourceLocation);
                 return symbol;
             })))
             .collect(toSet()));
@@ -168,11 +168,11 @@ public class VariableType extends Type {
     }
 
     public VariableType withContext(Collection<Symbol> context) {
-        return new VariableType(sourceRange, name, context);
+        return new VariableType(sourceLocation, name, context);
     }
 
-    public VariableType withSourceRange(SourceRange sourceRange) {
-        return new VariableType(sourceRange, name, context);
+    public VariableType withSourceLocation(SourceLocation sourceLocation) {
+        return new VariableType(sourceLocation, name, context);
     }
 
     private Unification bind(Type target, TypeScope scope) {

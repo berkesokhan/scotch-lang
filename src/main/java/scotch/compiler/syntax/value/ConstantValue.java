@@ -14,25 +14,25 @@ import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.symbol.Symbol;
 import scotch.symbol.type.Type;
 
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange")
+@ToString(exclude = "sourceLocation")
 public class ConstantValue extends Value {
 
     public static Builder builder() {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final Symbol      symbol;
-    private final Symbol      dataType;
-    private final Type        type;
+    private final SourceLocation sourceLocation;
+    private final Symbol         symbol;
+    private final Symbol         dataType;
+    private final Type           type;
 
-    ConstantValue(SourceRange sourceRange, Symbol dataType, Symbol symbol, Type type) {
-        this.sourceRange = sourceRange;
+    ConstantValue(SourceLocation sourceLocation, Symbol dataType, Symbol symbol, Type type) {
+        this.sourceLocation = sourceLocation;
         this.dataType = dataType;
         this.symbol = symbol;
         this.type = type;
@@ -74,8 +74,8 @@ public class ConstantValue extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -95,18 +95,18 @@ public class ConstantValue extends Value {
 
     @Override
     public Value withType(Type type) {
-        return new ConstantValue(sourceRange, dataType, symbol, type);
+        return new ConstantValue(sourceLocation, dataType, symbol, type);
     }
 
     public static class Builder implements SyntaxBuilder<ConstantValue> {
 
-        private Optional<SourceRange> sourceRange;
-        private Optional<Symbol>      dataType;
-        private Optional<Symbol>      symbol;
-        private Optional<Type>        type;
+        private Optional<SourceLocation> sourceLocation;
+        private Optional<Symbol>         dataType;
+        private Optional<Symbol>         symbol;
+        private Optional<Type>           type;
 
         private Builder() {
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
             dataType = Optional.empty();
             symbol = Optional.empty();
             type = Optional.empty();
@@ -115,7 +115,7 @@ public class ConstantValue extends Value {
         @Override
         public ConstantValue build() {
             return new ConstantValue(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(dataType, "Data type"),
                 require(symbol, "Constant symbol"),
                 require(type, "Constant type")
@@ -128,8 +128,8 @@ public class ConstantValue extends Value {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

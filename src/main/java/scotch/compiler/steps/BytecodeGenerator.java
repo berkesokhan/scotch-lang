@@ -31,7 +31,7 @@ import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.reference.ModuleReference;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
@@ -76,16 +76,16 @@ public class BytecodeGenerator {
         cases.push(new CaseEntry(size));
     }
 
-    public void beginClass(ClassType classType, String className, SourceRange sourceRange) {
+    public void beginClass(ClassType classType, String className, SourceLocation sourceLocation) {
         JiteClass jiteClass = new JiteClass(className);
         pushClass(jiteClass, classType);
-        jiteClass.setSourceFile(sourceRange.getPath());
+        jiteClass.setSourceFile(sourceLocation.getPath());
     }
 
-    public void beginConstant(String className, SourceRange sourceRange) {
+    public void beginConstant(String className, SourceLocation sourceLocation) {
         JiteClass jiteClass = new JiteClass(className, currentClass().getClassName(), new String[0]);
         pushClass(jiteClass, DATA_CONSTRUCTOR);
-        jiteClass.setSourceFile(sourceRange.getPath());
+        jiteClass.setSourceFile(sourceLocation.getPath());
         jiteClass.defineDefaultConstructor();
         jiteClass.defineMethod("call", ACC_PUBLIC, sig(Object.class), new CodeBlock() {{
             aload(0);
@@ -93,10 +93,10 @@ public class BytecodeGenerator {
         }});
     }
 
-    public void beginConstructor(String className, SourceRange sourceRange) {
+    public void beginConstructor(String className, SourceLocation sourceLocation) {
         JiteClass jiteClass = new JiteClass(className, currentClass().getClassName(), new String[] { p(Copyable.class) });
         pushClass(jiteClass, DATA_CONSTRUCTOR);
-        jiteClass.setSourceFile(sourceRange.getPath());
+        jiteClass.setSourceFile(sourceLocation.getPath());
     }
 
     public void beginMatches() {

@@ -19,7 +19,7 @@ import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.symbol.Symbol;
 import scotch.symbol.type.Type;
 
@@ -30,13 +30,13 @@ public class DataConstructor extends Value {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final Symbol      symbol;
-    private final List<Value> arguments;
-    private final Type        type;
+    private final SourceLocation sourceLocation;
+    private final Symbol         symbol;
+    private final List<Value>    arguments;
+    private final Type           type;
 
-    DataConstructor(SourceRange sourceRange, Symbol symbol, Type type, List<Value> arguments) {
-        this.sourceRange = sourceRange;
+    DataConstructor(SourceLocation sourceLocation, Symbol symbol, Type type, List<Value> arguments) {
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.arguments = ImmutableList.copyOf(arguments);
         this.type = type;
@@ -74,7 +74,7 @@ public class DataConstructor extends Value {
     }
 
     private DataConstructor withArguments(List<Value> arguments) {
-        return new DataConstructor(sourceRange, symbol, type, arguments);
+        return new DataConstructor(sourceLocation, symbol, type, arguments);
     }
 
     @Override
@@ -92,8 +92,8 @@ public class DataConstructor extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -121,18 +121,18 @@ public class DataConstructor extends Value {
 
     @Override
     public DataConstructor withType(Type type) {
-        return new DataConstructor(sourceRange, symbol, type, arguments);
+        return new DataConstructor(sourceLocation, symbol, type, arguments);
     }
 
     public static class Builder implements SyntaxBuilder<DataConstructor> {
 
-        private Optional<SourceRange> sourceRange;
-        private Optional<Symbol>      symbol;
-        private List<Value>           arguments;
-        private Optional<Type>        type;
+        private Optional<SourceLocation> sourceLocation;
+        private Optional<Symbol>         symbol;
+        private List<Value>              arguments;
+        private Optional<Type>           type;
 
         public Builder() {
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
             symbol = Optional.empty();
             arguments = new ArrayList<>();
             type = Optional.empty();
@@ -141,7 +141,7 @@ public class DataConstructor extends Value {
         @Override
         public DataConstructor build() {
             return new DataConstructor(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Constructor symbol"),
                 require(type, "Constructor type"),
                 arguments
@@ -154,8 +154,8 @@ public class DataConstructor extends Value {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

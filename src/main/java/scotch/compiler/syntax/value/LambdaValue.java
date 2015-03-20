@@ -16,7 +16,7 @@ import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.symbol.type.Type;
 import scotch.symbol.type.Types;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 
@@ -99,7 +99,7 @@ public class LambdaValue extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
+    public SourceLocation getSourceLocation() {
         throw new UnsupportedOperationException();
     }
 

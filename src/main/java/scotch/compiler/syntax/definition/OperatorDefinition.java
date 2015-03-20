@@ -20,7 +20,7 @@ import scotch.symbol.Symbol;
 import scotch.symbol.Value.Fixity;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class OperatorDefinition extends Definition {
 
@@ -28,13 +28,13 @@ public class OperatorDefinition extends Definition {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final Symbol      symbol;
-    private final Fixity      fixity;
-    private final int         precedence;
+    private final SourceLocation sourceLocation;
+    private final Symbol         symbol;
+    private final Fixity         fixity;
+    private final int            precedence;
 
-    OperatorDefinition(SourceRange sourceRange, Symbol symbol, Fixity fixity, int precedence) {
-        this.sourceRange = sourceRange;
+    OperatorDefinition(SourceLocation sourceLocation, Symbol symbol, Fixity fixity, int precedence) {
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.fixity = fixity;
         this.precedence = precedence;
@@ -92,8 +92,8 @@ public class OperatorDefinition extends Definition {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -122,22 +122,22 @@ public class OperatorDefinition extends Definition {
 
     public static class Builder implements SyntaxBuilder<OperatorDefinition> {
 
-        private Optional<Symbol>      symbol;
-        private Optional<Fixity>      fixity;
-        private OptionalInt           precedence;
-        private Optional<SourceRange> sourceRange;
+        private Optional<Symbol>         symbol;
+        private Optional<Fixity>         fixity;
+        private OptionalInt              precedence;
+        private Optional<SourceLocation> sourceLocation;
 
         private Builder() {
             symbol = Optional.empty();
             fixity = Optional.empty();
             precedence = OptionalInt.empty();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public OperatorDefinition build() {
             return Definitions.operatorDef(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Operator symbol"),
                 require(fixity, "Operator fixity"),
                 require(precedence, "Operator precedence")
@@ -155,8 +155,8 @@ public class OperatorDefinition extends Definition {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

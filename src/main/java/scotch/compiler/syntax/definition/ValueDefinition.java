@@ -26,21 +26,21 @@ import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.ValueReference;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Either;
 
 @AllArgsConstructor(access = PACKAGE)
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange")
+@ToString(exclude = "sourceLocation")
 public class ValueDefinition extends Definition {
 
     public static Builder builder() {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final Symbol      symbol;
-    private final Value       body;
+    private final SourceLocation sourceLocation;
+    private final Symbol         symbol;
+    private final Value          body;
 
     @Override
     public Definition accumulateDependencies(DependencyAccumulator state) {
@@ -78,7 +78,7 @@ public class ValueDefinition extends Definition {
             Type type = state.getType(this)
                 .unify(checkedBody.getType(), state.scope())
                 .orElseGet(unification -> {
-                    state.error(typeError(unification, sourceRange));
+                    state.error(typeError(unification, sourceLocation));
                     return checkedBody.getType();
                 });
             Type generatedType = state.scope().generate(type);
@@ -120,8 +120,8 @@ public class ValueDefinition extends Definition {
         return getType().getSignature();
     }
 
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -143,7 +143,7 @@ public class ValueDefinition extends Definition {
             Type qualifiedType = getType().qualifyNames(state);
             state.redefineValue(symbol, qualifiedType);
             return new ValueDefinition(
-                sourceRange,
+                sourceLocation,
                 symbol,
                 body.qualifyNames(state)
             );
@@ -151,29 +151,29 @@ public class ValueDefinition extends Definition {
     }
 
     public ValueDefinition withBody(Value body) {
-        return new ValueDefinition(sourceRange, symbol, body);
+        return new ValueDefinition(sourceLocation, symbol, body);
     }
 
-    public ValueDefinition withSourceRange(SourceRange sourceRange) {
-        return new ValueDefinition(sourceRange, symbol, body);
+    public ValueDefinition withSourceLocation(SourceLocation sourceLocation) {
+        return new ValueDefinition(sourceLocation, symbol, body);
     }
 
     public static class Builder implements SyntaxBuilder<ValueDefinition> {
 
-        private Optional<Symbol>      symbol;
-        private Optional<Value>       body;
-        private Optional<SourceRange> sourceRange;
+        private Optional<Symbol>         symbol;
+        private Optional<Value>          body;
+        private Optional<SourceLocation> sourceLocation;
 
         private Builder() {
             symbol = Optional.empty();
             body = Optional.empty();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public ValueDefinition build() {
             return Definitions.value(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Value symbol"),
                 require(body, "Value body").collapse()
             );
@@ -185,8 +185,8 @@ public class ValueDefinition extends Definition {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

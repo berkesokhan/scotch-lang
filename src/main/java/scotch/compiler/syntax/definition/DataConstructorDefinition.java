@@ -32,7 +32,7 @@ import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Callable;
 import scotch.runtime.Copyable;
 import scotch.runtime.RuntimeSupport;
@@ -47,17 +47,17 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
         return new Builder();
     }
 
-    private final SourceRange                      sourceRange;
+    private final SourceLocation                   sourceLocation;
     private final int                              ordinal;
     private final Symbol                           dataType;
     private final Symbol                           symbol;
     private final Map<String, DataFieldDefinition> fields;
     private final Optional<FieldSignature>         constantField;
 
-    private DataConstructorDefinition(SourceRange sourceRange, int ordinal, Symbol dataType, Symbol symbol, List<DataFieldDefinition> fields) {
+    private DataConstructorDefinition(SourceLocation sourceLocation, int ordinal, Symbol dataType, Symbol symbol, List<DataFieldDefinition> fields) {
         List<DataFieldDefinition> sortedFields = new ArrayList<>(fields);
         sort(sortedFields);
-        this.sourceRange = sourceRange;
+        this.sourceLocation = sourceLocation;
         this.ordinal = ordinal;
         this.dataType = dataType;
         this.symbol = symbol;
@@ -87,13 +87,13 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
     public void generateBytecode(BytecodeGenerator state) {
         JiteClass parentClass = state.currentClass();
         if (isNiladic()) {
-            state.beginConstant(state.getDataConstructorClass(symbol), sourceRange);
+            state.beginConstant(state.getDataConstructorClass(symbol), sourceLocation);
             parentClass.addChildClass(state.currentClass());
             generateInstanceField(state);
             generateToString(state);
             state.endClass();
         } else {
-            state.beginConstructor(state.getDataConstructorClass(symbol), sourceRange);
+            state.beginConstructor(state.getDataConstructorClass(symbol), sourceLocation);
             parentClass.addChildClass(state.currentClass());
             generateFields(state);
             generateConstructor(state, parentClass);
@@ -122,8 +122,8 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
         return new ArrayList<>(fields.values());
     }
 
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -340,12 +340,12 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
     }
 
     private DataConstructorDefinition withFields(List<DataFieldDefinition> fields) {
-        return new DataConstructorDefinition(sourceRange, ordinal, dataType, symbol, fields);
+        return new DataConstructorDefinition(sourceLocation, ordinal, dataType, symbol, fields);
     }
 
     public static class Builder implements SyntaxBuilder<DataConstructorDefinition> {
 
-        private Optional<SourceRange>     sourceRange = Optional.empty();
+        private Optional<SourceLocation>  sourceLocation = Optional.empty();
         private Optional<Integer>         ordinal     = Optional.empty();
         private Optional<Symbol>          dataType    = Optional.empty();
         private Optional<Symbol>          symbol      = Optional.empty();
@@ -359,7 +359,7 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
         @Override
         public DataConstructorDefinition build() {
             return new DataConstructorDefinition(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(ordinal, "Ordinal"),
                 require(dataType, "Constructor data type"),
                 require(symbol, "Constructor symbol"),
@@ -383,8 +383,8 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

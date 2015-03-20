@@ -32,7 +32,7 @@ import static scotch.compiler.scanner.Token.TokenKind.RIGHT_SQUARE_BRACE;
 import static scotch.compiler.scanner.Token.TokenKind.STRING_LITERAL;
 import static scotch.compiler.scanner.Token.token;
 import static scotch.compiler.text.SourcePoint.point;
-import static scotch.compiler.text.SourceRange.source;
+import static scotch.compiler.text.SourceLocation.source;
 import static scotch.compiler.util.TestUtil.token;
 
 import java.net.URI;

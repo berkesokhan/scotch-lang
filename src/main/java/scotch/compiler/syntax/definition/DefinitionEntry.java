@@ -4,7 +4,7 @@ import java.util.Set;
 import scotch.symbol.Symbol;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class DefinitionEntry {
 
@@ -36,8 +36,8 @@ public class DefinitionEntry {
         return scope;
     }
 
-    public SourceRange getSourceRange() {
-        return definition.getSourceRange();
+    public SourceLocation getSourceLocation() {
+        return definition.getSourceLocation();
     }
 
     public Symbol getSymbol() {

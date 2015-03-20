@@ -26,23 +26,23 @@ import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange")
+@ToString(exclude = "sourceLocation")
 public class PatternCase implements Scoped {
 
     public static Builder builder() {
         return new Builder();
     }
 
-    private final SourceRange        sourceRange;
+    private final SourceLocation     sourceLocation;
     private final Symbol             symbol;
     private final List<PatternMatch> matches;
     private final Value              body;
 
-    PatternCase(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
-        this.sourceRange = sourceRange;
+    PatternCase(SourceLocation sourceLocation, Symbol symbol, List<PatternMatch> matches, Value body) {
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.matches = ImmutableList.copyOf(matches);
         this.body = body;
@@ -119,7 +119,7 @@ public class PatternCase implements Scoped {
 
     @Override
     public Definition getDefinition() {
-        return scopeDef(sourceRange, symbol);
+        return scopeDef(sourceLocation, symbol);
     }
 
     public List<PatternMatch> getMatches() {
@@ -130,8 +130,8 @@ public class PatternCase implements Scoped {
         return scopeRef(symbol);
     }
 
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -162,32 +162,32 @@ public class PatternCase implements Scoped {
     }
 
     public PatternCase withBody(Value body) {
-        return new PatternCase(sourceRange, symbol, matches, body);
+        return new PatternCase(sourceLocation, symbol, matches, body);
     }
 
     public PatternCase withMatches(List<PatternMatch> matches) {
-        return new PatternCase(sourceRange, symbol, matches, body);
+        return new PatternCase(sourceLocation, symbol, matches, body);
     }
 
     public PatternCase withType(Type type) {
-        return new PatternCase(sourceRange, symbol, matches, body.withType(type));
+        return new PatternCase(sourceLocation, symbol, matches, body.withType(type));
     }
 
     private PatternCase withSymbol(Symbol symbol) {
-        return new PatternCase(sourceRange, symbol, matches, body);
+        return new PatternCase(sourceLocation, symbol, matches, body);
     }
 
     public static class Builder implements SyntaxBuilder<PatternCase> {
 
-        private Optional<SourceRange> sourceRange = Optional.empty();
-        private Optional<Symbol> symbol = Optional.empty();
-        private Optional<List<PatternMatch>> matches = Optional.empty();
-        private Optional<Value> body = Optional.empty();
+        private Optional<SourceLocation>     sourceLocation = Optional.empty();
+        private Optional<Symbol>             symbol      = Optional.empty();
+        private Optional<List<PatternMatch>> matches     = Optional.empty();
+        private Optional<Value>              body        = Optional.empty();
 
         @Override
         public PatternCase build() {
             return new PatternCase(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Symbol"),
                 require(matches, "Pattern matches"),
                 require(body, "Pattern body")
@@ -205,8 +205,8 @@ public class PatternCase implements Scoped {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

@@ -12,7 +12,7 @@ import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.Initializer;
 import scotch.compiler.syntax.value.InitializerField;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public final class TupleBuilder implements SyntaxBuilder<Value> {
 
@@ -20,10 +20,10 @@ public final class TupleBuilder implements SyntaxBuilder<Value> {
         return new TupleBuilder();
     }
 
-    private final List<Value>           members     = new ArrayList<>();
-    private       Optional<Type>        type        = Optional.empty();
-    private       Optional<Type>        tupleType   = Optional.empty();
-    private       Optional<SourceRange> sourceRange = Optional.empty();
+    private final List<Value>              members     = new ArrayList<>();
+    private       Optional<Type>           type        = Optional.empty();
+    private       Optional<Type>           tupleType   = Optional.empty();
+    private       Optional<SourceLocation> sourceLocation = Optional.empty();
 
     @Override
     public Value build() {
@@ -56,8 +56,8 @@ public final class TupleBuilder implements SyntaxBuilder<Value> {
     }
 
     @Override
-    public TupleBuilder withSourceRange(SourceRange sourceRange) {
-        this.sourceRange = Optional.of(sourceRange);
+    public TupleBuilder withSourceLocation(SourceLocation sourceLocation) {
+        this.sourceLocation = Optional.of(sourceLocation);
         return this;
     }
 
@@ -73,7 +73,7 @@ public final class TupleBuilder implements SyntaxBuilder<Value> {
 
     private void buildConstructor(StringBuilder commas, Initializer.Builder builder) {
         builder.withValue(Identifier.builder()
-            .withSourceRange(require(sourceRange, "Source range").getStartRange())
+            .withSourceLocation(require(sourceLocation, "Source location").getStartPoint())
             .withSymbol(qualified("scotch.data.tuple", "(" + commas.toString() + ")"))
             .withType(require(tupleType, "Constructor type"))
             .build());
@@ -85,7 +85,7 @@ public final class TupleBuilder implements SyntaxBuilder<Value> {
                 commas.append(",");
             }
             builder.addField(InitializerField.builder()
-                .withSourceRange(members.get(i).getSourceRange())
+                .withSourceLocation(members.get(i).getSourceLocation())
                 .withName("_" + i)
                 .withValue(members.get(i))
                 .build());
@@ -96,7 +96,7 @@ public final class TupleBuilder implements SyntaxBuilder<Value> {
         StringBuilder commas = new StringBuilder();
         Initializer.Builder builder = Initializer.builder()
             .withType(require(type, "Type"))
-            .withSourceRange(require(sourceRange, "Source range"));
+            .withSourceLocation(require(sourceLocation, "Source location"));
         buildFields(commas, builder);
         buildConstructor(commas, builder);
         return builder.build();

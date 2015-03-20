@@ -23,7 +23,7 @@ import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.symbol.Symbol;
 import scotch.symbol.descriptor.DataTypeDescriptor;
 import scotch.symbol.type.Type;
@@ -35,15 +35,15 @@ public class DataTypeDefinition extends Definition {
         return new Builder();
     }
 
-    private final SourceRange                            sourceRange;
+    private final SourceLocation                         sourceLocation;
     private final Symbol                                 symbol;
     private final List<Type>                             parameters;
     private final Map<Symbol, DataConstructorDefinition> constructors;
 
-    private DataTypeDefinition(SourceRange sourceRange, Symbol symbol, List<Type> parameters, List<DataConstructorDefinition> constructors) {
+    private DataTypeDefinition(SourceLocation sourceLocation, Symbol symbol, List<Type> parameters, List<DataConstructorDefinition> constructors) {
         List<DataConstructorDefinition> sortedConstructors = new ArrayList<>(constructors);
         sort(sortedConstructors);
-        this.sourceRange = sourceRange;
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.parameters = ImmutableList.copyOf(parameters);
         this.constructors = new LinkedHashMap<>();
@@ -76,7 +76,7 @@ public class DataTypeDefinition extends Definition {
 
     @Override
     public void generateBytecode(BytecodeGenerator state) {
-        state.beginClass(DATA_TYPE, symbol.getClassName(), sourceRange);
+        state.beginClass(DATA_TYPE, symbol.getClassName(), sourceLocation);
         state.currentClass().defineDefaultConstructor();
         constructors.values().forEach(constructor -> constructor.generateBytecode(state));
         state.endClass();
@@ -88,8 +88,8 @@ public class DataTypeDefinition extends Definition {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -101,7 +101,7 @@ public class DataTypeDefinition extends Definition {
     public Definition qualifyNames(ScopedNameQualifier state) {
         return state.scoped(this, () -> {
             DataTypeDefinition definition = new DataTypeDefinition(
-                sourceRange,
+                sourceLocation,
                 symbol,
                 state.qualifyTypeNames(parameters),
                 constructors.values().stream()
@@ -131,13 +131,13 @@ public class DataTypeDefinition extends Definition {
 
     public static class Builder implements SyntaxBuilder<DataTypeDefinition> {
 
-        private Optional<SourceRange>                     sourceRange;
+        private Optional<SourceLocation>                  sourceLocation;
         private Optional<Symbol>                          symbol;
-        private List<Type>                         parameters;
+        private List<Type>                                parameters;
         private Optional<List<DataConstructorDefinition>> constructors;
 
         private Builder() {
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
             symbol = Optional.empty();
             parameters = new ArrayList<>();
             constructors = Optional.empty();
@@ -159,7 +159,7 @@ public class DataTypeDefinition extends Definition {
         @Override
         public DataTypeDefinition build() {
             return new DataTypeDefinition(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Data type symbol"),
                 parameters,
                 require(constructors, "No constructors defined")
@@ -177,8 +177,8 @@ public class DataTypeDefinition extends Definition {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

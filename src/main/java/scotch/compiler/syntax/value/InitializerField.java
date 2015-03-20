@@ -14,7 +14,7 @@ import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 @EqualsAndHashCode(callSuper = false)
 public class InitializerField {
@@ -23,16 +23,16 @@ public class InitializerField {
         return new Builder();
     }
 
-    public static InitializerField field(SourceRange sourceRange, String name, Value value) {
-        return new InitializerField(sourceRange, name, value);
+    public static InitializerField field(SourceLocation sourceLocation, String name, Value value) {
+        return new InitializerField(sourceLocation, name, value);
     }
 
-    private final SourceRange sourceRange;
-    private final String      name;
-    private final Value       value;
+    private final SourceLocation sourceLocation;
+    private final String         name;
+    private final Value          value;
 
-    InitializerField(SourceRange sourceRange, String name, Value value) {
-        this.sourceRange = sourceRange;
+    InitializerField(SourceLocation sourceLocation, String name, Value value) {
+        this.sourceLocation = sourceLocation;
         this.name = name;
         this.value = value;
     }
@@ -93,21 +93,21 @@ public class InitializerField {
     }
 
     public InitializerField withType(Type type) {
-        return new InitializerField(sourceRange, name, value.withType(type));
+        return new InitializerField(sourceLocation, name, value.withType(type));
     }
 
     private InitializerField withValue(Value value) {
-        return new InitializerField(sourceRange, name, value);
+        return new InitializerField(sourceLocation, name, value);
     }
 
     public static class Builder implements SyntaxBuilder<InitializerField> {
 
-        private Optional<SourceRange> sourceRange;
-        private Optional<String>      name;
-        private Optional<Value>       value;
+        private Optional<SourceLocation> sourceLocation;
+        private Optional<String>         name;
+        private Optional<Value>          value;
 
         private Builder() {
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
             name = Optional.empty();
             value = Optional.empty();
         }
@@ -115,7 +115,7 @@ public class InitializerField {
         @Override
         public InitializerField build() {
             return new InitializerField(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(name, "Initializer field name"),
                 require(value, "Initializer field value")
             );
@@ -127,8 +127,8 @@ public class InitializerField {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

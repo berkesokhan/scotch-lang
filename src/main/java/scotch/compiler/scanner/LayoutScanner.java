@@ -89,7 +89,7 @@ public final class LayoutScanner implements Scanner {
     private void buffer_() {
         Token token = delegate.nextToken();
         if (token.is(END_OF_FILE) && !lastToken().is(SEMICOLON)) {
-            tokens.add(token(SEMICOLON, ";", token.getSourceRange()));
+            tokens.add(token(SEMICOLON, ";", token.getSourceLocation()));
         }
         tokens.add(token);
         buffer();
@@ -181,19 +181,19 @@ public final class LayoutScanner implements Scanner {
     }
 
     private void insertIn() {
-        insertToken(token(KEYWORD_IN, "in", firstToken().getSourceRange()));
+        insertToken(token(KEYWORD_IN, "in", firstToken().getSourceLocation()));
     }
 
     private void insertLCurly() {
-        tokens.add(1, token(LEFT_CURLY_BRACE, "{", tokens.get(2).getSourceRange()));
+        tokens.add(1, token(LEFT_CURLY_BRACE, "{", tokens.get(2).getSourceLocation()));
     }
 
     private void insertRCurly() {
-        insertToken(token(RIGHT_CURLY_BRACE, "}", firstToken().getSourceRange()));
+        insertToken(token(RIGHT_CURLY_BRACE, "}", firstToken().getSourceLocation()));
     }
 
     private void insertSemicolon() {
-        insertToken(token(SEMICOLON, ";", firstToken().getSourceRange()));
+        insertToken(token(SEMICOLON, ";", firstToken().getSourceLocation()));
     }
 
     private void insertToken(Token token) {

@@ -22,7 +22,7 @@ import scotch.compiler.steps.TypeChecker;
 import scotch.symbol.type.FunctionType;
 import scotch.symbol.type.Type;
 import scotch.symbol.type.Unification;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 import scotch.runtime.SuppliedThunk;
@@ -32,10 +32,10 @@ import scotch.runtime.SuppliedThunk;
 @ToString(of = { "type", "function", "argument" })
 public class Apply extends Value {
 
-    private final SourceRange sourceRange;
-    private final Value       function;
-    private final Value       argument;
-    private final Type        type;
+    private final SourceLocation sourceLocation;
+    private final Value          function;
+    private final Value          argument;
+    private final Type           type;
 
     @Override
     public Value accumulateDependencies(DependencyAccumulator state) {
@@ -50,7 +50,7 @@ public class Apply extends Value {
 
     @Override
     public Value bindTypes(TypeChecker state) {
-        return new Apply(sourceRange, function.bindTypes(state), argument.bindTypes(state), state.generate(type));
+        return new Apply(sourceLocation, function.bindTypes(state), argument.bindTypes(state), state.generate(type));
     }
 
     @Override
@@ -65,10 +65,10 @@ public class Apply extends Value {
         Value checkedArgument = argument.checkTypes(state);
         Unification unify = fn(checkedArgument.getType(), type)
             .unify(checkedFunction.getType(), state.scope());
-        return new Apply(sourceRange, checkedFunction, checkedArgument, unify
-                .mapType(t -> ((FunctionType) t).getResult())
-                .orElseGet(unification -> {
-                    state.error(typeError(unification.flip(), checkedArgument.getSourceRange()));
+        return new Apply(sourceLocation, checkedFunction, checkedArgument, unify
+            .mapType(t -> ((FunctionType) t).getResult())
+            .orElseGet(unification -> {
+                    state.error(typeError(unification.flip(), checkedArgument.getSourceLocation()));
                     return type;
                 }));
     }
@@ -114,8 +114,8 @@ public class Apply extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -135,19 +135,19 @@ public class Apply extends Value {
     }
 
     public Apply withArgument(Value argument) {
-        return new Apply(sourceRange, function, argument, type);
+        return new Apply(sourceLocation, function, argument, type);
     }
 
     public Apply withFunction(Value function) {
-        return new Apply(sourceRange, function, argument, type);
+        return new Apply(sourceLocation, function, argument, type);
     }
 
-    public Apply withSourceRange(SourceRange sourceRange) {
-        return new Apply(sourceRange, function, argument, type);
+    public Apply withSourceLocation(SourceLocation sourceLocation) {
+        return new Apply(sourceLocation, function, argument, type);
     }
 
     @Override
     public Apply withType(Type type) {
-        return new Apply(sourceRange, function, argument, type);
+        return new Apply(sourceLocation, function, argument, type);
     }
 }

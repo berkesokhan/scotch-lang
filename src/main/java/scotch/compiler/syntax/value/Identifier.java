@@ -35,23 +35,23 @@ import scotch.symbol.descriptor.DataFieldDescriptor;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
 
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange")
+@ToString(exclude = "sourceLocation")
 public class Identifier extends Value {
 
     public static Builder builder() {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final Symbol      symbol;
-    private final Type        type;
+    private final SourceLocation sourceLocation;
+    private final Symbol         symbol;
+    private final Type           type;
 
-    Identifier(SourceRange sourceRange, Symbol symbol, Type type) {
-        this.sourceRange = sourceRange;
+    Identifier(SourceLocation sourceLocation, Symbol symbol, Type type) {
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.type = type;
     }
@@ -74,10 +74,10 @@ public class Identifier extends Value {
                     List<InitializerField> initializerFields = checkInitializerFields(initializer.getFields(), state);
                     List<DataFieldDescriptor> descriptorFields = checkConstructorFields(constructor.getFields(), state);
                     if (!initializerFields.stream().map(InitializerField::getName).collect(toList())
-                            .containsAll(descriptorFields.stream().map(DataFieldDescriptor::getName).collect(toList()))
+                        .containsAll(descriptorFields.stream().map(DataFieldDescriptor::getName).collect(toList()))
                         || !descriptorFields.stream().map(DataFieldDescriptor::getName).collect(toList())
-                            .containsAll(initializerFields.stream().map(InitializerField::getName).collect(toList()))) {
-                        state.error(symbolNotFound(symbol, sourceRange)); // TODO
+                        .containsAll(initializerFields.stream().map(InitializerField::getName).collect(toList()))) {
+                        state.error(symbolNotFound(symbol, sourceLocation)); // TODO
                         return Optional.empty(); // TODO
                     }
                     List<InitializerField> sortedFields = sort(initializerFields, descriptorFields);
@@ -116,15 +116,15 @@ public class Identifier extends Value {
                 @Override
                 public Value visit(QualifiedSymbol symbol) {
                     if (scope.isMember(symbol) || valueType.hasContext()) {
-                        return unboundMethod(sourceRange, valueRef(symbol), valueType);
+                        return unboundMethod(sourceLocation, valueRef(symbol), valueType);
                     } else {
-                        return method(sourceRange, valueRef(symbol), asList(), valueType);
+                        return method(sourceLocation, valueRef(symbol), asList(), valueType);
                     }
                 }
 
                 @Override
                 public Value visit(UnqualifiedSymbol symbol) {
-                    return arg(sourceRange, symbol.getSimpleName(), valueType);
+                    return arg(sourceLocation, symbol.getSimpleName(), valueType);
                 }
             }));
     }
@@ -144,7 +144,7 @@ public class Identifier extends Value {
         return bind(state.scope())
             .map(value -> value.checkTypes(state))
             .orElseGet(() -> {
-                state.error(symbolNotFound(symbol, sourceRange));
+                state.error(symbolNotFound(symbol, sourceLocation));
                 return this;
             });
     }
@@ -160,8 +160,8 @@ public class Identifier extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -183,7 +183,7 @@ public class Identifier extends Value {
             return state.qualify(symbol)
                 .map(this::withSymbol)
                 .orElseGet(() -> {
-                    state.symbolNotFound(symbol, sourceRange);
+                    state.symbolNotFound(symbol, sourceLocation);
                     return this;
                 });
         } else {
@@ -196,21 +196,21 @@ public class Identifier extends Value {
         return state.qualify(symbol)
             .map(this::withSymbol)
             .orElseGet(() -> {
-                state.symbolNotFound(symbol, sourceRange);
+                state.symbolNotFound(symbol, sourceLocation);
                 return this;
             });
     }
 
-    public Identifier withSourceRange(SourceRange sourceRange) {
-        return new Identifier(sourceRange, symbol, type);
+    public Identifier withSourceLocation(SourceLocation sourceLocation) {
+        return new Identifier(sourceLocation, symbol, type);
     }
 
     public Identifier withSymbol(Symbol symbol) {
-        return new Identifier(sourceRange, symbol, type);
+        return new Identifier(sourceLocation, symbol, type);
     }
 
     public Identifier withType(Type type) {
-        return new Identifier(sourceRange, symbol, type);
+        return new Identifier(sourceLocation, symbol, type);
     }
 
     private List<DataFieldDescriptor> checkConstructorFields(List<DataFieldDescriptor> fields, TypeChecker state) {
@@ -239,28 +239,28 @@ public class Identifier extends Value {
 
     public static class Builder implements SyntaxBuilder<Identifier> {
 
-        private Optional<Symbol>      symbol;
-        private Optional<Type>        type;
-        private Optional<SourceRange> sourceRange;
+        private Optional<Symbol>         symbol;
+        private Optional<Type>           type;
+        private Optional<SourceLocation> sourceLocation;
 
         private Builder() {
             symbol = Optional.empty();
             type = Optional.empty();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public Identifier build() {
             return id(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Identifier symbol"),
                 require(type, "Identifier type")
             );
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

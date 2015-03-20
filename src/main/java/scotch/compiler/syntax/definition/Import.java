@@ -9,16 +9,16 @@ import scotch.symbol.Symbol;
 import scotch.symbol.SymbolResolver;
 import scotch.symbol.descriptor.TypeInstanceDescriptor;
 import scotch.symbol.type.Type;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public abstract class Import {
 
-    public static InclusionImport inclusionImport(SourceRange sourceRange, String moduleName, List<String> includes) {
-        return new InclusionImport(sourceRange, moduleName, includes);
+    public static InclusionImport inclusionImport(SourceLocation sourceLocation, String moduleName, List<String> includes) {
+        return new InclusionImport(sourceLocation, moduleName, includes);
     }
 
-    public static ModuleImport moduleImport(SourceRange sourceRange, String moduleName) {
-        return new ModuleImport(sourceRange, moduleName);
+    public static ModuleImport moduleImport(SourceLocation sourceLocation, String moduleName) {
+        return new ModuleImport(sourceLocation, moduleName);
     }
 
     protected static Set<Symbol> getContext_(String moduleName, Type type, SymbolResolver resolver) {
@@ -47,5 +47,5 @@ public abstract class Import {
     @Override
     public abstract String toString();
 
-    public abstract Import withSourceRange(SourceRange sourceRange);
+    public abstract Import withSourceLocation(SourceLocation sourceLocation);
 }

@@ -21,19 +21,19 @@ import com.google.common.collect.ImmutableSortedSet;
 import lombok.EqualsAndHashCode;
 import scotch.symbol.NameQualifier;
 import scotch.symbol.Symbol;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
 import scotch.runtime.Applicable;
 
 @EqualsAndHashCode(callSuper = false)
 public class FunctionType extends Type {
 
-    private final SourceRange sourceRange;
-    private final Type        argument;
-    private final Type        result;
+    private final SourceLocation sourceLocation;
+    private final Type           argument;
+    private final Type           result;
 
-    FunctionType(SourceRange sourceRange, Type argument, Type result) {
-        this.sourceRange = sourceRange;
+    FunctionType(SourceLocation sourceLocation, Type argument, Type result) {
+        this.sourceLocation = sourceLocation;
         this.argument = argument;
         this.result = result;
     }
@@ -46,7 +46,7 @@ public class FunctionType extends Type {
 
     @Override
     public Type flatten() {
-        return new FunctionType(sourceRange, argument.flatten(), result.flatten());
+        return new FunctionType(sourceLocation, argument.flatten(), result.flatten());
     }
 
     public Type getArgument() {
@@ -86,8 +86,8 @@ public class FunctionType extends Type {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -96,15 +96,15 @@ public class FunctionType extends Type {
     }
 
     public FunctionType withArgument(Type argument) {
-        return new FunctionType(sourceRange, argument, result);
+        return new FunctionType(sourceLocation, argument, result);
     }
 
     public FunctionType withResult(Type result) {
-        return new FunctionType(sourceRange, argument, result);
+        return new FunctionType(sourceLocation, argument, result);
     }
 
-    public FunctionType withSourceRange(SourceRange sourceRange) {
-        return new FunctionType(sourceRange, argument, result);
+    public FunctionType withSourceLocation(SourceLocation sourceLocation) {
+        return new FunctionType(sourceLocation, argument, result);
     }
 
     @Override
@@ -127,13 +127,13 @@ public class FunctionType extends Type {
 
     @Override
     protected Type generate(TypeScope scope, Set<Type> visited) {
-        return new FunctionType(sourceRange, argument.generate(scope), result.generate(scope)).flatten();
+        return new FunctionType(sourceLocation, argument.generate(scope), result.generate(scope)).flatten();
     }
 
     @Override
     protected Type genericCopy(TypeScope scope, Map<Type, Type> mappings) {
         return new FunctionType(
-            sourceRange,
+            sourceLocation,
             argument.genericCopy(scope, mappings),
             result.genericCopy(scope, mappings)
         );

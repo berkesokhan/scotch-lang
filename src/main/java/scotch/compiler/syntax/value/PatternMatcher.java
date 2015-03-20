@@ -40,26 +40,26 @@ import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange", doNotUseGetters = true)
+@ToString(exclude = "sourceLocation", doNotUseGetters = true)
 public class PatternMatcher extends Value implements Scoped {
 
     public static Builder builder() {
         return new Builder();
     }
 
-    private final SourceRange       sourceRange;
+    private final SourceLocation    sourceLocation;
     private final Symbol            symbol;
     private final List<Argument>    arguments;
     private final List<PatternCase> patternCases;
     private final Type              type;
 
-    PatternMatcher(SourceRange sourceRange, Symbol symbol, List<Argument> arguments, List<PatternCase> patternCases, Type type) {
-        this.sourceRange = sourceRange;
+    PatternMatcher(SourceLocation sourceLocation, Symbol symbol, List<Argument> arguments, List<PatternCase> patternCases, Type type) {
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.arguments = ImmutableList.copyOf(arguments);
         this.patternCases = ImmutableList.copyOf(patternCases);
@@ -109,7 +109,7 @@ public class PatternMatcher extends Value implements Scoped {
                         return unified(unifiedType);
                     })
                     .orElseGet(unification -> {
-                        state.error(typeError(unification.flip(), pattern.getSourceRange()));
+                        state.error(typeError(unification.flip(), pattern.getSourceLocation()));
                         return pattern.getType();
                     })))
                 .collect(toList());
@@ -136,7 +136,7 @@ public class PatternMatcher extends Value implements Scoped {
 
     @Override
     public Definition getDefinition() {
-        return scopeDef(sourceRange, symbol);
+        return scopeDef(sourceLocation, symbol);
     }
 
     @Override
@@ -145,8 +145,8 @@ public class PatternMatcher extends Value implements Scoped {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -185,24 +185,24 @@ public class PatternMatcher extends Value implements Scoped {
     }
 
     public PatternMatcher withArguments(List<Argument> arguments) {
-        return new PatternMatcher(sourceRange, symbol, arguments, patternCases, type);
+        return new PatternMatcher(sourceLocation, symbol, arguments, patternCases, type);
     }
 
     public PatternMatcher withPatternCases(List<PatternCase> patternCases) {
-        return new PatternMatcher(sourceRange, symbol, arguments, patternCases, type);
+        return new PatternMatcher(sourceLocation, symbol, arguments, patternCases, type);
     }
 
-    public PatternMatcher withSourceRange(SourceRange sourceRange) {
-        return new PatternMatcher(sourceRange, symbol, arguments, patternCases, type);
+    public PatternMatcher withSourceLocation(SourceLocation sourceLocation) {
+        return new PatternMatcher(sourceLocation, symbol, arguments, patternCases, type);
     }
 
     public PatternMatcher withSymbol(Symbol symbol) {
-        return new PatternMatcher(sourceRange, symbol, arguments, patternCases, type);
+        return new PatternMatcher(sourceLocation, symbol, arguments, patternCases, type);
     }
 
     @Override
     public PatternMatcher withType(Type type) {
-        return new PatternMatcher(sourceRange, symbol, arguments, patternCases, type);
+        return new PatternMatcher(sourceLocation, symbol, arguments, patternCases, type);
     }
 
     private Type calculateType(Type returnType) {
@@ -245,7 +245,7 @@ public class PatternMatcher extends Value implements Scoped {
 
     private PatternMatcher map(Function<Argument, Argument> argumentMapper, Function<PatternCase, PatternCase> patternCaseMapper) {
         return new PatternMatcher(
-            sourceRange, symbol,
+            sourceLocation, symbol,
             arguments.stream().map(argumentMapper).collect(toList()),
             patternCases.stream().map(patternCaseMapper).collect(toList()),
             type
@@ -261,7 +261,7 @@ public class PatternMatcher extends Value implements Scoped {
 
     public static class Builder implements SyntaxBuilder<PatternMatcher> {
 
-        private Optional<SourceRange>       sourceRange  = Optional.empty();
+        private Optional<SourceLocation>    sourceLocation  = Optional.empty();
         private Optional<List<Argument>>    arguments    = Optional.empty();
         private Optional<List<PatternCase>> patternCases = Optional.empty();
         private Optional<Type>              type         = Optional.empty();
@@ -274,7 +274,7 @@ public class PatternMatcher extends Value implements Scoped {
         @Override
         public PatternMatcher build() {
             return matcher(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Symbol"),
                 require(type, "Pattern type"),
                 require(arguments, "Arguments"),
@@ -293,8 +293,8 @@ public class PatternMatcher extends Value implements Scoped {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 
@@ -335,7 +335,7 @@ public class PatternMatcher extends Value implements Scoped {
     @AllArgsConstructor
     private static final class PatternLambda implements PatternCapture {
 
-        private final Argument argument;
+        private final Argument       argument;
         private final PatternCapture body;
 
         @Override

@@ -18,7 +18,7 @@ import scotch.symbol.Symbol;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Either;
 
 public class ValueSignature extends Definition {
@@ -27,12 +27,12 @@ public class ValueSignature extends Definition {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final Symbol      symbol;
-    private final Type        type;
+    private final SourceLocation sourceLocation;
+    private final Symbol         symbol;
+    private final Type           type;
 
-    ValueSignature(SourceRange sourceRange, Symbol symbol, Type type) {
-        this.sourceRange = sourceRange;
+    ValueSignature(SourceLocation sourceLocation, Symbol symbol, Type type) {
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.type = type;
     }
@@ -93,8 +93,8 @@ public class ValueSignature extends Definition {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -126,33 +126,33 @@ public class ValueSignature extends Definition {
     }
 
     public ValueSignature withType(Type type) {
-        return new ValueSignature(sourceRange, symbol, type);
+        return new ValueSignature(sourceLocation, symbol, type);
     }
 
     public static class Builder implements SyntaxBuilder<ValueSignature> {
 
-        private Optional<Symbol>      symbol;
-        private Optional<Type>        type;
-        private Optional<SourceRange> sourceRange;
+        private Optional<Symbol>         symbol;
+        private Optional<Type>           type;
+        private Optional<SourceLocation> sourceLocation;
 
         private Builder() {
             type = Optional.empty();
             symbol = Optional.empty();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public ValueSignature build() {
             return Definitions.signature(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Signature symbol"),
                 require(type, "Signature type")
             );
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

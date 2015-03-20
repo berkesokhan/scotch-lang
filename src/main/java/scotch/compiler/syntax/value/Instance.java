@@ -14,18 +14,18 @@ import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.reference.InstanceReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 @EqualsAndHashCode(callSuper = false)
 @ToString
 public class Instance extends Value {
 
-    private final SourceRange       sourceRange;
+    private final SourceLocation    sourceLocation;
     private final InstanceReference reference;
     private final Type              type;
 
-    Instance(SourceRange sourceRange, InstanceReference reference, Type type) {
-        this.sourceRange = sourceRange;
+    Instance(SourceLocation sourceLocation, InstanceReference reference, Type type) {
+        this.sourceLocation = sourceLocation;
         this.reference = reference;
         this.type = type;
     }
@@ -77,8 +77,8 @@ public class Instance extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -93,6 +93,6 @@ public class Instance extends Value {
 
     @Override
     public Instance withType(Type type) {
-        return new Instance(sourceRange, reference, type);
+        return new Instance(sourceLocation, reference, type);
     }
 }
