@@ -2,7 +2,6 @@ package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
 import static scotch.compiler.syntax.StubResolver.defaultEq;
-import static scotch.compiler.syntax.StubResolver.defaultInt;
 import static scotch.compiler.syntax.StubResolver.defaultPlus;
 import static scotch.compiler.syntax.value.Values.apply;
 import static scotch.compiler.util.TestUtil.arg;
@@ -25,22 +24,21 @@ import java.util.function.Function;
 import org.junit.Ignore;
 import org.junit.Test;
 import scotch.compiler.Compiler;
-import scotch.compiler.ParserTest;
-import scotch.compiler.syntax.StubResolver;
+import scotch.compiler.IsolatedCompilerTest;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 
-public class SyntaxParseIntegrationTest extends ParserTest {
+public class SyntaxParseIntegrationTest extends IsolatedCompilerTest {
 
     @Test
     public void shouldShufflePattern() {
         resolver.define(immutableEntry(qualified("scotch.data.bool", "not")).build());
-        parse(
+        compile(
             "module scotch.test",
             "import scotch.data.bool",
             "left infix 6 (==), (/=)",
             "x == y = not (x /= y)"
         );
-        shouldHaveValue("scotch.test.(==)", t(11), matcher("scotch.test.(==#0)", t(11), asList(arg("#0", t(9)), arg("#1", t(10))),
+        shouldHaveValue("scotch.test.(==)", matcher("scotch.test.(==#0)", t(11), asList(arg("#0", t(9)), arg("#1", t(10))),
             pattern("scotch.test.(==#0#0)", asList(capture("#0", "x", t(0)), capture("#1", "y", t(2))), apply(
                 id("scotch.data.bool.not", t(3)),
                 apply(
@@ -55,14 +53,14 @@ public class SyntaxParseIntegrationTest extends ParserTest {
 
     @Test
     public void shouldConsolidatePatternsIntoSingleValue() {
-        parse(
+        compile(
             "module scotch.test",
             "left infix 8 (+), (-)",
             "fib 0 = 0",
             "fib 1 = 1",
             "fib n = fib (n - 1) + fib (n - 2)"
         );
-        shouldHaveValue("scotch.test.fib", t(17), matcher("scotch.test.(fib#0)", t(16), asList(arg("#0", t(15))),
+        shouldHaveValue("scotch.test.fib", matcher("scotch.test.(fib#0)", t(16), asList(arg("#0", t(15))),
             pattern("scotch.test.(fib#0#0)", asList(equal("#0", apply(
                 apply(id("scotch.data.eq.(==)", t(17)), id("#0", t(18)), t(19)),
                 literal(0),
@@ -106,7 +104,7 @@ public class SyntaxParseIntegrationTest extends ParserTest {
         resolver
             .define(defaultPlus())
             .define(defaultEq());
-        parse(
+        compile(
             "module scotch.test",
             "import scotch.data.eq",
             "import scotch.data.num",
@@ -133,7 +131,7 @@ public class SyntaxParseIntegrationTest extends ParserTest {
 
     @Test
     public void shouldParseLet() {
-        parse(
+        compile(
             "module scotch.test",
             "left infix 7 (+)",
             "main = let",
@@ -162,7 +160,7 @@ public class SyntaxParseIntegrationTest extends ParserTest {
     @Ignore
     @Test
     public void shouldParseTypeClass() {
-        parse(
+        compile(
             "module scotch.test",
             "import scotch.data.bool",
             "class Eq a where",
@@ -180,17 +178,7 @@ public class SyntaxParseIntegrationTest extends ParserTest {
     }
 
     @Override
-    protected void initResolver(StubResolver resolver) {
-        resolver.define(defaultInt());
-    }
-
-    @Override
-    protected Function<scotch.compiler.Compiler, DefinitionGraph> parse() {
+    protected Function<scotch.compiler.Compiler, DefinitionGraph> compile() {
         return Compiler::qualifyNames;
-    }
-
-    @Override
-    protected void setUp() {
-        // intentionally empty
     }
 }

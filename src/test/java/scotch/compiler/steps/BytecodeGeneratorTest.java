@@ -366,6 +366,17 @@ public class BytecodeGeneratorTest {
         assertThat(pickle.toString(), is("Pickle { kind = Crunchy, pimples = 15 }"));
     }
 
+    @Test
+    public void shouldDestructureTuple() {
+        int value = exec(
+            "module scotch.test",
+            "",
+            "second (_, b) = b",
+            "run = second (3, 2)"
+        );
+        assertThat(value, is(2));
+    }
+
     @SuppressWarnings("unchecked")
     private <A> A exec(String... lines) {
         try {

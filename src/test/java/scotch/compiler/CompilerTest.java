@@ -12,9 +12,9 @@ import static scotch.compiler.util.TestUtil.classRef;
 import static scotch.compiler.util.TestUtil.ctorDef;
 import static scotch.compiler.util.TestUtil.dataDef;
 import static scotch.compiler.util.TestUtil.dataRef;
-import static scotch.compiler.util.TestUtil.value;
 import static scotch.compiler.util.TestUtil.valueRef;
 import static scotch.symbol.Symbol.symbol;
+import static scotch.symbol.type.Types.sum;
 import static scotch.util.StringUtil.quote;
 
 import java.net.URI;
@@ -24,7 +24,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.syntax.StubResolver;
 import scotch.compiler.syntax.definition.DataFieldDefinition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.definition.ValueDefinition;
@@ -32,22 +31,32 @@ import scotch.compiler.syntax.definition.ValueSignature;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Value;
+import scotch.symbol.SymbolResolver;
 import scotch.symbol.type.Type;
 
-public abstract class ParserTest {
+public abstract class CompilerTest<Resolver extends SymbolResolver> {
 
     @Rule
-    public final TestName testName = new TestName();
+    public final    TestName testName   = new TestName();
+    protected final Type     intType    = sum("scotch.data.int.Int");
+    protected final Type     doubleType = sum("scotch.data.double.Double");
+    protected final Type     boolType   = sum("scotch.data.bool.Bool");
+    protected final Type     stringType = sum("scotch.data.string.String");
     protected DefinitionGraph              graph;
-    protected StubResolver                 resolver;
-    protected Function<String[], Compiler> compiler;
+    protected Function<String[], Compiler> compilerFactory;
+    protected Resolver                     resolver;
 
     @Before
-    public void init() {
-        setUp();
-        initResolver(resolver = new StubResolver());
-        compiler = lines -> compiler(resolver, URI.create("test://" + testName.getMethodName()), lines);
+    public void setUp() {
+        resolver = initResolver();
+        compilerFactory = initCompilerFactory();
     }
+
+    protected void compile(String... lines) {
+        graph = compile().apply(compilerFactory.apply(lines));
+    }
+
+    protected abstract Function<Compiler, DefinitionGraph> compile();
 
     protected Scope getScope(DefinitionReference reference) {
         return graph.getScope(reference);
@@ -57,15 +66,11 @@ public abstract class ParserTest {
         return graph.getDefinition(valueRef(name)).get();
     }
 
-    protected abstract void initResolver(StubResolver resolver);
-
-    protected abstract Function<Compiler, DefinitionGraph> parse();
-
-    protected void parse(String... lines) {
-        graph = parse().apply(compiler.apply(lines));
+    protected Function<String[], Compiler> initCompilerFactory() {
+        return lines -> compiler(resolver, URI.create("test://" + testName.getMethodName()), lines);
     }
 
-    protected abstract void setUp();
+    protected abstract Resolver initResolver();
 
     protected void shouldBeDefined(DefinitionReference reference, String name) {
         assertThat(
@@ -79,6 +84,11 @@ public abstract class ParserTest {
         assertThat(graph.getDefinition(classRef(className)).get(), is(
             classDef(className, arguments, members)
         ));
+    }
+
+    protected void shouldHaveData(int ordinal, String name, List<Type> parameters, List<DataFieldDefinition> fields) {
+        assertThat(graph.hasErrors(), is(false));
+        assertThat(graph.getDefinition(dataRef(name)).get(), is(dataDef(name, parameters, asList(ctorDef(ordinal, name, name, fields)))));
     }
 
     protected void shouldHaveErrors(SyntaxError... errors) {
@@ -95,11 +105,6 @@ public abstract class ParserTest {
         assertThat(graph.getValue(valueRef(name)).get(), is(type));
     }
 
-    protected void shouldHaveData(int ordinal, String name, List<Type> parameters, List<DataFieldDefinition> fields) {
-        assertThat(graph.hasErrors(), is(false));
-        assertThat(graph.getDefinition(dataRef(name)).get(), is(dataDef(name, parameters, asList(ctorDef(ordinal, name, name, fields)))));
-    }
-
     protected void shouldHaveValue(String name) {
         assertThat("Graph did not define value " + quote(name), graph.getValue(valueRef(name)).isPresent(), is(true));
     }
@@ -107,11 +112,6 @@ public abstract class ParserTest {
     protected void shouldHaveValue(String name, Value body) {
         shouldHaveValue(name);
         assertThat(getValueDefinition(name).getBody(), is(body));
-    }
-
-    protected void shouldHaveValue(String name, Type type, Value body) {
-        shouldHaveValue(name);
-        assertThat(graph.getDefinition(valueRef(name)).get(), is(value(name, body)));
     }
 
     protected void shouldNotHaveErrors() {

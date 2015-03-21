@@ -242,7 +242,7 @@ public abstract class Symbol implements Comparable<Symbol> {
     public abstract int hashCode();
 
     public boolean isConstructorName() {
-        return isSumName() || ":".equals(getMemberName());
+        return isSumName() || ":".equals(getSimpleName()) || "[]".equals(getSimpleName());
     }
 
     public boolean isList() {

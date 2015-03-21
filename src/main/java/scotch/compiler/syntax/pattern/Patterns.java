@@ -21,8 +21,20 @@ public final class Patterns {
         return new IgnorePattern(sourceLocation, type);
     }
 
-    public static PatternCase pattern(SourceLocation sourceLocation, Symbol symbol, List<PatternMatch> matches, Value body) {
-        return new PatternCase(sourceLocation, symbol, matches, body);
+    public static OrdinalField ordinalField(SourceLocation sourceLocation, Optional<String> argument, Optional<String> field, Type type, PatternMatch patternMatch) {
+        return new OrdinalField(sourceLocation, argument, field, type, patternMatch);
+    }
+
+    public static PatternCase pattern(SourceLocation sourceLocation, Symbol symbol, List<PatternMatch> patternMatches, Value body) {
+        return new PatternCase(sourceLocation, symbol, patternMatches, body);
+    }
+
+    public static OrdinalStructureMatch structure(SourceLocation sourceLocation, Optional<String> argument, Symbol dataType, Type type, List<OrdinalField> fields) {
+        return new OrdinalStructureMatch(sourceLocation, argument, dataType, type, fields);
+    }
+
+    public static UnshuffledStructureMatch unshuffledMatch(SourceLocation sourceLocation, Type type, List<PatternMatch> patternMatches) {
+        return new UnshuffledStructureMatch(sourceLocation, type, patternMatches);
     }
 
     private Patterns() {

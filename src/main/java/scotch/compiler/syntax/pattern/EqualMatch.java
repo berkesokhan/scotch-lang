@@ -139,7 +139,7 @@ public class EqualMatch extends PatternMatch {
     }
 
     @Override
-    public EqualMatch withType(Type generate) {
+    public EqualMatch withType(Type type) {
         return new EqualMatch(sourceLocation, argument, value);
     }
 

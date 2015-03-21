@@ -1,8 +1,6 @@
 package scotch.compiler.steps;
 
 import static java.util.Arrays.asList;
-import static scotch.symbol.type.Types.sum;
-import static scotch.symbol.type.Types.t;
 import static scotch.compiler.syntax.StubResolver.defaultBind;
 import static scotch.compiler.syntax.StubResolver.defaultEither;
 import static scotch.compiler.syntax.StubResolver.defaultLeft;
@@ -16,19 +14,32 @@ import static scotch.compiler.util.TestUtil.id;
 import static scotch.compiler.util.TestUtil.literal;
 import static scotch.compiler.util.TestUtil.matcher;
 import static scotch.compiler.util.TestUtil.pattern;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.t;
 
 import java.util.function.Function;
 import org.junit.Test;
 import scotch.compiler.Compiler;
-import scotch.compiler.ParserTest;
-import scotch.compiler.syntax.StubResolver;
+import scotch.compiler.IsolatedCompilerTest;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 
-public class NameQualifierTest extends ParserTest {
+public class NameQualifierTest extends IsolatedCompilerTest {
+
+    @Override
+    public void setUp() {
+        super.setUp();
+        resolver
+            .define(defaultEither())
+            .define(defaultRight())
+            .define(defaultLeft())
+            .define(defaultMonad())
+            .define(defaultMonadOf(sum("scotch.data.either.Either", sum("scotch.data.string.String"))))
+            .define(defaultBind());
+    }
 
     @Test
     public void shouldQualifyNames() {
-        parse(
+        compile(
             "module scotch.test",
             "fn1 a b = fn2 a b",
             "fn2 a b = a b"
@@ -48,8 +59,8 @@ public class NameQualifierTest extends ParserTest {
     }
 
     @Test
-    public void test() {
-        parse(
+    public void shouldQualifyBindNames() {
+        compile(
             "module scotch.test",
             "import scotch.control.monad",
             "import scotch.data.either",
@@ -70,23 +81,7 @@ public class NameQualifierTest extends ParserTest {
     }
 
     @Override
-    protected void initResolver(StubResolver resolver) {
-        resolver
-            .define(defaultEither())
-            .define(defaultRight())
-            .define(defaultLeft())
-            .define(defaultMonad())
-            .define(defaultMonadOf(sum("scotch.data.either.Either", sum("scotch.data.string.String"))))
-            .define(defaultBind());
-    }
-
-    @Override
-    protected Function<Compiler, DefinitionGraph> parse() {
+    protected Function<Compiler, DefinitionGraph> compile() {
         return Compiler::qualifyNames;
-    }
-
-    @Override
-    protected void setUp() {
-        // intentionally empty
     }
 }

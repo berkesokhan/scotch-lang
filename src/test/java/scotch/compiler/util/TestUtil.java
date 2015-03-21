@@ -4,10 +4,10 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.Compiler.compiler;
-import static scotch.symbol.Symbol.symbol;
-import static scotch.symbol.type.Types.sum;
 import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
 import static scotch.compiler.text.SourceLocation.NULL_SOURCE;
+import static scotch.symbol.Symbol.symbol;
+import static scotch.symbol.type.Types.sum;
 
 import java.net.URI;
 import java.util.List;
@@ -17,17 +17,6 @@ import scotch.compiler.output.GeneratedClass;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
-import scotch.symbol.FieldSignature;
-import scotch.symbol.MethodSignature;
-import scotch.symbol.Symbol;
-import scotch.symbol.Value.Fixity;
-import scotch.symbol.descriptor.DataConstructorDescriptor;
-import scotch.symbol.descriptor.DataFieldDescriptor;
-import scotch.symbol.descriptor.DataTypeDescriptor;
-import scotch.symbol.descriptor.TypeClassDescriptor;
-import scotch.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.symbol.descriptor.TypeParameterDescriptor;
-import scotch.symbol.type.Type;
 import scotch.compiler.syntax.definition.ClassDefinition;
 import scotch.compiler.syntax.definition.DataConstructorDefinition;
 import scotch.compiler.syntax.definition.DataFieldDefinition;
@@ -43,9 +32,12 @@ import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.pattern.CaptureMatch;
 import scotch.compiler.syntax.pattern.EqualMatch;
 import scotch.compiler.syntax.pattern.IgnorePattern;
+import scotch.compiler.syntax.pattern.OrdinalField;
 import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.syntax.pattern.Patterns;
+import scotch.compiler.syntax.pattern.OrdinalStructureMatch;
+import scotch.compiler.syntax.pattern.UnshuffledStructureMatch;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.DataReference;
 import scotch.compiler.syntax.reference.DefinitionReference;
@@ -72,6 +64,17 @@ import scotch.compiler.syntax.value.StringLiteral;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.syntax.value.Values;
+import scotch.symbol.FieldSignature;
+import scotch.symbol.MethodSignature;
+import scotch.symbol.Symbol;
+import scotch.symbol.Value.Fixity;
+import scotch.symbol.descriptor.DataConstructorDescriptor;
+import scotch.symbol.descriptor.DataFieldDescriptor;
+import scotch.symbol.descriptor.DataTypeDescriptor;
+import scotch.symbol.descriptor.TypeClassDescriptor;
+import scotch.symbol.descriptor.TypeInstanceDescriptor;
+import scotch.symbol.descriptor.TypeParameterDescriptor;
+import scotch.symbol.type.Type;
 
 public class TestUtil {
 
@@ -220,10 +223,6 @@ public class TestUtil {
         return sum("scotch.data.int.Int");
     }
 
-    public static DefinitionGraph integratedParse(String methodName, ClassLoaderResolver resolver, String... lines) {
-        return compiler(resolver, URI.create("test://" + methodName), lines).checkTypes();
-    }
-
     public static Let let(String name, List<DefinitionReference> definitions, Value body) {
         return Values.let(NULL_SOURCE, symbol(name), definitions, body);
     }
@@ -272,6 +271,14 @@ public class TestUtil {
         return DefinitionReference.operatorRef(symbol(name));
     }
 
+    public static OrdinalField ordinalField(Type type, PatternMatch patternMatch) {
+        return Patterns.ordinalField(NULL_SOURCE, Optional.empty(), Optional.empty(), type, patternMatch);
+    }
+
+    public static OrdinalField ordinalField(String argument, String field, Type type, PatternMatch patternMatch) {
+        return Patterns.ordinalField(NULL_SOURCE, Optional.of(argument), Optional.of(field), type, patternMatch);
+    }
+
     public static PatternCase pattern(String name, List<PatternMatch> matches, Value body) {
         return Patterns.pattern(NULL_SOURCE, symbol(name), matches, body);
     }
@@ -290,6 +297,14 @@ public class TestUtil {
 
     public static Type stringType() {
         return sum("scotch.data.string.String");
+    }
+
+    public static OrdinalStructureMatch ordinalStruct(String dataType, Type type, List<OrdinalField> fields) {
+        return Patterns.structure(NULL_SOURCE, Optional.empty(), symbol(dataType), type, fields);
+    }
+
+    public static OrdinalStructureMatch ordinalStruct(String argument, String dataType, Type type, List<OrdinalField> fields) {
+        return Patterns.structure(NULL_SOURCE, Optional.of(argument), symbol(dataType), type, fields);
     }
 
     public static Token token(TokenKind kind, Object value) {
@@ -320,6 +335,10 @@ public class TestUtil {
 
     public static UnshuffledDefinition unshuffled(String name, List<PatternMatch> matches, Value body) {
         return Definitions.unshuffled(NULL_SOURCE, symbol(name), matches, body);
+    }
+
+    public static UnshuffledStructureMatch unshuffledMatch(Type type, PatternMatch... matches) {
+        return Patterns.unshuffledMatch(NULL_SOURCE, type, asList(matches));
     }
 
     public static ValueDefinition value(String name, Value value) {

@@ -2,26 +2,25 @@ package scotch.compiler.steps;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
+import static scotch.compiler.syntax.reference.DefinitionReference.operatorRef;
 import static scotch.symbol.Operator.operator;
 import static scotch.symbol.Symbol.symbol;
 import static scotch.symbol.Value.Fixity.RIGHT_INFIX;
-import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
-import static scotch.compiler.syntax.reference.DefinitionReference.operatorRef;
 
 import java.util.function.Function;
 import org.junit.Test;
 import scotch.compiler.Compiler;
-import scotch.compiler.ParserTest;
-import scotch.symbol.Value.Fixity;
-import scotch.compiler.syntax.StubResolver;
+import scotch.compiler.IsolatedCompilerTest;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.definition.OperatorDefinition;
+import scotch.symbol.Value.Fixity;
 
-public class DefineOperatorsTest extends ParserTest {
+public class DefineOperatorsTest extends IsolatedCompilerTest {
 
     @Test
     public void shouldParseOperator() {
-        parse(
+        compile(
             "module scotch.test",
             "right infix 0 (>>=), (>>)"
         );
@@ -36,18 +35,7 @@ public class DefineOperatorsTest extends ParserTest {
         assertThat(((OperatorDefinition) graph.getDefinition(operatorRef(symbol(name))).get()).getOperator(), is(operator(fixity, precedence)));
     }
 
-    @Override
-    protected void initResolver(StubResolver resolver) {
-        // intentionally empty
-    }
-
-    @Override
-    protected Function<scotch.compiler.Compiler, DefinitionGraph> parse() {
+    protected Function<scotch.compiler.Compiler, DefinitionGraph> compile() {
         return Compiler::accumulateOperators;
-    }
-
-    @Override
-    protected void setUp() {
-        // intentionally empty
     }
 }

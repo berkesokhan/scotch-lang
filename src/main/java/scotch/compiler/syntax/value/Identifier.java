@@ -92,6 +92,10 @@ public class Identifier extends Value {
         }
     }
 
+    public boolean isConstructor() {
+        return symbol.isConstructorName();
+    }
+
     private List<InitializerField> sort(List<InitializerField> initializerFields, List<DataFieldDescriptor> descriptorFields) {
         List<InitializerField> sortedFields = new ArrayList<>();
         List<String> initializerNames = initializerFields.stream().map(InitializerField::getName).collect(toList());

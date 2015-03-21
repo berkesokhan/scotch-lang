@@ -15,15 +15,14 @@ import static scotch.symbol.type.Types.t;
 
 import java.util.function.Function;
 import org.junit.Test;
-import scotch.compiler.ParserTest;
-import scotch.compiler.syntax.StubResolver;
+import scotch.compiler.IsolatedCompilerTest;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 
-public class ParsePrecedenceTest extends ParserTest {
+public class ParsePrecedenceTest extends IsolatedCompilerTest {
 
     @Test
     public void shouldShuffleTwoPlusTwo() {
-        parse(
+        compile(
             "module scotch.test",
             "left infix 7 (+)",
             "four = 2 + 2"
@@ -42,7 +41,7 @@ public class ParsePrecedenceTest extends ParserTest {
 
     @Test
     public void shouldShufflePattern() {
-        parse(
+        compile(
             "module scotch.test",
             "right infix 1 ($)",
             "x $ y = x y"
@@ -57,7 +56,7 @@ public class ParsePrecedenceTest extends ParserTest {
 
     @Test
     public void shouldAliasShuffledLetDeclarations() {
-        parse(
+        compile(
             "module scotch.test",
             "left infix 7 (+)",
             "main = let",
@@ -84,7 +83,7 @@ public class ParsePrecedenceTest extends ParserTest {
 
     @Test
     public void shouldTranslateEqualMatchToUseEq() {
-        parse(
+        compile(
             "module scotch.test",
             "fib 0 = 0"
         );
@@ -100,17 +99,7 @@ public class ParsePrecedenceTest extends ParserTest {
     }
 
     @Override
-    protected void initResolver(StubResolver resolver) {
-        // intentionally empty
-    }
-
-    @Override
-    protected Function<scotch.compiler.Compiler, DefinitionGraph> parse() {
+    protected Function<scotch.compiler.Compiler, DefinitionGraph> compile() {
         return scotch.compiler.Compiler::parsePrecedence;
-    }
-
-    @Override
-    protected void setUp() {
-        // intentionally empty
     }
 }

@@ -43,7 +43,7 @@ public class DataFieldDescriptor implements Comparable<DataFieldDescriptor> {
 
     @Override
     public String toString() {
-        return name + " " + type;
+        return name + " :: " + type;
     }
 
     public DataFieldDescriptor withType(Type type) {

@@ -38,6 +38,11 @@ import static scotch.compiler.scanner.Token.TokenKind.RIGHT_PARENTHESIS;
 import static scotch.compiler.scanner.Token.TokenKind.RIGHT_SQUARE_BRACE;
 import static scotch.compiler.scanner.Token.TokenKind.SEMICOLON;
 import static scotch.compiler.scanner.Token.TokenKind.STRING_LITERAL;
+import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
+import static scotch.compiler.syntax.definition.DefinitionGraph.createGraph;
+import static scotch.compiler.syntax.pattern.ComplexMatchBuilder.complexMatchBuilder;
+import static scotch.compiler.text.TextUtil.repeat;
+import static scotch.compiler.util.Pair.pair;
 import static scotch.symbol.Symbol.qualified;
 import static scotch.symbol.Symbol.splitQualified;
 import static scotch.symbol.Symbol.symbol;
@@ -48,10 +53,6 @@ import static scotch.symbol.Value.Fixity.RIGHT_INFIX;
 import static scotch.symbol.type.Types.fn;
 import static scotch.symbol.type.Types.sum;
 import static scotch.symbol.type.Types.var;
-import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
-import static scotch.compiler.syntax.definition.DefinitionGraph.createGraph;
-import static scotch.compiler.text.TextUtil.repeat;
-import static scotch.compiler.util.Pair.pair;
 import static scotch.util.StringUtil.quote;
 
 import java.util.ArrayDeque;
@@ -72,13 +73,6 @@ import lombok.NonNull;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
-import scotch.compiler.syntax.value.ConstantReference;
-import scotch.symbol.Symbol;
-import scotch.symbol.SymbolResolver;
-import scotch.symbol.Value.Fixity;
-import scotch.symbol.type.SumType;
-import scotch.symbol.type.Type;
-import scotch.symbol.util.SymbolGenerator;
 import scotch.compiler.syntax.builder.BuilderUtil;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.ClassDefinition.ClassDefinitionBuilder;
@@ -102,10 +96,12 @@ import scotch.compiler.syntax.pattern.EqualMatch;
 import scotch.compiler.syntax.pattern.IgnorePattern;
 import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.syntax.pattern.PatternMatch;
+import scotch.compiler.syntax.pattern.UnshuffledStructureMatch;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.Conditional;
+import scotch.compiler.syntax.value.ConstantReference;
 import scotch.compiler.syntax.value.DataConstructor;
 import scotch.compiler.syntax.value.DefaultOperator;
 import scotch.compiler.syntax.value.FunctionValue;
@@ -120,6 +116,12 @@ import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.NamedSourcePoint;
 import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
+import scotch.symbol.Symbol;
+import scotch.symbol.SymbolResolver;
+import scotch.symbol.Value.Fixity;
+import scotch.symbol.type.SumType;
+import scotch.symbol.type.Type;
+import scotch.symbol.util.SymbolGenerator;
 import scotch.util.StringUtil;
 
 public class InputParser {
@@ -229,6 +231,12 @@ public class InputParser {
 
     private boolean expectsLiteral() {
         return literals.stream().anyMatch(this::expects);
+    }
+
+    private boolean expectsMatch() {
+        return expectsWord()
+            || expectsLiteral()
+            || expects(LEFT_PARENTHESIS);
     }
 
     private boolean expectsModule() {
@@ -348,6 +356,10 @@ public class InputParser {
             .withType(reserveType()));
     }
 
+    private CaptureMatch parseCaptureMatch() {
+        return node(CaptureMatch.builder(), builder -> builder.withIdentifier(parseWordReference()));
+    }
+
     private List<Type> parseClassArguments() {
         List<Type> arguments = new ArrayList<>();
         do {
@@ -379,6 +391,21 @@ public class InputParser {
         }
         require(RIGHT_CURLY_BRACE);
         return members;
+    }
+
+    private PatternMatch parseComplexMatch() {
+        return node(complexMatchBuilder(symbolGenerator), match -> {
+            require(LEFT_PARENTHESIS);
+            match.withPatternMatch(parseUnshuffledMatch());
+            if (expects(COMMA)) {
+                match.tuplize();
+                while (expects(COMMA)) {
+                    nextToken();
+                    match.withPatternMatch(parseUnshuffledMatch());
+                }
+            }
+            require(RIGHT_PARENTHESIS);
+        });
     }
 
     private Value parseConditional() {
@@ -679,30 +706,37 @@ public class InputParser {
 
     private Optional<PatternMatch> parseLiteralMatch(boolean required) {
         PatternMatch match = null;
-        if (expectsWord("_")) {
-            match = node(IgnorePattern.builder(), builder -> {
-                requireWord("_");
-                builder.withType(reserveType());
-            });
+        if (expectsIgnoreMatch()) {
+            match = parseIgnoreMatch();
         } else if (expectsWord()) {
-            match = node(CaptureMatch.builder(), builder -> builder.withIdentifier(parseWordReference()));
+            match = parseCaptureMatch();
         } else if (required) {
             throw unexpected(IDENTIFIER);
         }
         return Optional.ofNullable(match);
     }
 
+    private IgnorePattern parseIgnoreMatch() {
+        return node(IgnorePattern.builder(), builder -> {
+            requireWord("_");
+            builder.withType(reserveType());
+        });
+    }
+
+    private boolean expectsIgnoreMatch() {
+        return expectsWord("_");
+    }
+
     private Optional<PatternMatch> parseMatch(boolean required) {
         PatternMatch match = null;
-        if (expectsWord("_")) {
-            match = node(IgnorePattern.builder(), builder -> {
-                requireWord("_");
-                builder.withType(reserveType());
-            });
+        if (expectsIgnoreMatch()) {
+            match = parseIgnoreMatch();
         } else if (expectsWord()) {
-            match = node(CaptureMatch.builder(), builder -> builder.withIdentifier(parseWordReference()));
+            match = parseCaptureMatch();
         } else if (expectsLiteral()) {
             match = node(EqualMatch.builder(), builder -> builder.withValue(parseLiteral()));
+        } else if (expects(LEFT_PARENTHESIS)) {
+            match = parseComplexMatch();
         } else if (required) {
             throw unexpected(IDENTIFIER);
         }
@@ -1048,6 +1082,16 @@ public class InputParser {
         } else {
             return type;
         }
+    }
+
+    private PatternMatch parseUnshuffledMatch() {
+        return node(UnshuffledStructureMatch.builder(), builder -> {
+            builder.withType(reserveType());
+            builder.withPatternMatch(parseRequiredMatch());
+            while (expectsMatch()) {
+                builder.withPatternMatch(parseRequiredMatch());
+            }
+        });
     }
 
     private DefinitionReference parseValueDefinition() {

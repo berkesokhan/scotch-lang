@@ -32,11 +32,14 @@ import static scotch.compiler.util.TestUtil.literal;
 import static scotch.compiler.util.TestUtil.matcher;
 import static scotch.compiler.util.TestUtil.operatorDef;
 import static scotch.compiler.util.TestUtil.operatorRef;
+import static scotch.compiler.util.TestUtil.ordinalField;
+import static scotch.compiler.util.TestUtil.ordinalStruct;
 import static scotch.compiler.util.TestUtil.pattern;
 import static scotch.compiler.util.TestUtil.root;
 import static scotch.compiler.util.TestUtil.scopeRef;
 import static scotch.compiler.util.TestUtil.signatureRef;
 import static scotch.compiler.util.TestUtil.unshuffled;
+import static scotch.compiler.util.TestUtil.unshuffledMatch;
 import static scotch.control.monad.Monad.fail;
 import static scotch.symbol.FieldSignature.fieldSignature;
 import static scotch.symbol.Value.Fixity.LEFT_INFIX;
@@ -52,8 +55,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import scotch.compiler.Compiler;
-import scotch.compiler.ParserTest;
-import scotch.compiler.syntax.StubResolver;
+import scotch.compiler.IsolatedCompilerTest;
 import scotch.compiler.syntax.definition.DataTypeDefinition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.pattern.PatternMatch;
@@ -63,14 +65,14 @@ import scotch.runtime.Callable;
 import scotch.symbol.Value.Fixity;
 import scotch.symbol.type.VariableType;
 
-public class InputParserTest extends ParserTest {
+public class InputParserTest extends IsolatedCompilerTest {
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
 
     @Test
     public void shouldParseClassDefinition() {
-        parse(
+        compile(
             "module scotch.data.eq",
             "prefix 4 not",
             "left infix 5 (==), (/=)",
@@ -89,7 +91,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseMultiValueSignature() {
-        parse(
+        compile(
             "module scotch.test",
             "(==), (/=) :: a -> a -> Bool"
         );
@@ -99,7 +101,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseMultipleModulesInSameSource() {
-        parse(
+        compile(
             "module scotch.string",
             "length s = jStrlen s",
             "",
@@ -114,7 +116,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseOperatorDefinitions() {
-        parse(
+        compile(
             "module scotch.test",
             "left infix 8 (*), (/), (%)",
             "left infix 7 (+), (-)",
@@ -130,7 +132,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseParenthesesAsSeparateMessage() {
-        parse(
+        compile(
             "module scotch.test",
             "value = fn (a b)"
         );
@@ -142,7 +144,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseSignature() {
-        parse(
+        compile(
             "module scotch.test",
             "length :: String -> Int"
         );
@@ -151,7 +153,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseValue() {
-        parse(
+        compile(
             "module scotch.test",
             "length :: String -> Int",
             "length s = jStrlen s"
@@ -166,19 +168,19 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrowException_whenModuleNameNotTerminatedWithSemicolonOrNewline() {
         expectParseException("Unexpected COMMA; wanted SEMICOLON");
-        parse("module scotch.test,");
+        compile("module scotch.test,");
     }
 
     @Test
     public void shouldThrowException_whenNotBeginningWithModule() {
         expectParseException("Unexpected IDENTIFIER with value 'length'; wanted IDENTIFIER with value 'module'");
-        parse("length s = jStrlen s");
+        compile("length s = jStrlen s");
     }
 
     @Test
     public void shouldThrowException_whenOperatorIsMissingPrecedence() {
         expectParseException("Unexpected IDENTIFIER; wanted INT_LITERAL");
-        parse(
+        compile(
             "module scotch.test",
             "left infix =="
         );
@@ -187,7 +189,7 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrowException_whenOperatorSymbolEnclosedByParensDoesNotContainWord() {
         expectParseException("Unexpected INT_LITERAL; wanted IDENTIFIER");
-        parse(
+        compile(
             "module scotch.test",
             "left infix 7 (42)"
         );
@@ -196,7 +198,7 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrowException_whenOperatorSymbolIsNotWord() {
         expectParseException("Unexpected BOOL_LITERAL; wanted one of [IDENTIFIER, LEFT_PARENTHESIS]");
-        parse(
+        compile(
             "module scotch.test",
             "left infix 7 True"
         );
@@ -205,7 +207,7 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrowException_whenOperatorSymbolsNotSeparatedByCommas() {
         expectParseException("Unexpected IDENTIFIER; wanted SEMICOLON");
-        parse(
+        compile(
             "module scotch.test",
             "left infix 7 + -"
         );
@@ -214,7 +216,7 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrowException_whenSignatureHasStuffBetweenNameAndDoubleColon() {
         expectParseException("Unexpected SEMICOLON; wanted ASSIGN");
-        parse(
+        compile(
             "module scotch.test",
             "length ; :: String -> Int"
         );
@@ -222,7 +224,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseTypeConstraintInSignature() {
-        parse(
+        compile(
             "module scotch.test",
             "fn :: (Eq a) => a -> a -> Bool"
         );
@@ -231,7 +233,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseMultipleConstraintsOnSameVariable() {
-        parse(
+        compile(
             "module scotch.test",
             "fn :: (Eq a, Show a) => a -> a -> Bool"
         );
@@ -240,7 +242,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseCompoundConstraints() {
-        parse(
+        compile(
             "module scotch.test",
             "fn :: (Eq a, Show b) => a -> b -> Bool"
         );
@@ -249,7 +251,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseCapturingPatternLiteral1() {
-        parse(
+        compile(
             "module scotch.test",
             "id = \\x -> x"
         );
@@ -259,7 +261,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseCapturingPatternLiteral2() {
-        parse(
+        compile(
             "module scotch.test",
             "apply2 = \\x y z -> x y z"
         );
@@ -274,7 +276,7 @@ public class InputParserTest extends ParserTest {
     public void shouldNotParseEqualsPatternLiteral() {
         exception.expect(ParseException.class);
         exception.expectMessage(containsString("wanted IDENTIFIER [test://shouldNotParseEqualsPatternLiteral (2, 11), (2, 12)]"));
-        parse(
+        compile(
             "module scotch.test",
             "apply2 = \\1 y z = y z"
         );
@@ -282,7 +284,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseIgnoredPatternLiteral() {
-        parse(
+        compile(
             "module scotch.test",
             "fn = \\_ -> ignored"
         );
@@ -294,7 +296,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseLet() {
-        parse(
+        compile(
             "module scotch.test",
             "main = let",
             "    f x = a x",
@@ -312,7 +314,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseLetWithSignature() {
-        parse(
+        compile(
             "module scotch.test",
             "main = let",
             "    f :: Int -> Int",
@@ -330,7 +332,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseNestedLet() {
-        parse(
+        compile(
             "module scotch.test",
             "main = let",
             "    f = let",
@@ -343,7 +345,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseConditional() {
-        parse(
+        compile(
             "module scotch.test",
             "really? = if True",
             "          then \"Yes\"",
@@ -359,7 +361,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseChainedConditional() {
-        parse(
+        compile(
             "module scotch.test",
             "really? = if True then \"Yes\"",
             "          else if Maybe then \"Maybe\"",
@@ -380,7 +382,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseNestedConditional() {
-        parse(
+        compile(
             "module scotch.test",
             "really? = if True then if False then \"Wat\" else \"Maybe?\"",
             "          else \"Nope\""
@@ -400,7 +402,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseInitializer() {
-        parse(
+        compile(
             "module scotch.test",
             "toast = Toast {",
             "    type = Rye, butter = Yes, jam = No",
@@ -415,7 +417,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseUnaryDataDeclarationWithNamedFields() {
-        parse(
+        compile(
             "module scotch.test",
             "data Toast {",
             "    type :: Bread,",
@@ -435,7 +437,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseDataDeclarationWithAnonymousField() {
-        parse(
+        compile(
             "module scotch.test",
             "data Maybe a = Nothing | Just a"
         );
@@ -449,7 +451,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseDataDeclarationWithNamedField() {
-        parse(
+        compile(
             "module scotch.test",
             "data Map a b = Empty | Entry { key :: a, value :: b }"
         );
@@ -469,7 +471,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldCreateDataConstructor() {
-        parse(
+        compile(
             "module scotch.test",
             "data Toast {",
             "    type :: Bread,",
@@ -488,7 +490,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldCreateConstantForNiladicConstructor() {
-        parse(
+        compile(
             "module scotch.test",
             "data Maybe a = Nothing | Just a"
         );
@@ -502,7 +504,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldCreateDataConstructorWithAnonymousFields() {
-        parse(
+        compile(
             "module scotch.test",
             "data Maybe a = Nothing | Just a"
         );
@@ -515,7 +517,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseParenthesizedSignature() {
-        parse(
+        compile(
             "module scotch.test",
             "($) :: (a -> b) -> a -> b"
         );
@@ -524,7 +526,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseDataConstructorWithTypeConstraints() {
-        parse(
+        compile(
             "module scotch.test",
             "data (Eq a) => List a = Empty | Node a (List a)"
         );
@@ -544,7 +546,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseDataDeclarationWithNamedFieldAndTypeConstraints() {
-        parse(
+        compile(
             "module scotch.test",
             "data (Eq a, Eq b) => Map a b = Empty | Entry { key :: a, value :: b }"
         );
@@ -564,7 +566,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseDot() {
-        parse(
+        compile(
             "module scotch.test",
             "val = (f . g) x"
         );
@@ -580,7 +582,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseDoNotationWithThen() {
-        parse(
+        compile(
             "module scotch.test",
             "messaged = do",
             "    println \"Hello World!\"",
@@ -595,7 +597,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseDoNotationWithBind() {
-        parse(
+        compile(
             "module scotch.test",
             "pingpong = do",
             "    ping <- readln",
@@ -614,7 +616,7 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrow_whenBindIsLastLineInDoNotation() {
         exception.expectMessage(containsString("Unexpected bind in do-notation"));
-        parse(
+        compile(
             "module scotch.test",
             "pingpong = do",
             "    ping <- readln",
@@ -626,7 +628,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseTupleLiteral() {
-        parse(
+        compile(
             "module scotch.test",
             "tuple = (1, 2, 3)"
         );
@@ -640,7 +642,7 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrow_whenTupleHasTooManyMembers() {
         exception.expectMessage(containsString("Tuple can't have more than 24 members"));
-        parse(
+        compile(
             "module scotch.test",
             "tuple = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25)"
         );
@@ -648,7 +650,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseListLiteral() {
-        parse(
+        compile(
             "module scotch.test",
             "list = [1, 2]"
         );
@@ -663,7 +665,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseListLiteralWithTrailingComma() {
-        parse(
+        compile(
             "module scotch.test",
             "list = [1, 2,]"
         );
@@ -674,6 +676,61 @@ public class InputParserTest extends ParserTest {
                 field("_1", constantValue("scotch.data.list.[]", "scotch.data.list.[]", t(0)))
             )))
         )));
+    }
+
+    @Test
+    public void shouldParseTupleDestructuringPattern() {
+        compile(
+            "module scotch.test",
+            "second (_, b) = b"
+        );
+        shouldHavePattern("scotch.test.(#0)",
+            asList(capture("second", t(0)), ordinalStruct("scotch.data.tuple.(,)", t(5), asList(
+                ordinalField(t(6), ignore(t(2))),
+                ordinalField(t(7), capture("b", t(4)))))),
+            unshuffled(id("b", t(8)))
+        );
+    }
+
+    @Test
+    public void shouldParseListDestructuringPattern() {
+        compile(
+            "module scotch.test",
+            "tail (_:xs) = xs"
+        );
+        shouldHavePattern("scotch.test.(#0)",
+            asList(capture("tail", t(0)), unshuffledMatch(t(1), ignore(t(2)), capture(":", t(3)), capture("xs", t(4)))),
+            unshuffled(id("xs", t(6))));
+    }
+
+    @Test
+    public void shouldParseParenthesizedCapturePattern() {
+        compile(
+            "module scotch.test",
+            "second (_, (b)) = b"
+        );
+        shouldHavePattern("scotch.test.(#0)",
+            asList(capture("second", t(0)), ordinalStruct("scotch.data.tuple.(,)", t(7), asList(
+                ordinalField(t(8), ignore(t(2))),
+                ordinalField(t(9), capture("b", t(5)))))),
+            unshuffled(id("b", t(10)))
+        );
+    }
+
+    @Test
+    public void shouldParseSecondSecond() {
+        compile(
+            "module scotch.test",
+            "secondSecond (_, (_, b)) = b"
+        );
+        shouldHavePattern("scotch.test.(#0)",
+            asList(capture("secondSecond", t(0)), ordinalStruct("scotch.data.tuple.(,)", t(11), asList(
+                ordinalField(t(12), ignore(t(2))),
+                ordinalField(t(13), ordinalStruct("scotch.data.tuple.(,)", t(8), asList(
+                    ordinalField(t(9), ignore(t(5))),
+                    ordinalField(t(10), capture("b", t(7))))))))),
+            unshuffled(id("b", t(14)))
+        );
     }
 
     private void shouldHaveDataType(String name, DataTypeDefinition value) {
@@ -702,17 +759,7 @@ public class InputParserTest extends ParserTest {
     }
 
     @Override
-    protected void initResolver(StubResolver resolver) {
-        // intentionally empty
-    }
-
-    @Override
-    protected Function<Compiler, DefinitionGraph> parse() {
+    protected Function<Compiler, DefinitionGraph> compile() {
         return Compiler::parseInput;
-    }
-
-    @Override
-    protected void setUp() {
-        // intentionally empty
     }
 }

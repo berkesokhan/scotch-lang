@@ -67,5 +67,5 @@ public abstract class PatternMatch {
     @Override
     public abstract String toString();
 
-    public abstract PatternMatch withType(Type generate);
+    public abstract PatternMatch withType(Type type);
 }
