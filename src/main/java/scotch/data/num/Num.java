@@ -4,6 +4,7 @@ import static java.util.Arrays.asList;
 import static scotch.runtime.RuntimeSupport.applicable;
 import static scotch.runtime.RuntimeSupport.flatCallable;
 import static scotch.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.symbol.Value.Fixity.PREFIX;
 import static scotch.symbol.type.Types.fn;
 import static scotch.symbol.type.Types.var;
 
@@ -76,6 +77,16 @@ public interface Num<A> {
     static Type negate$type() {
         Type a = var("a", asList("scotch.data.num.Num"));
         return fn(a, a);
+    }
+
+    @Value(memberName = "-prefix", fixity = PREFIX, precedence = 9)
+    static <A> Applicable<Num<A>, Applicable<A, A>> prefixNegate() {
+        return negate();
+    }
+
+    @ValueType(forMember = "-prefix")
+    static Type prefixNegate$type() {
+        return negate$type();
     }
 
     @Value(memberName = "signum")

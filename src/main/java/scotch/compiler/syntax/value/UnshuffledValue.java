@@ -142,7 +142,12 @@ public class UnshuffledValue extends Value {
 
     @Override
     public Value unwrap() {
-        return collapse().unwrap();
+        Value result = collapse();
+        if (result != this) {
+            return result.unwrap();
+        } else {
+            return result;
+        }
     }
 
     public UnshuffledValue withSourceLocation(SourceLocation sourceLocation) {

@@ -400,6 +400,17 @@ public class BytecodeGeneratorTest {
         assertThat(value, is(2));
     }
 
+    @Test
+    public void shouldNegateNumber() {
+        int value = exec(
+            "module scotch.test",
+            "import scotch.data.num",
+            "",
+            "run = -4"
+        );
+        assertThat(value, is(-4));
+    }
+
     @SuppressWarnings("unchecked")
     private <A> A exec(String... lines) {
         try {

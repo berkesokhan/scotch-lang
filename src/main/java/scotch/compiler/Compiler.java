@@ -2,6 +2,7 @@ package scotch.compiler;
 
 import java.net.URI;
 import java.util.List;
+import scotch.compiler.error.CompileException;
 import scotch.compiler.output.GeneratedClass;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
@@ -56,7 +57,12 @@ public class Compiler {
     }
 
     public DefinitionGraph parsePrecedence() {
-        return new PrecedenceParser(accumulateOperators()).parsePrecedence();
+        DefinitionGraph graph = new PrecedenceParser(accumulateOperators()).parsePrecedence();
+        if (graph.hasErrors()) {
+            throw new CompileException(graph.getErrors());
+        } else {
+            return graph;
+        }
     }
 
     public DefinitionGraph qualifyNames() {

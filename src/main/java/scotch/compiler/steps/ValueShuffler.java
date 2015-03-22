@@ -6,6 +6,7 @@ import static scotch.compiler.syntax.value.Values.apply;
 import static scotch.compiler.syntax.value.Values.unshuffled;
 import static scotch.compiler.util.Either.left;
 import static scotch.compiler.util.Either.right;
+import static scotch.symbol.Symbol.symbol;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -32,7 +33,7 @@ public class ValueShuffler {
             return right(unshuffled(value.getSourceLocation(), asList(value)));
         } else {
             try {
-                return right(parser.apply(new Shuffler(scope, message).shuffleMessage()));
+                return right(parser.apply(new Shuffler(scope, message).shuffleValue()));
             } catch (ShuffleException exception) {
                 return left(exception.syntaxError);
             }
@@ -59,7 +60,7 @@ public class ValueShuffler {
             this.message = message;
         }
 
-        public Value shuffleMessage() {
+        public Value shuffleValue() {
             Deque<Value> input = new ArrayDeque<>(message);
             Deque<Either<OperatorPair<Identifier>, Value>> output = new ArrayDeque<>();
             Deque<OperatorPair<Identifier>> stack = new ArrayDeque<>();
@@ -100,7 +101,9 @@ public class ValueShuffler {
         private OperatorPair<Identifier> getOperator(Value value, boolean expectsPrefix) {
             return value.asOperator(scope)
                 .map(pair -> pair.into((identifier, operator) -> {
-                    if (expectsPrefix && !operator.isPrefix()) {
+                    if (expectsPrefix && symbol("-").equals(identifier.getSymbol())) {
+                        return getOperator(identifier.withSymbol(symbol("scotch.data.num.(-prefix)")), true);
+                    } else if (expectsPrefix && !operator.isPrefix()) {
                         throw new ShuffleException(parseError("Unexpected binary operator " + identifier.getSymbol(), identifier.getSourceLocation()));
                     } else {
                         return new OperatorPair<>(operator, identifier);
