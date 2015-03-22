@@ -21,7 +21,6 @@ import scotch.compiler.syntax.definition.ClassDefinition;
 import scotch.compiler.syntax.definition.DataConstructorDefinition;
 import scotch.compiler.syntax.definition.DataFieldDefinition;
 import scotch.compiler.syntax.definition.DataTypeDefinition;
-import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.definition.Definitions;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.definition.ModuleImport;
@@ -32,11 +31,11 @@ import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.pattern.CaptureMatch;
 import scotch.compiler.syntax.pattern.EqualMatch;
 import scotch.compiler.syntax.pattern.IgnorePattern;
-import scotch.compiler.syntax.pattern.OrdinalField;
+import scotch.compiler.syntax.pattern.TupleField;
 import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.syntax.pattern.Patterns;
-import scotch.compiler.syntax.pattern.OrdinalStructureMatch;
+import scotch.compiler.syntax.pattern.TupleMatch;
 import scotch.compiler.syntax.pattern.UnshuffledStructureMatch;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.DataReference;
@@ -162,10 +161,6 @@ public class TestUtil {
             .build();
     }
 
-    public static Type doubleType() {
-        return sum("scotch.data.double.Double");
-    }
-
     public static EqualMatch equal(Value value) {
         return Patterns.equal(NULL_SOURCE, Optional.empty(), value);
     }
@@ -271,12 +266,12 @@ public class TestUtil {
         return DefinitionReference.operatorRef(symbol(name));
     }
 
-    public static OrdinalField ordinalField(Type type, PatternMatch patternMatch) {
-        return Patterns.ordinalField(NULL_SOURCE, Optional.empty(), Optional.empty(), type, patternMatch);
+    public static TupleField field(Type type, PatternMatch patternMatch) {
+        return Patterns.field(NULL_SOURCE, Optional.empty(), Optional.empty(), type, patternMatch);
     }
 
-    public static OrdinalField ordinalField(String argument, String field, Type type, PatternMatch patternMatch) {
-        return Patterns.ordinalField(NULL_SOURCE, Optional.of(argument), Optional.of(field), type, patternMatch);
+    public static TupleField field(String argument, String field, Type type, PatternMatch patternMatch) {
+        return Patterns.field(NULL_SOURCE, Optional.of(argument), Optional.of(field), type, patternMatch);
     }
 
     public static PatternCase pattern(String name, List<PatternMatch> matches, Value body) {
@@ -295,16 +290,12 @@ public class TestUtil {
         return DefinitionReference.signatureRef(symbol(name));
     }
 
-    public static Type stringType() {
-        return sum("scotch.data.string.String");
+    public static TupleMatch tuple(String dataType, Type type, List<TupleField> fields) {
+        return Patterns.tuple(NULL_SOURCE, Optional.empty(), symbol(dataType), type, fields);
     }
 
-    public static OrdinalStructureMatch ordinalStruct(String dataType, Type type, List<OrdinalField> fields) {
-        return Patterns.structure(NULL_SOURCE, Optional.empty(), symbol(dataType), type, fields);
-    }
-
-    public static OrdinalStructureMatch ordinalStruct(String argument, String dataType, Type type, List<OrdinalField> fields) {
-        return Patterns.structure(NULL_SOURCE, Optional.of(argument), symbol(dataType), type, fields);
+    public static TupleMatch tuple(String argument, String dataType, Type type, List<TupleField> fields) {
+        return Patterns.tuple(NULL_SOURCE, Optional.of(argument), symbol(dataType), type, fields);
     }
 
     public static Token token(TokenKind kind, Object value) {

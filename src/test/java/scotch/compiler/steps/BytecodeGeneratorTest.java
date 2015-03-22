@@ -393,6 +393,7 @@ public class BytecodeGeneratorTest {
     public void shouldDestructureTuple() {
         int value = exec(
             "module scotch.test",
+            "import scotch.data.int",
             "",
             "second (_, b) = b",
             "run = second (3, 2)"

@@ -5,10 +5,11 @@ import static java.util.stream.Collectors.joining;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import com.google.common.collect.ImmutableList;
+import lombok.EqualsAndHashCode;
 import scotch.symbol.Symbol;
 
+@EqualsAndHashCode(callSuper = false)
 public class DataConstructorDescriptor implements Comparable<DataConstructorDescriptor> {
 
     public static Builder builder(int ordinal, Symbol dataType, Symbol symbol) {
@@ -34,21 +35,6 @@ public class DataConstructorDescriptor implements Comparable<DataConstructorDesc
         return ordinal - o.ordinal;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        } else if (o instanceof DataConstructorDescriptor) {
-            DataConstructorDescriptor other = (DataConstructorDescriptor) o;
-            return Objects.equals(ordinal, other.ordinal)
-                && Objects.equals(dataType, other.dataType)
-                && Objects.equals(symbol, other.symbol)
-                && Objects.equals(fields, other.fields);
-        } else {
-            return false;
-        }
-    }
-
     public Symbol getDataType() {
         return dataType;
     }
@@ -59,11 +45,6 @@ public class DataConstructorDescriptor implements Comparable<DataConstructorDesc
 
     public Symbol getSymbol() {
         return symbol;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(ordinal, dataType, symbol, fields);
     }
 
     @Override

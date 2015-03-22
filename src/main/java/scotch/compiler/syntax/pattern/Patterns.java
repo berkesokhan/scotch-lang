@@ -21,16 +21,16 @@ public final class Patterns {
         return new IgnorePattern(sourceLocation, type);
     }
 
-    public static OrdinalField ordinalField(SourceLocation sourceLocation, Optional<String> argument, Optional<String> field, Type type, PatternMatch patternMatch) {
-        return new OrdinalField(sourceLocation, argument, field, type, patternMatch);
+    public static TupleField field(SourceLocation sourceLocation, Optional<String> argument, Optional<String> field, Type type, PatternMatch patternMatch) {
+        return new TupleField(sourceLocation, argument, field, type, patternMatch);
     }
 
     public static PatternCase pattern(SourceLocation sourceLocation, Symbol symbol, List<PatternMatch> patternMatches, Value body) {
         return new PatternCase(sourceLocation, symbol, patternMatches, body);
     }
 
-    public static OrdinalStructureMatch structure(SourceLocation sourceLocation, Optional<String> argument, Symbol dataType, Type type, List<OrdinalField> fields) {
-        return new OrdinalStructureMatch(sourceLocation, argument, dataType, type, fields);
+    public static TupleMatch tuple(SourceLocation sourceLocation, Optional<String> argument, Symbol dataType, Type type, List<TupleField> fields) {
+        return new TupleMatch(sourceLocation, argument, dataType, type, fields);
     }
 
     public static UnshuffledStructureMatch unshuffledMatch(SourceLocation sourceLocation, Type type, List<PatternMatch> patternMatches) {

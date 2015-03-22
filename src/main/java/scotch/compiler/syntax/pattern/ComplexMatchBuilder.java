@@ -1,7 +1,7 @@
 package scotch.compiler.syntax.pattern;
 
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
-import static scotch.compiler.syntax.pattern.Patterns.ordinalField;
+import static scotch.compiler.syntax.pattern.Patterns.field;
 import static scotch.compiler.text.TextUtil.repeat;
 import static scotch.symbol.Symbol.qualified;
 
@@ -80,12 +80,12 @@ public class ComplexMatchBuilder implements SyntaxBuilder<PatternMatch> {
         @Override
         public PatternMatch build() {
             Symbol constructor = qualified("scotch.data.tuple", "(" + repeat(",", patternMatches.size() - 1) + ")");
-            OrdinalStructureMatch.Builder structureMatch = OrdinalStructureMatch.builder()
+            TupleMatch.Builder structureMatch = TupleMatch.builder()
                 .withSourceLocation(require(sourceLocation, "Source location"))
                 .withType(symbolGenerator.reserveType())
                 .withConstructor(constructor);
             patternMatches.stream()
-                .map(match -> ordinalField(match.getSourceLocation(), Optional.empty(), Optional.empty(), symbolGenerator.reserveType(), match))
+                .map(match -> field(match.getSourceLocation(), Optional.empty(), Optional.empty(), symbolGenerator.reserveType(), match))
                 .forEach(structureMatch::withField);
             return structureMatch.build();
         }

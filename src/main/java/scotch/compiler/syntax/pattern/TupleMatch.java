@@ -2,6 +2,9 @@ package scotch.compiler.syntax.pattern;
 
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.compiler.text.TextUtil.repeat;
+import static scotch.symbol.Symbol.symbol;
+import static scotch.symbol.type.Types.sum;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,26 +25,25 @@ import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceLocation;
 import scotch.symbol.Symbol;
-import scotch.symbol.descriptor.DataConstructorDescriptor;
 import scotch.symbol.type.Type;
 
 @EqualsAndHashCode(callSuper = false)
 @ToString(exclude = "sourceLocation")
-public class OrdinalStructureMatch extends PatternMatch {
+public class TupleMatch extends PatternMatch {
 
     public static Builder builder() {
         return new Builder();
     }
 
     @Getter
-    private final SourceLocation     sourceLocation;
-    private final Optional<String>   argument;
-    private final Symbol             constructor;
+    private final SourceLocation   sourceLocation;
+    private final Optional<String> argument;
+    private final Symbol           constructor;
     @Getter
-    private final Type               type;
-    private final List<OrdinalField> fields;
+    private final Type             type;
+    private final List<TupleField> fields;
 
-    OrdinalStructureMatch(SourceLocation sourceLocation, Optional<String> argument, Symbol constructor, Type type, List<OrdinalField> fields) {
+    TupleMatch(SourceLocation sourceLocation, Optional<String> argument, Symbol constructor, Type type, List<TupleField> fields) {
         this.sourceLocation = sourceLocation;
         this.argument = argument;
         this.constructor = constructor;
@@ -71,14 +73,22 @@ public class OrdinalStructureMatch extends PatternMatch {
 
     @Override
     public PatternMatch bindTypes(TypeChecker state) {
-        return withType(state.generate(type)).map((field, ordinal) -> field.bindTypes(state));
+        return map((field, ordinal) -> field.bindTypes(state)).withType(state.generate(type));
+    }
+
+    private TupleMatch bindType(TypeChecker state) {
+        Type type = sum(
+            "scotch.data.tuple.(" + repeat(",", fields.size() - 1) + ")",
+            fields.stream()
+                .map(TupleField::getType)
+                .collect(toList()));
+        argument.flatMap(arg -> state.scope().getValue(symbol(arg))).map(argType -> type.unify(argType, state));
+        return withType(type);
     }
 
     @Override
     public PatternMatch checkTypes(TypeChecker state) {
-        Optional<DataConstructorDescriptor> dataConstructor = state.scope().getDataConstructor(constructor);
-        List<OrdinalField> checkedFields = fields.stream().map(field -> field.checkTypes(state)).collect(toList());
-        return this;
+        return map((field, ordinal) -> field.checkTypes(state)).bindType(state);
     }
 
     @Override
@@ -92,13 +102,13 @@ public class OrdinalStructureMatch extends PatternMatch {
     }
 
     @Override
-    public OrdinalStructureMatch withType(Type type) {
-        return new OrdinalStructureMatch(sourceLocation, argument, constructor, type, fields);
+    public TupleMatch withType(Type type) {
+        return new TupleMatch(sourceLocation, argument, constructor, type, fields);
     }
 
-    private PatternMatch map(BiFunction<OrdinalField, Integer, OrdinalField> mapper) {
+    private TupleMatch map(BiFunction<TupleField, Integer, TupleField> mapper) {
         AtomicInteger counter = new AtomicInteger();
-        return new OrdinalStructureMatch(
+        return new TupleMatch(
             sourceLocation, argument, constructor, type,
             fields.stream()
                 .map(field -> mapper.apply(field, counter.getAndIncrement()))
@@ -106,20 +116,20 @@ public class OrdinalStructureMatch extends PatternMatch {
         );
     }
 
-    private OrdinalStructureMatch withArgument(String argument) {
-        return new OrdinalStructureMatch(sourceLocation, Optional.of(argument), constructor, type, fields);
+    private TupleMatch withArgument(String argument) {
+        return new TupleMatch(sourceLocation, Optional.of(argument), constructor, type, fields);
     }
 
-    public static class Builder implements SyntaxBuilder<OrdinalStructureMatch> {
+    public static class Builder implements SyntaxBuilder<TupleMatch> {
 
         private Optional<SourceLocation> sourceLocation = Optional.empty();
-        private List<OrdinalField>       fields         = new ArrayList<>();
+        private List<TupleField>         fields         = new ArrayList<>();
         private Optional<Symbol>         constructor    = Optional.empty();
         private Optional<Type>           type           = Optional.empty();
 
         @Override
-        public OrdinalStructureMatch build() {
-            return new OrdinalStructureMatch(
+        public TupleMatch build() {
+            return new TupleMatch(
                 require(sourceLocation, "Source location"),
                 Optional.empty(),
                 require(constructor, "Constructor"),
@@ -133,7 +143,7 @@ public class OrdinalStructureMatch extends PatternMatch {
             return this;
         }
 
-        public Builder withField(OrdinalField field) {
+        public Builder withField(TupleField field) {
             fields.add(field);
             return this;
         }
