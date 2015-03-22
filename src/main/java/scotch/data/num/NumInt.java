@@ -1,16 +1,15 @@
 package scotch.data.num;
 
 import static java.util.Arrays.asList;
-import static scotch.symbol.type.Types.sum;
 import static scotch.runtime.RuntimeSupport.callable;
 
 import java.util.List;
+import scotch.data.int_.Int;
+import scotch.runtime.Callable;
 import scotch.symbol.InstanceGetter;
-import scotch.symbol.type.Type;
 import scotch.symbol.TypeInstance;
 import scotch.symbol.TypeParameters;
-import scotch.symbol.type.Types;
-import scotch.runtime.Callable;
+import scotch.symbol.type.Type;
 
 @SuppressWarnings("unused")
 @TypeInstance(typeClass = "scotch.data.num.Num")
@@ -25,7 +24,7 @@ public class NumInt implements Num<Integer> {
 
     @TypeParameters
     public static List<Type> parameters() {
-        return asList(Types.sum("scotch.data.int.Int"));
+        return asList(Int.TYPE);
     }
 
     private NumInt() {

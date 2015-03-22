@@ -367,6 +367,29 @@ public class BytecodeGeneratorTest {
     }
 
     @Test
+    public void shouldGetOrdering() {
+        boolean shouldBeTruthy = exec(
+            "module scotch.test",
+            "import scotch.data.bool",
+            "import scotch.data.eq",
+            "import scotch.data.ord",
+            "import scotch.data.int",
+            "",
+            "run = max 2 3 == 3 && max 2 3 == max 3 2",
+            "   && min 2 3 == 2 && min 2 3 == min 3 2",
+            "   && 2 < 3",
+            "   && 3 > 2",
+            "   && 2 <= 3 && 2 <= 2",
+            "   && 3 >= 2 && 3 >= 3",
+            "   && LessThan == compare 2 3",
+            "   && GreaterThan == compare 3 2",
+            "   && EqualTo == compare 2 2"
+        );
+        assertThat(shouldBeTruthy, is(true));
+    }
+
+    @Ignore("WIP")
+    @Test
     public void shouldDestructureTuple() {
         int value = exec(
             "module scotch.test",

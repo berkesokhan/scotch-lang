@@ -17,7 +17,7 @@ import scotch.compiler.syntax.reference.InstanceReference;
 import scotch.compiler.text.SourceLocation;
 
 @EqualsAndHashCode(callSuper = false)
-@ToString
+@ToString(exclude = "sourceLocation")
 public class Instance extends Value {
 
     private final SourceLocation    sourceLocation;

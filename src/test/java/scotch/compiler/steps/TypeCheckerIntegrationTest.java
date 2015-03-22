@@ -17,6 +17,7 @@ import static scotch.symbol.type.Unification.mismatch;
 
 import java.util.Optional;
 import java.util.function.Function;
+import org.junit.Ignore;
 import org.junit.Test;
 import scotch.compiler.ClassLoaderResolver;
 import scotch.compiler.Compiler;
@@ -93,6 +94,7 @@ public class TypeCheckerIntegrationTest extends CompilerTest<ClassLoaderResolver
         shouldHaveValue("scotch.test.addedStuff", sum("scotch.data.maybe.Maybe", asList(intType)));
     }
 
+    @Ignore("WIP")
     @Test
     public void shouldDestructureTuple() {
         compile(

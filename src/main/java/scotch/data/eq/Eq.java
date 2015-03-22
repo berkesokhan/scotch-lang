@@ -1,22 +1,22 @@
 package scotch.data.eq;
 
 import static java.util.Arrays.asList;
-import static scotch.symbol.Value.Fixity.LEFT_INFIX;
-import static scotch.symbol.type.Types.fn;
-import static scotch.symbol.type.Types.sum;
-import static scotch.symbol.type.Types.var;
-import static scotch.data.bool.BoolModule.not;
+import static scotch.data.bool.Bool.not;
 import static scotch.runtime.RuntimeSupport.applicable;
 import static scotch.runtime.RuntimeSupport.flatCallable;
+import static scotch.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Types.var;
 
+import scotch.data.bool.Bool;
+import scotch.runtime.Applicable;
+import scotch.runtime.Callable;
 import scotch.symbol.Member;
 import scotch.symbol.TypeClass;
 import scotch.symbol.TypeParameter;
 import scotch.symbol.Value;
 import scotch.symbol.ValueType;
 import scotch.symbol.type.Type;
-import scotch.runtime.Applicable;
-import scotch.runtime.Callable;
 
 @SuppressWarnings("unused")
 @TypeClass(memberName = "Eq", parameters = {
@@ -32,7 +32,7 @@ public interface Eq<A> {
     @ValueType(forMember = "==")
     static Type eq$type() {
         Type a = var("a", asList("scotch.data.eq.Eq"));
-        return fn(a, fn(a, sum("scotch.data.bool.Bool")));
+        return fn(a, fn(a, Bool.TYPE));
     }
 
     @Value(memberName = "/=", fixity = LEFT_INFIX, precedence = 5)
@@ -43,7 +43,7 @@ public interface Eq<A> {
     @ValueType(forMember = "/=")
     static Type ne$type() {
         Type a = var("a", asList("scotch.data.eq.Eq"));
-        return fn(a, fn(a, sum("scotch.data.bool.Bool")));
+        return fn(a, fn(a, Bool.TYPE));
     }
 
     @Member("==")
