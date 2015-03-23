@@ -14,24 +14,6 @@ fi
 
 echo "\n[+] Scotch Setup [+]\n"
 
-# Check for Java
-which java > /dev/null
-if [ $? -ne 0 ]; then
-    echo "ERROR: Java is needed Scotch."
-    echo "       Please install Java (1.8 Update 40 or higher) for your OS.\nExiting..."
-    exit 1
-fi
-
-# Make sure there's a JDK installed
-echo "-- Checking for an adequate JDK..."
-if [ $(uname) == "Darwin" ]; then
-    ls /Library/Java/JavaVirtualMachines | grep -i jdk | grep -E "1.8.\d+" > /dev/null
-    if [ $? -ne 0 ]; then
-        echo "ERROR: No suitable JDK found.\nExiting..."
-        exit 1
-    fi
-fi
-
 # Create the Scotch workspace
 echo "-- Creating Scotch workspace..."
 mkdir -p ${SCOTCH_WORKSPACE}/${SCOTCH_LANG}
