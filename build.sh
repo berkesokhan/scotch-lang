@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Build and setup Scotch for use.
+# Build, setup, and install Scotch.
 
 SCOTCH_LANG="scotch-lang"
 DISTRIBUTIONS_DIR="build/distributions"
@@ -26,15 +26,15 @@ else
     rm -rf ${PWD}/${SCOTCH_LANG}-${OLD_VERSION}
 fi
 
-echo  "-- Compiling Scotch...\n"
+echo  "-- Compiling Scotch..."
 ./gradlew distZip || exit 1
 
 VERSION=$(ls ${DISTRIBUTIONS_DIR} | perl -ne'/([0-9].+[A-Z])/ && print $1')
 
-echo "-- Unzipping Scotch...\n"
+echo "-- Unzipping Scotch..."
 unzip -u ${PWD}/${DISTRIBUTIONS_DIR}/${SCOTCH_LANG}-${VERSION}.zip
 
-echo "\n-- Add Scotch to your PATH and your ${SHELL} initialization file...\n"
+echo "\n-- Add Scotch to your PATH and your ${SHELL} initialization file..."
 echo "export PATH=\$PATH:${PWD}/${SCOTCH_LANG}-${VERSION}/bin"
 
 echo "\nComplete!"
