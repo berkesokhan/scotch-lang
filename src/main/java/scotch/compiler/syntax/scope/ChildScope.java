@@ -216,11 +216,6 @@ public class ChildScope extends Scope {
     }
 
     @Override
-    public void implement(Symbol typeClass, SumType type) {
-        throw new UnsupportedOperationException(); // TODO
-    }
-
-    @Override
     public Optional<TypeClassDescriptor> getTypeClass(ClassReference classRef) {
         return parent.getTypeClass(classRef);
     }
@@ -235,6 +230,11 @@ public class ChildScope extends Scope {
         return Optional.ofNullable(entries.get(symbol))
             .map(SymbolEntry::getValueMethod)
             .orElseGet(() -> parent.getValueSignature(symbol));
+    }
+
+    @Override
+    public void implement(Symbol typeClass, SumType type) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override

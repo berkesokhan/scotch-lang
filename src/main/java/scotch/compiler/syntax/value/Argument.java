@@ -1,10 +1,12 @@
 package scotch.compiler.syntax.value;
 
-import static scotch.symbol.Symbol.unqualified;
+import static lombok.AccessLevel.PACKAGE;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.value.Values.arg;
+import static scotch.symbol.Symbol.unqualified;
 
 import java.util.Optional;
+import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
@@ -15,11 +17,12 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.symbol.Symbol;
-import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.text.SourceLocation;
+import scotch.symbol.Symbol;
+import scotch.symbol.type.Type;
 
+@AllArgsConstructor(access = PACKAGE)
 @EqualsAndHashCode(callSuper = false)
 @ToString(exclude = "sourceLocation")
 public class Argument extends Value {
@@ -31,12 +34,6 @@ public class Argument extends Value {
     private final SourceLocation sourceLocation;
     private final String         name;
     private final Type           type;
-
-    Argument(SourceLocation sourceLocation, String name, Type type) {
-        this.sourceLocation = sourceLocation;
-        this.name = name;
-        this.type = type;
-    }
 
     @Override
     public Argument accumulateDependencies(DependencyAccumulator state) {

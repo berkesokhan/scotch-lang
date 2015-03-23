@@ -401,6 +401,19 @@ public class BytecodeGeneratorTest {
         assertThat(value, is(2));
     }
 
+    @Ignore("WIP")
+    @Test
+    public void shouldDestructureNestedTuple() {
+        int value = exec(
+            "module scotch.test",
+            "import scotch.data.int",
+            "",
+            "third (_, (_, c)) = c",
+            "run = third (1, (5, 3))"
+        );
+        assertThat(value, is(3));
+    }
+
     @Test
     public void shouldNegateNumber() {
         int value = exec(

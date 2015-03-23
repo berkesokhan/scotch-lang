@@ -54,24 +54,27 @@ public class PatternCase implements Scoped {
     }
 
     public PatternCase accumulateNames(NameAccumulator state) {
-        return state.scoped(this, () -> withMatches(patternMatches.stream().map(match -> match.accumulateNames(state)).collect(toList()))
+        return state.scoped(this, () ->
+            withMatches(patternMatches.stream()
+                .map(match -> match.accumulateNames(state))
+                .collect(toList()))
             .withBody(body.accumulateNames(state)));
     }
 
     public PatternCase bindMethods(TypeChecker state) {
-        return state.scoped(this,
-            () -> withMatches(patternMatches.stream()
+        return state.scoped(this, () ->
+            withMatches(patternMatches.stream()
                 .map(match -> match.bindMethods(state))
                 .collect(toList()))
-                .withBody(body.bindMethods(state)));
+            .withBody(body.bindMethods(state)));
     }
 
     public PatternCase bindTypes(TypeChecker state) {
-        return state.scoped(this,
-            () -> withMatches(patternMatches.stream()
+        return state.scoped(this, () ->
+            withMatches(patternMatches.stream()
                 .map(match -> match.bindTypes(state))
                 .collect(toList()))
-                .withBody(body.bindTypes(state)));
+            .withBody(body.bindTypes(state)));
     }
 
     public PatternCase checkTypes(TypeChecker state) {

@@ -1,29 +1,33 @@
 package scotch.compiler.syntax.pattern;
 
+import static lombok.AccessLevel.PACKAGE;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
-import static scotch.symbol.Symbol.symbol;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.value.Values.apply;
 import static scotch.compiler.syntax.value.Values.id;
+import static scotch.symbol.Symbol.symbol;
 import static scotch.util.StringUtil.stringify;
 
-import java.util.Objects;
 import java.util.Optional;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import me.qmx.jitescript.CodeBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.runtime.RuntimeSupport;
-import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Callable;
+import scotch.runtime.RuntimeSupport;
+import scotch.symbol.type.Type;
 
+@AllArgsConstructor(access = PACKAGE)
+@EqualsAndHashCode(callSuper = false)
 public class EqualMatch extends PatternMatch {
 
     public static Builder builder() {
@@ -33,12 +37,6 @@ public class EqualMatch extends PatternMatch {
     private final SourceLocation   sourceLocation;
     private final Optional<String> argument;
     private final Value            value;
-
-    EqualMatch(SourceLocation sourceLocation, Optional<String> argument, Value value) {
-        this.sourceLocation = sourceLocation;
-        this.argument = argument;
-        this.value = value;
-    }
 
     @Override
     public PatternMatch accumulateDependencies(DependencyAccumulator state) {
@@ -83,20 +81,6 @@ public class EqualMatch extends PatternMatch {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof EqualMatch) {
-            EqualMatch other = (EqualMatch) o;
-            return Objects.equals(sourceLocation, other.sourceLocation)
-                && Objects.equals(argument, other.argument)
-                && Objects.equals(value, other.value);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
         return new CodeBlock() {{
             append(value.generateBytecode(state));
@@ -117,11 +101,6 @@ public class EqualMatch extends PatternMatch {
 
     public Value getValue() {
         return value;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(argument, value);
     }
 
     @Override

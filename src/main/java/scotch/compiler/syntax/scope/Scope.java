@@ -62,35 +62,13 @@ public abstract class Scope implements TypeScope {
 
     public abstract void addPattern(Symbol symbol, PatternCase pattern);
 
-    public void redefineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor) {
-        Optional<SymbolEntry> optionalEntry = getEntry(symbol);
-        if (optionalEntry.isPresent()) {
-            optionalEntry.get().redefineDataConstructor(descriptor);
-        } else {
-            throw new IllegalStateException("Can't redefine non-existent data constructor " + symbol.quote());
-        }
-    }
-
-    public void redefineDataType(Symbol symbol, DataTypeDescriptor descriptor) {
-        Optional<SymbolEntry> optionalEntry = getEntry(symbol);
-        if (optionalEntry.isPresent()) {
-            optionalEntry.get().redefineDataType(descriptor);
-        } else {
-            throw new IllegalStateException("Can't redefine non-existent data constructor " + symbol.quote());
-        }
-    }
-
-    public void setParent(Scope scope) {
-        throw new IllegalStateException();
-    }
-
     public void capture(String argument) {
         throw new IllegalStateException();
     }
 
-    public abstract void defineDataType(Symbol symbol, DataTypeDescriptor descriptor);
-
     public abstract void defineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor);
+
+    public abstract void defineDataType(Symbol symbol, DataTypeDescriptor descriptor);
 
     public abstract void defineOperator(Symbol symbol, Operator operator);
 
@@ -104,10 +82,6 @@ public abstract class Scope implements TypeScope {
 
     public List<String> getCaptures() {
         throw new IllegalStateException();
-    }
-
-    public Optional<DataTypeDescriptor> getDataType(Symbol symbol) {
-        return getEntry(symbol).flatMap(SymbolEntry::getDataType);
     }
 
     public Optional<DataConstructorDescriptor> getDataConstructor(Symbol symbol) {
@@ -187,6 +161,24 @@ public abstract class Scope implements TypeScope {
 
     public abstract Symbol qualifyCurrent(Symbol symbol);
 
+    public void redefineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor) {
+        Optional<SymbolEntry> optionalEntry = getEntry(symbol);
+        if (optionalEntry.isPresent()) {
+            optionalEntry.get().redefineDataConstructor(descriptor);
+        } else {
+            throw new IllegalStateException("Can't redefine non-existent data constructor " + symbol.quote());
+        }
+    }
+
+    public void redefineDataType(Symbol symbol, DataTypeDescriptor descriptor) {
+        Optional<SymbolEntry> optionalEntry = getEntry(symbol);
+        if (optionalEntry.isPresent()) {
+            optionalEntry.get().redefineDataType(descriptor);
+        } else {
+            throw new IllegalStateException("Can't redefine non-existent data constructor " + symbol.quote());
+        }
+    }
+
     public void redefineSignature(Symbol symbol, Type type) {
         Optional<SymbolEntry> optionalEntry = getEntry(symbol);
         if (optionalEntry.isPresent()) {
@@ -213,6 +205,10 @@ public abstract class Scope implements TypeScope {
 
     public VariableType reserveType() {
         return getParent().reserveType();
+    }
+
+    public void setParent(Scope scope) {
+        throw new IllegalStateException();
     }
 
     protected MethodSignature computeValueMethod(Symbol symbol, Type type) {

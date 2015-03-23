@@ -1,6 +1,8 @@
 package scotch.compiler.syntax.pattern;
 
 import static java.util.stream.Collectors.toList;
+import static me.qmx.jitescript.util.CodegenUtils.p;
+import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.text.TextUtil.repeat;
 import static scotch.symbol.Symbol.symbol;
@@ -24,6 +26,7 @@ import scotch.compiler.steps.TypeChecker;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceLocation;
+import scotch.runtime.Callable;
 import scotch.symbol.Symbol;
 import scotch.symbol.type.Type;
 
@@ -76,16 +79,6 @@ public class TupleMatch extends PatternMatch {
         return map((field, ordinal) -> field.bindTypes(state)).withType(state.generate(type));
     }
 
-    private TupleMatch bindType(TypeChecker state) {
-        Type type = sum(
-            "scotch.data.tuple.(" + repeat(",", fields.size() - 1) + ")",
-            fields.stream()
-                .map(TupleField::getType)
-                .collect(toList()));
-        argument.flatMap(arg -> state.scope().getValue(symbol(arg))).map(argType -> type.unify(argType, state));
-        return withType(type);
-    }
-
     @Override
     public PatternMatch checkTypes(TypeChecker state) {
         return map((field, ordinal) -> field.checkTypes(state)).bindType(state);
@@ -93,7 +86,16 @@ public class TupleMatch extends PatternMatch {
 
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return new CodeBlock() {{
+            aload(state.getVariable(argument.get()));
+            invokeinterface(p(Callable.class), "call", sig(Object.class));
+            String className = "scotch/data/tuple/Tuple" + fields.size();
+            checkcast(className);
+            for (TupleField field : fields) {
+                dup();
+                append(field.generateBytecode(className, state));
+            }
+        }};
     }
 
     @Override
@@ -104,6 +106,16 @@ public class TupleMatch extends PatternMatch {
     @Override
     public TupleMatch withType(Type type) {
         return new TupleMatch(sourceLocation, argument, constructor, type, fields);
+    }
+
+    private TupleMatch bindType(TypeChecker state) {
+        Type type = sum(
+            "scotch.data.tuple.(" + repeat(",", fields.size() - 1) + ")",
+            fields.stream()
+                .map(TupleField::getType)
+                .collect(toList()));
+        argument.flatMap(arg -> state.scope().getValue(symbol(arg))).map(argType -> type.unify(argType, state));
+        return withType(type);
     }
 
     private TupleMatch map(BiFunction<TupleField, Integer, TupleField> mapper) {
