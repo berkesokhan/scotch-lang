@@ -86,7 +86,7 @@ public class RootScope extends Scope {
 
     @Override
     public Scope enterScope(String moduleName, List<Import> imports) {
-        Scope scope = scope(this, new DefaultTypeScope(symbolGenerator, resolver), resolver, moduleName, imports);
+        Scope scope = scope(this, new DefaultTypeScope(symbolGenerator, resolver), resolver, symbolGenerator, moduleName, imports);
         children.put(moduleName, scope);
         return scope;
     }

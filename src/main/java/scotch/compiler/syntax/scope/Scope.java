@@ -35,12 +35,12 @@ public abstract class Scope implements TypeScope {
         return new RootScope(symbolGenerator, resolver);
     }
 
-    public static ModuleScope scope(Scope parent, TypeScope types, SymbolResolver resolver, String moduleName, List<Import> imports) {
-        return new ModuleScope(parent, types, resolver, moduleName, imports);
+    public static ModuleScope scope(Scope parent, TypeScope types, SymbolResolver resolver, SymbolGenerator symbolGenerator, String moduleName, List<Import> imports) {
+        return new ModuleScope(parent, types, resolver, symbolGenerator, moduleName, imports);
     }
 
-    public static ChildScope scope(String moduleName, Scope parent, TypeScope types) {
-        return new ChildScope(moduleName, parent, types);
+    public static ChildScope scope(Scope parent, TypeScope types, SymbolResolver resolver, SymbolGenerator symbolGenerator, String moduleName) {
+        return new ChildScope(parent, types, resolver, symbolGenerator, moduleName);
     }
 
     protected static boolean isConstructor_(Collection<SymbolEntry> entries, Symbol symbol) {

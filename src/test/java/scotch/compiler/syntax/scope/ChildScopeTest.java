@@ -8,10 +8,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static scotch.symbol.Symbol.symbol;
-import static scotch.symbol.Symbol.unqualified;
 import static scotch.compiler.syntax.scope.Scope.scope;
 import static scotch.compiler.util.TestUtil.intType;
+import static scotch.symbol.Symbol.symbol;
+import static scotch.symbol.Symbol.unqualified;
+import static scotch.symbol.type.Types.t;
 
 import com.google.common.collect.ImmutableSet;
 import org.junit.Before;
@@ -21,10 +22,8 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import scotch.symbol.Operator;
-import scotch.symbol.util.SymbolGenerator;
 import scotch.symbol.SymbolResolver;
-import scotch.symbol.type.Types;
+import scotch.symbol.util.SymbolGenerator;
 
 @RunWith(MockitoJUnitRunner.class)
 public class ChildScopeTest {
@@ -37,7 +36,10 @@ public class ChildScopeTest {
 
     @Before
     public void setUp() {
-        childScope = scope("scotch.test", parentScope, new DefaultTypeScope(new SymbolGenerator(), mock(SymbolResolver.class)));
+        when(parentScope.reserveType()).thenReturn(t(20));
+        SymbolResolver symbolResolver = mock(SymbolResolver.class);
+        SymbolGenerator symbolGenerator = new SymbolGenerator();
+        childScope = scope(parentScope, new DefaultTypeScope(symbolGenerator, symbolResolver), symbolResolver, symbolGenerator, "scotch.test");
     }
 
     @Test
@@ -53,14 +55,8 @@ public class ChildScopeTest {
     }
 
     @Test
-    public void shouldNotDefineOperator() {
-        exception.expect(IllegalStateException.class);
-        childScope.defineOperator(unqualified("fn"), mock(Operator.class));
-    }
-
-    @Test
     public void shouldNotDelegateToParentWhenValueDefined() {
-        childScope.defineValue(unqualified("x"), Types.t(2));
+        childScope.defineValue(unqualified("x"), t(2));
         childScope.getValue(unqualified("x"));
         verify(parentScope, never()).getValue(unqualified("x"));
     }
