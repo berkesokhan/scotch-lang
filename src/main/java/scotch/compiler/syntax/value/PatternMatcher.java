@@ -4,13 +4,13 @@ import static java.util.Collections.reverse;
 import static java.util.stream.Collectors.toList;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
-import static scotch.symbol.type.Types.fn;
-import static scotch.symbol.type.Unification.unified;
 import static scotch.compiler.syntax.TypeError.typeError;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.definition.Definitions.scopeDef;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
 import static scotch.compiler.syntax.value.Values.matcher;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Unification.unified;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -33,8 +33,6 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.symbol.Symbol;
-import scotch.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.Definition;
@@ -43,6 +41,8 @@ import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
+import scotch.symbol.Symbol;
+import scotch.symbol.type.Type;
 
 @EqualsAndHashCode(callSuper = false)
 @ToString(exclude = "sourceLocation", doNotUseGetters = true)
@@ -213,15 +213,15 @@ public class PatternMatcher extends Value implements Scoped {
             .reduce(returnType, (result, arg) -> fn(arg, result));
     }
 
-    private PatternCapture curry() {
+    private CurriedPattern curry() {
         return curry_(new ArrayDeque<>(arguments));
     }
 
-    private PatternCapture curry_(Deque<Argument> arguments) {
+    private CurriedPattern curry_(Deque<Argument> arguments) {
         if (arguments.isEmpty()) {
-            return new PatternBody(patternCases);
+            return new CurriedBody(patternCases);
         } else {
-            return new PatternLambda(arguments.pop(), curry_(arguments));
+            return new CurriedLambda(arguments.pop(), curry_(arguments));
         }
     }
 
@@ -252,7 +252,7 @@ public class PatternMatcher extends Value implements Scoped {
         );
     }
 
-    private interface PatternCapture {
+    private interface CurriedPattern {
 
         CodeBlock generateBytecode(BytecodeGenerator state);
 
@@ -261,11 +261,11 @@ public class PatternMatcher extends Value implements Scoped {
 
     public static class Builder implements SyntaxBuilder<PatternMatcher> {
 
-        private Optional<SourceLocation>    sourceLocation  = Optional.empty();
-        private Optional<List<Argument>>    arguments    = Optional.empty();
-        private Optional<List<PatternCase>> patternCases = Optional.empty();
-        private Optional<Type>              type         = Optional.empty();
-        private Optional<Symbol>            symbol       = Optional.empty();
+        private Optional<SourceLocation>    sourceLocation = Optional.empty();
+        private Optional<List<Argument>>    arguments      = Optional.empty();
+        private Optional<List<PatternCase>> patternCases   = Optional.empty();
+        private Optional<Type>              type           = Optional.empty();
+        private Optional<Symbol>            symbol         = Optional.empty();
 
         private Builder() {
             // intentionally empty
@@ -309,11 +309,11 @@ public class PatternMatcher extends Value implements Scoped {
         }
     }
 
-    private static final class PatternBody implements PatternCapture {
+    private static final class CurriedBody implements CurriedPattern {
 
         private final List<PatternCase> patternCases;
 
-        public PatternBody(List<PatternCase> patternCases) {
+        public CurriedBody(List<PatternCase> patternCases) {
             this.patternCases = ImmutableList.copyOf(patternCases);
         }
 
@@ -333,10 +333,10 @@ public class PatternMatcher extends Value implements Scoped {
     }
 
     @AllArgsConstructor
-    private static final class PatternLambda implements PatternCapture {
+    private static final class CurriedLambda implements CurriedPattern {
 
         private final Argument       argument;
-        private final PatternCapture body;
+        private final CurriedPattern body;
 
         @Override
         public CodeBlock generateBytecode(BytecodeGenerator state) {

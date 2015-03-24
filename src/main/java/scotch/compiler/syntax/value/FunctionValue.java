@@ -3,6 +3,8 @@ package scotch.compiler.syntax.value;
 import static java.util.Collections.reverse;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
+import static me.qmx.jitescript.util.CodegenUtils.p;
+import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.symbol.type.Types.fn;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.definition.Definitions.scopeDef;
@@ -17,6 +19,7 @@ import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import lombok.EqualsAndHashCode;
 import me.qmx.jitescript.CodeBlock;
+import me.qmx.jitescript.LambdaBlock;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -24,6 +27,8 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
+import scotch.runtime.Applicable;
+import scotch.runtime.Callable;
 import scotch.symbol.Symbol;
 import scotch.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
@@ -67,11 +72,6 @@ public class FunctionValue extends Value implements Scoped {
     }
 
     @Override
-    public WithArguments withArguments() {
-        return WithArguments.withArguments(this);
-    }
-
-    @Override
     public Value bindMethods(TypeChecker state) {
         return state.scoped(this, () -> withBody(body.bindMethods(state)));
     }
@@ -102,7 +102,7 @@ public class FunctionValue extends Value implements Scoped {
         });
     }
 
-    public Value curry() {
+    public CurriedFunction curry() {
         return curry_(new ArrayDeque<>(arguments));
     }
 
@@ -177,6 +177,11 @@ public class FunctionValue extends Value implements Scoped {
         return "(" + arguments.stream().map(arg -> arg.getSymbol().toString()).collect(joining(", ")) + " -> " + body + ")";
     }
 
+    @Override
+    public WithArguments withArguments() {
+        return WithArguments.withArguments(this);
+    }
+
     public FunctionValue withArguments(List<Argument> arguments) {
         return fn(sourceLocation, symbol, arguments, body);
     }
@@ -190,16 +195,23 @@ public class FunctionValue extends Value implements Scoped {
         return new FunctionValue(sourceLocation, symbol, arguments, body, Optional.of(type));
     }
 
-    private Value curry_(Deque<Argument> args) {
+    private CurriedFunction curry_(Deque<Argument> args) {
         if (args.isEmpty()) {
-            return body;
+            return new CurriedBody(body);
         } else {
-            return new LambdaValue(args.pop(), curry_(args));
+            return new CurriedLambda(args.pop(), curry_(args));
         }
     }
 
     private FunctionValue withSymbol(Symbol symbol) {
         return fn(sourceLocation, symbol, arguments, body);
+    }
+
+    private interface CurriedFunction {
+
+        CodeBlock generateBytecode(BytecodeGenerator state);
+
+        Type getType();
     }
 
     public static class Builder implements SyntaxBuilder<FunctionValue> {
@@ -245,6 +257,57 @@ public class FunctionValue extends Value implements Scoped {
         public Builder withSymbol(Symbol symbol) {
             this.symbol = Optional.of(symbol);
             return this;
+        }
+    }
+
+    private static class CurriedBody implements CurriedFunction {
+
+        private final Value body;
+
+        public CurriedBody(Value body) {
+            this.body = body;
+        }
+
+        @Override
+        public CodeBlock generateBytecode(BytecodeGenerator state) {
+            return body.generateBytecode(state);
+        }
+
+        @Override
+        public Type getType() {
+            return body.getType();
+        }
+    }
+
+    private static class CurriedLambda implements CurriedFunction {
+
+        private final Argument        argument;
+        private final CurriedFunction body;
+
+        CurriedLambda(Argument argument, CurriedFunction body) {
+            this.argument = argument;
+            this.body = body;
+        }
+
+        @Override
+        public CodeBlock generateBytecode(BytecodeGenerator state) {
+            return new CodeBlock() {{
+                append(state.captureLambda(argument.getName()));
+                lambda(state.currentClass(), new LambdaBlock(state.reserveLambda()) {{
+                    function(p(Applicable.class), "apply", sig(Callable.class, Callable.class));
+                    capture(state.getLambdaCaptureTypes());
+                    delegateTo(ACC_STATIC, sig(state.typeOf(body.getType()), state.getLambdaType()), new CodeBlock() {{
+                        append(body.generateBytecode(state));
+                        areturn();
+                    }});
+                }});
+                state.releaseLambda(argument.getName());
+            }};
+        }
+
+        @Override
+        public Type getType() {
+            return fn(argument.getType(), body.getType());
         }
     }
 }
