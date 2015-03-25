@@ -245,6 +245,14 @@ public class BytecodeGenerator {
 
     public int getVariable(String name) {
         int offset = getAllVariables().indexOf(name);
+        if (offset < 0 ) {
+            Scope scope = scopes.pop();
+            try {
+                offset = getAllVariables().indexOf(name);
+            } finally {
+                scopes.push(scope);
+            }
+        }
         if (offset >= 0) {
             return offset;
         } else {

@@ -388,7 +388,6 @@ public class BytecodeGeneratorTest {
         assertThat(shouldBeTruthy, is(true));
     }
 
-    @Ignore("WIP")
     @Test
     public void shouldDestructureTuple() {
         int value = exec(
@@ -401,7 +400,6 @@ public class BytecodeGeneratorTest {
         assertThat(value, is(2));
     }
 
-    @Ignore("WIP")
     @Test
     public void shouldDestructureNestedTuple() {
         int value = exec(
