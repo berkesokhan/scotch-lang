@@ -7,6 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import scotch.compiler.syntax.definition.Import;
+import scotch.compiler.syntax.pattern.PatternCase;
+import scotch.compiler.syntax.reference.ClassReference;
+import scotch.compiler.syntax.reference.ModuleReference;
+import scotch.compiler.syntax.reference.ValueReference;
+import scotch.runtime.Callable;
 import scotch.symbol.MethodSignature;
 import scotch.symbol.Operator;
 import scotch.symbol.Symbol;
@@ -16,18 +22,10 @@ import scotch.symbol.descriptor.DataConstructorDescriptor;
 import scotch.symbol.descriptor.DataTypeDescriptor;
 import scotch.symbol.descriptor.TypeClassDescriptor;
 import scotch.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.symbol.type.FunctionType;
 import scotch.symbol.type.Type;
 import scotch.symbol.type.TypeScope;
 import scotch.symbol.type.VariableType;
 import scotch.symbol.util.SymbolGenerator;
-import scotch.compiler.syntax.definition.Import;
-import scotch.compiler.syntax.reference.ClassReference;
-import scotch.compiler.syntax.reference.ModuleReference;
-import scotch.compiler.syntax.reference.ValueReference;
-import scotch.compiler.syntax.pattern.PatternCase;
-import scotch.runtime.Applicable;
-import scotch.runtime.Callable;
 
 public abstract class Scope implements TypeScope {
 
@@ -215,7 +213,7 @@ public abstract class Scope implements TypeScope {
         return MethodSignature.staticMethod(
             symbol.qualifyWith(getModuleName()).getModuleClass(),
             symbol.getMethodName(),
-            type instanceof FunctionType ? sig(Applicable.class) : sig(Callable.class)
+            sig(Callable.class)
         );
     }
 

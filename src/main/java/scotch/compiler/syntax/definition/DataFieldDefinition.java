@@ -3,26 +3,24 @@ package scotch.compiler.syntax.definition;
 import static me.qmx.jitescript.util.CodegenUtils.ci;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
+import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.symbol.Symbol.symbol;
 import static scotch.symbol.descriptor.DataFieldDescriptor.field;
-import static scotch.compiler.syntax.builder.BuilderUtil.require;
 
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import scotch.compiler.steps.BytecodeGenerator;
-import scotch.symbol.NameQualifier;
-import scotch.symbol.Symbol;
-import scotch.symbol.descriptor.DataFieldDescriptor;
-import scotch.symbol.type.FunctionType;
-import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.SourceLocation;
-import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
+import scotch.symbol.NameQualifier;
+import scotch.symbol.Symbol;
+import scotch.symbol.descriptor.DataFieldDescriptor;
+import scotch.symbol.type.Type;
 
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
@@ -55,7 +53,7 @@ public class DataFieldDefinition implements Comparable<DataFieldDefinition> {
     }
 
     public Class<?> getJavaType() {
-        return type instanceof FunctionType ? Applicable.class : Callable.class;
+        return Callable.class;
     }
 
     public String getName() {

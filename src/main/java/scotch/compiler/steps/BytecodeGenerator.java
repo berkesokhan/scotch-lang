@@ -33,13 +33,11 @@ import scotch.compiler.syntax.reference.ModuleReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
-import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 import scotch.runtime.Copyable;
 import scotch.symbol.MethodSignature;
 import scotch.symbol.Symbol;
 import scotch.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.symbol.type.FunctionType;
 import scotch.symbol.type.Type;
 
 public class BytecodeGenerator {
@@ -294,7 +292,7 @@ public class BytecodeGenerator {
     }
 
     public Class<? extends Callable> typeOf(Type type) {
-        return type instanceof FunctionType ? Applicable.class : Callable.class;
+        return Callable.class;
     }
 
     private <T extends Scoped> void enterScope(T scoped) {
