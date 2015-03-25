@@ -87,7 +87,7 @@ public class ValueShuffler {
             while (!stack.isEmpty()) {
                 output.push(left(stack.pop()));
             }
-            return shuffleMessageApply(output);
+            return shuffleApply(output);
         }
 
         private boolean expectsArgument(Deque<Value> input) {
@@ -120,7 +120,7 @@ public class ValueShuffler {
             return scope.reserveType();
         }
 
-        private Value shuffleMessageApply(Deque<Either<OperatorPair<Identifier>, Value>> message) {
+        private Value shuffleApply(Deque<Either<OperatorPair<Identifier>, Value>> message) {
             Deque<Value> stack = new ArrayDeque<>();
             while (!message.isEmpty()) {
                 stack.push(message.pollLast().orElseGet(pair -> {
