@@ -5,16 +5,15 @@ import static scotch.compiler.util.TestUtil.scopeRef;
 
 import java.util.function.Function;
 import org.junit.Test;
-import scotch.compiler.*;
 import scotch.compiler.Compiler;
-import scotch.compiler.syntax.StubResolver;
+import scotch.compiler.IsolatedCompilerTest;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 
-public class AccumulateNamesTest extends ParserTest {
+public class AccumulateNamesTest extends IsolatedCompilerTest {
 
     @Test
     public void shouldDefineFirstLevelValues() {
-        parse(
+        compile(
             "module scotch.test",
             "fn a b = a b"
         );
@@ -24,7 +23,7 @@ public class AccumulateNamesTest extends ParserTest {
 
     @Test
     public void shouldDefinePatternArguments() {
-        parse(
+        compile(
             "module scotch.test",
             "fn a b = a b"
         );
@@ -35,7 +34,7 @@ public class AccumulateNamesTest extends ParserTest {
 
     @Test
     public void shouldAliasLetDeclarations() {
-        parse(
+        compile(
             "module scotch.test",
             "main = let",
             "    f x = a x",
@@ -45,17 +44,7 @@ public class AccumulateNamesTest extends ParserTest {
     }
 
     @Override
-    protected void initResolver(StubResolver resolver) {
-        // intentionally empty
-    }
-
-    @Override
-    protected Function<scotch.compiler.Compiler, DefinitionGraph> parse() {
+    protected Function<scotch.compiler.Compiler, DefinitionGraph> compile() {
         return Compiler::accumulateNames;
-    }
-
-    @Override
-    protected void setUp() {
-        // intentionally empty
     }
 }

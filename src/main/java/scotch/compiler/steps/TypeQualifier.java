@@ -3,9 +3,9 @@ package scotch.compiler.steps;
 import java.util.Optional;
 import scotch.compiler.error.SymbolNotFoundError;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.NameQualifier;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.text.SourceRange;
+import scotch.symbol.NameQualifier;
+import scotch.symbol.Symbol;
+import scotch.compiler.text.SourceLocation;
 
 public class TypeQualifier implements NameQualifier {
 
@@ -26,7 +26,7 @@ public class TypeQualifier implements NameQualifier {
     }
 
     @Override
-    public void symbolNotFound(Symbol symbol, SourceRange sourceRange) {
-        error(SymbolNotFoundError.symbolNotFound(symbol, sourceRange));
+    public void symbolNotFound(Symbol symbol, SourceLocation sourceLocation) {
+        error(SymbolNotFoundError.symbolNotFound(symbol, sourceLocation));
     }
 }

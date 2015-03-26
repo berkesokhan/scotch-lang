@@ -1,34 +1,18 @@
 package scotch.compiler.syntax.reference;
 
-import static scotch.util.StringUtil.stringify;
+import static lombok.AccessLevel.PACKAGE;
 
-import java.util.Objects;
-import scotch.compiler.symbol.Symbol;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+import scotch.symbol.Symbol;
 
+@AllArgsConstructor(access = PACKAGE)
+@EqualsAndHashCode(callSuper = false)
+@ToString
 public class ClassReference extends DefinitionReference {
 
+    @Getter
     private final Symbol symbol;
-
-    ClassReference(Symbol symbol) {
-        this.symbol = symbol;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return o == this || o instanceof ClassReference && Objects.equals(symbol, ((ClassReference) o).symbol);
-    }
-
-    public Symbol getSymbol() {
-        return symbol;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(symbol);
-    }
-
-    @Override
-    public String toString() {
-        return stringify(this) + "(" + symbol + ")";
-    }
 }

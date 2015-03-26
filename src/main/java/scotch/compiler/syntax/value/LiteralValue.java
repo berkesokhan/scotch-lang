@@ -4,8 +4,11 @@ import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static scotch.util.StringUtil.quote;
 
-import java.util.Objects;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
+import scotch.compiler.intermediate.IntermediateValue;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -13,18 +16,20 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Callable;
+import scotch.runtime.RuntimeSupport;
+import scotch.symbol.type.Type;
 
+@EqualsAndHashCode(callSuper = false)
 public abstract class LiteralValue<A> extends Value {
 
-    private final SourceRange sourceRange;
-    private final A           value;
-    private final Type        type;
+    @Getter protected final SourceLocation sourceLocation;
+    @Getter protected final A              value;
+    @Getter protected final Type           type;
 
-    LiteralValue(SourceRange sourceRange, A value, Type type) {
-        this.sourceRange = sourceRange;
+    LiteralValue(SourceLocation sourceLocation, A value, Type type) {
+        this.sourceLocation = sourceLocation;
         this.value = value;
         this.type = type;
     }
@@ -40,7 +45,12 @@ public abstract class LiteralValue<A> extends Value {
     }
 
     @Override
-    public Value bindMethods(TypeChecker state, InstanceMap instances) {
+    public IntermediateValue generateIntermediateCode(IntermediateGenerator state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Value bindMethods(TypeChecker state) {
         return this;
     }
 
@@ -65,44 +75,11 @@ public abstract class LiteralValue<A> extends Value {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (o == this) {
-            return true;
-        } else if (o instanceof LiteralValue) {
-            LiteralValue other = (LiteralValue) o;
-            return Objects.equals(sourceRange, other.sourceRange)
-                && Objects.equals(value, other.value)
-                && Objects.equals(type, other.type);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        return loadValue().invokestatic(p(Callable.class), "box", sig(Callable.class, Object.class));
+        return loadValue().invokestatic(p(RuntimeSupport.class), "box", sig(Callable.class, Object.class));
     }
 
     protected abstract CodeBlock loadValue();
-
-    @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
-    }
-
-    @Override
-    public Type getType() {
-        return type;
-    }
-
-    public A getValue() {
-        return value;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(value, type);
-    }
 
     @Override
     public Value qualifyNames(ScopedNameQualifier state) {

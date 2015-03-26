@@ -3,26 +3,24 @@ package scotch.compiler.syntax.definition;
 import static me.qmx.jitescript.util.CodegenUtils.ci;
 import static org.objectweb.asm.Opcodes.ACC_FINAL;
 import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
-import static scotch.compiler.symbol.Symbol.symbol;
-import static scotch.compiler.symbol.descriptor.DataFieldDescriptor.field;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.symbol.Symbol.symbol;
+import static scotch.symbol.descriptor.DataFieldDescriptor.field;
 
 import java.util.Optional;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import scotch.compiler.steps.BytecodeGenerator;
-import scotch.compiler.symbol.NameQualifier;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.descriptor.DataFieldDescriptor;
-import scotch.compiler.symbol.type.FunctionType;
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
-import scotch.runtime.Applicable;
+import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Callable;
+import scotch.symbol.NameQualifier;
+import scotch.symbol.Symbol;
+import scotch.symbol.descriptor.DataFieldDescriptor;
+import scotch.symbol.type.Type;
 
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = false)
@@ -32,10 +30,10 @@ public class DataFieldDefinition implements Comparable<DataFieldDefinition> {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final int         ordinal;
-    private final String      name;
-    private final Type        type;
+    private final SourceLocation sourceLocation;
+    private final int            ordinal;
+    private final String         name;
+    private final Type           type;
 
     @Override
     public int compareTo(DataFieldDefinition o) {
@@ -55,7 +53,7 @@ public class DataFieldDefinition implements Comparable<DataFieldDefinition> {
     }
 
     public Class<?> getJavaType() {
-        return type instanceof FunctionType ? Applicable.class : Callable.class;
+        return Callable.class;
     }
 
     public String getName() {
@@ -73,7 +71,7 @@ public class DataFieldDefinition implements Comparable<DataFieldDefinition> {
     public Argument toArgument() {
         return Argument.builder()
             .withName(name)
-            .withSourceRange(sourceRange)
+            .withSourceLocation(sourceLocation)
             .withType(type)
             .build();
     }
@@ -87,24 +85,24 @@ public class DataFieldDefinition implements Comparable<DataFieldDefinition> {
         return Identifier.builder()
             .withSymbol(symbol(name))
             .withType(type)
-            .withSourceRange(sourceRange)
+            .withSourceLocation(sourceLocation)
             .build();
     }
 
     private DataFieldDefinition withType(Type type) {
-        return new DataFieldDefinition(sourceRange, ordinal, name, type);
+        return new DataFieldDefinition(sourceLocation, ordinal, name, type);
     }
 
     public static final class Builder implements SyntaxBuilder<DataFieldDefinition> {
 
-        private Optional<SourceRange> sourceRange = Optional.empty();
-        private Optional<Integer>     ordinal = Optional.empty();
-        private Optional<String>      name = Optional.empty();
-        private Optional<Type>        type = Optional.empty();
+        private Optional<SourceLocation> sourceLocation = Optional.empty();
+        private Optional<Integer>        ordinal     = Optional.empty();
+        private Optional<String>         name        = Optional.empty();
+        private Optional<Type>           type        = Optional.empty();
 
         public DataFieldDefinition build() {
             return new DataFieldDefinition(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(ordinal, "Ordinal"),
                 require(name, "Field name"),
                 require(type, "Field type")
@@ -122,8 +120,8 @@ public class DataFieldDefinition implements Comparable<DataFieldDefinition> {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

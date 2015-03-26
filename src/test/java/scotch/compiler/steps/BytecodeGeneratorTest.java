@@ -172,7 +172,7 @@ public class BytecodeGeneratorTest {
         boolean result = exec(
             "module scotch.test",
             "import scotch.java",
-            "data Thing a { value a }",
+            "data Thing a { value :: a }",
             "run = Thing 2 `javaEq?!` Thing 2"
         );
         assertThat(result, is(true));
@@ -186,7 +186,7 @@ public class BytecodeGeneratorTest {
             "import scotch.data.eq",
             "import scotch.data.function",
             "",
-            "data Thing n { value n }",
+            "data Thing n { value :: n }",
             "",
             "run = (javaHash! $ Thing 2) == (javaHash! $ Thing 2)"
         );
@@ -203,7 +203,7 @@ public class BytecodeGeneratorTest {
             "import scotch.data.int",
             "import scotch.data.string",
             "",
-            "data QuantifiedThing a { howMany Int, what a }",
+            "data QuantifiedThing a { howMany :: Int, what :: a }",
             "",
             "run = QuantifiedThing { howMany = 32, what = \"Bananas\" } `javaEq?!`",
             "      QuantifiedThing { what = \"Bananas\", howMany = 32 }"
@@ -238,7 +238,7 @@ public class BytecodeGeneratorTest {
             "import scotch.java",
             "import scotch.data.eq",
             "",
-            "data Thing n { value n }",
+            "data Thing n { value :: n }",
             "",
             "($) :: (a -> b) -> a -> b",
             "right infix 0 ($)",
@@ -325,6 +325,16 @@ public class BytecodeGeneratorTest {
         assertThat(result, is(true));
     }
 
+    @Test
+    public void shouldParseIgnoredPattern() {
+        int result = exec(
+            "module scotch.test",
+            "fn = \\_ -> 2",
+            "run = fn 3"
+        );
+        assertThat(result, is(2));
+    }
+
     @Ignore
     @Test
     public void shouldCompileShow() {
@@ -339,6 +349,78 @@ public class BytecodeGeneratorTest {
             "run = show 5"
         );
         assertThat(result, is("5"));
+    }
+
+    @Test
+    public void shouldCreatePickleWithEnumConstants() {
+        Object pickle = exec(
+            "module scotch.test",
+            "import scotch.data.num",
+            "import scotch.data.int",
+            "",
+            "data Texture = Soft | Crunchy",
+            "data Pickle { kind :: Texture, pimples :: Int }",
+            "pickle = Pickle Crunchy 15",
+            "run = pickle"
+        );
+        assertThat(pickle.toString(), is("Pickle { kind = Crunchy, pimples = 15 }"));
+    }
+
+    @Test
+    public void shouldGetOrdering() {
+        boolean shouldBeTruthy = exec(
+            "module scotch.test",
+            "import scotch.data.bool",
+            "import scotch.data.eq",
+            "import scotch.data.ord",
+            "import scotch.data.int",
+            "",
+            "run = max 2 3 == 3 && max 2 3 == max 3 2",
+            "   && min 2 3 == 2 && min 2 3 == min 3 2",
+            "   && 2 < 3",
+            "   && 3 > 2",
+            "   && 2 <= 3 && 2 <= 2",
+            "   && 3 >= 2 && 3 >= 3",
+            "   && LessThan == compare 2 3",
+            "   && GreaterThan == compare 3 2",
+            "   && EqualTo == compare 2 2"
+        );
+        assertThat(shouldBeTruthy, is(true));
+    }
+
+    @Test
+    public void shouldDestructureTuple() {
+        int value = exec(
+            "module scotch.test",
+            "import scotch.data.int",
+            "",
+            "second (_, b) = b",
+            "run = second (3, 2)"
+        );
+        assertThat(value, is(2));
+    }
+
+    @Test
+    public void shouldDestructureNestedTuple() {
+        int value = exec(
+            "module scotch.test",
+            "import scotch.data.int",
+            "",
+            "third (_, (_, c)) = c",
+            "run = third (1, (5, 3))"
+        );
+        assertThat(value, is(3));
+    }
+
+    @Test
+    public void shouldNegateNumber() {
+        int value = exec(
+            "module scotch.test",
+            "import scotch.data.num",
+            "",
+            "run = -4"
+        );
+        assertThat(value, is(-4));
     }
 
     @SuppressWarnings("unchecked")

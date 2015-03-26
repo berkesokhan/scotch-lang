@@ -4,20 +4,19 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
+import static me.qmx.jitescript.CodeBlock.ACC_STATIC;
+import static me.qmx.jitescript.util.CodegenUtils.ci;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
-import static scotch.compiler.symbol.Value.Fixity.PREFIX;
-import static scotch.compiler.symbol.type.Types.fn;
-import static scotch.compiler.symbol.type.Types.sum;
-import static scotch.compiler.symbol.type.Types.t;
-import static scotch.compiler.symbol.type.Types.var;
+import static org.objectweb.asm.Opcodes.ACC_FINAL;
+import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
 import static scotch.compiler.util.TestUtil.arg;
 import static scotch.compiler.util.TestUtil.capture;
 import static scotch.compiler.util.TestUtil.conditional;
-import static scotch.compiler.util.TestUtil.constant;
+import static scotch.compiler.util.TestUtil.constantRef;
+import static scotch.compiler.util.TestUtil.constantValue;
 import static scotch.compiler.util.TestUtil.construct;
 import static scotch.compiler.util.TestUtil.ctorDef;
 import static scotch.compiler.util.TestUtil.dataDef;
@@ -26,16 +25,27 @@ import static scotch.compiler.util.TestUtil.field;
 import static scotch.compiler.util.TestUtil.fieldDef;
 import static scotch.compiler.util.TestUtil.fn;
 import static scotch.compiler.util.TestUtil.id;
+import static scotch.compiler.util.TestUtil.ignore;
 import static scotch.compiler.util.TestUtil.initializer;
 import static scotch.compiler.util.TestUtil.let;
 import static scotch.compiler.util.TestUtil.literal;
+import static scotch.compiler.util.TestUtil.matcher;
 import static scotch.compiler.util.TestUtil.operatorDef;
 import static scotch.compiler.util.TestUtil.operatorRef;
+import static scotch.compiler.util.TestUtil.pattern;
 import static scotch.compiler.util.TestUtil.root;
 import static scotch.compiler.util.TestUtil.scopeRef;
 import static scotch.compiler.util.TestUtil.signatureRef;
 import static scotch.compiler.util.TestUtil.unshuffled;
+import static scotch.compiler.util.TestUtil.unshuffledMatch;
 import static scotch.control.monad.Monad.fail;
+import static scotch.symbol.FieldSignature.fieldSignature;
+import static scotch.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.symbol.Value.Fixity.PREFIX;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.t;
+import static scotch.symbol.type.Types.var;
 
 import java.util.List;
 import java.util.function.Function;
@@ -43,24 +53,25 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import scotch.compiler.Compiler;
-import scotch.compiler.ParserTest;
-import scotch.compiler.symbol.Value.Fixity;
-import scotch.compiler.symbol.type.VariableType;
-import scotch.compiler.syntax.StubResolver;
+import scotch.compiler.IsolatedCompilerTest;
 import scotch.compiler.syntax.definition.DataTypeDefinition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.value.Value;
+import scotch.compiler.util.TestUtil;
+import scotch.runtime.Callable;
+import scotch.symbol.Value.Fixity;
+import scotch.symbol.type.VariableType;
 
-public class InputParserTest extends ParserTest {
+public class InputParserTest extends IsolatedCompilerTest {
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
 
     @Test
     public void shouldParseClassDefinition() {
-        parse(
+        compile(
             "module scotch.data.eq",
             "prefix 4 not",
             "left infix 5 (==), (/=)",
@@ -79,7 +90,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseMultiValueSignature() {
-        parse(
+        compile(
             "module scotch.test",
             "(==), (/=) :: a -> a -> Bool"
         );
@@ -89,7 +100,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseMultipleModulesInSameSource() {
-        parse(
+        compile(
             "module scotch.string",
             "length s = jStrlen s",
             "",
@@ -104,7 +115,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseOperatorDefinitions() {
-        parse(
+        compile(
             "module scotch.test",
             "left infix 8 (*), (/), (%)",
             "left infix 7 (+), (-)",
@@ -120,19 +131,19 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseParenthesesAsSeparateMessage() {
-        parse(
+        compile(
             "module scotch.test",
             "value = fn (a b)"
         );
         shouldHaveValue("scotch.test.value", unshuffled(
-            id("fn", t(1)),
-            unshuffled(id("a", t(2)), id("b", t(3)))
+            id("fn", t(0)),
+            unshuffled(id("a", t(1)), id("b", t(2)))
         ));
     }
 
     @Test
     public void shouldParseSignature() {
-        parse(
+        compile(
             "module scotch.test",
             "length :: String -> Int"
         );
@@ -141,7 +152,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseValue() {
-        parse(
+        compile(
             "module scotch.test",
             "length :: String -> Int",
             "length s = jStrlen s"
@@ -156,19 +167,19 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrowException_whenModuleNameNotTerminatedWithSemicolonOrNewline() {
         expectParseException("Unexpected COMMA; wanted SEMICOLON");
-        parse("module scotch.test,");
+        compile("module scotch.test,");
     }
 
     @Test
     public void shouldThrowException_whenNotBeginningWithModule() {
         expectParseException("Unexpected IDENTIFIER with value 'length'; wanted IDENTIFIER with value 'module'");
-        parse("length s = jStrlen s");
+        compile("length s = jStrlen s");
     }
 
     @Test
     public void shouldThrowException_whenOperatorIsMissingPrecedence() {
         expectParseException("Unexpected IDENTIFIER; wanted INT_LITERAL");
-        parse(
+        compile(
             "module scotch.test",
             "left infix =="
         );
@@ -177,7 +188,7 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrowException_whenOperatorSymbolEnclosedByParensDoesNotContainWord() {
         expectParseException("Unexpected INT_LITERAL; wanted IDENTIFIER");
-        parse(
+        compile(
             "module scotch.test",
             "left infix 7 (42)"
         );
@@ -186,7 +197,7 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrowException_whenOperatorSymbolIsNotWord() {
         expectParseException("Unexpected BOOL_LITERAL; wanted one of [IDENTIFIER, LEFT_PARENTHESIS]");
-        parse(
+        compile(
             "module scotch.test",
             "left infix 7 True"
         );
@@ -195,7 +206,7 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrowException_whenOperatorSymbolsNotSeparatedByCommas() {
         expectParseException("Unexpected IDENTIFIER; wanted SEMICOLON");
-        parse(
+        compile(
             "module scotch.test",
             "left infix 7 + -"
         );
@@ -204,7 +215,7 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrowException_whenSignatureHasStuffBetweenNameAndDoubleColon() {
         expectParseException("Unexpected SEMICOLON; wanted ASSIGN");
-        parse(
+        compile(
             "module scotch.test",
             "length ; :: String -> Int"
         );
@@ -212,7 +223,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseTypeConstraintInSignature() {
-        parse(
+        compile(
             "module scotch.test",
             "fn :: (Eq a) => a -> a -> Bool"
         );
@@ -221,7 +232,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseMultipleConstraintsOnSameVariable() {
-        parse(
+        compile(
             "module scotch.test",
             "fn :: (Eq a, Show a) => a -> a -> Bool"
         );
@@ -230,7 +241,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseCompoundConstraints() {
-        parse(
+        compile(
             "module scotch.test",
             "fn :: (Eq a, Show b) => a -> b -> Bool"
         );
@@ -238,48 +249,71 @@ public class InputParserTest extends ParserTest {
     }
 
     @Test
-    public void shouldParseFunction1() {
-        parse(
+    public void shouldParseCapturingPatternLiteral1() {
+        compile(
             "module scotch.test",
             "id = \\x -> x"
         );
-        shouldHaveValue("scotch.test.id", t(0), fn("scotch.test.(id#0)", arg("x", t(1)), id("x", t(2))));
+        shouldHaveValue("scotch.test.id", matcher("scotch.test.(id#0)", t(0), arg("#0", t(2)),
+            pattern("scotch.test.(id#0#0)", asList(capture("x", t(1))), unshuffled(id("x", t(3))))));
     }
 
     @Test
-    public void shouldParseFunction2() {
-        parse(
+    public void shouldParseCapturingPatternLiteral2() {
+        compile(
             "module scotch.test",
             "apply2 = \\x y z -> x y z"
         );
-        shouldHaveValue("scotch.test.apply2", t(0), fn(
-            "scotch.test.(apply2#0)",
-            asList(arg("x", t(1)), arg("y", t(2)), arg("z", t(3))),
-            unshuffled(id("x", t(4)), id("y", t(5)), id("z", t(6)))
-        ));
+        shouldHaveValue("scotch.test.apply2", matcher("scotch.test.(apply2#0)", t(0), asList(arg("#0", t(4)), arg("#1", t(5)), arg("#2", t(6))), pattern(
+            "scotch.test.(apply2#0#0)",
+            asList(capture("x", t(1)), capture("y", t(2)), capture("z", t(3))),
+            unshuffled(id("x", t(7)), id("y", t(8)), id("z", t(9)))
+        )));
+    }
+
+    @Test
+    public void shouldNotParseEqualsPatternLiteral() {
+        exception.expect(ParseException.class);
+        exception.expectMessage(containsString("wanted IDENTIFIER [test://shouldNotParseEqualsPatternLiteral (2, 11), (2, 12)]"));
+        compile(
+            "module scotch.test",
+            "apply2 = \\1 y z = y z"
+        );
+    }
+
+    @Test
+    public void shouldParseIgnoredPatternLiteral() {
+        compile(
+            "module scotch.test",
+            "fn = \\_ -> ignored"
+        );
+        shouldNotHaveErrors();
+        shouldHaveValue("scotch.test.fn", matcher("scotch.test.(fn#0)", t(0), arg("#0", t(2)), pattern(
+            "scotch.test.(fn#0#0)", asList(ignore(t(1))), unshuffled(id("ignored", t(3)))
+        )));
     }
 
     @Test
     public void shouldParseLet() {
-        parse(
+        compile(
             "module scotch.test",
             "main = let",
             "    f x = a x",
             "    a g = g + g",
             "  f 2"
         );
-        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(1)), capture("x", t(2))), unshuffled(id("a", t(3)), id("x", t(4))));
-        shouldHavePattern("scotch.test.(main#2)", asList(capture("a", t(5)), capture("g", t(6))), unshuffled(id("g", t(7)), id("+", t(8)), id("g", t(9))));
+        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(0)), capture("x", t(1))), unshuffled(id("a", t(2)), id("x", t(3))));
+        shouldHavePattern("scotch.test.(main#2)", asList(capture("a", t(4)), capture("g", t(5))), unshuffled(id("g", t(6)), id("+", t(7)), id("g", t(8))));
         shouldHaveValue("scotch.test.main", let(
             "scotch.test.(main#0)",
             asList(scopeRef("scotch.test.(main#1)"), scopeRef("scotch.test.(main#2)")),
-            unshuffled(id("f", t(10)), literal(2))
+            unshuffled(id("f", t(9)), literal(2))
         ));
     }
 
     @Test
     public void shouldParseLetWithSignature() {
-        parse(
+        compile(
             "module scotch.test",
             "main = let",
             "    f :: Int -> Int",
@@ -287,17 +321,17 @@ public class InputParserTest extends ParserTest {
             "  f 2"
         );
         shouldHaveSignature("scotch.test.(main#f)", fn(sum("Int"), sum("Int")));
-        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(1)), capture("x", t(2))), unshuffled(id("x", t(3)), id("*", t(4)), id("x", t(5))));
+        shouldHavePattern("scotch.test.(main#1)", asList(capture("f", t(0)), capture("x", t(1))), unshuffled(id("x", t(2)), id("*", t(3)), id("x", t(4))));
         shouldHaveValue("scotch.test.main", let(
             "scotch.test.(main#0)",
             asList(signatureRef("scotch.test.(main#f)"), scopeRef("scotch.test.(main#1)")),
-            unshuffled(id("f", t(6)), literal(2))
+            unshuffled(id("f", t(5)), literal(2))
         ));
     }
 
     @Test
     public void shouldParseNestedLet() {
-        parse(
+        compile(
             "module scotch.test",
             "main = let",
             "    f = let",
@@ -310,7 +344,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseConditional() {
-        parse(
+        compile(
             "module scotch.test",
             "really? = if True",
             "          then \"Yes\"",
@@ -320,13 +354,13 @@ public class InputParserTest extends ParserTest {
             literal(true),
             literal("Yes"),
             literal("No"),
-            t(1)
+            t(0)
         ));
     }
 
     @Test
     public void shouldParseChainedConditional() {
-        parse(
+        compile(
             "module scotch.test",
             "really? = if True then \"Yes\"",
             "          else if Maybe then \"Maybe\"",
@@ -336,18 +370,18 @@ public class InputParserTest extends ParserTest {
             literal(true),
             literal("Yes"),
             conditional(
-                id("Maybe", t(1)),
+                id("Maybe", t(0)),
                 literal("Maybe"),
                 literal("Nope"),
-                t(2)
+                t(1)
             ),
-            t(3)
+            t(2)
         ));
     }
 
     @Test
     public void shouldParseNestedConditional() {
-        parse(
+        compile(
             "module scotch.test",
             "really? = if True then if False then \"Wat\" else \"Maybe?\"",
             "          else \"Nope\""
@@ -358,36 +392,36 @@ public class InputParserTest extends ParserTest {
                 literal(false),
                 literal("Wat"),
                 literal("Maybe?"),
-                t(1)
+                t(0)
             ),
             literal("Nope"),
-            t(2)
+            t(1)
         ));
     }
 
     @Test
     public void shouldParseInitializer() {
-        parse(
+        compile(
             "module scotch.test",
             "toast = Toast {",
             "    type = Rye, butter = Yes, jam = No",
             "}"
         );
-        shouldHaveValue("scotch.test.toast", initializer(t(2), id("Toast", t(1)), asList(
-            field("type", id("Rye", t(3))),
-            field("butter", id("Yes", t(4))),
-            field("jam", id("No", t(5)))
+        shouldHaveValue("scotch.test.toast", initializer(t(1), id("Toast", t(0)), asList(
+            field("type", id("Rye", t(2))),
+            field("butter", id("Yes", t(3))),
+            field("jam", id("No", t(4)))
         )));
     }
 
     @Test
     public void shouldParseUnaryDataDeclarationWithNamedFields() {
-        parse(
+        compile(
             "module scotch.test",
             "data Toast {",
-            "    type Bread,",
-            "    butter Verbool,",
-            "    jam Verbool",
+            "    type :: Bread,",
+            "    butter :: Verbool,",
+            "    jam :: Verbool",
             "}"
         );
         shouldHaveDataType("scotch.test.Toast", dataDef("scotch.test.Toast", emptyList(), asList(
@@ -402,7 +436,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseDataDeclarationWithAnonymousField() {
-        parse(
+        compile(
             "module scotch.test",
             "data Maybe a = Nothing | Just a"
         );
@@ -416,9 +450,9 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseDataDeclarationWithNamedField() {
-        parse(
+        compile(
             "module scotch.test",
-            "data Map a b = Empty | Entry { key a, value b }"
+            "data Map a b = Empty | Entry { key :: a, value :: b }"
         );
         shouldHaveDataType(
             "scotch.test.Map",
@@ -436,12 +470,12 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldCreateDataConstructor() {
-        parse(
+        compile(
             "module scotch.test",
             "data Toast {",
-            "    type Bread,",
-            "    butter Verbool,",
-            "    jam Verbool",
+            "    type :: Bread,",
+            "    butter :: Verbool,",
+            "    jam :: Verbool",
             "}"
         );
         shouldHaveValue("scotch.test.Toast", fn(
@@ -455,16 +489,21 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldCreateConstantForNiladicConstructor() {
-        parse(
+        compile(
             "module scotch.test",
             "data Maybe a = Nothing | Just a"
         );
-        shouldHaveValue("scotch.test.Nothing", constant("scotch.test.Nothing", "scotch.test.Maybe", sum("scotch.test.Maybe", var("a"))));
+        shouldHaveValue("scotch.test.Nothing", constantRef(
+            "scotch.test.Nothing",
+            "scotch.test.Maybe",
+            fieldSignature("scotch/test/Maybe$Nothing", ACC_STATIC | ACC_PUBLIC | ACC_FINAL, "INSTANCE", ci(Callable.class)),
+            sum("scotch.test.Maybe", var("a"))
+        ));
     }
 
     @Test
     public void shouldCreateDataConstructorWithAnonymousFields() {
-        parse(
+        compile(
             "module scotch.test",
             "data Maybe a = Nothing | Just a"
         );
@@ -477,7 +516,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseParenthesizedSignature() {
-        parse(
+        compile(
             "module scotch.test",
             "($) :: (a -> b) -> a -> b"
         );
@@ -486,7 +525,7 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseDataConstructorWithTypeConstraints() {
-        parse(
+        compile(
             "module scotch.test",
             "data (Eq a) => List a = Empty | Node a (List a)"
         );
@@ -506,9 +545,9 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseDataDeclarationWithNamedFieldAndTypeConstraints() {
-        parse(
+        compile(
             "module scotch.test",
-            "data (Eq a, Eq b) => Map a b = Empty | Entry { key a, value b }"
+            "data (Eq a, Eq b) => Map a b = Empty | Entry { key :: a, value :: b }"
         );
         shouldHaveDataType(
             "scotch.test.Map",
@@ -526,49 +565,49 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseDot() {
-        parse(
+        compile(
             "module scotch.test",
             "val = (f . g) x"
         );
         shouldHaveValue("scotch.test.val", unshuffled(
             unshuffled(
-                id("f", t(1)),
-                id(".", t(2)),
-                id("g", t(3))
+                id("f", t(0)),
+                id(".", t(1)),
+                id("g", t(2))
             ),
-            id("x", t(6))
+            id("x", t(5))
         ));
     }
 
     @Test
     public void shouldParseDoNotationWithThen() {
-        parse(
+        compile(
             "module scotch.test",
             "messaged = do",
             "    println \"Hello World!\"",
             "    println \"Debilitating coffee addiction\""
         );
         shouldHaveValue("scotch.test.messaged", unshuffled(
-            unshuffled(id("println", t(1)), literal("Hello World!")),
-            id("scotch.control.monad.(>>)", t(3)),
-            unshuffled(id("println", t(2)), literal("Debilitating coffee addiction"))
+            unshuffled(id("println", t(0)), literal("Hello World!")),
+            id("scotch.control.monad.(>>)", t(2)),
+            unshuffled(id("println", t(1)), literal("Debilitating coffee addiction"))
         ));
     }
 
     @Test
     public void shouldParseDoNotationWithBind() {
-        parse(
+        compile(
             "module scotch.test",
             "pingpong = do",
             "    ping <- readln",
             "    println (\"ponging back! \" ++ ping)"
         );
         shouldHaveValue("scotch.test.pingpong", unshuffled(
-            unshuffled(id("readln", t(2))),
-            id("scotch.control.monad.(>>=)", t(8)),
-            fn("scotch.test.(pingpong#0)", arg("ping", t(1)), unshuffled(
-                id("println", t(3)),
-                unshuffled(literal("ponging back! "), id("++", t(4)), id("ping", t(5)))
+            unshuffled(id("readln", t(1))),
+            id("scotch.control.monad.(>>=)", t(7)),
+            fn("scotch.test.(pingpong#0)", arg("ping", t(0)), unshuffled(
+                id("println", t(2)),
+                unshuffled(literal("ponging back! "), id("++", t(3)), id("ping", t(4)))
             ))
         ));
     }
@@ -576,7 +615,7 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrow_whenBindIsLastLineInDoNotation() {
         exception.expectMessage(containsString("Unexpected bind in do-notation"));
-        parse(
+        compile(
             "module scotch.test",
             "pingpong = do",
             "    ping <- readln",
@@ -588,11 +627,11 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseTupleLiteral() {
-        parse(
+        compile(
             "module scotch.test",
             "tuple = (1, 2, 3)"
         );
-        shouldHaveValue("scotch.test.tuple", initializer(t(1), id("scotch.data.tuple.(,,)", t(2)), asList(
+        shouldHaveValue("scotch.test.tuple", initializer(t(0), id("scotch.data.tuple.(,,)", t(1)), asList(
             field("_0", unshuffled(literal(1))),
             field("_1", unshuffled(literal(2))),
             field("_2", unshuffled(literal(3)))
@@ -602,7 +641,7 @@ public class InputParserTest extends ParserTest {
     @Test
     public void shouldThrow_whenTupleHasTooManyMembers() {
         exception.expectMessage(containsString("Tuple can't have more than 24 members"));
-        parse(
+        compile(
             "module scotch.test",
             "tuple = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25)"
         );
@@ -610,32 +649,87 @@ public class InputParserTest extends ParserTest {
 
     @Test
     public void shouldParseListLiteral() {
-        parse(
+        compile(
             "module scotch.test",
             "list = [1, 2]"
         );
-        shouldHaveValue("scotch.test.list", initializer(t(4), id("scotch.data.list.(:)", t(5)), asList(
+        shouldHaveValue("scotch.test.list", initializer(t(3), id("scotch.data.list.(:)", t(4)), asList(
             field("_0", unshuffled(literal(1))),
-            field("_1", initializer(t(2), id("scotch.data.list.(:)", t(3)), asList(
+            field("_1", initializer(t(1), id("scotch.data.list.(:)", t(2)), asList(
                 field("_0", unshuffled(literal(2))),
-                field("_1", constant("scotch.data.list.[]", "scotch.data.list.[]", t(1)))
+                field("_1", constantValue("scotch.data.list.[]", "scotch.data.list.[]", t(0)))
             )))
         )));
     }
 
     @Test
     public void shouldParseListLiteralWithTrailingComma() {
-        parse(
+        compile(
             "module scotch.test",
             "list = [1, 2,]"
         );
-        shouldHaveValue("scotch.test.list", initializer(t(4), id("scotch.data.list.(:)", t(5)), asList(
+        shouldHaveValue("scotch.test.list", initializer(t(3), id("scotch.data.list.(:)", t(4)), asList(
             field("_0", unshuffled(literal(1))),
-            field("_1", initializer(t(2), id("scotch.data.list.(:)", t(3)), asList(
+            field("_1", initializer(t(1), id("scotch.data.list.(:)", t(2)), asList(
                 field("_0", unshuffled(literal(2))),
-                field("_1", constant("scotch.data.list.[]", "scotch.data.list.[]", t(1)))
+                field("_1", constantValue("scotch.data.list.[]", "scotch.data.list.[]", t(0)))
             )))
         )));
+    }
+
+    @Test
+    public void shouldParseTupleDestructuringPattern() {
+        compile(
+            "module scotch.test",
+            "second (_, b) = b"
+        );
+        shouldHavePattern("scotch.test.(#0)",
+            asList(capture("second", t(0)), TestUtil.tuple("scotch.data.tuple.(,)", t(5), asList(
+                TestUtil.field(t(6), ignore(t(2))),
+                TestUtil.field(t(7), capture("b", t(4)))))),
+            unshuffled(id("b", t(8)))
+        );
+    }
+
+    @Test
+    public void shouldParseListDestructuringPattern() {
+        compile(
+            "module scotch.test",
+            "tail (_:xs) = xs"
+        );
+        shouldHavePattern("scotch.test.(#0)",
+            asList(capture("tail", t(0)), unshuffledMatch(t(1), ignore(t(2)), capture(":", t(3)), capture("xs", t(4)))),
+            unshuffled(id("xs", t(6))));
+    }
+
+    @Test
+    public void shouldParseParenthesizedCapturePattern() {
+        compile(
+            "module scotch.test",
+            "second (_, (b)) = b"
+        );
+        shouldHavePattern("scotch.test.(#0)",
+            asList(capture("second", t(0)), TestUtil.tuple("scotch.data.tuple.(,)", t(7), asList(
+                TestUtil.field(t(8), ignore(t(2))),
+                TestUtil.field(t(9), capture("b", t(5)))))),
+            unshuffled(id("b", t(10)))
+        );
+    }
+
+    @Test
+    public void shouldParseSecondSecond() {
+        compile(
+            "module scotch.test",
+            "secondSecond (_, (_, b)) = b"
+        );
+        shouldHavePattern("scotch.test.(#0)",
+            asList(capture("secondSecond", t(0)), TestUtil.tuple("scotch.data.tuple.(,)", t(11), asList(
+                TestUtil.field(t(12), ignore(t(2))),
+                TestUtil.field(t(13), TestUtil.tuple("scotch.data.tuple.(,)", t(8), asList(
+                    TestUtil.field(t(9), ignore(t(5))),
+                    TestUtil.field(t(10), capture("b", t(7))))))))),
+            unshuffled(id("b", t(14)))
+        );
     }
 
     private void shouldHaveDataType(String name, DataTypeDefinition value) {
@@ -664,17 +758,7 @@ public class InputParserTest extends ParserTest {
     }
 
     @Override
-    protected void initResolver(StubResolver resolver) {
-        // intentionally empty
-    }
-
-    @Override
-    protected Function<Compiler, DefinitionGraph> parse() {
+    protected Function<Compiler, DefinitionGraph> compile() {
         return Compiler::parseInput;
-    }
-
-    @Override
-    protected void setUp() {
-        // intentionally empty
     }
 }

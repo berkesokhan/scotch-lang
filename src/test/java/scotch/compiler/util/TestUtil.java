@@ -4,10 +4,10 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 import static scotch.compiler.Compiler.compiler;
-import static scotch.compiler.symbol.Symbol.symbol;
-import static scotch.compiler.symbol.type.Types.sum;
 import static scotch.compiler.syntax.reference.DefinitionReference.moduleRef;
-import static scotch.compiler.text.SourceRange.NULL_SOURCE;
+import static scotch.compiler.text.SourceLocation.NULL_SOURCE;
+import static scotch.symbol.Symbol.symbol;
+import static scotch.symbol.type.Types.sum;
 
 import java.net.URI;
 import java.util.List;
@@ -17,21 +17,10 @@ import scotch.compiler.output.GeneratedClass;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
-import scotch.compiler.symbol.MethodSignature;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Value.Fixity;
-import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
-import scotch.compiler.symbol.descriptor.DataFieldDescriptor;
-import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
-import scotch.compiler.symbol.descriptor.TypeClassDescriptor;
-import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.compiler.symbol.descriptor.TypeParameterDescriptor;
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.definition.ClassDefinition;
 import scotch.compiler.syntax.definition.DataConstructorDefinition;
 import scotch.compiler.syntax.definition.DataFieldDefinition;
 import scotch.compiler.syntax.definition.DataTypeDefinition;
-import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.definition.Definitions;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.definition.ModuleImport;
@@ -41,9 +30,13 @@ import scotch.compiler.syntax.definition.UnshuffledDefinition;
 import scotch.compiler.syntax.definition.ValueDefinition;
 import scotch.compiler.syntax.pattern.CaptureMatch;
 import scotch.compiler.syntax.pattern.EqualMatch;
-import scotch.compiler.syntax.pattern.PatternMatch;
+import scotch.compiler.syntax.pattern.IgnorePattern;
+import scotch.compiler.syntax.pattern.TupleField;
 import scotch.compiler.syntax.pattern.PatternCase;
+import scotch.compiler.syntax.pattern.PatternMatch;
 import scotch.compiler.syntax.pattern.Patterns;
+import scotch.compiler.syntax.pattern.TupleMatch;
+import scotch.compiler.syntax.pattern.UnshuffledStructureMatch;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.DataReference;
 import scotch.compiler.syntax.reference.DefinitionReference;
@@ -70,6 +63,17 @@ import scotch.compiler.syntax.value.StringLiteral;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.syntax.value.Values;
+import scotch.symbol.FieldSignature;
+import scotch.symbol.MethodSignature;
+import scotch.symbol.Symbol;
+import scotch.symbol.Value.Fixity;
+import scotch.symbol.descriptor.DataConstructorDescriptor;
+import scotch.symbol.descriptor.DataFieldDescriptor;
+import scotch.symbol.descriptor.DataTypeDescriptor;
+import scotch.symbol.descriptor.TypeClassDescriptor;
+import scotch.symbol.descriptor.TypeInstanceDescriptor;
+import scotch.symbol.descriptor.TypeParameterDescriptor;
+import scotch.symbol.type.Type;
 
 public class TestUtil {
 
@@ -101,8 +105,12 @@ public class TestUtil {
         return Values.conditional(NULL_SOURCE, condition, whenTrue, whenFalse, type);
     }
 
-    public static Value constant(String name, String dataType, Type type) {
-        return Values.constant(NULL_SOURCE, symbol(name), symbol(dataType), type);
+    public static Value constantRef(String name, String dataType, FieldSignature fieldSignature, Type type) {
+        return Values.constantRef(NULL_SOURCE, symbol(name), symbol(dataType), fieldSignature, type);
+    }
+
+    public static Value constantValue(String name, String dataType, Type type) {
+        return Values.constantValue(NULL_SOURCE, symbol(name), symbol(dataType), type);
     }
 
     public static DataConstructor construct(String name, Type type, List<Value> arguments) {
@@ -125,7 +133,7 @@ public class TestUtil {
 
     public static DataConstructorDefinition ctorDef(int ordinal, String dataType, String name, List<DataFieldDefinition> fields) {
         return DataConstructorDefinition.builder()
-            .withSourceRange(NULL_SOURCE)
+            .withSourceLocation(NULL_SOURCE)
             .withOrdinal(ordinal)
             .withDataType(symbol(dataType))
             .withSymbol(symbol(name))
@@ -135,7 +143,7 @@ public class TestUtil {
 
     public static DataTypeDefinition dataDef(String name, List<Type> parameters, List<DataConstructorDefinition> constructors) {
         return DataTypeDefinition.builder()
-            .withSourceRange(NULL_SOURCE)
+            .withSourceLocation(NULL_SOURCE)
             .withSymbol(symbol(name))
             .withParameters(parameters)
             .withConstructors(constructors)
@@ -153,10 +161,6 @@ public class TestUtil {
             .build();
     }
 
-    public static Type doubleType() {
-        return sum("scotch.data.double.Double");
-    }
-
     public static EqualMatch equal(Value value) {
         return Patterns.equal(NULL_SOURCE, Optional.empty(), value);
     }
@@ -171,7 +175,7 @@ public class TestUtil {
 
     public static DataFieldDefinition fieldDef(int ordinal, String name, Type type) {
         return DataFieldDefinition.builder()
-            .withSourceRange(NULL_SOURCE)
+            .withSourceLocation(NULL_SOURCE)
             .withOrdinal(ordinal)
             .withName(name)
             .withType(type)
@@ -190,12 +194,12 @@ public class TestUtil {
         return compiler(resolver, URI.create("test://" + methodName), lines).generateBytecode();
     }
 
-    public static DefinitionGraph integratedParse(String methodName, ClassLoaderResolver resolver, String... lines) {
-        return compiler(resolver, URI.create("test://" + methodName), lines).checkTypes();
-    }
-
     public static Identifier id(String name, Type type) {
         return Values.id(NULL_SOURCE, symbol(name), type);
+    }
+
+    public static IgnorePattern ignore(Type type) {
+        return Patterns.ignore(NULL_SOURCE, type);
     }
 
     public static Initializer initializer(Type type, Value value, List<InitializerField> fields) {
@@ -238,6 +242,14 @@ public class TestUtil {
         return Values.literal(NULL_SOURCE, value);
     }
 
+    public static PatternMatcher matcher(String symbol, Type type, Argument argument, PatternCase... matchers) {
+        return matcher(symbol, type, asList(argument), matchers);
+    }
+
+    public static PatternMatcher matcher(String symbol, Type type, List<Argument> arguments, PatternCase... matchers) {
+        return Values.matcher(NULL_SOURCE, symbol(symbol), type, arguments, asList(matchers));
+    }
+
     public static Value method(String name, List<Type> instances, Type type) {
         return Values.method(NULL_SOURCE, valueRef(name), instances, type);
     }
@@ -254,16 +266,16 @@ public class TestUtil {
         return DefinitionReference.operatorRef(symbol(name));
     }
 
+    public static TupleField field(Type type, PatternMatch patternMatch) {
+        return Patterns.field(NULL_SOURCE, Optional.empty(), Optional.empty(), type, patternMatch);
+    }
+
+    public static TupleField field(String argument, String field, Type type, PatternMatch patternMatch) {
+        return Patterns.field(NULL_SOURCE, Optional.of(argument), Optional.of(field), type, patternMatch);
+    }
+
     public static PatternCase pattern(String name, List<PatternMatch> matches, Value body) {
         return Patterns.pattern(NULL_SOURCE, symbol(name), matches, body);
-    }
-
-    public static PatternMatcher patterns(String symbol, Type type, Argument argument, PatternCase... matchers) {
-        return patterns(symbol, type, asList(argument), matchers);
-    }
-
-    public static PatternMatcher patterns(String symbol, Type type, List<Argument> arguments, PatternCase... matchers) {
-        return Values.patterns(NULL_SOURCE, symbol(symbol), type, arguments, asList(matchers));
     }
 
     public static RootDefinition root(List<DefinitionReference> definitions) {
@@ -278,8 +290,12 @@ public class TestUtil {
         return DefinitionReference.signatureRef(symbol(name));
     }
 
-    public static Type stringType() {
-        return sum("scotch.data.string.String");
+    public static TupleMatch tuple(String dataType, Type type, List<TupleField> fields) {
+        return Patterns.tuple(NULL_SOURCE, Optional.empty(), symbol(dataType), type, fields);
+    }
+
+    public static TupleMatch tuple(String argument, String dataType, Type type, List<TupleField> fields) {
+        return Patterns.tuple(NULL_SOURCE, Optional.of(argument), symbol(dataType), type, fields);
     }
 
     public static Token token(TokenKind kind, Object value) {
@@ -310,6 +326,10 @@ public class TestUtil {
 
     public static UnshuffledDefinition unshuffled(String name, List<PatternMatch> matches, Value body) {
         return Definitions.unshuffled(NULL_SOURCE, symbol(name), matches, body);
+    }
+
+    public static UnshuffledStructureMatch unshuffledMatch(Type type, PatternMatch... matches) {
+        return Patterns.unshuffledMatch(NULL_SOURCE, type, asList(matches));
     }
 
     public static ValueDefinition value(String name, Value value) {

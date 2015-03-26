@@ -6,13 +6,14 @@ import static scotch.compiler.syntax.value.Values.apply;
 import static scotch.compiler.syntax.value.Values.unshuffled;
 import static scotch.compiler.util.Either.left;
 import static scotch.compiler.util.Either.right;
+import static scotch.symbol.Symbol.symbol;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.function.Function;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Identifier;
 import scotch.compiler.syntax.value.Value;
@@ -29,10 +30,10 @@ public class ValueShuffler {
     public Either<SyntaxError, Value> shuffle(Scope scope, List<Value> message) {
         if (message.size() == 1) {
             Value value = parser.apply(message.get(0));
-            return right(unshuffled(value.getSourceRange(), asList(value)));
+            return right(unshuffled(value.getSourceLocation(), asList(value)));
         } else {
             try {
-                return right(parser.apply(new Shuffler(scope, message).shuffleMessage()));
+                return right(parser.apply(new Shuffler(scope, message).shuffleValue()));
             } catch (ShuffleException exception) {
                 return left(exception.syntaxError);
             }
@@ -59,7 +60,7 @@ public class ValueShuffler {
             this.message = message;
         }
 
-        public Value shuffleMessage() {
+        public Value shuffleValue() {
             Deque<Value> input = new ArrayDeque<>(message);
             Deque<Either<OperatorPair<Identifier>, Value>> output = new ArrayDeque<>();
             Deque<OperatorPair<Identifier>> stack = new ArrayDeque<>();
@@ -86,7 +87,7 @@ public class ValueShuffler {
             while (!stack.isEmpty()) {
                 output.push(left(stack.pop()));
             }
-            return shuffleMessageApply(output);
+            return shuffleApply(output);
         }
 
         private boolean expectsArgument(Deque<Value> input) {
@@ -100,13 +101,15 @@ public class ValueShuffler {
         private OperatorPair<Identifier> getOperator(Value value, boolean expectsPrefix) {
             return value.asOperator(scope)
                 .map(pair -> pair.into((identifier, operator) -> {
-                    if (expectsPrefix && !operator.isPrefix()) {
-                        throw new ShuffleException(parseError("Unexpected binary operator " + identifier.getSymbol(), identifier.getSourceRange()));
+                    if (expectsPrefix && symbol("-").equals(identifier.getSymbol())) {
+                        return getOperator(identifier.withSymbol(symbol("scotch.data.num.(-prefix)")), true);
+                    } else if (expectsPrefix && !operator.isPrefix()) {
+                        throw new ShuffleException(parseError("Unexpected binary operator " + identifier.getSymbol(), identifier.getSourceLocation()));
                     } else {
                         return new OperatorPair<>(operator, identifier);
                     }
                 }))
-                .orElseThrow(() -> new ShuffleException(parseError("Value " + value.prettyPrint() + " is not an operator", value.getSourceRange())));
+                .orElseThrow(() -> new ShuffleException(parseError("Value " + value.prettyPrint() + " is not an operator", value.getSourceLocation())));
         }
 
         private boolean isOperator(Value value) {
@@ -117,7 +120,7 @@ public class ValueShuffler {
             return scope.reserveType();
         }
 
-        private Value shuffleMessageApply(Deque<Either<OperatorPair<Identifier>, Value>> message) {
+        private Value shuffleApply(Deque<Either<OperatorPair<Identifier>, Value>> message) {
             Deque<Value> stack = new ArrayDeque<>();
             while (!message.isEmpty()) {
                 stack.push(message.pollLast().orElseGet(pair -> {

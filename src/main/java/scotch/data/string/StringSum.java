@@ -2,9 +2,9 @@ package scotch.data.string;
 
 import java.util.List;
 import com.google.common.collect.ImmutableList;
-import scotch.compiler.symbol.DataType;
-import scotch.compiler.symbol.TypeParameters;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.DataType;
+import scotch.symbol.TypeParameters;
+import scotch.symbol.type.Type;
 
 @SuppressWarnings("unused")
 @DataType(memberName = "String")

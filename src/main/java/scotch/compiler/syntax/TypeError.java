@@ -8,29 +8,29 @@ import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 import lombok.ToString;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.type.Unification;
-import scotch.compiler.text.SourceRange;
+import scotch.symbol.type.Unification;
+import scotch.compiler.text.SourceLocation;
 
 @AllArgsConstructor(access = PRIVATE)
 @EqualsAndHashCode(callSuper = false)
 @ToString
 public class TypeError extends SyntaxError {
 
-    public static SyntaxError typeError(Unification unification, SourceRange location) {
+    public static SyntaxError typeError(Unification unification, SourceLocation location) {
         return new TypeError(unification, location);
     }
 
-    @NonNull private final Unification unification;
-    @NonNull private final SourceRange sourceRange;
+    @NonNull private final Unification    unification;
+    @NonNull private final SourceLocation sourceLocation;
 
     @Override
     public String prettyPrint() {
-        return prettyPrint_() + " " + sourceRange.prettyPrint();
+        return prettyPrint_() + " " + sourceLocation.prettyPrint();
     }
 
     @Override
     public String report(String indent, int indentLevel) {
-        return sourceRange.report(indent, indentLevel) + "\n"
+        return sourceLocation.report(indent, indentLevel) + "\n"
             + repeat(indent, indentLevel + 1) + prettyPrint_();
     }
 

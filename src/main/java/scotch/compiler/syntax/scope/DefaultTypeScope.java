@@ -1,8 +1,8 @@
 package scotch.compiler.syntax.scope;
 
 import static java.util.stream.Collectors.toList;
-import static scotch.compiler.symbol.type.Unification.failedBinding;
-import static scotch.compiler.symbol.type.Unification.unified;
+import static scotch.symbol.type.Unification.failedBinding;
+import static scotch.symbol.type.Unification.unified;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,14 +14,14 @@ import java.util.Optional;
 import java.util.Set;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.util.SymbolGenerator;
-import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.type.TypeScope;
-import scotch.compiler.symbol.type.Unification;
-import scotch.compiler.symbol.type.SumType;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.type.VariableType;
+import scotch.symbol.Symbol;
+import scotch.symbol.util.SymbolGenerator;
+import scotch.symbol.SymbolResolver;
+import scotch.symbol.type.TypeScope;
+import scotch.symbol.type.Unification;
+import scotch.symbol.type.SumType;
+import scotch.symbol.type.Type;
+import scotch.symbol.type.VariableType;
 
 public class DefaultTypeScope implements TypeScope {
 

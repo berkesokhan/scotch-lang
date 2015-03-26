@@ -5,23 +5,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import scotch.compiler.symbol.MethodSignature;
-import scotch.compiler.symbol.Operator;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Symbol.QualifiedSymbol;
-import scotch.compiler.symbol.Symbol.SymbolVisitor;
-import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
-import scotch.compiler.symbol.SymbolEntry;
-import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
-import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
-import scotch.compiler.symbol.descriptor.TypeClassDescriptor;
-import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.compiler.symbol.type.SumType;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.type.Unification;
-import scotch.compiler.symbol.type.VariableType;
-import scotch.compiler.symbol.util.SymbolGenerator;
+import scotch.symbol.MethodSignature;
+import scotch.symbol.Operator;
+import scotch.symbol.Symbol;
+import scotch.symbol.Symbol.QualifiedSymbol;
+import scotch.symbol.Symbol.SymbolVisitor;
+import scotch.symbol.Symbol.UnqualifiedSymbol;
+import scotch.symbol.SymbolEntry;
+import scotch.symbol.SymbolResolver;
+import scotch.symbol.descriptor.DataConstructorDescriptor;
+import scotch.symbol.descriptor.DataTypeDescriptor;
+import scotch.symbol.descriptor.TypeClassDescriptor;
+import scotch.symbol.descriptor.TypeInstanceDescriptor;
+import scotch.symbol.type.SumType;
+import scotch.symbol.type.Type;
+import scotch.symbol.type.Unification;
+import scotch.symbol.type.VariableType;
+import scotch.symbol.util.SymbolGenerator;
 import scotch.compiler.syntax.definition.Import;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ValueReference;
@@ -86,7 +86,7 @@ public class RootScope extends Scope {
 
     @Override
     public Scope enterScope(String moduleName, List<Import> imports) {
-        Scope scope = scope(this, new DefaultTypeScope(symbolGenerator, resolver), resolver, moduleName, imports);
+        Scope scope = scope(this, new DefaultTypeScope(symbolGenerator, resolver), resolver, symbolGenerator, moduleName, imports);
         children.put(moduleName, scope);
         return scope;
     }

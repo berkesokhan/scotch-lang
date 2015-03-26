@@ -5,6 +5,8 @@ import static java.util.stream.Collectors.toList;
 import static me.qmx.jitescript.JDKVersion.V1_8;
 import static me.qmx.jitescript.util.CodegenUtils.c;
 import static me.qmx.jitescript.util.CodegenUtils.p;
+import static me.qmx.jitescript.util.CodegenUtils.sig;
+import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 import static scotch.compiler.output.GeneratedClass.ClassType.DATA_CONSTRUCTOR;
 import static scotch.compiler.syntax.reference.DefinitionReference.rootRef;
 import static scotch.compiler.util.Pair.pair;
@@ -22,11 +24,6 @@ import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.error.CompileException;
 import scotch.compiler.output.GeneratedClass;
 import scotch.compiler.output.GeneratedClass.ClassType;
-import scotch.compiler.symbol.MethodSignature;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.compiler.symbol.type.FunctionType;
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionGraph;
@@ -34,16 +31,19 @@ import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.reference.ModuleReference;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
-import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 import scotch.runtime.Copyable;
+import scotch.symbol.MethodSignature;
+import scotch.symbol.Symbol;
+import scotch.symbol.descriptor.TypeInstanceDescriptor;
+import scotch.symbol.type.Type;
 
 public class BytecodeGenerator {
 
     private final DefinitionGraph                   graph;
-    private final Deque<Pair<JiteClass, ClassType>> jiteClasses;
+    private final Deque<Pair<JiteClass, ClassType>> classStack;
     private final List<GeneratedClass>              generatedClasses;
     private final Deque<Scope>                      scopes;
     private final Deque<List<String>>               arguments;
@@ -54,7 +54,7 @@ public class BytecodeGenerator {
 
     public BytecodeGenerator(DefinitionGraph graph) {
         this.graph = graph;
-        this.jiteClasses = new ArrayDeque<>();
+        this.classStack = new ArrayDeque<>();
         this.generatedClasses = new ArrayList<>();
         this.scopes = new ArrayDeque<>();
         this.arguments = new ArrayDeque<>(asList(ImmutableList.of()));
@@ -74,19 +74,27 @@ public class BytecodeGenerator {
         cases.push(new CaseEntry(size));
     }
 
-    public void beginClass(ClassType classType, String className, SourceRange sourceRange) {
-        jiteClasses.push(pair(new JiteClass(className), classType));
-        currentClass().setSourceFile(sourceRange.getPath());
+    public void beginClass(ClassType classType, String className, SourceLocation sourceLocation) {
+        JiteClass jiteClass = new JiteClass(className);
+        pushClass(jiteClass, classType);
+        jiteClass.setSourceFile(sourceLocation.getPath());
     }
 
-    public void beginConstant(String className, SourceRange sourceRange) {
-        jiteClasses.push(pair(new JiteClass(className, currentClass().getClassName(), new String[0]), DATA_CONSTRUCTOR));
-        currentClass().setSourceFile(sourceRange.getPath());
+    public void beginConstant(String className, SourceLocation sourceLocation) {
+        JiteClass jiteClass = new JiteClass(className, currentClass().getClassName(), new String[0]);
+        pushClass(jiteClass, DATA_CONSTRUCTOR);
+        jiteClass.setSourceFile(sourceLocation.getPath());
+        jiteClass.defineDefaultConstructor();
+        jiteClass.defineMethod("call", ACC_PUBLIC, sig(Object.class), new CodeBlock() {{
+            aload(0);
+            areturn();
+        }});
     }
 
-    public void beginConstructor(String className, SourceRange sourceRange) {
-        jiteClasses.push(pair(new JiteClass(className, currentClass().getClassName(), new String[] { p(Copyable.class) }), DATA_CONSTRUCTOR));
-        currentClass().setSourceFile(sourceRange.getPath());
+    public void beginConstructor(String className, SourceLocation sourceLocation) {
+        JiteClass jiteClass = new JiteClass(className, currentClass().getClassName(), new String[] { p(Copyable.class) });
+        pushClass(jiteClass, DATA_CONSTRUCTOR);
+        jiteClass.setSourceFile(sourceLocation.getPath());
     }
 
     public void beginMatches() {
@@ -116,7 +124,7 @@ public class BytecodeGenerator {
     }
 
     public JiteClass currentClass() {
-        return jiteClasses.peek().getLeft();
+        return classStack.peek().getLeft();
     }
 
     public void defineDefaultConstructor(int access) {
@@ -143,7 +151,7 @@ public class BytecodeGenerator {
     }
 
     public void endClass() {
-        jiteClasses.pop().into((jiteClass, type) ->
+        classStack.pop().into((jiteClass, type) ->
             generatedClasses.add(new GeneratedClass(type, c(jiteClass.getClassName()), jiteClass.toBytes(V1_8))));
     }
 
@@ -203,6 +211,10 @@ public class BytecodeGenerator {
             .collect(toList());
     }
 
+    public String getDataConstructorClass(Symbol symbol) {
+        return scope().getDataConstructorClass(symbol);
+    }
+
     public Class<?>[] getLambdaCaptureTypes() {
         List<Class<?>> types = ImmutableList.<Class<?>>builder()
             .addAll(getCaptureTypes(getCaptures()))
@@ -219,8 +231,26 @@ public class BytecodeGenerator {
         return types.toArray(new Class<?>[types.size()]);
     }
 
+    public TypeInstanceDescriptor getTypeInstance(ClassReference classRef, ModuleReference moduleRef, List<Type> parameters) {
+        return scope().getTypeInstance(classRef, moduleRef, parameters).get();
+    }
+
+    public MethodSignature getValueSignature(Symbol symbol) {
+        return scope()
+            .getValueSignature(symbol)
+            .orElseThrow(() -> new IllegalStateException("Could not get value method for " + symbol));
+    }
+
     public int getVariable(String name) {
         int offset = getAllVariables().indexOf(name);
+        if (offset < 0 ) {
+            Scope scope = scopes.pop();
+            try {
+                offset = getAllVariables().indexOf(name);
+            } finally {
+                scopes.push(scope);
+            }
+        }
         if (offset >= 0) {
             return offset;
         } else {
@@ -262,7 +292,7 @@ public class BytecodeGenerator {
     }
 
     public Class<? extends Callable> typeOf(Type type) {
-        return type instanceof FunctionType ? Applicable.class : Callable.class;
+        return Callable.class;
     }
 
     private <T extends Scoped> void enterScope(T scoped) {
@@ -312,18 +342,8 @@ public class BytecodeGenerator {
         scopes.pop();
     }
 
-    public String getDataConstructorClass(Symbol symbol) {
-        return scope().getDataConstructorClass(symbol);
-    }
-
-    public TypeInstanceDescriptor getTypeInstance(ClassReference classRef, ModuleReference moduleRef, List<Type> parameters) {
-        return scope().getTypeInstance(classRef, moduleRef, parameters).get();
-    }
-
-    public MethodSignature getValueSignature(Symbol symbol) {
-        return scope()
-            .getValueSignature(symbol)
-            .orElseThrow(() -> new IllegalStateException("Could not get value method for " + symbol));
+    private void pushClass(JiteClass jiteClass, ClassType classType) {
+        classStack.push(pair(jiteClass, classType));
     }
 
     private static class CaseEntry {

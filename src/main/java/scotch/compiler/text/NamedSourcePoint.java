@@ -36,11 +36,11 @@ public class NamedSourcePoint {
         return "[" + quote(source) + " (" + line + ", " + column + ")]";
     }
 
-    public SourceRange to(NamedSourcePoint end) {
+    public SourceLocation to(NamedSourcePoint end) {
         if (!isSameSourceAs(end)) {
-            throw new IllegalArgumentException("Source range covers two sources: " + quote(source) + " and " + quote(end.source));
+            throw new IllegalArgumentException("Source location covers two sources: " + quote(source) + " and " + quote(end.source));
         }
-        return SourceRange.source(source, toPoint(), end.toPoint());
+        return SourceLocation.source(source, toPoint(), end.toPoint());
     }
 
     private boolean isSameSourceAs(NamedSourcePoint end) {

@@ -19,9 +19,9 @@ import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.error.SymbolNotFoundError;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.Operator;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.Operator;
+import scotch.symbol.Symbol;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
@@ -35,13 +35,13 @@ import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class PrecedenceParser {
 
     private final DefinitionGraph                           graph;
     private final Deque<Scope>                              scopes;
-    private final Map<DefinitionReference, Scope>           functionScopes;
+    private final Map<DefinitionReference, Scope>           patternScopes;
     private final Map<DefinitionReference, DefinitionEntry> entries;
     private final Deque<List<String>>                       memberNames;
     private final List<SyntaxError>                         errors;
@@ -49,7 +49,7 @@ public class PrecedenceParser {
     public PrecedenceParser(DefinitionGraph graph) {
         this.graph = graph;
         this.scopes = new ArrayDeque<>();
-        this.functionScopes = new HashMap<>();
+        this.patternScopes = new HashMap<>();
         this.entries = new HashMap<>();
         this.memberNames = new ArrayDeque<>(asList(ImmutableList.of()));
         this.errors = new ArrayList<>();
@@ -121,10 +121,10 @@ public class PrecedenceParser {
     public List<DefinitionReference> processPatterns() {
         List<DefinitionReference> members = new ArrayList<>();
         scope().getPatternCases().forEach((symbol, patternCases) -> {
-            SourceRange sourceRange = patternCases.subList(1, patternCases.size()).stream()
-                .map(PatternCase::getSourceRange)
-                .reduce(patternCases.get(0).getSourceRange(), SourceRange::extend);
-            PatternMatcher function = buildMatcher(patternCases, sourceRange);
+            SourceLocation sourceLocation = patternCases.subList(1, patternCases.size()).stream()
+                .map(PatternCase::getSourceLocation)
+                .reduce(patternCases.get(0).getSourceLocation(), SourceLocation::extend);
+            PatternMatcher function = buildMatcher(patternCases, sourceLocation);
 
             patternCases.stream()
                 .map(this::collect)
@@ -133,18 +133,17 @@ public class PrecedenceParser {
                 .forEach(scope -> scope.setParent(getScope(function.getReference())));
 
             Scope scope = scope().enterScope();
-            functionScopes.put(valueRef(symbol), scope);
+            patternScopes.put(valueRef(symbol), scope);
             getScope(function.getReference()).setParent(scope);
             ValueDefinition.builder()
-                .withSourceRange(sourceRange)
+                .withSourceLocation(sourceLocation)
                 .withSymbol(symbol)
-                .withType(scope().reserveType())
                 .withBody(function)
                 .build()
                 .parsePrecedence(this)
                 .map(Definition::getReference)
                 .map(members::add);
-            functionScopes.remove(valueRef(symbol));
+            patternScopes.remove(valueRef(symbol));
         });
         return members;
     }
@@ -212,29 +211,29 @@ public class PrecedenceParser {
             });
     }
 
-    public void symbolNotFound(Symbol symbol, SourceRange sourceRange) {
-        errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceRange));
+    public void symbolNotFound(Symbol symbol, SourceLocation sourceLocation) {
+        errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceLocation));
     }
 
-    private PatternMatcher buildMatcher(List<PatternCase> patternCases, SourceRange sourceRange) {
-        List<Argument> arguments = buildFunctionArguments(patternCases, sourceRange);
+    private PatternMatcher buildMatcher(List<PatternCase> patternCases, SourceLocation sourceLocation) {
+        List<Argument> arguments = buildFunctionArguments(patternCases, sourceLocation);
         PatternMatcher matcher = PatternMatcher.builder()
-            .withSourceRange(sourceRange)
+            .withSourceLocation(sourceLocation)
             .withSymbol(scope().reserveSymbol(ImmutableList.of()))
             .withType(scope().reserveType())
             .withArguments(arguments)
             .withPatterns(patternCases)
             .build();
-        functionScopes.put(matcher.getReference(), scope().enterScope());
+        patternScopes.put(matcher.getReference(), scope().enterScope());
         return matcher;
     }
 
-    private List<Argument> buildFunctionArguments(List<PatternCase> patterns, SourceRange sourceRange) {
+    private List<Argument> buildFunctionArguments(List<PatternCase> patterns, SourceLocation sourceLocation) {
         int arity = patterns.get(0).getArity();
         List<Argument> arguments = new ArrayList<>();
         for (int i = 0; i < arity; i++) {
             arguments.add(Argument.builder()
-                .withSourceRange(sourceRange)
+                .withSourceLocation(sourceLocation)
                 .withName("#" + i)
                 .withType(scope().reserveType())
                 .build());
@@ -256,7 +255,9 @@ public class PrecedenceParser {
     }
 
     private Scope getScope(DefinitionReference reference) {
-        return graph.tryGetScope(reference).orElseGet(() -> functionScopes.get(reference));
+        return graph.tryGetScope(reference).orElseGet(
+            () -> Optional.ofNullable(patternScopes.get(reference)).orElseGet(
+                () -> entries.get(reference).getScope()));
     }
 
     public void defineOperator(Symbol symbol, Operator operator) {

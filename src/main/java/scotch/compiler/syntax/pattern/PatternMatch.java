@@ -9,11 +9,10 @@ import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.Operator;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.Operator;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.syntax.value.InstanceMap;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Either;
 import scotch.compiler.util.Pair;
 
@@ -37,7 +36,7 @@ public abstract class PatternMatch {
 
     public abstract PatternMatch bind(String argument, Scope scope);
 
-    public abstract PatternMatch bindMethods(TypeChecker state, InstanceMap instances);
+    public abstract PatternMatch bindMethods(TypeChecker state);
 
     public abstract PatternMatch bindTypes(TypeChecker state);
 
@@ -48,7 +47,7 @@ public abstract class PatternMatch {
 
     public abstract CodeBlock generateBytecode(BytecodeGenerator state);
 
-    public abstract SourceRange getSourceRange();
+    public abstract SourceLocation getSourceLocation();
 
     public abstract Type getType();
 
@@ -68,5 +67,5 @@ public abstract class PatternMatch {
     @Override
     public abstract String toString();
 
-    public abstract PatternMatch withType(Type generate);
+    public abstract PatternMatch withType(Type type);
 }

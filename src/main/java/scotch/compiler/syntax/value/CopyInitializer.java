@@ -12,6 +12,8 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.LambdaBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
+import scotch.compiler.intermediate.IntermediateValue;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -19,8 +21,9 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.text.SourceRange;
+import scotch.runtime.RuntimeSupport;
+import scotch.symbol.type.Type;
+import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Callable;
 import scotch.runtime.Copyable;
 import scotch.runtime.SuppliedThunk;
@@ -29,12 +32,12 @@ import scotch.runtime.SuppliedThunk;
 @ToString
 public class CopyInitializer extends Value {
 
-    private final SourceRange            sourceRange;
+    private final SourceLocation         sourceLocation;
     private final Value                  value;
     private final List<InitializerField> fields;
 
-    public CopyInitializer(SourceRange sourceRange, Value value, List<InitializerField> fields) {
-        this.sourceRange = sourceRange;
+    public CopyInitializer(SourceLocation sourceLocation, Value value, List<InitializerField> fields) {
+        this.sourceLocation = sourceLocation;
         this.value = value;
         this.fields = fields;
     }
@@ -50,16 +53,21 @@ public class CopyInitializer extends Value {
     }
 
     @Override
+    public IntermediateValue generateIntermediateCode(IntermediateGenerator state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
     public Value bindTypes(TypeChecker state) {
-        return new CopyInitializer(sourceRange, value.bindTypes(state), fields.stream()
+        return new CopyInitializer(sourceLocation, value.bindTypes(state), fields.stream()
             .map(field -> field.bindTypes(state))
             .collect(toList()));
     }
 
     @Override
-    public Value bindMethods(TypeChecker state, InstanceMap instances) {
-        return new CopyInitializer(sourceRange, value.bindTypes(state), fields.stream()
-            .map(field -> field.bindMethods(state, instances))
+    public Value bindMethods(TypeChecker state) {
+        return new CopyInitializer(sourceLocation, value.bindTypes(state), fields.stream()
+            .map(field -> field.bindMethods(state))
             .collect(toList()));
     }
 
@@ -102,7 +110,7 @@ public class CopyInitializer extends Value {
                         pop();
                     });
                     invokeinterface(p(Copyable.class), "copy", sig(Copyable.class, Map.class));
-                    invokestatic(p(Callable.class), "box", sig(Callable.class, Object.class));
+                    invokestatic(p(RuntimeSupport.class), "box", sig(Callable.class, Object.class));
                     areturn();
                 }});
             }});
@@ -111,8 +119,8 @@ public class CopyInitializer extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override

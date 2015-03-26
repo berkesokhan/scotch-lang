@@ -11,6 +11,9 @@ import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
+import scotch.compiler.intermediate.IntermediateValue;
+import scotch.compiler.intermediate.Intermediates;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -18,22 +21,22 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.FunctionType;
-import scotch.compiler.symbol.type.InstanceType;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.Symbol;
+import scotch.symbol.type.FunctionType;
+import scotch.symbol.type.InstanceType;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.reference.ValueReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class Method extends Value {
 
-    private final SourceRange    sourceRange;
+    private final SourceLocation sourceLocation;
     private final ValueReference reference;
     private final List<Type>     instances;
     private final Type           type;
 
-    Method(SourceRange sourceRange, ValueReference reference, List<? extends Type> instances, Type type) {
-        this.sourceRange = sourceRange;
+    Method(SourceLocation sourceLocation, ValueReference reference, List<? extends Type> instances, Type type) {
+        this.sourceLocation = sourceLocation;
         this.reference = reference;
         this.instances = ImmutableList.copyOf(instances);
         this.type = type;
@@ -50,7 +53,12 @@ public class Method extends Value {
     }
 
     @Override
-    public Value bindMethods(TypeChecker state, InstanceMap instances) {
+    public IntermediateValue generateIntermediateCode(IntermediateGenerator state) {
+        return Intermediates.valueRef(reference);
+    }
+
+    @Override
+    public Value bindMethods(TypeChecker state) {
         List<InstanceType> instanceTypes = new ArrayList<>();
         Type type = this.type;
         for (int i = 0; i < this.instances.size(); i++) {
@@ -67,7 +75,7 @@ public class Method extends Value {
                 if (optionalTypeArgument.isPresent()) {
                     typeArgument = optionalTypeArgument.get();
                 } else {
-                    state.error(noBinding(reference.getSymbol(), sourceRange));
+                    state.error(noBinding(reference.getSymbol(), sourceLocation));
                     return this;
                 }
             }
@@ -97,7 +105,7 @@ public class Method extends Value {
             return true;
         } else if (o instanceof Method) {
             Method other = (Method) o;
-            return Objects.equals(sourceRange, other.sourceRange)
+            return Objects.equals(sourceLocation, other.sourceLocation)
                 && Objects.equals(reference, other.reference)
                 && Objects.equals(instances, other.instances)
                 && Objects.equals(type, other.type);
@@ -116,8 +124,8 @@ public class Method extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -151,6 +159,6 @@ public class Method extends Value {
 
     @Override
     public Method withType(Type type) {
-        return new Method(sourceRange, reference, instances, type);
+        return new Method(sourceLocation, reference, instances, type);
     }
 }

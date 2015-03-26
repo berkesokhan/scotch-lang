@@ -12,6 +12,8 @@ import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
+import scotch.compiler.intermediate.IntermediateValue;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -19,9 +21,9 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Either;
 
 public class UnshuffledValue extends Value {
@@ -30,11 +32,11 @@ public class UnshuffledValue extends Value {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final List<Value> values;
+    private final SourceLocation sourceLocation;
+    private final List<Value>    values;
 
-    UnshuffledValue(SourceRange sourceRange, List<Value> values) {
-        this.sourceRange = sourceRange;
+    UnshuffledValue(SourceLocation sourceLocation, List<Value> values) {
+        this.sourceLocation = sourceLocation;
         this.values = ImmutableList.copyOf(values);
     }
 
@@ -53,9 +55,14 @@ public class UnshuffledValue extends Value {
     }
 
     @Override
-    public Value bindMethods(TypeChecker state, InstanceMap instances) {
+    public IntermediateValue generateIntermediateCode(IntermediateGenerator state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Value bindMethods(TypeChecker state) {
         return withValues(values.stream()
-            .map(value -> value.bindMethods(state, instances))
+            .map(value -> value.bindMethods(state))
             .collect(toList()));
     }
 
@@ -103,8 +110,8 @@ public class UnshuffledValue extends Value {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -142,11 +149,16 @@ public class UnshuffledValue extends Value {
 
     @Override
     public Value unwrap() {
-        return collapse().unwrap();
+        Value result = collapse();
+        if (result != this) {
+            return result.unwrap();
+        } else {
+            return result;
+        }
     }
 
-    public UnshuffledValue withSourceRange(SourceRange sourceRange) {
-        return new UnshuffledValue(sourceRange, values);
+    public UnshuffledValue withSourceLocation(SourceLocation sourceLocation) {
+        return new UnshuffledValue(sourceLocation, values);
     }
 
     @Override
@@ -155,23 +167,23 @@ public class UnshuffledValue extends Value {
     }
 
     public UnshuffledValue withValues(List<Value> members) {
-        return new UnshuffledValue(sourceRange, members);
+        return new UnshuffledValue(sourceLocation, members);
     }
 
     public static class Builder implements SyntaxBuilder<UnshuffledValue> {
 
-        private final List<Value>           members;
-        private       Optional<SourceRange> sourceRange;
+        private final List<Value>              members;
+        private       Optional<SourceLocation> sourceLocation;
 
         private Builder() {
             members = new ArrayList<>();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public UnshuffledValue build() {
             return unshuffled(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 members
             );
         }
@@ -182,8 +194,8 @@ public class UnshuffledValue extends Value {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
     }

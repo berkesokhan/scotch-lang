@@ -2,27 +2,27 @@ package scotch.data.list;
 
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.joining;
-import static scotch.compiler.symbol.Value.Fixity.RIGHT_INFIX;
-import static scotch.compiler.symbol.type.Types.fn;
-import static scotch.compiler.symbol.type.Types.sum;
-import static scotch.compiler.symbol.type.Types.var;
-import static scotch.runtime.RuntimeUtil.applicable;
-import static scotch.runtime.RuntimeUtil.callable;
+import static scotch.symbol.Value.Fixity.RIGHT_INFIX;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.var;
+import static scotch.runtime.RuntimeSupport.applicable;
+import static scotch.runtime.RuntimeSupport.callable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
-import scotch.compiler.symbol.DataConstructor;
-import scotch.compiler.symbol.DataField;
-import scotch.compiler.symbol.DataFieldType;
-import scotch.compiler.symbol.DataType;
-import scotch.compiler.symbol.TypeParameter;
-import scotch.compiler.symbol.TypeParameters;
-import scotch.compiler.symbol.Value;
-import scotch.compiler.symbol.ValueType;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.DataConstructor;
+import scotch.symbol.DataField;
+import scotch.symbol.DataFieldType;
+import scotch.symbol.DataType;
+import scotch.symbol.TypeParameter;
+import scotch.symbol.TypeParameters;
+import scotch.symbol.Value;
+import scotch.symbol.ValueType;
+import scotch.symbol.type.Type;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 
@@ -77,9 +77,7 @@ public abstract class ConsList<A> {
     protected abstract List<A> toString_();
 
     @AllArgsConstructor
-    @DataConstructor(ordinal = 1, memberName = ":", dataType = "[]", parameters = {
-        @TypeParameter(name = "a")
-    })
+    @DataConstructor(ordinal = 1, memberName = ":", dataType = "[]")
     public static class ConsCell<A> extends ConsList<A> {
 
         @DataFieldType(forMember = "_0")

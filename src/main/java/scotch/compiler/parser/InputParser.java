@@ -38,20 +38,21 @@ import static scotch.compiler.scanner.Token.TokenKind.RIGHT_PARENTHESIS;
 import static scotch.compiler.scanner.Token.TokenKind.RIGHT_SQUARE_BRACE;
 import static scotch.compiler.scanner.Token.TokenKind.SEMICOLON;
 import static scotch.compiler.scanner.Token.TokenKind.STRING_LITERAL;
-import static scotch.compiler.symbol.Symbol.qualified;
-import static scotch.compiler.symbol.Symbol.splitQualified;
-import static scotch.compiler.symbol.Symbol.symbol;
-import static scotch.compiler.symbol.Symbol.unqualified;
-import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
-import static scotch.compiler.symbol.Value.Fixity.PREFIX;
-import static scotch.compiler.symbol.Value.Fixity.RIGHT_INFIX;
-import static scotch.compiler.symbol.type.Types.fn;
-import static scotch.compiler.symbol.type.Types.sum;
-import static scotch.compiler.symbol.type.Types.var;
 import static scotch.compiler.syntax.definition.DefinitionEntry.entry;
 import static scotch.compiler.syntax.definition.DefinitionGraph.createGraph;
+import static scotch.compiler.syntax.pattern.ComplexMatchBuilder.complexMatchBuilder;
 import static scotch.compiler.text.TextUtil.repeat;
 import static scotch.compiler.util.Pair.pair;
+import static scotch.symbol.Symbol.qualified;
+import static scotch.symbol.Symbol.splitQualified;
+import static scotch.symbol.Symbol.symbol;
+import static scotch.symbol.Symbol.unqualified;
+import static scotch.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.symbol.Value.Fixity.PREFIX;
+import static scotch.symbol.Value.Fixity.RIGHT_INFIX;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.var;
 import static scotch.util.StringUtil.quote;
 
 import java.util.ArrayDeque;
@@ -72,12 +73,6 @@ import lombok.NonNull;
 import scotch.compiler.scanner.Scanner;
 import scotch.compiler.scanner.Token;
 import scotch.compiler.scanner.Token.TokenKind;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.Value.Fixity;
-import scotch.compiler.symbol.type.SumType;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.syntax.builder.BuilderUtil;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.ClassDefinition.ClassDefinitionBuilder;
@@ -99,12 +94,14 @@ import scotch.compiler.syntax.definition.ValueSignature;
 import scotch.compiler.syntax.pattern.CaptureMatch;
 import scotch.compiler.syntax.pattern.EqualMatch;
 import scotch.compiler.syntax.pattern.IgnorePattern;
+import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.syntax.pattern.PatternMatch;
+import scotch.compiler.syntax.pattern.UnshuffledStructureMatch;
 import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.Argument;
 import scotch.compiler.syntax.value.Conditional;
-import scotch.compiler.syntax.value.Constant;
+import scotch.compiler.syntax.value.ConstantReference;
 import scotch.compiler.syntax.value.DataConstructor;
 import scotch.compiler.syntax.value.DefaultOperator;
 import scotch.compiler.syntax.value.FunctionValue;
@@ -113,11 +110,18 @@ import scotch.compiler.syntax.value.Initializer;
 import scotch.compiler.syntax.value.InitializerField;
 import scotch.compiler.syntax.value.Let;
 import scotch.compiler.syntax.value.Literal;
+import scotch.compiler.syntax.value.PatternMatcher;
 import scotch.compiler.syntax.value.UnshuffledValue;
 import scotch.compiler.syntax.value.Value;
 import scotch.compiler.text.NamedSourcePoint;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Pair;
+import scotch.symbol.Symbol;
+import scotch.symbol.SymbolResolver;
+import scotch.symbol.Value.Fixity;
+import scotch.symbol.type.SumType;
+import scotch.symbol.type.Type;
+import scotch.symbol.util.SymbolGenerator;
 import scotch.util.StringUtil;
 
 public class InputParser {
@@ -160,20 +164,18 @@ public class InputParser {
         return scoped(() -> definition(ValueDefinition.builder(),
             value -> {
                 Value body = createConstructorBody(constructor, type);
-                value
-                    .withSymbol(constructor.getSymbol())
-                    .withBody(body)
-                    .withType(body.getType());
+                value.withSymbol(constructor.getSymbol()).withBody(body);
             }
         ));
     }
 
     private Value createConstructorBody(DataConstructorDefinition constructor, SumType type) {
         if (constructor.isNiladic()) {
-            return node(Constant.builder(),
+            return node(ConstantReference.builder(),
                 constant -> constant
                     .withDataType(constructor.getDataType())
                     .withSymbol(constructor.getSymbol())
+                    .withConstantField(constructor.getConstantField())
                     .withType(type));
         } else {
             return scoped(() -> node(
@@ -231,6 +233,12 @@ public class InputParser {
         return literals.stream().anyMatch(this::expects);
     }
 
+    private boolean expectsMatch() {
+        return expectsWord()
+            || expectsLiteral()
+            || expects(LEFT_PARENTHESIS);
+    }
+
     private boolean expectsModule() {
         return expectsWord("module");
     }
@@ -282,12 +290,21 @@ public class InputParser {
         return expectsAt(offset, IDENTIFIER) && Objects.equals(scanner.peekAt(offset).getValue(), value);
     }
 
-    private SourceRange getSourceRange() {
+    private SourceLocation getSourceLocation() {
         return unmarkPosition().to(scanner.getPreviousPosition());
     }
 
     private void markPosition() {
         positions.push(scanner.getPosition());
+    }
+
+    private void named(Symbol symbol, Consumer<Symbol> function) {
+        memberNames.push(symbol.getMemberNames());
+        try {
+            function.accept(symbol);
+        } finally {
+            memberNames.pop();
+        }
     }
 
     private Token nextToken() {
@@ -302,7 +319,7 @@ public class InputParser {
             unmarkPosition();
             throw exception;
         }
-        return builder.withSourceRange(getSourceRange()).build();
+        return builder.withSourceLocation(getSourceLocation()).build();
     }
 
     private DataFieldDefinition parseAnonymousField(int offset, Map<String, Type> constraints) {
@@ -339,13 +356,8 @@ public class InputParser {
             .withType(reserveType()));
     }
 
-    private List<Argument> parseArguments() {
-        List<Argument> arguments = new ArrayList<>();
-        arguments.add(parseArgument());
-        while (expectsWord()) {
-            arguments.add(parseArgument());
-        }
-        return arguments;
+    private CaptureMatch parseCaptureMatch() {
+        return node(CaptureMatch.builder(), builder -> builder.withIdentifier(parseWordReference()));
     }
 
     private List<Type> parseClassArguments() {
@@ -379,6 +391,21 @@ public class InputParser {
         }
         require(RIGHT_CURLY_BRACE);
         return members;
+    }
+
+    private PatternMatch parseComplexMatch() {
+        return node(complexMatchBuilder(symbolGenerator), match -> {
+            require(LEFT_PARENTHESIS);
+            match.withPatternMatch(parseUnshuffledMatch());
+            if (expects(COMMA)) {
+                match.tuplize();
+                while (expects(COMMA)) {
+                    nextToken();
+                    match.withPatternMatch(parseUnshuffledMatch());
+                }
+            }
+            require(RIGHT_PARENTHESIS);
+        });
     }
 
     private Value parseConditional() {
@@ -542,14 +569,14 @@ public class InputParser {
         }
         UnshuffledValue.Builder builder = UnshuffledValue.builder();
         values.forEach(builder::withMember);
-        builder.withSourceRange(SourceRange.extent(values.stream()
-            .map(Value::getSourceRange)
+        builder.withSourceLocation(SourceLocation.extent(values.stream()
+            .map(Value::getSourceLocation)
             .collect(toList())));
         return builder.build();
     }
 
-    private ParseException parseException(String message, SourceRange sourceRange) {
-        throw new ParseException(message, sourceRange);
+    private ParseException parseException(String message, SourceLocation sourceLocation) {
+        throw new ParseException(message, sourceLocation);
     }
 
     private Value parseExpression() {
@@ -586,20 +613,6 @@ public class InputParser {
         }
         require(RIGHT_CURLY_BRACE);
         return fields;
-    }
-
-    private FunctionValue parseFunction() {
-        return scoped(() -> node(FunctionValue.builder(),
-            function -> definition(ScopeDefinition.builder(), scope -> {
-                Symbol symbol = reserveSymbol();
-                require(BACKSLASH);
-                function.withSymbol(symbol);
-                function.withArguments(parseArguments());
-                require(ARROW);
-                function.withBody(parseExpression());
-                scope.withSymbol(symbol);
-            })
-        ));
     }
 
     private Import parseImport() {
@@ -691,17 +704,39 @@ public class InputParser {
         });
     }
 
+    private Optional<PatternMatch> parseLiteralMatch(boolean required) {
+        PatternMatch match = null;
+        if (expectsIgnoreMatch()) {
+            match = parseIgnoreMatch();
+        } else if (expectsWord()) {
+            match = parseCaptureMatch();
+        } else if (required) {
+            throw unexpected(IDENTIFIER);
+        }
+        return Optional.ofNullable(match);
+    }
+
+    private IgnorePattern parseIgnoreMatch() {
+        return node(IgnorePattern.builder(), builder -> {
+            requireWord("_");
+            builder.withType(reserveType());
+        });
+    }
+
+    private boolean expectsIgnoreMatch() {
+        return expectsWord("_");
+    }
+
     private Optional<PatternMatch> parseMatch(boolean required) {
         PatternMatch match = null;
-        if (expectsWord("_")) {
-            match = node(IgnorePattern.builder(), builder -> {
-                requireWord("_");
-                builder.withType(reserveType());
-            });
+        if (expectsIgnoreMatch()) {
+            match = parseIgnoreMatch();
         } else if (expectsWord()) {
-            match = node(CaptureMatch.builder(), builder -> builder.withIdentifier(parseWordReference()));
+            match = parseCaptureMatch();
         } else if (expectsLiteral()) {
             match = node(EqualMatch.builder(), builder -> builder.withValue(parseLiteral()));
+        } else if (expects(LEFT_PARENTHESIS)) {
+            match = parseComplexMatch();
         } else if (required) {
             throw unexpected(IDENTIFIER);
         }
@@ -744,10 +779,13 @@ public class InputParser {
     }
 
     private DataFieldDefinition parseNamedField_(AtomicInteger ordinal, Map<String, Type> constraints) {
-        return node(DataFieldDefinition.builder(), builder -> builder
-            .withOrdinal(ordinal.getAndIncrement())
-            .withName(requireWord())
-            .withType(parseType(constraints)));
+        return node(DataFieldDefinition.builder(), builder -> {
+            builder
+                .withOrdinal(ordinal.getAndIncrement())
+                .withName(requireWord());
+            require(DOUBLE_COLON);
+            builder.withType(parseType(constraints));
+        });
     }
 
     private List<DefinitionReference> parseOperatorDefinition() {
@@ -755,8 +793,8 @@ public class InputParser {
         int precedence = parseOperatorPrecedence();
         return parseSymbols().stream()
             .map(pair -> pair.into(
-                (symbol, sourceRange) -> OperatorDefinition.builder()
-                    .withSourceRange(sourceRange)
+                (symbol, sourceLocation) -> OperatorDefinition.builder()
+                    .withSourceLocation(sourceLocation)
                     .withSymbol(symbol)
                     .withFixity(fixity)
                     .withPrecedence(precedence)
@@ -785,10 +823,14 @@ public class InputParser {
     private int parseOperatorPrecedence() {
         int precedence = requireInt();
         if (precedence > 20) {
-            throw parseException("Can't have operator precedence higher than 20", getSourceRange());
+            throw parseException("Can't have operator precedence higher than 20", getSourceLocation());
         } else {
             return precedence;
         }
+    }
+
+    private Optional<PatternMatch> parseOptionalLiteralMatch() {
+        return parseLiteralMatch(false);
     }
 
     private Optional<PatternMatch> parseOptionalMatch() {
@@ -797,6 +839,53 @@ public class InputParser {
 
     private Optional<Value> parseOptionalPrimary() {
         return parsePrimary(false);
+    }
+
+    private PatternMatcher parsePatternLiteral() {
+        return scoped(() -> node(PatternMatcher.builder(),
+            patternMatcher -> definition(ScopeDefinition.builder(),
+                matcherScope -> named(reserveSymbol(),
+                    matcherSymbol -> {
+                        matcherScope.withSymbol(matcherSymbol);
+                        patternMatcher.withSymbol(matcherSymbol);
+                        patternMatcher.withType(reserveType());
+                        patternMatcher.withPatterns(asList(scoped(() -> node(PatternCase.builder(),
+                            patternCaseBuilder -> definition(ScopeDefinition.builder(),
+                                patternCaseScope -> named(reserveSymbol(), patternSymbol -> {
+                                    patternCaseScope.withSymbol(patternSymbol);
+                                    patternCaseBuilder.withSymbol(patternSymbol);
+                                    require(BACKSLASH);
+                                    AtomicInteger counter = new AtomicInteger();
+                                    List<PatternMatch> matches = parsePatternLiteralMatches();
+                                    List<Argument> arguments = matches.stream()
+                                        .map(match -> Argument.builder()
+                                            .withName("#" + counter.getAndIncrement())
+                                            .withType(reserveType())
+                                            .withSourceLocation(match.getSourceLocation())
+                                            .build())
+                                        .collect(toList());
+                                    patternCaseBuilder.withMatches(matches);
+                                    patternMatcher.withArguments(arguments);
+                                    require(ARROW);
+                                    patternCaseBuilder.withBody(parseExpression());
+                                })
+                            )
+                        ))));
+                    }
+                )
+            )
+        ));
+    }
+
+    private List<PatternMatch> parsePatternLiteralMatches() {
+        List<PatternMatch> matches = new ArrayList<>();
+        matches.add(parseRequiredLiteralMatch());
+        Optional<PatternMatch> match = parseOptionalLiteralMatch();
+        while (match.isPresent()) {
+            matches.add(match.get());
+            match = parseOptionalLiteralMatch();
+        }
+        return matches;
     }
 
     private List<PatternMatch> parsePatternMatches() {
@@ -823,7 +912,7 @@ public class InputParser {
         } else if (expects(LEFT_SQUARE_BRACE)) {
             value = parseList();
         } else if (expects(BACKSLASH)) {
-            value = parseFunction();
+            value = parsePatternLiteral();
         } else if (expects(KEYWORD_LET)) {
             value = parseLet();
         } else if (expects(KEYWORD_DO)) {
@@ -844,6 +933,10 @@ public class InputParser {
             parts.add(requireWord());
         }
         return join(".", parts);
+    }
+
+    private PatternMatch parseRequiredLiteralMatch() {
+        return parseLiteralMatch(true).get();
     }
 
     private PatternMatch parseRequiredMatch() {
@@ -893,14 +986,14 @@ public class InputParser {
         }
     }
 
-    private List<Pair<Symbol, SourceRange>> parseSymbols() {
-        List<Pair<Symbol, SourceRange>> symbols = new ArrayList<>();
+    private List<Pair<Symbol, SourceLocation>> parseSymbols() {
+        List<Pair<Symbol, SourceLocation>> symbols = new ArrayList<>();
         markPosition();
-        symbols.add(pair(parseSymbol(), getSourceRange()));
+        symbols.add(pair(parseSymbol(), getSourceLocation()));
         while (expects(COMMA)) {
             nextToken();
             markPosition();
-            symbols.add(pair(parseSymbol(), getSourceRange()));
+            symbols.add(pair(parseSymbol(), getSourceLocation()));
         }
         return symbols;
     }
@@ -915,7 +1008,7 @@ public class InputParser {
             }
             require(RIGHT_PARENTHESIS);
             if (builder.hasTooManyMembers()) {
-                throw parseException("Tuple can't have more than " + builder.maxMembers() + " members", scanner.peekAt(0).getSourceRange());
+                throw parseException("Tuple can't have more than " + builder.maxMembers() + " members", scanner.peekAt(0).getSourceLocation());
             } else if (builder.isTuple()) {
                 builder.withType(reserveType());
                 builder.withTupleType(reserveType());
@@ -958,7 +1051,7 @@ public class InputParser {
                     markPosition();
                     if (isLowerCase(memberName.charAt(0))) {
                         if (optionalModuleName.isPresent()) {
-                            throw parseException("Type name must be uppercase", peekSourceRange());
+                            throw parseException("Type name must be uppercase", peekSourceLocation());
                         } else {
                             return constraints.getOrDefault(memberName, var(memberName));
                         }
@@ -991,17 +1084,25 @@ public class InputParser {
         }
     }
 
+    private PatternMatch parseUnshuffledMatch() {
+        return node(UnshuffledStructureMatch.builder(), builder -> {
+            builder.withType(reserveType());
+            builder.withPatternMatch(parseRequiredMatch());
+            while (expectsMatch()) {
+                builder.withPatternMatch(parseRequiredMatch());
+            }
+        });
+    }
+
     private DefinitionReference parseValueDefinition() {
         if (expectsAt(1, ASSIGN)) {
-            return scoped(() -> definition(ValueDefinition.builder(), builder -> {
-                Symbol symbol = qualify(requireMemberName());
-                builder.withSymbol(symbol);
-                memberNames.push(symbol.getMemberNames());
-                require(ASSIGN);
-                builder.withType(reserveType())
-                    .withBody(parseExpression());
-                memberNames.pop();
-            }));
+            return scoped(() -> definition(ValueDefinition.builder(),
+                builder -> named(qualify(requireMemberName()),
+                    symbol -> {
+                        builder.withSymbol(symbol);
+                        require(ASSIGN);
+                        builder.withBody(parseExpression());
+                    })));
         } else {
             return scoped(() -> definition(UnshuffledDefinition.builder(), builder -> {
                 builder.withMatches(parsePatternMatches());
@@ -1018,14 +1119,14 @@ public class InputParser {
     }
 
     private List<DefinitionReference> parseValueSignatures() {
-        List<Pair<Symbol, SourceRange>> symbolList = parseSymbols();
+        List<Pair<Symbol, SourceLocation>> symbolList = parseSymbols();
         Type type = parseValueSignature();
         return symbolList.stream()
             .map(pair -> pair.into(
-                (symbol, sourceRange) -> ValueSignature.builder()
+                (symbol, sourceLocation) -> ValueSignature.builder()
                     .withSymbol(symbol)
                     .withType(type)
-                    .withSourceRange(sourceRange)
+                    .withSourceLocation(sourceLocation)
                     .build()))
             .map(this::collect)
             .collect(toList());
@@ -1042,7 +1143,7 @@ public class InputParser {
         return scanner.peekAt(offset);
     }
 
-    private SourceRange peekSourceRange() {
+    private SourceLocation peekSourceLocation() {
         return positions.peek().to(scanner.getPosition());
     }
 
@@ -1173,8 +1274,8 @@ public class InputParser {
     private ParseException unexpected(TokenKind wantedKind) {
         return parseException(
             "Unexpected " + scanner.peekAt(0).getKind()
-                + "; wanted " + wantedKind + " ",
-            scanner.peekAt(0).getSourceRange()
+                + "; wanted " + wantedKind,
+            scanner.peekAt(0).getSourceLocation()
         );
     }
 
@@ -1182,7 +1283,7 @@ public class InputParser {
         return parseException(
             "Unexpected " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
                 + "; wanted " + wantedKind + " with value " + quote(wantedValue),
-            scanner.peekAt(0).getSourceRange()
+            scanner.peekAt(0).getSourceLocation()
         );
     }
 
@@ -1191,7 +1292,7 @@ public class InputParser {
             "Unexpected " + scanner.peekAt(0).getKind() + " with value " + quote(scanner.peekAt(0).getValue())
                 + "; wanted " + wantedKind + " with one value of"
                 + " [" + join(", ", stream(wantedValues).map(StringUtil::quote).collect(toList())) + "]",
-            scanner.peekAt(0).getSourceRange()
+            scanner.peekAt(0).getSourceLocation()
         );
     }
 
@@ -1199,7 +1300,7 @@ public class InputParser {
         return parseException(
             "Unexpected " + scanner.peekAt(0).getKind()
                 + "; wanted one of [" + join(", ", wantedKinds.stream().map(Object::toString).collect(toList())) + "]",
-            scanner.peekAt(0).getSourceRange()
+            scanner.peekAt(0).getSourceLocation()
         );
     }
 
@@ -1210,14 +1311,14 @@ public class InputParser {
     @AllArgsConstructor
     private class BindExpression extends DoExpression {
 
-        @NonNull private final SourceRange sourceRange;
-        @NonNull private final Symbol      symbol;
-        @NonNull private final Argument    argument;
-        @NonNull private final Value       value;
+        @NonNull private final SourceLocation sourceLocation;
+        @NonNull private final Symbol         symbol;
+        @NonNull private final Argument       argument;
+        @NonNull private final Value          value;
 
         @Override
         public List<Value> toValue() {
-            throw new ParseException("Unexpected bind in do-notation", value.getSourceRange());
+            throw new ParseException("Unexpected bind in do-notation", value.getSourceLocation());
         }
 
         @Override
@@ -1225,20 +1326,20 @@ public class InputParser {
             List<Value> outerValues = new ArrayList<Value>() {{
                 UnshuffledValue.Builder unshuffled = UnshuffledValue.builder();
                 values.forEach(unshuffled::withMember);
-                unshuffled.withSourceRange(SourceRange.extent(values.stream()
-                    .map(Value::getSourceRange)
+                unshuffled.withSourceLocation(SourceLocation.extent(values.stream()
+                    .map(Value::getSourceLocation)
                     .collect(toList())));
                 add(value);
                 add(Identifier.builder()
                     .withSymbol(qualified("scotch.control.monad", ">>="))
                     .withType(reserveType())
-                    .withSourceRange(value.getSourceRange().getEndRange())
+                    .withSourceLocation(value.getSourceLocation().getEndPoint())
                     .build());
                 add(FunctionValue.builder()
                     .withSymbol(symbol)
                     .withArguments(asList(argument))
                     .withBody(unshuffled.build())
-                    .withSourceRange(sourceRange)
+                    .withSourceLocation(sourceLocation)
                     .build());
             }};
             values.clear();
@@ -1248,15 +1349,15 @@ public class InputParser {
 
     private final class BindExpressionBuilder implements SyntaxBuilder<BindExpression> {
 
-        private Optional<SourceRange> sourceRange;
-        private Optional<Symbol>      symbol;
-        private Optional<Argument>    argument;
-        private Optional<Value>       value;
+        private Optional<SourceLocation> sourceLocation;
+        private Optional<Symbol>         symbol;
+        private Optional<Argument>       argument;
+        private Optional<Value>          value;
 
         @Override
         public BindExpression build() {
             return new BindExpression(
-                BuilderUtil.require(sourceRange, "Source range"),
+                BuilderUtil.require(sourceLocation, "Source location"),
                 BuilderUtil.require(symbol, "Symbol"),
                 BuilderUtil.require(argument, "Argument"),
                 BuilderUtil.require(value, "Value")
@@ -1269,8 +1370,8 @@ public class InputParser {
         }
 
         @Override
-        public BindExpressionBuilder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public BindExpressionBuilder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 
@@ -1374,7 +1475,7 @@ public class InputParser {
             values.add(1, Identifier.builder()
                 .withSymbol(qualified("scotch.control.monad", ">>"))
                 .withType(reserveType())
-                .withSourceRange(value.getSourceRange().getEndRange())
+                .withSourceLocation(value.getSourceLocation().getEndPoint())
                 .build());
         }
     }

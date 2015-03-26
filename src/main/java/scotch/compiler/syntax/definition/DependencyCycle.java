@@ -1,7 +1,7 @@
 package scotch.compiler.syntax.definition;
 
 import static java.util.stream.Collectors.joining;
-import static scotch.compiler.text.SourceRange.NULL_SOURCE;
+import static scotch.compiler.text.SourceLocation.NULL_SOURCE;
 import static scotch.compiler.text.TextUtil.repeat;
 
 import java.util.Collection;
@@ -9,8 +9,8 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import com.google.common.collect.ImmutableSet;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.text.SourceRange;
+import scotch.symbol.Symbol;
+import scotch.compiler.text.SourceLocation;
 
 public class DependencyCycle {
 
@@ -53,15 +53,15 @@ public class DependencyCycle {
         }
 
         public Builder addNode(DefinitionNode node) {
-            return addNode(node.getSymbol(), node.getSourceRange(), node.getDependencies());
+            return addNode(node.getSymbol(), node.getSourceLocation(), node.getDependencies());
         }
 
         public Builder addNode(Symbol symbol, Collection<Symbol> dependencies) {
             return addNode(symbol, NULL_SOURCE, dependencies);
         }
 
-        public Builder addNode(Symbol symbol, SourceRange sourceRange, Collection<Symbol> dependencies) {
-            nodes.add(new Node(symbol, sourceRange, dependencies));
+        public Builder addNode(Symbol symbol, SourceLocation sourceLocation, Collection<Symbol> dependencies) {
+            nodes.add(new Node(symbol, sourceLocation, dependencies));
             return this;
         }
 
@@ -72,13 +72,13 @@ public class DependencyCycle {
 
     public static final class Node {
 
-        private final Symbol      symbol;
-        private final SourceRange sourceRange;
-        private final Set<Symbol> dependencies;
+        private final Symbol         symbol;
+        private final SourceLocation sourceLocation;
+        private final Set<Symbol>    dependencies;
 
-        public Node(Symbol symbol, SourceRange sourceRange, Collection<Symbol> dependencies) {
+        public Node(Symbol symbol, SourceLocation sourceLocation, Collection<Symbol> dependencies) {
             this.symbol = symbol;
-            this.sourceRange = sourceRange;
+            this.sourceLocation = sourceLocation;
             this.dependencies = ImmutableSet.copyOf(dependencies);
         }
 
@@ -89,7 +89,7 @@ public class DependencyCycle {
             } else if (o instanceof Node) {
                 Node other = (Node) o;
                 return Objects.equals(symbol, other.symbol)
-                    && Objects.equals(sourceRange, other.sourceRange)
+                    && Objects.equals(sourceLocation, other.sourceLocation)
                     && Objects.equals(dependencies, other.dependencies);
             } else {
                 return false;
@@ -104,16 +104,16 @@ public class DependencyCycle {
         public String prettyPrint() {
             return "Method " + symbol.quote() + " depends on ["
                 + dependencies.stream().map(Symbol::quote).collect(joining(", "))
-                + "]" + " " + sourceRange.prettyPrint();
+                + "]" + " " + sourceLocation.prettyPrint();
         }
 
         public String report(String indent, int indentLevel) {
-            return sourceRange.report(indent, indentLevel) + "\n"
+            return sourceLocation.report(indent, indentLevel) + "\n"
                 + repeat(indent, indentLevel + 1) + "Can't analyze types! Dependency cycle detected:\n"
                 + repeat(indent, indentLevel + 2) + "- " + symbol.quote() + "\n"
                 + dependencies.stream()
-                    .map(symbol -> repeat(indent, indentLevel + 2) + "- " + symbol.quote())
-                    .collect(joining("\n"));
+                .map(symbol -> repeat(indent, indentLevel + 2) + "- " + symbol.quote())
+                .collect(joining("\n"));
         }
     }
 }

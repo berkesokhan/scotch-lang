@@ -1,20 +1,20 @@
 package scotch.control.monad;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.symbol.Value.Fixity.LEFT_INFIX;
-import static scotch.compiler.symbol.type.Types.ctor;
-import static scotch.compiler.symbol.type.Types.fn;
-import static scotch.compiler.symbol.type.Types.sum;
-import static scotch.compiler.symbol.type.Types.var;
-import static scotch.runtime.RuntimeUtil.applicable;
-import static scotch.runtime.RuntimeUtil.callable;
-import static scotch.runtime.RuntimeUtil.flatCallable;
+import static scotch.symbol.Value.Fixity.LEFT_INFIX;
+import static scotch.symbol.type.Types.ctor;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.var;
+import static scotch.runtime.RuntimeSupport.applicable;
+import static scotch.runtime.RuntimeSupport.callable;
+import static scotch.runtime.RuntimeSupport.flatCallable;
 
-import scotch.compiler.symbol.TypeClass;
-import scotch.compiler.symbol.TypeParameter;
-import scotch.compiler.symbol.Value;
-import scotch.compiler.symbol.ValueType;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.TypeClass;
+import scotch.symbol.TypeParameter;
+import scotch.symbol.Value;
+import scotch.symbol.ValueType;
+import scotch.symbol.type.Type;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 

@@ -7,8 +7,13 @@ import static me.qmx.jitescript.util.CodegenUtils.ci;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
 import static org.apache.commons.lang.StringUtils.capitalize;
+import static org.objectweb.asm.Opcodes.ACC_FINAL;
+import static org.objectweb.asm.Opcodes.ACC_PRIVATE;
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
+import static org.objectweb.asm.Opcodes.ACC_STATIC;
+import static org.objectweb.asm.Opcodes.ACC_SYNTHETIC;
 import static scotch.compiler.syntax.builder.BuilderUtil.require;
+import static scotch.symbol.FieldSignature.fieldSignature;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -17,42 +22,53 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import lombok.EqualsAndHashCode;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.JiteClass;
+import me.qmx.jitescript.LambdaBlock;
 import org.objectweb.asm.tree.LabelNode;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.ScopedNameQualifier;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Callable;
 import scotch.runtime.Copyable;
+import scotch.runtime.RuntimeSupport;
+import scotch.symbol.FieldSignature;
+import scotch.symbol.Symbol;
+import scotch.symbol.descriptor.DataConstructorDescriptor;
 
-@EqualsAndHashCode(callSuper = false)
+@EqualsAndHashCode(callSuper = false, doNotUseGetters = true)
 public class DataConstructorDefinition implements Comparable<DataConstructorDefinition> {
 
     public static Builder builder() {
         return new Builder();
     }
 
-    private final SourceRange                      sourceRange;
+    private final SourceLocation                   sourceLocation;
     private final int                              ordinal;
     private final Symbol                           dataType;
     private final Symbol                           symbol;
     private final Map<String, DataFieldDefinition> fields;
+    private final Optional<FieldSignature>         constantField;
 
-    private DataConstructorDefinition(SourceRange sourceRange, int ordinal, Symbol dataType, Symbol symbol, List<DataFieldDefinition> fields) {
+    private DataConstructorDefinition(SourceLocation sourceLocation, int ordinal, Symbol dataType, Symbol symbol, List<DataFieldDefinition> fields) {
         List<DataFieldDefinition> sortedFields = new ArrayList<>(fields);
         sort(sortedFields);
-        this.sourceRange = sourceRange;
+        this.sourceLocation = sourceLocation;
         this.ordinal = ordinal;
         this.dataType = dataType;
         this.symbol = symbol;
         this.fields = new LinkedHashMap<>();
         sortedFields.forEach(field -> this.fields.put(field.getName(), field));
+        if (fields.isEmpty()) {
+            String className = symbol.getClassNameAsChildOf(dataType);
+            constantField = Optional.of(fieldSignature(className, ACC_STATIC | ACC_PUBLIC | ACC_FINAL, "INSTANCE", ci(Callable.class)));
+        } else {
+            constantField = Optional.empty();
+        }
     }
 
     public void accumulateNames(NameAccumulator state) {
@@ -64,15 +80,20 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
         return ordinal - o.ordinal;
     }
 
+    public FieldSignature getConstantField() {
+        return constantField.orElseThrow(() -> new IllegalStateException("Data constructor " + symbol + " is not niladic"));
+    }
+
     public void generateBytecode(BytecodeGenerator state) {
         JiteClass parentClass = state.currentClass();
         if (isNiladic()) {
-            state.beginConstant(state.getDataConstructorClass(symbol), sourceRange);
+            state.beginConstant(state.getDataConstructorClass(symbol), sourceLocation);
             parentClass.addChildClass(state.currentClass());
+            generateInstanceField(state);
             generateToString(state);
             state.endClass();
         } else {
-            state.beginConstructor(state.getDataConstructorClass(symbol), sourceRange);
+            state.beginConstructor(state.getDataConstructorClass(symbol), sourceLocation);
             parentClass.addChildClass(state.currentClass());
             generateFields(state);
             generateConstructor(state, parentClass);
@@ -101,8 +122,8 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
         return new ArrayList<>(fields.values());
     }
 
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -259,6 +280,26 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
         }});
     }
 
+    private void generateInstanceField(BytecodeGenerator state) {
+        JiteClass jiteClass = state.currentClass();
+        String className = jiteClass.getClassName();
+        getConstantField().defineOn(jiteClass);
+        jiteClass.defineMethod("<clinit>", ACC_STATIC | ACC_SYNTHETIC | ACC_PRIVATE, sig(void.class), new CodeBlock() {{
+            lambda(jiteClass, new LambdaBlock(state.reserveLambda()) {{
+                function(p(Supplier.class), "get", sig(Object.class));
+                delegateTo(ACC_STATIC, sig(Object.class), new CodeBlock() {{
+                    newobj(className);
+                    dup();
+                    invokespecial(className, "<init>", sig(void.class));
+                    areturn();
+                }});
+            }});
+            invokestatic(p(RuntimeSupport.class), "callable", sig(Callable.class, Supplier.class));
+            append(getConstantField().putValue());
+            voidreturn();
+        }});
+    }
+
     private void generateToString(BytecodeGenerator state) {
         state.method("toString", ACC_PUBLIC, sig(String.class), new CodeBlock() {{
             newobj(p(StringBuilder.class));
@@ -299,12 +340,12 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
     }
 
     private DataConstructorDefinition withFields(List<DataFieldDefinition> fields) {
-        return new DataConstructorDefinition(sourceRange, ordinal, dataType, symbol, fields);
+        return new DataConstructorDefinition(sourceLocation, ordinal, dataType, symbol, fields);
     }
 
     public static class Builder implements SyntaxBuilder<DataConstructorDefinition> {
 
-        private Optional<SourceRange>     sourceRange = Optional.empty();
+        private Optional<SourceLocation>  sourceLocation = Optional.empty();
         private Optional<Integer>         ordinal     = Optional.empty();
         private Optional<Symbol>          dataType    = Optional.empty();
         private Optional<Symbol>          symbol      = Optional.empty();
@@ -318,7 +359,7 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
         @Override
         public DataConstructorDefinition build() {
             return new DataConstructorDefinition(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(ordinal, "Ordinal"),
                 require(dataType, "Constructor data type"),
                 require(symbol, "Constructor symbol"),
@@ -342,8 +383,8 @@ public class DataConstructorDefinition implements Comparable<DataConstructorDefi
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

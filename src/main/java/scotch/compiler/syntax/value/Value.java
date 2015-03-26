@@ -7,6 +7,8 @@ import static scotch.compiler.util.Either.left;
 import java.util.List;
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
+import scotch.compiler.intermediate.IntermediateValue;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -14,11 +16,11 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.Operator;
-import scotch.compiler.symbol.type.SumType;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.Operator;
+import scotch.symbol.type.SumType;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Either;
 import scotch.compiler.util.Pair;
 
@@ -32,6 +34,8 @@ public abstract class Value {
 
     public abstract Value accumulateNames(NameAccumulator state);
 
+    public abstract IntermediateValue generateIntermediateCode(IntermediateGenerator state);
+
     public WithArguments withArguments() {
         return withoutArguments(this);
     }
@@ -40,7 +44,7 @@ public abstract class Value {
         Value checkedValue = checkTypes(state);
         if (checkedValue.getType() instanceof SumType) {
             return Optional.of(new CopyInitializer(
-                initializer.getSourceRange(),
+                initializer.getSourceLocation(),
                 checkedValue,
                 initializer.getFields().stream()
                     .map(field -> field.checkTypes(state))
@@ -56,7 +60,7 @@ public abstract class Value {
 
     public abstract Value bindTypes(TypeChecker state);
 
-    public abstract Value bindMethods(TypeChecker state, InstanceMap instances);
+    public abstract Value bindMethods(TypeChecker state);
 
     public abstract Value checkTypes(TypeChecker state);
 
@@ -75,7 +79,7 @@ public abstract class Value {
 
     public abstract CodeBlock generateBytecode(BytecodeGenerator state);
 
-    public abstract SourceRange getSourceRange();
+    public abstract SourceLocation getSourceLocation();
 
     public abstract Type getType();
 

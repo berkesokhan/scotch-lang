@@ -2,27 +2,39 @@ package scotch.compiler.syntax.pattern;
 
 import java.util.List;
 import java.util.Optional;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.Symbol;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public final class Patterns {
 
-    public static CaptureMatch capture(SourceRange sourceRange, Optional<String> argument, Symbol symbol, Type type) {
-        return new CaptureMatch(sourceRange, argument, symbol, type);
+    public static CaptureMatch capture(SourceLocation sourceLocation, Optional<String> argument, Symbol symbol, Type type) {
+        return new CaptureMatch(sourceLocation, argument, symbol, type);
     }
 
-    public static EqualMatch equal(SourceRange sourceRange, Optional<String> argument, Value value) {
-        return new EqualMatch(sourceRange, argument, value);
+    public static EqualMatch equal(SourceLocation sourceLocation, Optional<String> argument, Value value) {
+        return new EqualMatch(sourceLocation, argument, value);
     }
 
-    public static IgnorePattern ignore(SourceRange sourceRange, Type type) {
-        return new IgnorePattern(sourceRange, type);
+    public static IgnorePattern ignore(SourceLocation sourceLocation, Type type) {
+        return new IgnorePattern(sourceLocation, type);
     }
 
-    public static PatternCase pattern(SourceRange sourceRange, Symbol symbol, List<PatternMatch> matches, Value body) {
-        return new PatternCase(sourceRange, symbol, matches, body);
+    public static TupleField field(SourceLocation sourceLocation, Optional<String> argument, Optional<String> field, Type type, PatternMatch patternMatch) {
+        return new TupleField(sourceLocation, argument, field, type, patternMatch);
+    }
+
+    public static PatternCase pattern(SourceLocation sourceLocation, Symbol symbol, List<PatternMatch> patternMatches, Value body) {
+        return new PatternCase(sourceLocation, symbol, patternMatches, body);
+    }
+
+    public static TupleMatch tuple(SourceLocation sourceLocation, Optional<String> argument, Symbol dataType, Type type, List<TupleField> fields) {
+        return new TupleMatch(sourceLocation, argument, dataType, type, fields);
+    }
+
+    public static UnshuffledStructureMatch unshuffledMatch(SourceLocation sourceLocation, Type type, List<PatternMatch> patternMatches) {
+        return new UnshuffledStructureMatch(sourceLocation, type, patternMatches);
     }
 
     private Patterns() {

@@ -13,32 +13,31 @@ import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.scope.Scope;
-import scotch.compiler.syntax.value.InstanceMap;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 @AllArgsConstructor(access = PACKAGE)
 @EqualsAndHashCode(callSuper = false)
-@ToString(exclude = "sourceRange")
+@ToString(exclude = "sourceLocation")
 public class IgnorePattern extends PatternMatch {
 
     public static Builder builder() {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final Type        type;
+    private final SourceLocation sourceLocation;
+    private final Type           type;
 
     @Override
     public PatternMatch accumulateDependencies(DependencyAccumulator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
     public PatternMatch accumulateNames(NameAccumulator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
@@ -47,28 +46,28 @@ public class IgnorePattern extends PatternMatch {
     }
 
     @Override
-    public PatternMatch bindMethods(TypeChecker state, InstanceMap instances) {
-        throw new UnsupportedOperationException(); // TODO
+    public PatternMatch bindMethods(TypeChecker state) {
+        return this;
     }
 
     @Override
     public PatternMatch bindTypes(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+        return withType(state.generate(type));
     }
 
     @Override
     public PatternMatch checkTypes(TypeChecker state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
     public CodeBlock generateBytecode(BytecodeGenerator state) {
-        throw new UnsupportedOperationException(); // TODO
+        return new CodeBlock();
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     @Override
@@ -78,18 +77,18 @@ public class IgnorePattern extends PatternMatch {
 
     @Override
     public PatternMatch qualifyNames(ScopedNameQualifier state) {
-        throw new UnsupportedOperationException(); // TODO
+        return this;
     }
 
     @Override
-    public PatternMatch withType(Type generate) {
-        throw new UnsupportedOperationException(); // TODO
+    public PatternMatch withType(Type type) {
+        return new IgnorePattern(sourceLocation, type);
     }
 
     public static class Builder implements SyntaxBuilder<IgnorePattern> {
 
-        private Optional<SourceRange> sourceRange = Optional.empty();
-        private Optional<Type>        type        = Optional.empty();
+        private Optional<SourceLocation> sourceLocation = Optional.empty();
+        private Optional<Type>           type        = Optional.empty();
 
         private Builder() {
             // intentionally empty
@@ -98,14 +97,14 @@ public class IgnorePattern extends PatternMatch {
         @Override
         public IgnorePattern build() {
             return new IgnorePattern(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(type, "Type")
             );
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

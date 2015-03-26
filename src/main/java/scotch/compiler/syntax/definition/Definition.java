@@ -4,6 +4,7 @@ import static scotch.compiler.util.Either.left;
 
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -11,9 +12,9 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.Symbol;
+import scotch.symbol.Symbol;
 import scotch.compiler.syntax.Scoped;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Either;
 
 public abstract class Definition implements Scoped {
@@ -47,18 +48,20 @@ public abstract class Definition implements Scoped {
 
     public abstract void generateBytecode(BytecodeGenerator state);
 
+    public abstract void generateIntermediateCode(IntermediateGenerator state);
+
     @Override
     public Definition getDefinition() {
         return this;
     }
 
-    public abstract SourceRange getSourceRange();
+    public abstract SourceLocation getSourceLocation();
 
     @Override
     public abstract int hashCode();
 
     public void markLine(CodeBlock codeBlock) {
-        getSourceRange().markLine(codeBlock);
+        getSourceLocation().markLine(codeBlock);
     }
 
     public abstract Optional<Definition> parsePrecedence(PrecedenceParser state);

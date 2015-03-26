@@ -1,6 +1,6 @@
 package scotch.compiler.steps;
 
-import scotch.compiler.symbol.Operator;
+import scotch.symbol.Operator;
 
 class OperatorPair<T> {
 

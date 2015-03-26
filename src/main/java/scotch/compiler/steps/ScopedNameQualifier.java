@@ -16,15 +16,15 @@ import java.util.function.Supplier;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.error.SymbolNotFoundError;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
-import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
-import scotch.compiler.symbol.NameQualifier;
-import scotch.compiler.symbol.Operator;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Symbol.QualifiedSymbol;
-import scotch.compiler.symbol.Symbol.SymbolVisitor;
-import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.descriptor.DataConstructorDescriptor;
+import scotch.symbol.descriptor.DataTypeDescriptor;
+import scotch.symbol.NameQualifier;
+import scotch.symbol.Operator;
+import scotch.symbol.Symbol;
+import scotch.symbol.Symbol.QualifiedSymbol;
+import scotch.symbol.Symbol.SymbolVisitor;
+import scotch.symbol.Symbol.UnqualifiedSymbol;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
@@ -33,7 +33,7 @@ import scotch.compiler.syntax.reference.DefinitionReference;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class ScopedNameQualifier implements NameQualifier {
 
@@ -194,8 +194,8 @@ public class ScopedNameQualifier implements NameQualifier {
     }
 
     @Override
-    public void symbolNotFound(Symbol symbol, SourceRange sourceRange) {
-        errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceRange));
+    public void symbolNotFound(Symbol symbol, SourceLocation sourceLocation) {
+        errors.add(SymbolNotFoundError.symbolNotFound(symbol, sourceLocation));
     }
 
     private void enterScope(DefinitionReference reference) {

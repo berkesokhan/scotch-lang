@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.intermediate.IntermediateGenerator;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -16,26 +17,26 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.Symbol;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class ClassDefinition extends Definition {
 
-    private final SourceRange               sourceRange;
+    private final SourceLocation            sourceLocation;
     private final Symbol                    symbol;
     private final List<Type>                arguments;
     private final List<DefinitionReference> members;
 
-    ClassDefinition(SourceRange sourceRange, Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
+    ClassDefinition(SourceLocation sourceLocation, Symbol symbol, List<Type> arguments, List<DefinitionReference> members) {
         if (arguments.isEmpty()) {
             throw new IllegalArgumentException("Can't create class definition with 0 arguments");
         } else if (members.isEmpty()) {
             throw new IllegalArgumentException("Can't create class definition with 0 members");
         }
-        this.sourceRange = sourceRange;
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.arguments = ImmutableList.copyOf(arguments);
         this.members = ImmutableList.copyOf(members);
@@ -81,13 +82,18 @@ public class ClassDefinition extends Definition {
     }
 
     @Override
+    public void generateIntermediateCode(IntermediateGenerator state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
     public DefinitionReference getReference() {
         return classRef(symbol);
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -119,19 +125,19 @@ public class ClassDefinition extends Definition {
         private Optional<Symbol>                    symbol;
         private Optional<List<Type>>                arguments;
         private Optional<List<DefinitionReference>> members;
-        private Optional<SourceRange>               sourceRange;
+        private Optional<SourceLocation>            sourceLocation;
 
         public ClassDefinitionBuilder() {
             symbol = Optional.empty();
             arguments = Optional.empty();
             members = Optional.empty();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public ClassDefinition build() {
             return classDef(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Class symbol"),
                 require(arguments, "Class arguments"),
                 require(members, "Class member definitions")
@@ -149,8 +155,8 @@ public class ClassDefinition extends Definition {
         }
 
         @Override
-        public ClassDefinitionBuilder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public ClassDefinitionBuilder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

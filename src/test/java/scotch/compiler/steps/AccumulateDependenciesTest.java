@@ -6,27 +6,33 @@ import static java.util.stream.Collectors.toSet;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static scotch.compiler.symbol.Symbol.symbol;
 import static scotch.compiler.syntax.StubResolver.defaultPlus;
 import static scotch.compiler.syntax.definition.DefinitionGraph.cyclicDependency;
 import static scotch.compiler.util.TestUtil.valueRef;
+import static scotch.symbol.Symbol.symbol;
 
 import java.util.List;
 import java.util.function.Function;
+import org.junit.Before;
 import org.junit.Test;
-import scotch.compiler.*;
 import scotch.compiler.Compiler;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.syntax.StubResolver;
+import scotch.compiler.IsolatedCompilerTest;
 import scotch.compiler.syntax.definition.DefinitionGraph;
 import scotch.compiler.syntax.definition.DependencyCycle;
 import scotch.compiler.util.TestUtil;
+import scotch.symbol.Symbol;
 
-public class AccumulateDependenciesTest extends ParserTest {
+public class AccumulateDependenciesTest extends IsolatedCompilerTest {
+
+    @Before
+    public void setUp() {
+        super.setUp();
+        resolver.define(defaultPlus());
+    }
 
     @Test
     public void shouldAccumulateDependencies() {
-        parse(
+        compile(
             "module scotch.test1",
             "import scotch.test2",
             "import scotch.test3",
@@ -51,7 +57,7 @@ public class AccumulateDependenciesTest extends ParserTest {
 
     @Test
     public void shouldNotGatherExternalDependencies() {
-        parse(
+        compile(
             "module scotch.test1",
             "import scotch.test2",
             "import scotch.data.num",
@@ -68,7 +74,7 @@ public class AccumulateDependenciesTest extends ParserTest {
 
     @Test
     public void shouldOrderDependencies() {
-        parse(
+        compile(
             "module scotch.test1",
             "import scotch.test2",
             "import scotch.test3",
@@ -97,7 +103,7 @@ public class AccumulateDependenciesTest extends ParserTest {
 
     @Test
     public void shouldReportCyclicDependency() {
-        parse(
+        compile(
             "module scotch.test1",
             "import scotch.test2",
             "import scotch.test3",
@@ -122,7 +128,7 @@ public class AccumulateDependenciesTest extends ParserTest {
 
     @Test
     public void shouldOrderDependenciesWithinLet() {
-        parse(
+        compile(
             "module scotch.test",
             "import scotch.data.num",
             "main = let",
@@ -148,17 +154,7 @@ public class AccumulateDependenciesTest extends ParserTest {
     }
 
     @Override
-    protected void initResolver(StubResolver resolver) {
-        resolver.define(defaultPlus());
-    }
-
-    @Override
-    protected Function<scotch.compiler.Compiler, DefinitionGraph> parse() {
+    protected Function<scotch.compiler.Compiler, DefinitionGraph> compile() {
         return Compiler::accumulateDependencies;
-    }
-
-    @Override
-    protected void setUp() {
-        // intentionally empty
     }
 }

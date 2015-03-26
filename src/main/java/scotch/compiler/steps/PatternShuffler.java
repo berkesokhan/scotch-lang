@@ -11,7 +11,7 @@ import java.util.Deque;
 import java.util.List;
 import com.google.common.collect.ImmutableList;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.Symbol;
+import scotch.symbol.Symbol;
 import scotch.compiler.syntax.definition.UnshuffledDefinition;
 import scotch.compiler.syntax.scope.Scope;
 import scotch.compiler.syntax.pattern.CaptureMatch;
@@ -55,7 +55,7 @@ public class PatternShuffler {
                 List<PatternMatch> matches = shufflePattern(pattern.getMatches());
                 return matches.remove(0).asCapture()
                     .map(match -> success(scope.qualifyCurrent(match.getSymbol()).nest(memberNames), matches))
-                    .orElseGet(match -> left(parseError("Illegal start of pattern", match.getSourceRange())));
+                    .orElseGet(match -> left(parseError("Illegal start of pattern", match.getSourceLocation())));
             } catch (ShuffleException exception) {
                 return left(exception.syntaxError);
             }
@@ -69,12 +69,12 @@ public class PatternShuffler {
             return match.asOperator(scope)
                 .map(pair -> pair.into((capture, operator) -> {
                     if (expectsPrefix && !operator.isPrefix()) {
-                        throw new ShuffleException(parseError("Unexpected binary operator " + capture.getSymbol(), capture.getSourceRange()));
+                        throw new ShuffleException(parseError("Unexpected binary operator " + capture.getSymbol(), capture.getSourceLocation()));
                     } else {
                         return new OperatorPair<>(operator, capture);
                     }
                 }))
-                .orElseThrow(() -> new ShuffleException(parseError("Match " + match.prettyPrint() + " is not an operator", match.getSourceRange())));
+                .orElseThrow(() -> new ShuffleException(parseError("Match " + match.prettyPrint() + " is not an operator", match.getSourceLocation())));
         }
 
         private boolean isOperator(PatternMatch match) {

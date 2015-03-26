@@ -1,24 +1,24 @@
 package scotch.data.either;
 
 import static java.util.Arrays.asList;
-import static scotch.compiler.symbol.type.Types.fn;
-import static scotch.compiler.symbol.type.Types.sum;
-import static scotch.compiler.symbol.type.Types.var;
-import static scotch.runtime.Callable.box;
-import static scotch.runtime.RuntimeUtil.applicable;
-import static scotch.runtime.RuntimeUtil.callable;
+import static scotch.runtime.RuntimeSupport.applicable;
+import static scotch.runtime.RuntimeSupport.callable;
+import static scotch.symbol.type.Types.fn;
+import static scotch.symbol.type.Types.sum;
+import static scotch.symbol.type.Types.var;
 
 import java.util.List;
 import java.util.Objects;
-import scotch.compiler.symbol.DataConstructor;
-import scotch.compiler.symbol.DataType;
-import scotch.compiler.symbol.TypeParameter;
-import scotch.compiler.symbol.TypeParameters;
-import scotch.compiler.symbol.Value;
-import scotch.compiler.symbol.ValueType;
-import scotch.compiler.symbol.type.Type;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
+import scotch.runtime.RuntimeSupport;
+import scotch.symbol.DataConstructor;
+import scotch.symbol.DataType;
+import scotch.symbol.TypeParameter;
+import scotch.symbol.TypeParameters;
+import scotch.symbol.Value;
+import scotch.symbol.ValueType;
+import scotch.symbol.type.Type;
 
 @SuppressWarnings("unused")
 @DataType(memberName = "Either", parameters = {
@@ -33,7 +33,7 @@ public abstract class Either<A, B> {
     }
 
     public static <A, B> Either<A, B> left(A value) {
-        return Either.<A, B>left().apply(box(value)).call();
+        return Either.<A, B>left().apply(RuntimeSupport.box(value)).call();
     }
 
     @ValueType(forMember = "Left")
@@ -71,9 +71,7 @@ public abstract class Either<A, B> {
     @Override
     public abstract String toString();
 
-    @DataConstructor(ordinal = 0, memberName = "Left", dataType="Either", parameters = {
-        @TypeParameter(name = "a"),
-    })
+    @DataConstructor(ordinal = 0, memberName = "Left", dataType="Either")
     public static class Left<A, B> extends Either<A, B> {
 
         private final Callable<A> value;
@@ -104,9 +102,7 @@ public abstract class Either<A, B> {
         }
     }
 
-    @DataConstructor(ordinal = 1, memberName = "Right", dataType = "Either", parameters = {
-        @TypeParameter(name = "b"),
-    })
+    @DataConstructor(ordinal = 1, memberName = "Right", dataType = "Either")
     public static class Right<A, B> extends Either<A, B> {
 
         private final Callable<B> value;

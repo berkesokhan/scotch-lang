@@ -3,9 +3,9 @@ package scotch.compiler;
 import static java.lang.management.ManagementFactory.getRuntimeMXBean;
 import static java.util.regex.Pattern.compile;
 import static java.util.stream.Collectors.toList;
-import static scotch.compiler.symbol.Symbol.getPackageName;
-import static scotch.compiler.symbol.Symbol.getPackagePath;
-import static scotch.compiler.symbol.Symbol.toJavaName;
+import static scotch.symbol.Symbol.getPackageName;
+import static scotch.symbol.Symbol.getPackagePath;
+import static scotch.symbol.Symbol.toJavaName;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -27,17 +27,17 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import com.google.common.collect.ImmutableSet;
 import scotch.compiler.output.GeneratedClass;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.Symbol.QualifiedSymbol;
-import scotch.compiler.symbol.Symbol.SymbolVisitor;
-import scotch.compiler.symbol.Symbol.UnqualifiedSymbol;
-import scotch.compiler.symbol.SymbolEntry;
-import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.compiler.symbol.descriptor.TypeParameterDescriptor;
-import scotch.compiler.symbol.exception.SymbolResolutionError;
-import scotch.compiler.symbol.type.SumType;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.Symbol;
+import scotch.symbol.Symbol.QualifiedSymbol;
+import scotch.symbol.Symbol.SymbolVisitor;
+import scotch.symbol.Symbol.UnqualifiedSymbol;
+import scotch.symbol.SymbolEntry;
+import scotch.symbol.SymbolResolver;
+import scotch.symbol.descriptor.TypeInstanceDescriptor;
+import scotch.symbol.descriptor.TypeParameterDescriptor;
+import scotch.symbol.exception.SymbolResolutionError;
+import scotch.symbol.type.SumType;
+import scotch.symbol.type.Type;
 
 public class ClassLoaderResolver extends URLClassLoader implements SymbolResolver {
 

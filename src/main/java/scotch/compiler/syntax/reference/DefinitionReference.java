@@ -1,9 +1,9 @@
 package scotch.compiler.syntax.reference;
 
 import java.util.List;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.compiler.symbol.descriptor.TypeParameterDescriptor;
+import scotch.symbol.Symbol;
+import scotch.symbol.descriptor.TypeInstanceDescriptor;
+import scotch.symbol.descriptor.TypeParameterDescriptor;
 
 public abstract class DefinitionReference {
 

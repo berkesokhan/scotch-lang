@@ -4,14 +4,16 @@ import static scotch.compiler.syntax.builder.BuilderUtil.require;
 import static scotch.compiler.syntax.definition.Definitions.scopeDef;
 import static scotch.compiler.syntax.reference.DefinitionReference.scopeRef;
 import static scotch.compiler.syntax.value.Values.let;
-import static scotch.util.StringUtil.stringify;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
+import scotch.compiler.intermediate.IntermediateValue;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -19,27 +21,28 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.Type;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
+import scotch.symbol.Symbol;
+import scotch.symbol.type.Type;
 
+@ToString(exclude = "sourceLocation", doNotUseGetters = true)
 public class Let extends Value implements Scoped {
 
     public static Builder builder() {
         return new Builder();
     }
 
-    private final SourceRange               sourceRange;
+    private final SourceLocation            sourceLocation;
     private final Symbol                    symbol;
     private final List<DefinitionReference> definitions;
     private final Value                     body;
 
-    Let(SourceRange sourceRange, Symbol symbol, List<DefinitionReference> definitions, Value body) {
-        this.sourceRange = sourceRange;
+    Let(SourceLocation sourceLocation, Symbol symbol, List<DefinitionReference> definitions, Value body) {
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.definitions = ImmutableList.copyOf(definitions);
         this.body = body;
@@ -58,8 +61,13 @@ public class Let extends Value implements Scoped {
     }
 
     @Override
-    public Value bindMethods(TypeChecker state, InstanceMap instances) {
-        return state.scoped(this, () -> withBody(body.bindMethods(state, instances)));
+    public IntermediateValue generateIntermediateCode(IntermediateGenerator state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
+    public Value bindMethods(TypeChecker state) {
+        return state.scoped(this, () -> withBody(body.bindMethods(state)));
     }
 
     @Override
@@ -84,7 +92,7 @@ public class Let extends Value implements Scoped {
             return true;
         } else if (o instanceof Let) {
             Let other = (Let) o;
-            return Objects.equals(sourceRange, other.sourceRange)
+            return Objects.equals(sourceLocation, other.sourceLocation)
                 && Objects.equals(symbol, other.symbol)
                 && Objects.equals(definitions, other.definitions)
                 && Objects.equals(body, other.body);
@@ -105,7 +113,7 @@ public class Let extends Value implements Scoped {
 
     @Override
     public Definition getDefinition() {
-        return scopeDef(sourceRange, symbol);
+        return scopeDef(sourceLocation, symbol);
     }
 
     public DefinitionReference getReference() {
@@ -113,8 +121,8 @@ public class Let extends Value implements Scoped {
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -146,33 +154,28 @@ public class Let extends Value implements Scoped {
             .withBody(body.qualifyNames(state)));
     }
 
-    @Override
-    public String toString() {
-        return stringify(this);
-    }
-
     public Let withBody(Value body) {
-        return new Let(sourceRange, symbol, definitions, body);
+        return new Let(sourceLocation, symbol, definitions, body);
     }
 
     public Let withDefinitions(List<DefinitionReference> definitions) {
-        return new Let(sourceRange, symbol, definitions, body);
+        return new Let(sourceLocation, symbol, definitions, body);
     }
 
     @Override
     public Value withType(Type type) {
-        return new Let(sourceRange, symbol, definitions, body.withType(type));
+        return new Let(sourceLocation, symbol, definitions, body.withType(type));
     }
 
     public static class Builder implements SyntaxBuilder<Let> {
 
-        private Optional<SourceRange>               sourceRange;
+        private Optional<SourceLocation>            sourceLocation;
         private Optional<Symbol>                    symbol;
         private Optional<List<DefinitionReference>> definitions;
         private Optional<Value>                     body;
 
         private Builder() {
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
             symbol = Optional.empty();
             definitions = Optional.empty();
             body = Optional.empty();
@@ -181,7 +184,7 @@ public class Let extends Value implements Scoped {
         @Override
         public Let build() {
             return let(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Let symbol"),
                 require(definitions, "Let definitions"),
                 require(body, "Let body")
@@ -199,8 +202,8 @@ public class Let extends Value implements Scoped {
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 

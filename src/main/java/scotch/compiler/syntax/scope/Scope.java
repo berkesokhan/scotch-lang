@@ -7,27 +7,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import scotch.compiler.symbol.MethodSignature;
-import scotch.compiler.symbol.Operator;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.SymbolEntry;
-import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
-import scotch.compiler.symbol.descriptor.DataTypeDescriptor;
-import scotch.compiler.symbol.descriptor.TypeClassDescriptor;
-import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.compiler.symbol.type.FunctionType;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.type.TypeScope;
-import scotch.compiler.symbol.type.VariableType;
-import scotch.compiler.symbol.util.SymbolGenerator;
 import scotch.compiler.syntax.definition.Import;
+import scotch.compiler.syntax.pattern.PatternCase;
 import scotch.compiler.syntax.reference.ClassReference;
 import scotch.compiler.syntax.reference.ModuleReference;
 import scotch.compiler.syntax.reference.ValueReference;
-import scotch.compiler.syntax.pattern.PatternCase;
-import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
+import scotch.symbol.MethodSignature;
+import scotch.symbol.Operator;
+import scotch.symbol.Symbol;
+import scotch.symbol.SymbolEntry;
+import scotch.symbol.SymbolResolver;
+import scotch.symbol.descriptor.DataConstructorDescriptor;
+import scotch.symbol.descriptor.DataTypeDescriptor;
+import scotch.symbol.descriptor.TypeClassDescriptor;
+import scotch.symbol.descriptor.TypeInstanceDescriptor;
+import scotch.symbol.type.Type;
+import scotch.symbol.type.TypeScope;
+import scotch.symbol.type.VariableType;
+import scotch.symbol.util.SymbolGenerator;
 
 public abstract class Scope implements TypeScope {
 
@@ -35,12 +33,12 @@ public abstract class Scope implements TypeScope {
         return new RootScope(symbolGenerator, resolver);
     }
 
-    public static ModuleScope scope(Scope parent, TypeScope types, SymbolResolver resolver, String moduleName, List<Import> imports) {
-        return new ModuleScope(parent, types, resolver, moduleName, imports);
+    public static ModuleScope scope(Scope parent, TypeScope types, SymbolResolver resolver, SymbolGenerator symbolGenerator, String moduleName, List<Import> imports) {
+        return new ModuleScope(parent, types, resolver, symbolGenerator, moduleName, imports);
     }
 
-    public static ChildScope scope(String moduleName, Scope parent, TypeScope types) {
-        return new ChildScope(moduleName, parent, types);
+    public static ChildScope scope(Scope parent, TypeScope types, SymbolResolver resolver, SymbolGenerator symbolGenerator, String moduleName) {
+        return new ChildScope(parent, types, resolver, symbolGenerator, moduleName);
     }
 
     protected static boolean isConstructor_(Collection<SymbolEntry> entries, Symbol symbol) {
@@ -62,35 +60,13 @@ public abstract class Scope implements TypeScope {
 
     public abstract void addPattern(Symbol symbol, PatternCase pattern);
 
-    public void redefineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor) {
-        Optional<SymbolEntry> optionalEntry = getEntry(symbol);
-        if (optionalEntry.isPresent()) {
-            optionalEntry.get().redefineDataConstructor(descriptor);
-        } else {
-            throw new IllegalStateException("Can't redefine non-existent data constructor " + symbol.quote());
-        }
-    }
-
-    public void redefineDataType(Symbol symbol, DataTypeDescriptor descriptor) {
-        Optional<SymbolEntry> optionalEntry = getEntry(symbol);
-        if (optionalEntry.isPresent()) {
-            optionalEntry.get().redefineDataType(descriptor);
-        } else {
-            throw new IllegalStateException("Can't redefine non-existent data constructor " + symbol.quote());
-        }
-    }
-
-    public void setParent(Scope scope) {
-        throw new IllegalStateException();
-    }
-
     public void capture(String argument) {
         throw new IllegalStateException();
     }
 
-    public abstract void defineDataType(Symbol symbol, DataTypeDescriptor descriptor);
-
     public abstract void defineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor);
+
+    public abstract void defineDataType(Symbol symbol, DataTypeDescriptor descriptor);
 
     public abstract void defineOperator(Symbol symbol, Operator operator);
 
@@ -104,10 +80,6 @@ public abstract class Scope implements TypeScope {
 
     public List<String> getCaptures() {
         throw new IllegalStateException();
-    }
-
-    public Optional<DataTypeDescriptor> getDataType(Symbol symbol) {
-        return getEntry(symbol).flatMap(SymbolEntry::getDataType);
     }
 
     public Optional<DataConstructorDescriptor> getDataConstructor(Symbol symbol) {
@@ -187,6 +159,24 @@ public abstract class Scope implements TypeScope {
 
     public abstract Symbol qualifyCurrent(Symbol symbol);
 
+    public void redefineDataConstructor(Symbol symbol, DataConstructorDescriptor descriptor) {
+        Optional<SymbolEntry> optionalEntry = getEntry(symbol);
+        if (optionalEntry.isPresent()) {
+            optionalEntry.get().redefineDataConstructor(descriptor);
+        } else {
+            throw new IllegalStateException("Can't redefine non-existent data constructor " + symbol.quote());
+        }
+    }
+
+    public void redefineDataType(Symbol symbol, DataTypeDescriptor descriptor) {
+        Optional<SymbolEntry> optionalEntry = getEntry(symbol);
+        if (optionalEntry.isPresent()) {
+            optionalEntry.get().redefineDataType(descriptor);
+        } else {
+            throw new IllegalStateException("Can't redefine non-existent data constructor " + symbol.quote());
+        }
+    }
+
     public void redefineSignature(Symbol symbol, Type type) {
         Optional<SymbolEntry> optionalEntry = getEntry(symbol);
         if (optionalEntry.isPresent()) {
@@ -215,11 +205,15 @@ public abstract class Scope implements TypeScope {
         return getParent().reserveType();
     }
 
+    public void setParent(Scope scope) {
+        throw new IllegalStateException();
+    }
+
     protected MethodSignature computeValueMethod(Symbol symbol, Type type) {
         return MethodSignature.staticMethod(
             symbol.qualifyWith(getModuleName()).getModuleClass(),
             symbol.getMethodName(),
-            type instanceof FunctionType ? sig(Applicable.class) : sig(Callable.class)
+            sig(Callable.class)
         );
     }
 

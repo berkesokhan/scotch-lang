@@ -9,8 +9,8 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static scotch.compiler.symbol.Symbol.qualified;
-import static scotch.compiler.symbol.Symbol.unqualified;
+import static scotch.symbol.Symbol.qualified;
+import static scotch.symbol.Symbol.unqualified;
 import static scotch.compiler.syntax.scope.Scope.scope;
 import static scotch.compiler.util.TestUtil.moduleImport;
 
@@ -20,11 +20,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.SymbolEntry;
-import scotch.compiler.symbol.SymbolResolver;
-import scotch.compiler.symbol.type.Types;
-import scotch.compiler.symbol.util.SymbolGenerator;
+import scotch.symbol.Symbol;
+import scotch.symbol.SymbolEntry;
+import scotch.symbol.SymbolResolver;
+import scotch.symbol.type.Types;
+import scotch.symbol.util.SymbolGenerator;
 
 @RunWith(MockitoJUnitRunner.class)
 public class RootScopeTest {

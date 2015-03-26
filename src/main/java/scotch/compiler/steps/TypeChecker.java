@@ -29,16 +29,16 @@ import com.google.common.collect.ImmutableMap;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import scotch.compiler.error.SyntaxError;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.descriptor.DataConstructorDescriptor;
-import scotch.compiler.symbol.descriptor.TypeInstanceDescriptor;
-import scotch.compiler.symbol.type.InstanceType;
-import scotch.compiler.symbol.type.SumType;
-import scotch.compiler.symbol.type.Type;
-import scotch.compiler.symbol.type.TypeScope;
-import scotch.compiler.symbol.type.Types;
-import scotch.compiler.symbol.type.Unification;
-import scotch.compiler.symbol.type.VariableType;
+import scotch.symbol.Symbol;
+import scotch.symbol.descriptor.DataConstructorDescriptor;
+import scotch.symbol.descriptor.TypeInstanceDescriptor;
+import scotch.symbol.type.InstanceType;
+import scotch.symbol.type.SumType;
+import scotch.symbol.type.Type;
+import scotch.symbol.type.TypeScope;
+import scotch.symbol.type.Types;
+import scotch.symbol.type.Unification;
+import scotch.symbol.type.VariableType;
 import scotch.compiler.syntax.Scoped;
 import scotch.compiler.syntax.definition.Definition;
 import scotch.compiler.syntax.definition.DefinitionEntry;
@@ -53,17 +53,17 @@ import scotch.compiler.syntax.value.FunctionValue;
 import scotch.compiler.syntax.value.InstanceMap;
 import scotch.compiler.syntax.value.Method;
 import scotch.compiler.syntax.value.Value;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 
 public class TypeChecker implements TypeScope {
 
     private static final Object mark = new Object();
 
-    public static SyntaxError ambiguousTypeInstance(Symbol typeClass, List<Type> parameters, Set<TypeInstanceDescriptor> typeInstances, SourceRange location) {
+    public static SyntaxError ambiguousTypeInstance(Symbol typeClass, List<Type> parameters, Set<TypeInstanceDescriptor> typeInstances, SourceLocation location) {
         return new AmbiguousTypeInstanceError(typeClass, parameters, typeInstances, location);
     }
 
-    public static SyntaxError typeInstanceNotFound(Symbol typeClass, List<Type> parameters, SourceRange location) {
+    public static SyntaxError typeInstanceNotFound(Symbol typeClass, List<Type> parameters, SourceLocation location) {
         return new TypeInstanceNotFoundError(typeClass, parameters, location);
     }
 
@@ -153,17 +153,17 @@ public class TypeChecker implements TypeScope {
             errors.add(typeInstanceNotFound(
                 instanceType.getSymbol(),
                 asList(instanceType.getBinding()),
-                method.getSourceRange()
+                method.getSourceLocation()
             ));
         } else if (typeInstances.size() > 1) {
             errors.add(ambiguousTypeInstance(
                 instanceType.getSymbol(),
                 asList(instanceType.getBinding()),
                 typeInstances,
-                method.getSourceRange()
+                method.getSourceLocation()
             ));
         } else {
-            return instance(method.getSourceRange(), instanceRef(typeInstances.iterator().next()), instanceType);
+            return instance(method.getSourceLocation(), instanceRef(typeInstances.iterator().next()), instanceType);
         }
         return method;
     }
@@ -202,7 +202,7 @@ public class TypeChecker implements TypeScope {
             .orElseGet(() -> scope()
                 .getValue(definition.getSymbol())
                 .orElseGet(() -> {
-                    error(symbolNotFound(definition.getSymbol(), definition.getSourceRange()));
+                    error(symbolNotFound(definition.getSymbol(), definition.getSourceLocation()));
                     return reserveType();
                 }));
     }
@@ -277,7 +277,7 @@ public class TypeChecker implements TypeScope {
         InstanceMap instances = buildInstanceMap(definition);
         return scoped(definition, () -> {
             if (instances.isEmpty()) {
-                return definition.withBody(definition.getBody().bindMethods(this, instances));
+                return definition.withBody(definition.getBody().bindMethods(this));
             } else {
                 List<Argument> instanceArguments = getAdditionalArguments(definition, instances);
                 arguments.push(instanceArguments.stream()
@@ -309,7 +309,7 @@ public class TypeChecker implements TypeScope {
                             Scope functionScope = scope().enterScope();
                             scope().insertChild(functionScope);
                             FunctionValue function = FunctionValue.builder()
-                                .withSourceRange(value.getSourceRange())
+                                .withSourceLocation(value.getSourceLocation())
                                 .withSymbol(functionSymbol)
                                 .withArguments(instanceArguments)
                                 .withBody(value)
@@ -321,7 +321,7 @@ public class TypeChecker implements TypeScope {
                             });
                             return function;
                         })
-                        .bindMethods(this, instances));
+                        .bindMethods(this));
                 } finally {
                     arguments.pop();
                 }
@@ -361,7 +361,7 @@ public class TypeChecker implements TypeScope {
         return instances.stream()
             .flatMap(pair -> pair.into((type, classRefs) -> classRefs.stream()
                 .map(classRef -> arg(
-                    definition.getSourceRange().getStartRange(),
+                    definition.getSourceLocation().getStartPoint(),
                     "#" + counter.getAndIncrement() + "i",
                     Types.instance(classRef.getSymbol(), type.simplify())
                 ))))
@@ -383,9 +383,9 @@ public class TypeChecker implements TypeScope {
         scopes.pop();
     }
 
-    public List<Value> bindMethods(List<Value> values, InstanceMap instances) {
+    public List<Value> bindMethods(List<Value> values) {
         return values.stream()
-            .map(value -> value.bindMethods(this, instances))
+            .map(value -> value.bindMethods(this))
             .collect(toList());
     }
 
@@ -409,9 +409,9 @@ public class TypeChecker implements TypeScope {
         private final Symbol                      typeClass;
         private final List<Type>                  parameters;
         private final Set<TypeInstanceDescriptor> typeInstances;
-        private final SourceRange                 location;
+        private final SourceLocation              location;
 
-        private AmbiguousTypeInstanceError(Symbol typeClass, List<Type> parameters, Set<TypeInstanceDescriptor> typeInstances, SourceRange location) {
+        private AmbiguousTypeInstanceError(Symbol typeClass, List<Type> parameters, Set<TypeInstanceDescriptor> typeInstances, SourceLocation location) {
             this.typeClass = typeClass;
             this.parameters = parameters;
             this.typeInstances = typeInstances;
@@ -440,11 +440,11 @@ public class TypeChecker implements TypeScope {
     @ToString
     public static class TypeInstanceNotFoundError extends SyntaxError {
 
-        private final Symbol      typeClass;
-        private final List<Type>  parameters;
-        private final SourceRange location;
+        private final Symbol         typeClass;
+        private final List<Type>     parameters;
+        private final SourceLocation location;
 
-        private TypeInstanceNotFoundError(Symbol typeClass, List<Type> parameters, SourceRange location) {
+        private TypeInstanceNotFoundError(Symbol typeClass, List<Type> parameters, SourceLocation location) {
             this.typeClass = typeClass;
             this.parameters = ImmutableList.copyOf(parameters);
             this.location = location;

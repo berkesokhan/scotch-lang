@@ -7,6 +7,7 @@ import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
 import java.util.Optional;
+import scotch.compiler.intermediate.IntermediateGenerator;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -14,11 +15,11 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.compiler.symbol.Symbol;
-import scotch.compiler.symbol.type.Type;
+import scotch.symbol.Symbol;
+import scotch.symbol.type.Type;
 import scotch.compiler.syntax.builder.SyntaxBuilder;
 import scotch.compiler.syntax.reference.DefinitionReference;
-import scotch.compiler.text.SourceRange;
+import scotch.compiler.text.SourceLocation;
 import scotch.compiler.util.Either;
 
 public class ValueSignature extends Definition {
@@ -27,12 +28,12 @@ public class ValueSignature extends Definition {
         return new Builder();
     }
 
-    private final SourceRange sourceRange;
-    private final Symbol      symbol;
-    private final Type        type;
+    private final SourceLocation sourceLocation;
+    private final Symbol         symbol;
+    private final Type           type;
 
-    ValueSignature(SourceRange sourceRange, Symbol symbol, Type type) {
-        this.sourceRange = sourceRange;
+    ValueSignature(SourceLocation sourceLocation, Symbol symbol, Type type) {
+        this.sourceLocation = sourceLocation;
         this.symbol = symbol;
         this.type = type;
     }
@@ -88,13 +89,18 @@ public class ValueSignature extends Definition {
     }
 
     @Override
+    public void generateIntermediateCode(IntermediateGenerator state) {
+        throw new UnsupportedOperationException(); // TODO
+    }
+
+    @Override
     public DefinitionReference getReference() {
         return signatureRef(symbol);
     }
 
     @Override
-    public SourceRange getSourceRange() {
-        return sourceRange;
+    public SourceLocation getSourceLocation() {
+        return sourceLocation;
     }
 
     public Symbol getSymbol() {
@@ -126,33 +132,33 @@ public class ValueSignature extends Definition {
     }
 
     public ValueSignature withType(Type type) {
-        return new ValueSignature(sourceRange, symbol, type);
+        return new ValueSignature(sourceLocation, symbol, type);
     }
 
     public static class Builder implements SyntaxBuilder<ValueSignature> {
 
-        private Optional<Symbol>      symbol;
-        private Optional<Type>        type;
-        private Optional<SourceRange> sourceRange;
+        private Optional<Symbol>         symbol;
+        private Optional<Type>           type;
+        private Optional<SourceLocation> sourceLocation;
 
         private Builder() {
             type = Optional.empty();
             symbol = Optional.empty();
-            sourceRange = Optional.empty();
+            sourceLocation = Optional.empty();
         }
 
         @Override
         public ValueSignature build() {
             return Definitions.signature(
-                require(sourceRange, "Source range"),
+                require(sourceLocation, "Source location"),
                 require(symbol, "Signature symbol"),
                 require(type, "Signature type")
             );
         }
 
         @Override
-        public Builder withSourceRange(SourceRange sourceRange) {
-            this.sourceRange = Optional.of(sourceRange);
+        public Builder withSourceLocation(SourceLocation sourceLocation) {
+            this.sourceLocation = Optional.of(sourceLocation);
             return this;
         }
 
