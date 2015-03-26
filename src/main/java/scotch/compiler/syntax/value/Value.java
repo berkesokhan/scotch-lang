@@ -7,6 +7,8 @@ import static scotch.compiler.util.Either.left;
 import java.util.List;
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
+import scotch.compiler.intermediate.IntermediateValue;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -31,6 +33,8 @@ public abstract class Value {
     public abstract Value accumulateDependencies(DependencyAccumulator state);
 
     public abstract Value accumulateNames(NameAccumulator state);
+
+    public abstract IntermediateValue generateIntermediateCode(IntermediateGenerator state);
 
     public WithArguments withArguments() {
         return withoutArguments(this);

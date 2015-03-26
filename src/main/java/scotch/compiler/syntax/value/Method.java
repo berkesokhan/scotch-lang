@@ -11,6 +11,9 @@ import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
+import scotch.compiler.intermediate.IntermediateValue;
+import scotch.compiler.intermediate.Intermediates;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -47,6 +50,11 @@ public class Method extends Value {
     @Override
     public Value accumulateNames(NameAccumulator state) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public IntermediateValue generateIntermediateCode(IntermediateGenerator state) {
+        return Intermediates.valueRef(reference);
     }
 
     @Override

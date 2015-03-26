@@ -6,6 +6,7 @@ import static scotch.util.StringUtil.stringify;
 
 import java.util.Objects;
 import java.util.Optional;
+import scotch.compiler.intermediate.IntermediateGenerator;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -68,6 +69,11 @@ public class ScopeDefinition extends Definition {
     @Override
     public void generateBytecode(BytecodeGenerator state) {
         // intentionally empty
+    }
+
+    @Override
+    public void generateIntermediateCode(IntermediateGenerator state) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override

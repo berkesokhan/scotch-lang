@@ -7,6 +7,8 @@ import static scotch.util.StringUtil.quote;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
+import scotch.compiler.intermediate.IntermediateValue;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -22,9 +24,9 @@ import scotch.symbol.type.Type;
 @EqualsAndHashCode(callSuper = false)
 public abstract class LiteralValue<A> extends Value {
 
-    @Getter private final SourceLocation sourceLocation;
-    @Getter private final A              value;
-    @Getter private final Type           type;
+    @Getter protected final SourceLocation sourceLocation;
+    @Getter protected final A              value;
+    @Getter protected final Type           type;
 
     LiteralValue(SourceLocation sourceLocation, A value, Type type) {
         this.sourceLocation = sourceLocation;
@@ -40,6 +42,11 @@ public abstract class LiteralValue<A> extends Value {
     @Override
     public Value accumulateNames(NameAccumulator state) {
         return this;
+    }
+
+    @Override
+    public IntermediateValue generateIntermediateCode(IntermediateGenerator state) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override

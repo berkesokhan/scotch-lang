@@ -14,6 +14,8 @@ import lombok.Getter;
 import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import org.objectweb.asm.tree.LabelNode;
+import scotch.compiler.intermediate.IntermediateGenerator;
+import scotch.compiler.intermediate.IntermediateValue;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -59,6 +61,11 @@ public class Conditional extends Value {
     @Override
     public Value accumulateNames(NameAccumulator state) {
         return parse(state, Value::accumulateNames);
+    }
+
+    @Override
+    public IntermediateValue generateIntermediateCode(IntermediateGenerator state) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override

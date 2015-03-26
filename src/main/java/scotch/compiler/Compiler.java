@@ -3,6 +3,8 @@ package scotch.compiler;
 import java.net.URI;
 import java.util.List;
 import scotch.compiler.error.CompileException;
+import scotch.compiler.intermediate.IntermediateGenerator;
+import scotch.compiler.intermediate.IntermediateGraph;
 import scotch.compiler.output.GeneratedClass;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
@@ -32,8 +34,16 @@ public class Compiler {
         this.scanner = scanner;
     }
 
+    public DefinitionGraph accumulateDependencies() {
+        return new DependencyAccumulator(qualifyNames()).accumulateDependencies();
+    }
+
     public DefinitionGraph accumulateNames() {
         return new NameAccumulator(parsePrecedence()).accumulateNames();
+    }
+
+    public DefinitionGraph accumulateOperators() {
+        return new OperatorAccumulator(parseInput()).accumulateOperators();
     }
 
     public DefinitionGraph checkTypes() {
@@ -44,16 +54,12 @@ public class Compiler {
         return new BytecodeGenerator(checkTypes()).generateBytecode();
     }
 
-    public DefinitionGraph accumulateDependencies() {
-        return new DependencyAccumulator(qualifyNames()).accumulateDependencies();
+    public IntermediateGraph generateIntermediateCode() {
+        return new IntermediateGenerator(checkTypes()).generateIntermediateCode();
     }
 
     public DefinitionGraph parseInput() {
         return new InputParser(symbolResolver, scanner).parse();
-    }
-
-    public DefinitionGraph accumulateOperators() {
-        return new OperatorAccumulator(parseInput()).accumulateOperators();
     }
 
     public DefinitionGraph parsePrecedence() {

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
+import scotch.compiler.intermediate.IntermediateGenerator;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -62,6 +63,11 @@ public class RootDefinition extends Definition {
     @Override
     public void generateBytecode(BytecodeGenerator state) {
         state.generate(this, () -> state.generateBytecode(definitions));
+    }
+
+    @Override
+    public void generateIntermediateCode(IntermediateGenerator state) {
+        definitions.forEach(state::generateIntermediateCode);
     }
 
     @Override

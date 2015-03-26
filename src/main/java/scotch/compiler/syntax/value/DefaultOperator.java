@@ -8,6 +8,8 @@ import static scotch.compiler.util.Pair.pair;
 import java.util.Objects;
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
+import scotch.compiler.intermediate.IntermediateValue;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -55,6 +57,11 @@ public class DefaultOperator extends Value {
     @Override
     public Value accumulateNames(NameAccumulator state) {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public IntermediateValue generateIntermediateCode(IntermediateGenerator state) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override

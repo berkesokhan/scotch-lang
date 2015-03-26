@@ -10,6 +10,7 @@ import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
+import scotch.compiler.intermediate.IntermediateGenerator;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -75,6 +76,11 @@ public class UnshuffledDefinition extends Definition {
     @Override
     public void generateBytecode(BytecodeGenerator state) {
         throw new IllegalStateException("Can't generate bytecode from unshuffled definition");
+    }
+
+    @Override
+    public void generateIntermediateCode(IntermediateGenerator state) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     public Value getBody() {

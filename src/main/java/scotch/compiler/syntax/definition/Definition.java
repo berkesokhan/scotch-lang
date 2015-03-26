@@ -4,6 +4,7 @@ import static scotch.compiler.util.Either.left;
 
 import java.util.Optional;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -46,6 +47,8 @@ public abstract class Definition implements Scoped {
     public abstract boolean equals(Object o);
 
     public abstract void generateBytecode(BytecodeGenerator state);
+
+    public abstract void generateIntermediateCode(IntermediateGenerator state);
 
     @Override
     public Definition getDefinition() {

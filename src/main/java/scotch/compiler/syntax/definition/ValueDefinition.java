@@ -14,6 +14,7 @@ import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -101,6 +102,11 @@ public class ValueDefinition extends Definition {
             append(body.generateBytecode(state));
             areturn();
         }}));
+    }
+
+    @Override
+    public void generateIntermediateCode(IntermediateGenerator state) {
+        state.scoped(this, () -> state.defineValue(getReference(), body.generateIntermediateCode(state)));
     }
 
     public Value getBody() {

@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import com.google.common.collect.ImmutableList;
 import lombok.EqualsAndHashCode;
+import scotch.compiler.intermediate.IntermediateGenerator;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -80,6 +81,11 @@ public class DataTypeDefinition extends Definition {
         state.currentClass().defineDefaultConstructor();
         constructors.values().forEach(constructor -> constructor.generateBytecode(state));
         state.endClass();
+    }
+
+    @Override
+    public void generateIntermediateCode(IntermediateGenerator state) {
+        throw new UnsupportedOperationException(); // TODO
     }
 
     @Override

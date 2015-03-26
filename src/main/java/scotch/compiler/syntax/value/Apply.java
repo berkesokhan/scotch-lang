@@ -3,8 +3,9 @@ package scotch.compiler.syntax.value;
 import static lombok.AccessLevel.PACKAGE;
 import static me.qmx.jitescript.util.CodegenUtils.p;
 import static me.qmx.jitescript.util.CodegenUtils.sig;
-import static scotch.symbol.type.Types.fn;
+import static scotch.compiler.intermediate.Intermediates.apply;
 import static scotch.compiler.syntax.TypeError.typeError;
+import static scotch.symbol.type.Types.fn;
 
 import java.util.function.Supplier;
 import lombok.AllArgsConstructor;
@@ -12,6 +13,8 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 import me.qmx.jitescript.CodeBlock;
 import me.qmx.jitescript.LambdaBlock;
+import scotch.compiler.intermediate.IntermediateGenerator;
+import scotch.compiler.intermediate.IntermediateValue;
 import scotch.compiler.steps.BytecodeGenerator;
 import scotch.compiler.steps.DependencyAccumulator;
 import scotch.compiler.steps.NameAccumulator;
@@ -19,13 +22,13 @@ import scotch.compiler.steps.OperatorAccumulator;
 import scotch.compiler.steps.PrecedenceParser;
 import scotch.compiler.steps.ScopedNameQualifier;
 import scotch.compiler.steps.TypeChecker;
-import scotch.symbol.type.FunctionType;
-import scotch.symbol.type.Type;
-import scotch.symbol.type.Unification;
 import scotch.compiler.text.SourceLocation;
 import scotch.runtime.Applicable;
 import scotch.runtime.Callable;
 import scotch.runtime.SuppliedThunk;
+import scotch.symbol.type.FunctionType;
+import scotch.symbol.type.Type;
+import scotch.symbol.type.Unification;
 
 @AllArgsConstructor(access = PACKAGE)
 @EqualsAndHashCode(callSuper = false)
@@ -46,6 +49,11 @@ public class Apply extends Value {
     public Value accumulateNames(NameAccumulator state) {
         return withFunction(function.accumulateNames(state))
             .withArgument(argument.accumulateNames(state));
+    }
+
+    @Override
+    public IntermediateValue generateIntermediateCode(IntermediateGenerator state) {
+        return apply(state.getCaptures(), function.generateIntermediateCode(state), argument.generateIntermediateCode(state));
     }
 
     @Override
